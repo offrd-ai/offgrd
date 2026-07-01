@@ -10,16 +10,24 @@
     ".acc-head{display:none}",                 /* hidden on desktop */
     "@media "+MQ+"{",
       "body{-webkit-text-size-adjust:100%}",
+      /* stop sideways scroll and let grid/flex children shrink */
+      "html,body{overflow-x:hidden;max-width:100%}",
+      "*{box-sizing:border-box}",
       /* stack every multi-column grid */
       ".grid{grid-template-columns:1fr!important;gap:10px!important}",
       ".repcols{grid-template-columns:1fr!important}",
       ".meta{grid-template-columns:1fr 1fr!important}",
+      ".grid>*,.row>*,.meta>*,.meta label{min-width:0}",
+      ".meta label{display:flex;flex-direction:column}",
+      "input,select,textarea{max-width:100%}",
+      ".meta input,.meta select{width:100%}",
+      "textarea{width:100%!important;min-width:0!important}",
       /* dense button toolbars become swipeable strips instead of exploding vertically */
       ".seg,.presetrow,.modebar,#routeBar,#conceptBar,#blockBar{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:thin}",
       ".seg::-webkit-scrollbar,.presetrow::-webkit-scrollbar,.modebar::-webkit-scrollbar{height:5px}",
       ".seg button,.presetrow .preset,.modebar .btn{flex:0 0 auto;white-space:nowrap}",
       /* comfortable tap targets */
-      ".btn,.preset,.seg button,select,input[type=text],#selLab{min-height:40px}",
+      ".btn,.preset,.seg button,select{min-height:40px}",
       "select,.gamepick select{max-width:100%;width:100%}",
       ".gamepick{width:100%}",
       /* the play field scales to the screen */
@@ -78,7 +86,6 @@
     if(!title){ panel.dataset.accDone="1"; return; }
     panel.dataset.accDone="1";
 
-    // wrap existing children in a body
     var body = document.createElement("div");
     body.className = "acc-body";
     while(panel.firstChild) body.appendChild(panel.firstChild);
@@ -90,7 +97,6 @@
     panel.appendChild(head);
     panel.appendChild(body);
 
-    // remember open/closed per section; default collapsed on phones
     var k = keyFor(title);
     var saved = null; try{ saved = localStorage.getItem(k); }catch(e){}
     if(saved==="open") panel.classList.remove("collapsed");
@@ -108,23 +114,19 @@
     for(var i=0;i<panels.length;i++) enhance(panels[i]);
   }
 
-  // initial + after dynamic view renders (plan / caller / report rebuild their panels)
   function start(){
     pass();
-    var host = document.body;
     var obs = new MutationObserver(function(muts){
-      // ignore if nothing panel-like was added
       for(var m=0;m<muts.length;m++){
         for(var n=0;n<muts[m].addedNodes.length;n++){
           var nd = muts[m].addedNodes[n];
-          if(nd.nodeType===1 && (nd.classList&&nd.classList.contains("panel") || (nd.querySelector&&nd.querySelector(".panel:not([data-acc-done])")))){
+          if(nd.nodeType===1 && ((nd.classList&&nd.classList.contains("panel")) || (nd.querySelector&&nd.querySelector(".panel:not([data-acc-done])")))){
             pass(); return;
           }
         }
       }
     });
-    obs.observe(host, {childList:true, subtree:true});
-    // re-run when crossing the breakpoint (e.g. rotate to portrait)
+    obs.observe(document.body, {childList:true, subtree:true});
     if(mq.addEventListener) mq.addEventListener("change", pass);
     else if(mq.addListener) mq.addListener(pass);
   }

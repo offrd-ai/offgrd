@@ -49,7 +49,7 @@
       <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">— pers —</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
       <button class="btn" id="addWR">+ Player</button>
       <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">— none —</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
-      <span class="lbl" style="margin-left:6px">Field</span><select id="fieldSel"><option>High School</option><option selected>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
+      <span class="lbl" style="margin-left:6px">Field</span><select id="fieldSel"><option selected>High School</option><option>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
       <span class="lbl" style="margin-left:6px">Trace</span><button class="btn" id="imgBtn">Image</button><input type="range" id="bgOp" min="10" max="100" value="50" style="width:84px" title="image opacity"><button class="btn" id="bgClear">Clear</button><input type="file" id="imgFile" accept="image/*" style="display:none">
       <span class="sp" style="flex:1"></span>
       <button class="btn" id="undoBtn" title="Undo">↶ Undo</button>
@@ -103,6 +103,10 @@
 
   <div class="panel" style="padding:6px">
     <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
+    <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
+      <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">▶ Play</button>
+      <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
+    </div>
   </div>
 
   <div class="panel">
@@ -292,7 +296,7 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
   STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
   STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 (Gun)",protection:"",front:"none",coverage:"none",showZones:false,field:"College",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 (Gun)",protection:"",front:"none",coverage:"none",showZones:false,field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
 
 /* ---- undo ---- */
 function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>40)UNDO.shift();REDO=[];syncUndo();}
@@ -313,10 +317,12 @@ function hitHandle(pt){ if(!SEL) return null; const start={x:SEL.x,y:SEL.y}; let
 }
 
 /* ---- render ---- */
-function fieldSVG(){const ft=(STATE&&STATE.field)||"College";const HX={"High School":[380,620],"College":[420,580],"NFL":[462,538],"Red Zone":[420,580],"Blank":null}[ft];let s="";
+function fieldSVG(){const ft=(STATE&&STATE.field)||"High School";const HX={"High School":[380,620],"College":[420,580],"NFL":[462,538],"Red Zone":[420,580],"Blank":null}[ft];let s="";
   if(ft==="Red Zone"){ s+=`<rect x="20" y="20" width="960" height="98" fill="rgba(168,17,43,.32)"/>`; for(let gx=40;gx<=960;gx+=38)s+=`<line x1="${gx}" y1="22" x2="${gx}" y2="118" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>`; s+=`<text x="500" y="78" font-size="22" font-weight="800" fill="rgba(255,255,255,.65)" text-anchor="middle" letter-spacing="6">END ZONE</text><line x1="20" y1="120" x2="980" y2="120" stroke="#fff" stroke-width="4"/>`; }
-  for(let y=40;y<=600;y+=53){s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;}
-  if(HX){for(let y=40;y<=600;y+=53){s+=`<line x1="${HX[0]}" y1="${y-6}" x2="${HX[0]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/><line x1="${HX[1]}" y1="${y-6}" x2="${HX[1]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/>`;}}
+  const SP=53,ys=[];for(let y=LOS;y>=34;y-=SP)ys.unshift(y);for(let y=LOS+SP;y<=606;y+=SP)ys.push(y);
+  ys.forEach(y=>{s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;});
+  if(HX){ys.forEach(y=>{s+=`<line x1="${HX[0]}" y1="${y-6}" x2="${HX[0]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/><line x1="${HX[1]}" y1="${y-6}" x2="${HX[1]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/>`;});}
+  ys.forEach(y=>{const yd=Math.round((LOS-y)/SP*5);if(yd>0&&yd<=40){s+=`<text x="30" y="${y+4}" font-size="13" font-weight="800" fill="rgba(255,255,255,.55)" text-anchor="middle">${yd}</text><text x="970" y="${y+4}" font-size="13" font-weight="800" fill="rgba(255,255,255,.55)" text-anchor="middle">${yd}</text>`;}});
   s+=`<line x1="20" y1="${LOS}" x2="980" y2="${LOS}" stroke="#ffd24a" stroke-width="3"/>`;return s;}
 function routeD(p){const start={x:p.x,y:p.y};if(!p.route.length)return"";let d=`M ${start.x} ${start.y}`;let prev=start;p.route.forEach(a=>{ if(a.cx!=null)d+=` Q ${a.cx} ${a.cy} ${a.x} ${a.y}`; else d+=` L ${a.x} ${a.y}`; prev={x:a.x,y:a.y};});return d;}
 function routePath(p){const d=routeD(p);if(!d)return"";const col=p.color||"#bfe3ff";return `<path d="${d}" fill="none" stroke="${col}" stroke-width="3.5" marker-end="url(#arr)"/>`;}
@@ -444,7 +450,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
   sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();};
   document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;
-  document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=()=>{cancelAnim();renderAll();};
+  const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
   document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];});renderAll();};
   document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
   document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
