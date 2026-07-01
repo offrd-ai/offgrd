@@ -46,6 +46,13 @@ function bar(user){
     acct.innerHTML = '<button class="cbtn" id="ci">Sign in</button>'; styleBtns();
     acct.querySelector("#ci").onclick = login; return;
   }
+  if(!TEAM){
+    acct.innerHTML = '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span> <button class="cbtn" id="csetup">Set up program</button> <button class="cbtn" id="co">Sign out</button>';
+    styleBtns();
+    acct.querySelector("#csetup").onclick = openTeam;
+    acct.querySelector("#co").onclick = () => Cloud.signOut();
+    return;
+  }
   const badge = ROLE ? '<span class="cbtn" style="cursor:default;background:#dce7f6;border-color:#dce7f6;color:#13294B">'+roleLabel(ROLE)+'</span>' : '';
   acct.innerHTML =
     '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span>'+ badge +
@@ -79,12 +86,13 @@ async function onUser(u){
   if(!u){ TEAM=null; ROLE=null; TEAMS=[]; bar(null); return; }
   try{
     TEAMS = await Cloud.myTeams();
-    if(!TEAMS.length){ await Cloud.createTeam("My Program"); TEAMS = await Cloud.myTeams(); }
-    let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
-    TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
-    ROLE = await Cloud.myRole(TEAM.id);
+    if(TEAMS.length){
+      let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
+      TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
+      ROLE = await Cloud.myRole(TEAM.id);
+    } else { TEAM = null; ROLE = null; }
     bar(u);
-    await pull(true);
+    if(TEAM) await pull(true);
   }catch(e){ console.error(e); bar(u); }
 }
 async function setActiveTeam(id){
@@ -136,8 +144,31 @@ function openTeam(){ ensureModal().classList.add("show"); renderTeam(); }
 
 function el(html){ const d=document.createElement("div"); d.innerHTML=html; return d.firstElementChild; }
 
+function joinSection(){
+  const jsec=el('<div class="ogm-sec"><div class="ogm-lbl">Join a program</div></div>');
+  const jrow=el('<div class="ogm-row"></div>');
+  const jcode=el('<input class="ogm-in" placeholder="Enter a join code">');
+  const jbtn=el('<button class="ogm-b go">Join</button>');
+  const jstat=el('<p class="ogm-note"></p>');
+  jbtn.onclick=async()=>{ const c=jcode.value.trim(); if(!c){jstat.textContent="Enter a code.";return;} jbtn.disabled=true; try{ const tid=await Cloud.joinByCode(c); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); openTeam(); }catch(e){ jstat.textContent=e.message||"Couldn’t join"; jbtn.disabled=false; } };
+  jrow.appendChild(jcode); jrow.appendChild(jbtn); jsec.appendChild(jrow); jsec.appendChild(jstat);
+  return jsec;
+}
+function renderSetup(body){
+  body.innerHTML="";
+  body.appendChild(el('<p class="ogm-note">You’re signed in. Create your program to become its Admin, or join an existing one with a code.</p>'));
+  const cs=el('<div class="ogm-sec"><div class="ogm-lbl">Create a program</div></div>');
+  const crow=el('<div class="ogm-row"></div>');
+  const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
+  const cb=el('<button class="ogm-b go">Create</button>');
+  cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
+  crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
+  body.appendChild(joinSection());
+}
+
 async function renderTeam(){
   const body = ensureModal().querySelector("#ogmBody");
+  if(!TEAM){ renderSetup(body); return; }
   body.innerHTML = '<p class="ogm-note">Loading…</p>';
   let roster=[], invites=[];
   try{ roster = await Cloud.teamRoster(TEAM.id); }catch(e){}
@@ -204,14 +235,7 @@ async function renderTeam(){
   body.appendChild(rsec);
 
   // join another program (everyone)
-  const jsec=el('<div class="ogm-sec"><div class="ogm-lbl">Join a program</div></div>');
-  const jrow=el('<div class="ogm-row"></div>');
-  const jcode=el('<input class="ogm-in" placeholder="Enter a join code">');
-  const jbtn=el('<button class="ogm-b go">Join</button>');
-  const jstat=el('<p class="ogm-note"></p>');
-  jbtn.onclick=async()=>{ const c=jcode.value.trim(); if(!c){jstat.textContent="Enter a code.";return;} jbtn.disabled=true; try{ const tid=await Cloud.joinByCode(c); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); openTeam(); }catch(e){ jstat.textContent=e.message||"Couldn’t join"; jbtn.disabled=false; } };
-  jrow.appendChild(jcode); jrow.appendChild(jbtn); jsec.appendChild(jrow); jsec.appendChild(jstat);
-  body.appendChild(jsec);
+  body.appendChild(joinSection());
 }
 let _keepMsg=null;
 function renderTeamKeep(msg){ _keepMsg=msg; renderTeam(); }
