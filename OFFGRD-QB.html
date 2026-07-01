@@ -59,6 +59,7 @@
       <div class="seg" id="modeSeg">
         <button class="on" data-mode="train">Train</button>
         <button data-mode="test">Test</button>
+        <button data-mode="author">Author</button>
         <button data-mode="results">Results</button>
       </div>
       <span class="tag" id="ctxNote"></span>
@@ -66,6 +67,13 @@
   </div>
 
   <div class="panel" id="setupPanel">
+    <div class="lbl">Source</div>
+    <div class="seg" id="srcSeg" style="margin-bottom:4px">
+      <button class="on" data-src="builtin">Built-in</button>
+      <button data-src="custom">Our plays</button>
+      <button data-src="both">Both</button>
+    </div>
+    <div class="tag" id="srcNote" style="margin-bottom:12px"></div>
     <div class="lbl">Concepts</div>
     <div class="chips" id="conceptChips"></div>
     <div class="lbl" style="margin-top:14px">Coverages</div>
@@ -91,6 +99,7 @@
   </div>
 
   <div class="panel hidden" id="resultPanel"></div>
+  <div class="panel hidden" id="authorPanel"></div>
 </div>
 
 <script>
@@ -99,111 +108,113 @@ const W=1000,H=600,LOS=360;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 /* route offsets (x lateral, y downfield-negative), d: N straight, S to sideline, M to middle */
+const PPY=11;              /* pixels per yard (depth + lateral) */
+/* routes as break points in YARDS: dep = depth downfield from LOS, lat = lateral yards
+   (+ = toward the nearest sideline, - = toward the middle). Built to true depths. */
 const ROUTES={
- Hitch:[{x:0,y:-56,d:"N"}],
- Slant:[{x:0,y:-16,d:"N"},{x:90,y:-86,d:"M"}],
- Out:[{x:0,y:-86,d:"N"},{x:120,y:-86,d:"S"}],
- Corner:[{x:0,y:-88,d:"N"},{x:120,y:-176,d:"S"}],
- Post:[{x:0,y:-92,d:"N"},{x:120,y:-186,d:"M"}],
- Go:[{x:0,y:-215,d:"N"}],
- Seam:[{x:16,y:-215,d:"M"}],
- Dig:[{x:0,y:-104,d:"N"},{x:200,y:-104,d:"M"}],
- Curl:[{x:0,y:-104,d:"N"},{x:14,y:-88,d:"M"}],
- Comeback:[{x:0,y:-126,d:"N"},{x:52,y:-104,d:"S"}],
- Flat:[{x:100,y:-14,d:"S"}],
- Stick:[{x:0,y:-56,d:"N"},{x:58,y:-56,d:"S"}],
- Drag:[{x:30,y:-26,d:"M"},{x:230,y:-34,d:"M"}]
+ Hitch:[{lat:0,dep:6},{lat:0,dep:5}],
+ Slant:[{lat:-1,dep:1.5},{lat:-9,dep:6}],
+ Out:[{lat:0,dep:10},{lat:9,dep:10}],
+ Corner:[{lat:0,dep:10},{lat:9,dep:18}],
+ Post:[{lat:0,dep:10},{lat:-9,dep:18}],
+ Go:[{lat:0,dep:22}],
+ Seam:[{lat:-1,dep:20}],
+ Dig:[{lat:0,dep:12},{lat:-16,dep:12}],
+ Curl:[{lat:0,dep:12},{lat:1,dep:10}],
+ Comeback:[{lat:0,dep:14},{lat:4,dep:12}],
+ Flat:[{lat:6,dep:1},{lat:11,dep:3}],
+ Stick:[{lat:0,dep:6},{lat:5,dep:5}],
+ Cross:[{lat:-6,dep:3},{lat:-24,dep:6}]
 };
 function buildRoute(sx,sy,name){
-  const R=ROUTES[name]||[]; const side=sx<500?-1:1, mid=-side;
+  const R=ROUTES[name]||[]; const side=sx<500?-1:1;
   const pts=[{x:sx,y:sy}];
-  R.forEach(o=>{ const sgn=o.d==="S"?side:o.d==="M"?mid:1; pts.push({x:clamp(sx+o.x*sgn,24,976), y:sy+o.y}); });
+  R.forEach(o=>{ pts.push({ x:clamp(sx + o.lat*PPY*side, 24, 976), y: LOS - o.dep*PPY }); });
   return pts;
 }
-
-/* ---------- concepts (built-in library) ---------- */
+const ON=LOS, OFF=LOS+12;   /* on-ball vs 1-yd off-ball alignment */
 const OL=[{x:404},{x:452},{x:500},{x:548},{x:596}];
 const CONCEPTS=[
  { id:"smash", name:"Smash", form:"Trips Rt",
-   recv:[{lab:"X",x:120,y:LOS,route:"Hitch"},{lab:"Y",x:720,y:LOS,route:"Corner"},{lab:"H",x:700,y:405,route:"Hitch"},{lab:"Z",x:880,y:LOS,route:"Corner"}],
-   back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Y","H","Z","RB"],
+   recv:[{lab:"X",x:120,y:ON,route:"Hitch"},{lab:"Y",x:700,y:ON,route:"Seam"},{lab:"H",x:800,y:OFF,route:"Hitch"},{lab:"Z",x:892,y:ON,route:"Corner"}],
+   back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Z","H","X","RB"],
    reads:{
-     "Cover 0":{t:"H",why:"All-out man, no deep help — throw the quick hitch/spot before the rush gets home."},
-     "Cover 1":{t:"Y",why:"Single-high man — win the corner one-on-one over the sinking corner."},
-     "Cover 2":{t:"Y",why:"Classic Smash beater: high-low the corner. He jams the flat, safety's deep — the corner sits in the hole."},
-     "Cover 3":{t:"H",why:"The corner route is roofed by the deep third — take the hitch underneath now."},
+     "Cover 0":{t:"H",why:"All-out man, no deep help — throw the quick hitch (5-6) before the rush gets home."},
+     "Cover 1":{t:"Z",why:"Single-high man — win the corner one-on-one over the sinking corner."},
+     "Cover 2":{t:"Z",why:"Classic Smash beater: high-low the corner. He jams the flat, safety's deep — the corner sits in the hole."},
+     "Cover 3":{t:"H",why:"The corner is roofed by the deep third — take the 6-yard hitch underneath now."},
      "Cover 4":{t:"H",why:"Quarters brackets the corner — the hitch underneath is the completion."},
-     "Tampa 2":{t:"Y",why:"Corners squat, Mike runs the deep middle — drop the corner over the squatting flat."} } },
+     "Tampa 2":{t:"Z",why:"Corners squat, Mike runs the deep middle — drop the corner over the squatting flat."} } },
 
  { id:"mesh", name:"Mesh", form:"2x2",
-   recv:[{lab:"X",x:130,y:LOS,route:"Dig"},{lab:"H",x:300,y:400,route:"Drag"},{lab:"Y",x:700,y:400,route:"Drag"},{lab:"Z",x:880,y:LOS,route:"Corner"}],
+   recv:[{lab:"H",x:330,y:OFF,route:"Cross"},{lab:"Y",x:670,y:OFF,route:"Cross"},{lab:"X",x:130,y:ON,route:"Dig"},{lab:"Z",x:880,y:ON,route:"Corner"}],
    back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["H","Y","X","RB"],
    reads:{
-     "Cover 0":{t:"H",why:"Man pressure — the mesh rub springs a crosser; hit the first one to clear the pick."},
+     "Cover 0":{t:"H",why:"Man pressure — the mesh rub springs a crosser; hit the first one (5-6 yds) coming off the pick."},
      "Cover 1":{t:"Y",why:"Man-free — take the crosser coming off the rub with grass to run."},
-     "Cover 2":{t:"X",why:"Zone — settle the dig in the window between the hook defenders, under the halves."},
-     "Cover 3":{t:"X",why:"Find the sit-down in the middle hook window versus three-deep."},
-     "Cover 4":{t:"H",why:"Quarters — the crossers cross the underneath zones; take the first crosser in space."},
-     "Tampa 2":{t:"X",why:"Mike carries the middle deep — sit underneath him in the hook window."} } },
+     "Cover 2":{t:"H",why:"Zone — throw the crosser as it settles in the hook window at 5-6, under the halves."},
+     "Cover 3":{t:"H",why:"Find the crosser sitting in the middle window versus three-deep."},
+     "Cover 4":{t:"Y",why:"Quarters — the crossers cross the underneath zones; take the first one in space."},
+     "Tampa 2":{t:"H",why:"Mike carries the middle deep — sit the crosser underneath him at 5-6."} } },
 
  { id:"flood", name:"Flood", form:"Trips Rt",
-   recv:[{lab:"Y",x:700,y:LOS,route:"Go"},{lab:"H",x:800,y:405,route:"Out"},{lab:"Z",x:880,y:LOS,route:"Flat"},{lab:"X",x:120,y:LOS,route:"Comeback"}],
+   recv:[{lab:"Y",x:700,y:ON,route:"Go"},{lab:"H",x:800,y:OFF,route:"Out"},{lab:"Z",x:892,y:ON,route:"Flat"},{lab:"X",x:120,y:ON,route:"Comeback"}],
    back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["H","Z","X","RB"],
    reads:{
-     "Cover 0":{t:"Z",why:"Man — throw the flat with the most grass and leverage, quick."},
-     "Cover 1":{t:"H",why:"Man — the out on leverage away from the free safety."},
-     "Cover 2":{t:"H",why:"High-low the flat defender: he covers the flat, so throw the out behind him."},
-     "Cover 3":{t:"H",why:"Three-level flood stresses the flat defender — the out sits in the void high-low."},
-     "Cover 4":{t:"Z",why:"Quarters sinks the corner — dump the flat underneath for the easy completion."},
-     "Tampa 2":{t:"H",why:"Corner squats the flat — throw the out over him, under the half."} } },
+     "Cover 0":{t:"Z",why:"Man — the 3-yard flat with the most grass and leverage, quick."},
+     "Cover 1":{t:"H",why:"Man — the 10-yard out on leverage away from the free safety."},
+     "Cover 2":{t:"H",why:"High-low the flat defender: he sits on the 3-yard flat, so throw the 10-12 out behind him."},
+     "Cover 3":{t:"H",why:"Three-level flood: flat at 3 pulls the flat defender, the out sits in the void at 10-12."},
+     "Cover 4":{t:"Z",why:"Quarters sinks the corner — dump the 3-yard flat underneath for the easy completion."},
+     "Tampa 2":{t:"H",why:"Corner squats the flat — throw the out over him at 10-12, under the half."} } },
 
  { id:"verts", name:"Four Verts", form:"2x2",
-   recv:[{lab:"X",x:120,y:LOS,route:"Go"},{lab:"H",x:300,y:400,route:"Seam"},{lab:"Y",x:700,y:400,route:"Seam"},{lab:"Z",x:880,y:LOS,route:"Go"}],
+   recv:[{lab:"X",x:120,y:ON,route:"Go"},{lab:"H",x:330,y:OFF,route:"Seam"},{lab:"Y",x:670,y:OFF,route:"Seam"},{lab:"Z",x:880,y:ON,route:"Go"}],
    back:{lab:"RB",x:500,y:470,route:"Flat"}, prog:["H","Y","X","RB"],
    reads:{
-     "Cover 0":{t:"H",why:"No deep help — throw the seam on your fastest matchup immediately."},
+     "Cover 0":{t:"H",why:"No deep help — throw the seam (20+) on your fastest matchup immediately."},
      "Cover 1":{t:"X",why:"Single-high man — attack the outside vertical away from the free safety."},
-     "Cover 2":{t:"H",why:"Bend the seam on the safety — hit it over the corner, under the safety."},
+     "Cover 2":{t:"H",why:"Bend the seam on the safety — hit it 20+ over the corner, under the safety."},
      "Cover 3":{t:"H",why:"Attack the seam versus single-high — throw it in the void between corner and safety."},
      "Cover 4":{t:"RB",why:"Quarters caps all four verticals — check it down / hitch it up underneath."},
      "Tampa 2":{t:"X",why:"Mike runs the middle — take the outside vertical on the deep-half corner."} } },
 
  { id:"stick", name:"Stick", form:"Trips Rt",
-   recv:[{lab:"Y",x:700,y:LOS,route:"Stick"},{lab:"H",x:800,y:405,route:"Go"},{lab:"Z",x:880,y:LOS,route:"Go"},{lab:"X",x:120,y:LOS,route:"Slant"}],
+   recv:[{lab:"Y",x:700,y:ON,route:"Stick"},{lab:"H",x:800,y:OFF,route:"Go"},{lab:"Z",x:892,y:ON,route:"Go"},{lab:"X",x:120,y:ON,route:"Slant"}],
    back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Y","RB","X"],
    reads:{
-     "Cover 0":{t:"Y",why:"Beat man with the quick stick/out breaking away from leverage."},
-     "Cover 1":{t:"Y",why:"Man — stick away from the defender's leverage; quick and open."},
-     "Cover 2":{t:"Y",why:"The stick sits in the flat void inside the squatting corner."},
+     "Cover 0":{t:"Y",why:"Beat man with the quick stick (5-6) breaking away from leverage."},
+     "Cover 1":{t:"Y",why:"Man — stick away from the defender's leverage; quick and open at 5-6."},
+     "Cover 2":{t:"Y",why:"The stick sits in the flat void at 5-6 inside the squatting corner."},
      "Cover 3":{t:"Y",why:"Underneath stick in the flat window versus the curl/flat defender."},
-     "Cover 4":{t:"Y",why:"Quarters — the stick underneath is the easy pitch-and-catch."},
-     "Tampa 2":{t:"Y",why:"Stick in front of the squatting corner."} } },
+     "Cover 4":{t:"Y",why:"Quarters — the 5-yard stick is the easy pitch-and-catch."},
+     "Tampa 2":{t:"Y",why:"Stick in front of the squatting corner at 5-6."} } },
 
  { id:"curlflat", name:"Curl-Flat", form:"2x2",
-   recv:[{lab:"X",x:130,y:LOS,route:"Curl"},{lab:"H",x:300,y:405,route:"Flat"},{lab:"Z",x:880,y:LOS,route:"Curl"},{lab:"Y",x:700,y:405,route:"Flat"}],
+   recv:[{lab:"X",x:130,y:ON,route:"Curl"},{lab:"H",x:300,y:OFF,route:"Flat"},{lab:"Z",x:880,y:ON,route:"Curl"},{lab:"Y",x:700,y:OFF,route:"Flat"}],
    back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["X","H","Z"],
    reads:{
-     "Cover 0":{t:"H",why:"Man pressure — the flat with leverage and grass, quick."},
-     "Cover 1":{t:"X",why:"Man — the curl breaking back to you, away from trailing coverage."},
-     "Cover 2":{t:"X",why:"Curl settles in the hole under the half, inside the squat corner."},
-     "Cover 3":{t:"H",why:"High-low the flat defender: he widened to the curl, so throw the flat."},
+     "Cover 0":{t:"H",why:"Man pressure — the flat (3 yds, past the LOS) with leverage and grass, quick."},
+     "Cover 1":{t:"X",why:"Man — the curl breaking back to you at 10-12, away from trailing coverage."},
+     "Cover 2":{t:"X",why:"Curl settles in the hole at 10-12 under the half, inside the squat corner."},
+     "Cover 3":{t:"H",why:"High-low the flat defender: he widened to the curl, so throw the flat at 3 past the LOS."},
      "Cover 4":{t:"H",why:"Quarters — the flat underneath the sinking corner is the completion."},
-     "Tampa 2":{t:"X",why:"Curl in the void under the half, over the squatting corner."} } }
+     "Tampa 2":{t:"X",why:"Curl in the void at 10-12 under the half, over the squatting corner."} } }
 ];
-
 const COVERAGES=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
 
 /* ---------- defense drawing ---------- */
 function dot(x,y,lab,fill,r){ r=r||13; return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#0b2e17" stroke-width="1.5"/>`+(lab?`<text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${lab}</text>`:""); }
 function zone(x,y,rx,ry,lab){ return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/><text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="rgba(255,255,255,.85)" text-anchor="middle">${lab}</text>`; }
 const DL="#c8963c", LB="#b8860b", DB="#123a6b";
-function dline(){ return [430,485,540,595].map((x,i)=>dot(x,LOS-16,"",DL,12)).join(""); }
+function dline(los){ los=los||LOS; return [430,485,540,595].map((x)=>dot(x,los-16,"",DL,12)).join(""); }
 function manDefs(recv,deep){
   let s=""; recv.forEach(p=>{ const dx=p.x+(p.x<500?14:-14), dy=p.y-26; s+=`<line x1="${dx}" y1="${dy}" x2="${p.x}" y2="${p.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`+dot(dx,dy,"M",DB,11); });
   return s;
 }
-function drawCoverage(cov,recv){
-  let s=dline();
+function drawCoverage(cov,recv,los){
+  los=los||LOS;
+  let s=dline(los);
   if(cov==="Cover 0"){ s+=manDefs(recv); s+=dot(500,326,"B",LB,12)+`<path d="M500 316 L500 292" stroke="#e23b2e" stroke-width="4" stroke-linecap="round"/><path d="M493 300 L500 288 L507 300" fill="none" stroke="#e23b2e" stroke-width="4" stroke-linejoin="round"/>`; }
   else if(cov==="Cover 1"){ s+=manDefs(recv,true); s+=dot(500,150,"FS",DB,13)+dot(500,300,"R",LB,12); }
   else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"½")+zone(700,150,120,60,"½")+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
@@ -214,7 +225,7 @@ function drawCoverage(cov,recv){
 }
 
 /* ---------- render a rep ---------- */
-function renderRep(rep, revealLab){
+function renderBuiltin(rep, revealLab){
   const c=rep.concept;
   let s="";
   for(let y=40;y<=560;y+=52) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
@@ -235,6 +246,97 @@ function renderRep(rep, revealLab){
   document.getElementById("field").innerHTML=s;
 }
 
+/* ---------- custom (coach-authored) plays ---------- */
+let CUSTOM=[]; let SOURCE="builtin";
+function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE!=="builtin") p=p.concat(CUSTOM); return p; }
+function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function customRouteD(p){ if(!p.route||!p.route.length) return ""; let d="M "+p.x+" "+p.y; p.route.forEach(a=>{ d += (a.cx!=null? " Q "+a.cx+" "+a.cy+" "+a.x+" "+a.y : " L "+a.x+" "+a.y); }); return d; }
+function customEnd(p){ if(p.route&&p.route.length){ const a=p.route[p.route.length-1]; return {x:a.x,y:a.y}; } return {x:p.x,y:p.y}; }
+function renderCustomField(state, coverage, revealLab, targetId, los){
+  los=los||380; state=state||{}; const players=state.players||[];
+  let s="";
+  for(let y=40;y<=600;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
+  s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
+  const skill=players.filter(p=>p.type==="route"||p.type==="rb");
+  if(coverage) s+=drawCoverage(coverage, skill.map(p=>({x:p.x,y:p.y})), los);
+  players.filter(p=>p.ol||p.type==="block").forEach(p=>{ s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; });
+  const qb=players.find(p=>p.type==="qb"); if(qb) s+=dot(qb.x,qb.y,"QB","#0e1f3a",13);
+  skill.forEach(p=>{
+    const path=customRouteD(p), end=customEnd(p), isR=revealLab&&p.lab===revealLab;
+    if(path) s+=`<path d="${path}" fill="none" stroke="${isR?'#19c37d':'#bfe3ff'}" stroke-width="${isR?5:3.5}"/>`;
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="12" fill="#c8102e" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${p.lab}</text>`;
+    s+=`<g data-lab="${p.lab}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="${isR?'rgba(25,195,125,.9)':'rgba(255,255,255,.18)'}" stroke="${isR?'#0b6b3f':'#fff'}" stroke-width="2.5"/><text x="${end.x}" y="${end.y+5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${p.lab}</text></g>`;
+  });
+  document.getElementById(targetId||"field").innerHTML=s;
+}
+function renderRep(rep, revealLab){
+  const svg=document.getElementById("field");
+  if(rep.concept.custom){ svg.setAttribute("viewBox","0 0 1000 640"); renderCustomField(rep.concept.play, rep.coverage, revealLab, "field", 380); }
+  else { svg.setAttribute("viewBox","0 0 1000 600"); renderBuiltin(rep, revealLab); }
+}
+async function loadCustom(){
+  CUSTOM=[];
+  if(!(window.QB&&window.QB.ready)) return;
+  try{ const rows=await window.QB.plays();
+    CUSTOM=(rows||[]).filter(r=>r.qb_reads&&Object.keys(r.qb_reads).length)
+      .map(r=>({id:"p_"+r.id, name:r.name||"Play", custom:true, play:r.data||r, reads:r.qb_reads}));
+  }catch(e){ CUSTOM=[]; }
+}
+function rebuildPool(){ enabledConcepts.clear(); pool().forEach(c=>enabledConcepts.add(c.id)); buildChips(); }
+async function setSource(v){
+  SOURCE=v;
+  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src===v));
+  if(v!=="builtin"){ await loadCustom(); }
+  rebuildPool();
+  const note=document.getElementById("srcNote");
+  if(note) note.textContent=(v!=="builtin" && !CUSTOM.length) ? "No authored plays yet — use Author mode (coaches) to add reads to your plays." : "";
+}
+
+/* ---------- authoring ---------- */
+async function loadAuthor(){
+  const ap=document.getElementById("authorPanel"); ap.innerHTML='<p class="tag">Loading…</p>';
+  if(!(window.QB&&window.QB.ready)){ ap.innerHTML='<p class="tag">Cloud not configured.</p>'; return; }
+  let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
+  if(!ctx||!ctx.user){ ap.innerHTML='<p class="tag">Sign in (top-right) to author reads.</p>'; return; }
+  if(!ctx.team){ ap.innerHTML='<p class="tag">Create or join a program first (Team button).</p>'; return; }
+  const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
+  if(!coach){ ap.innerHTML='<p class="tag">Only coaches can author reads. Players use Train and Test.</p>'; return; }
+  let rows; try{ rows=await window.QB.plays(); }catch(e){ ap.innerHTML='<p class="tag">Couldn’t load plays: '+(e.message||e)+'</p>'; return; }
+  if(!rows.length){ ap.innerHTML='<p class="tag">No saved plays yet. Build and save plays in the Playbook, then author their reads here.</p>'; return; }
+  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author reads on your plays</h3><p class="tag">Pick a play, then set the correct target for each coverage.</p><div id="playPick" class="chips" style="margin-top:10px"></div><div id="authEditor"></div>';
+  const pk=document.getElementById("playPick");
+  rows.forEach(r=>{ const b=document.createElement("button"); b.className="chip"; const done=r.qb_reads&&Object.keys(r.qb_reads).length; b.textContent=(r.name||"Play")+(done?" ✓":""); b.onclick=()=>{ [].forEach.call(pk.children,x=>x.classList.remove("on")); b.classList.add("on"); editPlay(r); }; pk.appendChild(b); });
+}
+function editPlay(row){
+  const ed=document.getElementById("authEditor");
+  const state=row.data||row; const players=state.players||[];
+  const labs=[...new Set(players.filter(p=>p.type==="route"||p.type==="rb").map(p=>p.lab))];
+  const reads=row.qb_reads||{};
+  ed.innerHTML=`<div class="lbl" style="margin-top:16px">${esc(row.name||"Play")}</div>
+    <div class="field-wrap"><svg id="authField" viewBox="0 0 1000 640"></svg></div>
+    <p class="tag" style="margin-top:6px">Tap a coverage name to preview it on the play.</p>
+    <div id="covRows" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:12px"><button class="btn go" id="saveReads">Save reads</button><span id="saveReadsMsg" class="tag"></span></div>`;
+  const cr=document.getElementById("covRows");
+  COVERAGES.forEach(cv=>{
+    const r1=document.createElement("div"); r1.className="row"; r1.style.margin="6px 0"; r1.dataset.cov=cv;
+    const nm=document.createElement("span"); nm.style.cssText="width:78px;font-weight:800;font-size:13px;cursor:pointer"; nm.textContent=cv;
+    const sel=document.createElement("select"); sel.className="btn"; sel.innerHTML='<option value="">— skip —</option>'+labs.map(l=>`<option${reads[cv]&&reads[cv].t===l?" selected":""}>${l}</option>`).join("");
+    const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder="coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
+    r1._sel=sel; r1._note=note; r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(note);
+    nm.onclick=()=>renderCustomField(state, cv, sel.value||null, "authField", 380);
+    sel.onchange=()=>renderCustomField(state, cv, sel.value||null, "authField", 380);
+    cr.appendChild(r1);
+  });
+  renderCustomField(state, Object.keys(reads)[0]||"Cover 3", null, "authField", 380);
+  document.getElementById("saveReads").onclick=async()=>{
+    const out={}; [].forEach.call(cr.children,r1=>{ const t=r1._sel.value, why=r1._note.value.trim(); if(t) out[r1.dataset.cov]={t,why}; });
+    const msg=document.getElementById("saveReadsMsg"); msg.textContent="Saving…";
+    try{ await window.QB.savePlayReads(row.id,out); row.qb_reads=out; msg.textContent="Saved ✓ — now available in Train/Test under “Our plays”."; }
+    catch(e){ msg.textContent=e.message||"Save failed"; }
+  };
+}
+
 /* ===================== game state ===================== */
 let MODE="train";
 const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
@@ -243,11 +345,16 @@ let rep=null, answered=false;
 let test=null; // {queue:[], i:0, results:[]}
 
 function pickRep(){
-  const cs=CONCEPTS.filter(c=>enabledConcepts.has(c.id));
-  const cvs=COVERAGES.filter(c=>enabledCoverages.has(c));
-  const c=cs[Math.floor(Math.random()*cs.length)];
-  const cov=cvs[Math.floor(Math.random()*cvs.length)];
-  return {concept:c, coverage:cov, correct:c.reads[cov].t};
+  const cs=pool().filter(c=>enabledConcepts.has(c.id));
+  if(!cs.length) return null;
+  for(let tries=0;tries<40;tries++){
+    const c=cs[Math.floor(Math.random()*cs.length)];
+    const covs=(c.custom?Object.keys(c.reads):COVERAGES).filter(cv=>enabledCoverages.has(cv));
+    if(!covs.length) continue;
+    const cov=covs[Math.floor(Math.random()*covs.length)];
+    if(c.reads[cov]&&c.reads[cov].t) return {concept:c, coverage:cov, correct:c.reads[cov].t};
+  }
+  return null;
 }
 function showRep(r){
   rep=r; answered=false;
@@ -265,8 +372,8 @@ function answer(lab){
     const fb=document.getElementById("fb");
     fb.className="fb show "+(correct?"ok":"bad");
     fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${rep.correct}</b></h4>`+
-      `<div>${read.why}</div>`+
-      `<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`;
+      `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
+      (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`:"");
     document.getElementById("nextBtn").classList.remove("hidden");
   } else if(MODE==="test"){
     test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:rep.correct});
@@ -284,7 +391,8 @@ function updateProgress(){
 function startTest(){
   const n=parseInt(document.getElementById("testLen").value,10)||10;
   test={queue:[],i:0,results:[]};
-  for(let k=0;k<n;k++) test.queue.push(pickRep());
+  for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
+  if(!test.queue.length){ alert("No reps match your filters — enable at least one concept and coverage."); return; }
   swap("play"); showRep(test.queue[0]); updateProgress();
 }
 async function finishTest(){
@@ -339,6 +447,7 @@ function swap(view){
   document.getElementById("setupPanel").classList.toggle("hidden", view!=="setup");
   document.getElementById("playPanel").classList.toggle("hidden", view!=="play");
   document.getElementById("resultPanel").classList.toggle("hidden", view!=="result" && view!=="results");
+  document.getElementById("authorPanel").classList.toggle("hidden", view!=="author");
 }
 function setMode(m){
   MODE=m;
@@ -346,13 +455,14 @@ function setMode(m){
   document.getElementById("testLenWrap").classList.toggle("hidden", m!=="test");
   document.getElementById("startBtn").textContent = m==="test" ? "Start test" : "Start training";
   if(m==="results"){ swap("results"); showResults(); }
+  else if(m==="author"){ swap("author"); loadAuthor(); }
   else swap("setup");
 }
 
 /* ---------- chips ---------- */
 function buildChips(){
   const cc=document.getElementById("conceptChips"); cc.innerHTML="";
-  CONCEPTS.forEach(c=>{ const b=document.createElement("button"); b.className="chip on"; b.textContent=c.name; b.onclick=()=>{ if(enabledConcepts.has(c.id)&&enabledConcepts.size>1){enabledConcepts.delete(c.id);b.classList.remove("on");} else {enabledConcepts.add(c.id);b.classList.add("on");} }; cc.appendChild(b); });
+  pool().forEach(c=>{ const b=document.createElement("button"); b.className="chip"+(enabledConcepts.has(c.id)?" on":""); b.textContent=c.name; b.onclick=()=>{ if(enabledConcepts.has(c.id)&&enabledConcepts.size>1){enabledConcepts.delete(c.id);b.classList.remove("on");} else {enabledConcepts.add(c.id);b.classList.add("on");} }; cc.appendChild(b); });
   const vc=document.getElementById("coverageChips"); vc.innerHTML="";
   COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip on"; b.textContent=cv; b.onclick=()=>{ if(enabledCoverages.has(cv)&&enabledCoverages.size>1){enabledCoverages.delete(cv);b.classList.remove("on");} else {enabledCoverages.add(cv);b.classList.add("on");} }; vc.appendChild(b); });
 }
@@ -361,8 +471,9 @@ function buildChips(){
 function init(){
   buildChips();
   [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.onclick=()=>setMode(b.dataset.mode));
-  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test") startTest(); else { swap("play"); showRep(pickRep()); document.getElementById("progressLbl").textContent="Train mode — tap where the ball should go."; } };
-  document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train") showRep(pickRep()); };
+  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.onclick=()=>setSource(b.dataset.src));
+  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — tap where the ball should go."; };
+  document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
   document.getElementById("quitBtn").onclick=()=>{ test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(g) answer(g.dataset.lab); });
   window.OFFGRD_APP={kind:"qb"};
