@@ -45,7 +45,7 @@
 
   <div class="panel">
     <div class="row" style="margin-bottom:8px">
-      <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button>
+      <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">\u21c4 Flip</button>
       <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">— pers —</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
       <button class="btn" id="addWR">+ Player</button>
       <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">— none —</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
@@ -148,12 +148,32 @@ const STORE="offgrd_playbook_v1";
 const SWATCH=["#4B9CD3","#13294B","#c8102e","#1d7a45","#b8860b","#9aa4b2","#222222"];
 
 function OL(){return[{lab:"LT",x:380,y:LOS,type:"block",ol:1},{lab:"LG",x:440,y:LOS,type:"block",ol:1},{lab:"C",x:500,y:LOS,type:"block",ol:1},{lab:"RG",x:560,y:LOS,type:"block",ol:1},{lab:"RT",x:620,y:LOS,type:"block",ol:1}];}
+function mir(a){return a.map(function(p){return Object.assign({},p,{x:W-p.x});});}
+const SK={
+  doubles:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:545,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:745,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
+  trips:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
+  bunch:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:705,y:LOS,type:"route"},{lab:"H",x:766,y:420,type:"route"},{lab:"Z",x:700,y:440,type:"route"}],
+  empty:[{lab:"QB",x:500,y:465,type:"qb"},{lab:"X",x:110,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:700,y:408,type:"route"},{lab:"Z",x:830,y:LOS,type:"route"},{lab:"F",x:915,y:418,type:"route"}],
+  pistol2:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:260,y:408,type:"route"},{lab:"Y",x:740,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
+  pistoltrips:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
+  ipro:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:658,y:LOS,type:"route"},{lab:"Z",x:872,y:LOS,type:"route"}],
+  itwins:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"Z",x:815,y:408,type:"route"}],
+  ace:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:500,y:530,type:"rb"},{lab:"H",x:352,y:LOS,type:"route"},{lab:"Y",x:648,y:LOS,type:"route"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}]
+};
 const FORMS={
-  "2x2 (Gun)":()=>OL().concat([{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:545,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:250,y:405,type:"route"},{lab:"Y",x:760,y:405,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}]),
-  "Trips (Gun)":()=>OL().concat([{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:740,y:LOS,type:"route"},{lab:"H",x:810,y:410,type:"route"},{lab:"Z",x:880,y:430,type:"route"}]),
-  "Empty":()=>OL().concat([{lab:"QB",x:500,y:465,type:"qb"},{lab:"X",x:110,y:LOS,type:"route"},{lab:"H",x:250,y:405,type:"route"},{lab:"Y",x:700,y:405,type:"route"},{lab:"Z",x:830,y:LOS,type:"route"},{lab:"F",x:920,y:415,type:"route"}]),
-  "I-Form":()=>OL().concat([{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"Y",x:660,y:LOS,type:"route"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Z",x:870,y:LOS,type:"route"}]),
-  "Pistol":()=>OL().concat([{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"H",x:270,y:405,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}])
+  "2x2 Doubles (Gun)":()=>OL().concat(SK.doubles),
+  "Trips Rt (Gun)":()=>OL().concat(SK.trips),
+  "Trips Lt (Gun)":()=>OL().concat(mir(SK.trips)),
+  "Bunch Rt (Gun)":()=>OL().concat(SK.bunch),
+  "Bunch Lt (Gun)":()=>OL().concat(mir(SK.bunch)),
+  "Empty 3x2 (Gun)":()=>OL().concat(SK.empty),
+  "Pistol 2x2":()=>OL().concat(SK.pistol2),
+  "Pistol Trips Rt":()=>OL().concat(SK.pistoltrips),
+  "Pistol Trips Lt":()=>OL().concat(mir(SK.pistoltrips)),
+  "I-Form Pro":()=>OL().concat(SK.ipro),
+  "I-Form Twins Rt":()=>OL().concat(SK.itwins),
+  "I-Form Twins Lt":()=>OL().concat(mir(SK.itwins)),
+  "Singleback Ace (12)":()=>OL().concat(SK.ace)
 };
 const DLAND={L3:{x:200,y:150},M3:{x:500,y:140},R3:{x:800,y:150},HL:{x:310,y:165},HR:{x:690,y:165},Q1:{x:170,y:165},Q2:{x:405,y:150},Q3:{x:595,y:150},Q4:{x:830,y:165},FL:{x:155,y:330},FR:{x:845,y:330},CL:{x:280,y:288},CR:{x:720,y:288},HKL:{x:425,y:272},HKR:{x:575,y:272},HKM:{x:500,y:272},MID:{x:500,y:150}};
 const GCOL={DL:"#9aa4b2",LB:"#b8860b",DB:"#13294B"};
@@ -296,7 +316,13 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
   STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
   STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 (Gun)",protection:"",front:"none",coverage:"none",showZones:false,field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
+function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
+  (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
+  (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
+  (STATE.texts||[]).forEach(t=>{ t.x=fx(t.x); });
+  (STATE.draws||[]).forEach(dr=>{ (dr.pts||[]).forEach(pt=>{pt.x=fx(pt.x);}); });
+  SEL=null; renderAll(); msg("Flipped left \u21c4 right."); }
 
 /* ---- undo ---- */
 function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>40)UNDO.shift();REDO=[];syncUndo();}
@@ -427,13 +453,13 @@ window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 
 document.addEventListener("DOMContentLoaded",()=>{
   const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
-  loadLib();newPlay("2x2 (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();
+  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();
   window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=a;saveLib();renderLib();}}};
   const rbar=document.getElementById("routeBar");Object.keys(ROUTES).forEach(n=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});
   const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
   const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
   const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
-  document.getElementById("loadForm").onclick=()=>{newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded formation: "+fs.value);};
+  const loadFormation=()=>{newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);};document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
   document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
   document.getElementById("addWR").onclick=()=>{snap();const id=Math.max(0,...STATE.players.map(p=>p.id))+1;STATE.players.push({id,lab:"A",x:500,y:545,type:"route",color:null,ol:0,blk:null,route:[],motion:[]});renderAll();};
   document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
