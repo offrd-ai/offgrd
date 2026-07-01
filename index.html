@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13294B">
+<title>OFFGRD — Coaching Suite</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{ --navy:#13294B; --carolina:#7BAFD4; --ink:#16181d; --line:#e2e5ea; }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);
+    background:linear-gradient(160deg,#0e1f3a,#13294B 55%,#1c3a63);min-height:100vh}
+  .wrap{max-width:900px;margin:0 auto;padding:48px 20px 64px}
+  .brand{display:flex;align-items:center;gap:12px;color:#fff}
+  .logo{width:44px;height:44px;border-radius:11px;background:var(--carolina);color:var(--navy);
+    display:grid;place-items:center;font-weight:900;letter-spacing:-1px;font-size:19px}
+  h1{font-size:15px;letter-spacing:3px;margin:0;font-weight:800;color:#cfe0f2}
+  .hero{color:#fff;margin:36px 0 8px;font-size:34px;font-weight:900;letter-spacing:-.5px}
+  .sub{color:#9fb6d4;margin:0 0 34px;max-width:560px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:640px){.cards{grid-template-columns:1fr}}
+  a.card{display:block;text-decoration:none;color:var(--ink);background:#fff;border-radius:18px;
+    padding:24px;border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 40px rgba(0,0,0,.25);
+    transition:transform .12s ease}
+  a.card:hover{transform:translateY(-3px)}
+  .tag{display:inline-block;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--navy);
+    background:var(--carolina);padding:4px 9px;border-radius:999px;margin-bottom:12px}
+  .ct{font-size:21px;font-weight:900;margin:0 0 6px}
+  .cd{color:#5b626e;font-size:14px;margin:0}
+  .foot{color:#7f97ba;font-size:12px;margin-top:40px;line-height:1.7}
+  .foot b{color:#cfe0f2}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><div class="logo">OG</div><h1>OFFGRD</h1></div>
+    <div class="hero">Your game plan, off the grid.</div>
+    <p class="sub">Scout opponents, predict their calls, and design your playbook — offline on the sideline, synced to your program in the cloud.</p>
+    <div class="cards">
+      <a class="card" href="OFFGRD.html">
+        <span class="tag">SCOUT</span>
+        <p class="ct">Scout & Predict →</p>
+        <p class="cd">Import Hudl / QwikCut breakdowns. Predict opponent run/pass, coverage, front & blitz by situation. Build the call sheet and run it live.</p>
+      </a>
+      <a class="card" href="OFFGRD-Playbook.html">
+        <span class="tag">PLAYBOOK</span>
+        <p class="ct">Design & Install →</p>
+        <p class="cd">Draw and animate plays — formations, routes, blocking, motion, defenses & coverages. Tag, schedule, and install with your staff.</p>
+      </a>
+    </div>
+    <p class="foot"><b>Signed-in coaches</b> get one shared program library across every device. Works offline first, then syncs when you're back online.<br>© Parkway West Longhorns · OFFGRD</p>
+  </div>
+</body>
+</html>
