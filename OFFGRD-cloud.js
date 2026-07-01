@@ -49,6 +49,36 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
 
+  /* ---------- roster, invites, roles ---------- */
+  async teamRoster(teamId) {
+    const { data, error } = await sb.rpc("team_roster", { t: teamId });
+    if (error) throw error; return data || [];
+  },
+  async myRole(teamId) {
+    const { data, error } = await sb.rpc("my_role", { t: teamId });
+    if (error) throw error; return data;
+  },
+  async inviteMember(teamId, email, role) {
+    // returns 'added' (user existed) or 'pending' (will join on signup)
+    const { data, error } = await sb.rpc("invite_member", { t: teamId, member_email: email, member_role: role });
+    if (error) throw error; return data;
+  },
+  async listInvites(teamId) {
+    const { data, error } = await sb.from("invites").select("*").eq("team_id", teamId).order("created_at");
+    if (error) throw error; return data || [];
+  },
+  async revokeInvite(id) { const { error } = await sb.from("invites").delete().eq("id", id); if (error) throw error; },
+  async joinByCode(code) { const { data, error } = await sb.rpc("join_by_code", { code }); if (error) throw error; return data; },
+  async setMemberRole(teamId, userId, role) {
+    const { error } = await sb.from("team_members").update({ role }).eq("team_id", teamId).eq("user_id", userId);
+    if (error) throw error;
+  },
+  async removeMember(teamId, userId) {
+    const { error } = await sb.from("team_members").delete().eq("team_id", teamId).eq("user_id", userId);
+    if (error) throw error;
+  },
+  async rotateCode(teamId) { const { data, error } = await sb.rpc("rotate_join_code", { t: teamId }); if (error) throw error; return data; },
+
   /* ---------- plays (playbook) ---------- */
   async listPlays(teamId) {
     const { data, error } = await sb.from("plays").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
