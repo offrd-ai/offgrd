@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13294B">
+<title>OFFGRD — QB Reads Trainer</title>
+<link rel="icon" href="icon.svg">
+<script src="OFFGRD-config.js"></script>
+<style>
+  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#eef1f5;padding:14px}
+  .wrap{max-width:960px;margin:0 auto}
+  .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .topbar b{font-size:18px}
+  .tag{font-size:12px;color:var(--muted)}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 6px 18px rgba(19,41,75,.05)}
+  .seg{display:inline-flex;background:#eef3fb;border-radius:10px;padding:3px;gap:2px}
+  .seg button{border:0;background:none;padding:8px 15px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;color:#3b4657}
+  .seg button.on{background:var(--navy);color:#fff}
+  .lbl{font-size:11px;font-weight:800;letter-spacing:.5px;color:#7a8494;text-transform:uppercase;margin:0 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid #d7dbe2;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer}
+  .chip.on{background:var(--carolina);border-color:var(--carolina);color:var(--navy)}
+  .btn{border:1px solid #d7dbe2;background:#fff;color:#16181d;padding:10px 15px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer}
+  .btn.go{background:var(--navy);border-color:var(--navy);color:#fff}
+  .field-wrap{background:#1a7a3c;border-radius:14px;overflow:hidden}
+  svg#field{display:block;width:100%;height:auto;background:#1e8a44}
+  .prompt{font-size:17px;font-weight:800;margin:0 0 10px;color:var(--navy)}
+  .fb{border-radius:12px;padding:14px;margin-top:12px;font-size:15px;display:none}
+  .fb.show{display:block}
+  .fb.ok{background:#e8f6ee;border:1px solid #b7e0c6}
+  .fb.bad{background:#fdeceb;border:1px solid #f3c4c0}
+  .fb h4{margin:0 0 6px;font-size:16px}
+  .prog{color:var(--muted);font-size:13px;margin-top:6px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .score{font-size:15px;font-weight:800}
+  .rev{border-bottom:1px solid #eef0f3;padding:8px 0;display:flex;gap:10px;align-items:center;font-size:14px}
+  .dotok{color:var(--ok);font-weight:900}.dotbad{color:var(--bad);font-weight:900}
+  .cbtn{border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px}
+  .hidden{display:none}
+  table.res{width:100%;border-collapse:collapse;font-size:14px}
+  table.res th,table.res td{text-align:left;padding:8px 6px;border-bottom:1px solid #eef0f3}
+  table.res th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#7a8494}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <img src="icon.svg" alt="OFFGRD" style="width:30px;height:30px;border-radius:7px">
+    <b>OFF<span style="color:var(--carolina)">GRD</span></b><span class="tag">· QB Reads Trainer</span>
+    <span style="flex:1"></span>
+    <span id="acct"></span>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" id="modeSeg">
+        <button class="on" data-mode="train">Train</button>
+        <button data-mode="test">Test</button>
+        <button data-mode="results">Results</button>
+      </div>
+      <span class="tag" id="ctxNote"></span>
+    </div>
+  </div>
+
+  <div class="panel" id="setupPanel">
+    <div class="lbl">Concepts</div>
+    <div class="chips" id="conceptChips"></div>
+    <div class="lbl" style="margin-top:14px">Coverages</div>
+    <div class="chips" id="coverageChips"></div>
+    <div class="row" style="margin-top:16px">
+      <span id="testLenWrap" class="row hidden"><span class="lbl" style="margin:0 8px 0 0">Questions</span>
+        <select id="testLen" class="btn"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></span>
+      <button class="btn go" id="startBtn">Start training</button>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="playPanel">
+    <p class="prompt" id="prompt"></p>
+    <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
+    <div class="fb" id="fb"></div>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <span class="score" id="progressLbl"></span>
+      <span class="row">
+        <button class="btn" id="quitBtn">End</button>
+        <button class="btn go hidden" id="nextBtn">Next →</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="resultPanel"></div>
+</div>
+
+<script>
+/* ===================== OFFGRD QB Reads Trainer ===================== */
+const W=1000,H=600,LOS=360;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* route offsets (x lateral, y downfield-negative), d: N straight, S to sideline, M to middle */
+const ROUTES={
+ Hitch:[{x:0,y:-56,d:"N"}],
+ Slant:[{x:0,y:-16,d:"N"},{x:90,y:-86,d:"M"}],
+ Out:[{x:0,y:-86,d:"N"},{x:120,y:-86,d:"S"}],
+ Corner:[{x:0,y:-88,d:"N"},{x:120,y:-176,d:"S"}],
+ Post:[{x:0,y:-92,d:"N"},{x:120,y:-186,d:"M"}],
+ Go:[{x:0,y:-215,d:"N"}],
+ Seam:[{x:16,y:-215,d:"M"}],
+ Dig:[{x:0,y:-104,d:"N"},{x:200,y:-104,d:"M"}],
+ Curl:[{x:0,y:-104,d:"N"},{x:14,y:-88,d:"M"}],
+ Comeback:[{x:0,y:-126,d:"N"},{x:52,y:-104,d:"S"}],
+ Flat:[{x:100,y:-14,d:"S"}],
+ Stick:[{x:0,y:-56,d:"N"},{x:58,y:-56,d:"S"}],
+ Drag:[{x:30,y:-26,d:"M"},{x:230,y:-34,d:"M"}]
+};
+function buildRoute(sx,sy,name){
+  const R=ROUTES[name]||[]; const side=sx<500?-1:1, mid=-side;
+  const pts=[{x:sx,y:sy}];
+  R.forEach(o=>{ const sgn=o.d==="S"?side:o.d==="M"?mid:1; pts.push({x:clamp(sx+o.x*sgn,24,976), y:sy+o.y}); });
+  return pts;
+}
+
+/* ---------- concepts (built-in library) ---------- */
+const OL=[{x:404},{x:452},{x:500},{x:548},{x:596}];
+const CONCEPTS=[
+ { id:"smash", name:"Smash", form:"Trips Rt",
+   recv:[{lab:"X",x:120,y:LOS,route:"Hitch"},{lab:"Y",x:720,y:LOS,route:"Corner"},{lab:"H",x:700,y:405,route:"Hitch"},{lab:"Z",x:880,y:LOS,route:"Corner"}],
+   back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Y","H","Z","RB"],
+   reads:{
+     "Cover 0":{t:"H",why:"All-out man, no deep help — throw the quick hitch/spot before the rush gets home."},
+     "Cover 1":{t:"Y",why:"Single-high man — win the corner one-on-one over the sinking corner."},
+     "Cover 2":{t:"Y",why:"Classic Smash beater: high-low the corner. He jams the flat, safety's deep — the corner sits in the hole."},
+     "Cover 3":{t:"H",why:"The corner route is roofed by the deep third — take the hitch underneath now."},
+     "Cover 4":{t:"H",why:"Quarters brackets the corner — the hitch underneath is the completion."},
+     "Tampa 2":{t:"Y",why:"Corners squat, Mike runs the deep middle — drop the corner over the squatting flat."} } },
+
+ { id:"mesh", name:"Mesh", form:"2x2",
+   recv:[{lab:"X",x:130,y:LOS,route:"Dig"},{lab:"H",x:300,y:400,route:"Drag"},{lab:"Y",x:700,y:400,route:"Drag"},{lab:"Z",x:880,y:LOS,route:"Corner"}],
+   back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["H","Y","X","RB"],
+   reads:{
+     "Cover 0":{t:"H",why:"Man pressure — the mesh rub springs a crosser; hit the first one to clear the pick."},
+     "Cover 1":{t:"Y",why:"Man-free — take the crosser coming off the rub with grass to run."},
+     "Cover 2":{t:"X",why:"Zone — settle the dig in the window between the hook defenders, under the halves."},
+     "Cover 3":{t:"X",why:"Find the sit-down in the middle hook window versus three-deep."},
+     "Cover 4":{t:"H",why:"Quarters — the crossers cross the underneath zones; take the first crosser in space."},
+     "Tampa 2":{t:"X",why:"Mike carries the middle deep — sit underneath him in the hook window."} } },
+
+ { id:"flood", name:"Flood", form:"Trips Rt",
+   recv:[{lab:"Y",x:700,y:LOS,route:"Go"},{lab:"H",x:800,y:405,route:"Out"},{lab:"Z",x:880,y:LOS,route:"Flat"},{lab:"X",x:120,y:LOS,route:"Comeback"}],
+   back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["H","Z","X","RB"],
+   reads:{
+     "Cover 0":{t:"Z",why:"Man — throw the flat with the most grass and leverage, quick."},
+     "Cover 1":{t:"H",why:"Man — the out on leverage away from the free safety."},
+     "Cover 2":{t:"H",why:"High-low the flat defender: he covers the flat, so throw the out behind him."},
+     "Cover 3":{t:"H",why:"Three-level flood stresses the flat defender — the out sits in the void high-low."},
+     "Cover 4":{t:"Z",why:"Quarters sinks the corner — dump the flat underneath for the easy completion."},
+     "Tampa 2":{t:"H",why:"Corner squats the flat — throw the out over him, under the half."} } },
+
+ { id:"verts", name:"Four Verts", form:"2x2",
+   recv:[{lab:"X",x:120,y:LOS,route:"Go"},{lab:"H",x:300,y:400,route:"Seam"},{lab:"Y",x:700,y:400,route:"Seam"},{lab:"Z",x:880,y:LOS,route:"Go"}],
+   back:{lab:"RB",x:500,y:470,route:"Flat"}, prog:["H","Y","X","RB"],
+   reads:{
+     "Cover 0":{t:"H",why:"No deep help — throw the seam on your fastest matchup immediately."},
+     "Cover 1":{t:"X",why:"Single-high man — attack the outside vertical away from the free safety."},
+     "Cover 2":{t:"H",why:"Bend the seam on the safety — hit it over the corner, under the safety."},
+     "Cover 3":{t:"H",why:"Attack the seam versus single-high — throw it in the void between corner and safety."},
+     "Cover 4":{t:"RB",why:"Quarters caps all four verticals — check it down / hitch it up underneath."},
+     "Tampa 2":{t:"X",why:"Mike runs the middle — take the outside vertical on the deep-half corner."} } },
+
+ { id:"stick", name:"Stick", form:"Trips Rt",
+   recv:[{lab:"Y",x:700,y:LOS,route:"Stick"},{lab:"H",x:800,y:405,route:"Go"},{lab:"Z",x:880,y:LOS,route:"Go"},{lab:"X",x:120,y:LOS,route:"Slant"}],
+   back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Y","RB","X"],
+   reads:{
+     "Cover 0":{t:"Y",why:"Beat man with the quick stick/out breaking away from leverage."},
+     "Cover 1":{t:"Y",why:"Man — stick away from the defender's leverage; quick and open."},
+     "Cover 2":{t:"Y",why:"The stick sits in the flat void inside the squatting corner."},
+     "Cover 3":{t:"Y",why:"Underneath stick in the flat window versus the curl/flat defender."},
+     "Cover 4":{t:"Y",why:"Quarters — the stick underneath is the easy pitch-and-catch."},
+     "Tampa 2":{t:"Y",why:"Stick in front of the squatting corner."} } },
+
+ { id:"curlflat", name:"Curl-Flat", form:"2x2",
+   recv:[{lab:"X",x:130,y:LOS,route:"Curl"},{lab:"H",x:300,y:405,route:"Flat"},{lab:"Z",x:880,y:LOS,route:"Curl"},{lab:"Y",x:700,y:405,route:"Flat"}],
+   back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["X","H","Z"],
+   reads:{
+     "Cover 0":{t:"H",why:"Man pressure — the flat with leverage and grass, quick."},
+     "Cover 1":{t:"X",why:"Man — the curl breaking back to you, away from trailing coverage."},
+     "Cover 2":{t:"X",why:"Curl settles in the hole under the half, inside the squat corner."},
+     "Cover 3":{t:"H",why:"High-low the flat defender: he widened to the curl, so throw the flat."},
+     "Cover 4":{t:"H",why:"Quarters — the flat underneath the sinking corner is the completion."},
+     "Tampa 2":{t:"X",why:"Curl in the void under the half, over the squatting corner."} } }
+];
+
+const COVERAGES=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
+
+/* ---------- defense drawing ---------- */
+function dot(x,y,lab,fill,r){ r=r||13; return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#0b2e17" stroke-width="1.5"/>`+(lab?`<text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${lab}</text>`:""); }
+function zone(x,y,rx,ry,lab){ return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/><text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="rgba(255,255,255,.85)" text-anchor="middle">${lab}</text>`; }
+const DL="#c8963c", LB="#b8860b", DB="#123a6b";
+function dline(){ return [430,485,540,595].map((x,i)=>dot(x,LOS-16,"",DL,12)).join(""); }
+function manDefs(recv,deep){
+  let s=""; recv.forEach(p=>{ const dx=p.x+(p.x<500?14:-14), dy=p.y-26; s+=`<line x1="${dx}" y1="${dy}" x2="${p.x}" y2="${p.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`+dot(dx,dy,"M",DB,11); });
+  return s;
+}
+function drawCoverage(cov,recv){
+  let s=dline();
+  if(cov==="Cover 0"){ s+=manDefs(recv); s+=dot(500,326,"B",LB,12)+`<path d="M500 316 L500 292" stroke="#e23b2e" stroke-width="4" stroke-linecap="round"/><path d="M493 300 L500 288 L507 300" fill="none" stroke="#e23b2e" stroke-width="4" stroke-linejoin="round"/>`; }
+  else if(cov==="Cover 1"){ s+=manDefs(recv,true); s+=dot(500,150,"FS",DB,13)+dot(500,300,"R",LB,12); }
+  else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"½")+zone(700,150,120,60,"½")+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
+  else if(cov==="Cover 3"){ s+=zone(230,150,110,58,"⅓")+zone(500,140,110,58,"⅓")+zone(770,150,110,58,"⅓")+dot(190,300,"C",DB,12)+dot(810,300,"C",DB,12)+dot(400,300,"H",LB,12)+dot(600,300,"H",LB,12); }
+  else if(cov==="Cover 4"){ s+=zone(180,150,95,55,"¼")+zone(400,148,95,55,"¼")+zone(600,148,95,55,"¼")+zone(820,150,95,55,"¼")+dot(250,305,"C",LB,12)+dot(500,305,"H",LB,12)+dot(750,305,"C",LB,12); }
+  else if(cov==="Tampa 2"){ s+=zone(300,150,115,58,"½")+zone(700,150,115,58,"½")+dot(500,205,"M",LB,13)+dot(170,300,"F",DB,12)+dot(830,300,"F",DB,12)+dot(400,305,"H",LB,12)+dot(600,305,"H",LB,12); }
+  return s;
+}
+
+/* ---------- render a rep ---------- */
+function renderRep(rep, revealLab){
+  const c=rep.concept;
+  let s="";
+  for(let y=40;y<=560;y+=52) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
+  s+=`<line x1="24" y1="${LOS}" x2="976" y2="${LOS}" stroke="#ffd24a" stroke-width="3"/>`;
+  s+=drawCoverage(rep.coverage, c.recv);
+  OL.forEach(o=>{ s+=`<rect x="${o.x-11}" y="${LOS-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; });
+  s+=dot(500,470,"QB",'#0e1f3a',13);
+  const targets=c.recv.concat([c.back]);
+  targets.forEach(p=>{
+    if(!p) return;
+    const pts=buildRoute(p.x,p.y,p.route); const end=pts[pts.length-1];
+    const d="M "+pts.map(q=>q.x+" "+q.y).join(" L ");
+    const isReveal=revealLab && p.lab===revealLab;
+    s+=`<path d="${d}" fill="none" stroke="${isReveal?'#19c37d':'#bfe3ff'}" stroke-width="${isReveal?5:3.5}"/>`;
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="12" fill="#c8102e" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${p.lab}</text>`;
+    s+=`<g data-lab="${p.lab}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="${isReveal?'rgba(25,195,125,.9)':'rgba(255,255,255,.18)'}" stroke="${isReveal?'#0b6b3f':'#ffffff'}" stroke-width="2.5"/><text x="${end.x}" y="${end.y+5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${p.lab}</text></g>`;
+  });
+  document.getElementById("field").innerHTML=s;
+}
+
+/* ===================== game state ===================== */
+let MODE="train";
+const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
+const enabledCoverages=new Set(COVERAGES);
+let rep=null, answered=false;
+let test=null; // {queue:[], i:0, results:[]}
+
+function pickRep(){
+  const cs=CONCEPTS.filter(c=>enabledConcepts.has(c.id));
+  const cvs=COVERAGES.filter(c=>enabledCoverages.has(c));
+  const c=cs[Math.floor(Math.random()*cs.length)];
+  const cov=cvs[Math.floor(Math.random()*cvs.length)];
+  return {concept:c, coverage:cov, correct:c.reads[cov].t};
+}
+function showRep(r){
+  rep=r; answered=false;
+  document.getElementById("prompt").textContent=`Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
+  renderRep(r,null);
+  const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
+  document.getElementById("nextBtn").classList.add("hidden");
+}
+function answer(lab){
+  if(answered) return; answered=true;
+  const correct = lab===rep.correct;
+  const read=rep.concept.reads[rep.coverage];
+  renderRep(rep, rep.correct);
+  if(MODE==="train"){
+    const fb=document.getElementById("fb");
+    fb.className="fb show "+(correct?"ok":"bad");
+    fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${rep.correct}</b></h4>`+
+      `<div>${read.why}</div>`+
+      `<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`;
+    document.getElementById("nextBtn").classList.remove("hidden");
+  } else if(MODE==="test"){
+    test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:rep.correct});
+    test.i++;
+    if(test.i>=test.queue.length){ finishTest(); }
+    else { showRep(test.queue[test.i]); updateProgress(); }
+  }
+}
+function updateProgress(){
+  if(MODE==="test" && test){ const got=test.results.filter(r=>r.correct).length; document.getElementById("progressLbl").textContent=`Question ${test.i+1} of ${test.queue.length} · ${got} correct`; }
+  else document.getElementById("progressLbl").textContent="";
+}
+
+/* ---------- test lifecycle ---------- */
+function startTest(){
+  const n=parseInt(document.getElementById("testLen").value,10)||10;
+  test={queue:[],i:0,results:[]};
+  for(let k=0;k<n;k++) test.queue.push(pickRep());
+  swap("play"); showRep(test.queue[0]); updateProgress();
+}
+async function finishTest(){
+  const got=test.results.filter(r=>r.correct).length, tot=test.results.length;
+  swap("result");
+  const rp=document.getElementById("resultPanel");
+  let saveMsg="Sign in and join a program to save your score.";
+  rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>
+    <div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>
+    <div id="saveMsg" class="tag" style="margin-top:6px"></div>
+    <div style="margin-top:14px">`+
+    test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'✓':'✗'}</span><span style="flex:1">${i+1}. ${r.concept} vs ${r.coverage}</span><span class="tag">you: ${r.chose} · answer: ${r.answer}</span></div>`).join("")+
+    `</div><div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
+  document.getElementById("againBtn").onclick=()=>{ swap("setup"); setMode("test"); };
+  document.getElementById("backBtn").onclick=()=>{ swap("setup"); setMode("train"); };
+  // save to cloud if signed in
+  try{
+    if(window.QB && window.QB.ready){
+      const ctx=await window.QB.context();
+      if(ctx && ctx.user && ctx.team){
+        await window.QB.save({quiz:"Reads test", score:got, total:tot, detail:test.results});
+        saveMsg=`Saved to ${ctx.team.name} ✓ — your coaches can see it under Results.`;
+      } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
+    }
+  }catch(e){ saveMsg="Couldn’t save score: "+(e.message||e); }
+  const sm=document.getElementById("saveMsg"); if(sm) sm.textContent=saveMsg;
+}
+
+/* ---------- coach results ---------- */
+async function showResults(){
+  const rp=document.getElementById("resultPanel");
+  rp.innerHTML='<p class="tag">Loading results…</p>';
+  if(!(window.QB && window.QB.ready)){ rp.innerHTML='<p class="tag">Cloud not configured.</p>'; return; }
+  let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
+  if(!ctx || !ctx.user){ rp.innerHTML='<p class="tag">Sign in (top-right) to see saved results.</p>'; return; }
+  if(!ctx.team){ rp.innerHTML='<p class="tag">Join or create a program to track results.</p>'; return; }
+  let data; try{ data=await window.QB.results(); }catch(e){ rp.innerHTML='<p class="tag">Could not load results: '+(e.message||e)+'</p>'; return; }
+  const nameOf={}; (data.roster||[]).forEach(m=>nameOf[m.user_id]=m.full_name||m.email);
+  const rows=data.rows||[];
+  if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3><p class="tag">No test results yet. Take a test in Test mode.</p>'; return; }
+  const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
+  rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results — ${ctx.team.name}</h3>
+    <p class="tag">${coach?"Your whole roster’s scores.":"Your saved scores."}</p>
+    <table class="res"><thead><tr><th>Player</th><th>Test</th><th>Score</th><th>%</th><th>When</th></tr></thead><tbody>`+
+    rows.map(r=>{ const pct=r.total?Math.round(r.score/r.total*100):0; const when=new Date(r.created_at).toLocaleDateString();
+      return `<tr><td>${(nameOf[r.user_id]||"—")}</td><td>${r.quiz||"Test"}</td><td>${r.score}/${r.total}</td><td>${pct}%</td><td>${when}</td></tr>`; }).join("")+
+    `</tbody></table>`;
+}
+
+/* ---------- view switching ---------- */
+function swap(view){
+  document.getElementById("setupPanel").classList.toggle("hidden", view!=="setup");
+  document.getElementById("playPanel").classList.toggle("hidden", view!=="play");
+  document.getElementById("resultPanel").classList.toggle("hidden", view!=="result" && view!=="results");
+}
+function setMode(m){
+  MODE=m;
+  [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.classList.toggle("on",b.dataset.mode===m));
+  document.getElementById("testLenWrap").classList.toggle("hidden", m!=="test");
+  document.getElementById("startBtn").textContent = m==="test" ? "Start test" : "Start training";
+  if(m==="results"){ swap("results"); showResults(); }
+  else swap("setup");
+}
+
+/* ---------- chips ---------- */
+function buildChips(){
+  const cc=document.getElementById("conceptChips"); cc.innerHTML="";
+  CONCEPTS.forEach(c=>{ const b=document.createElement("button"); b.className="chip on"; b.textContent=c.name; b.onclick=()=>{ if(enabledConcepts.has(c.id)&&enabledConcepts.size>1){enabledConcepts.delete(c.id);b.classList.remove("on");} else {enabledConcepts.add(c.id);b.classList.add("on");} }; cc.appendChild(b); });
+  const vc=document.getElementById("coverageChips"); vc.innerHTML="";
+  COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip on"; b.textContent=cv; b.onclick=()=>{ if(enabledCoverages.has(cv)&&enabledCoverages.size>1){enabledCoverages.delete(cv);b.classList.remove("on");} else {enabledCoverages.add(cv);b.classList.add("on");} }; vc.appendChild(b); });
+}
+
+/* ---------- init ---------- */
+function init(){
+  buildChips();
+  [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.onclick=()=>setMode(b.dataset.mode));
+  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test") startTest(); else { swap("play"); showRep(pickRep()); document.getElementById("progressLbl").textContent="Train mode — tap where the ball should go."; } };
+  document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train") showRep(pickRep()); };
+  document.getElementById("quitBtn").onclick=()=>{ test=null; setMode(MODE==="test"?"test":"train"); };
+  document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(g) answer(g.dataset.lab); });
+  window.OFFGRD_APP={kind:"qb"};
+}
+init();
+</script>
+<script src="OFFGRD-mobile.js"></script>
+<script type="module" src="OFFGRD-qb-cloud.js"></script>
+<script type="module" src="OFFGRD-account.js"></script>
+</body>
+</html>

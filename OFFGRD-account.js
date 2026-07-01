@@ -5,6 +5,7 @@ import { Cloud } from "./OFFGRD-cloud.js";
 import { openAuthModal } from "./OFFGRD-auth.js";
 
 const A = window.OFFGRD_APP || {};
+const SYNCABLE = ["playbook","scout"].includes(A.kind);
 const acct = document.getElementById("acct");
 let TEAM = null, ROLE = null, TEAMS = [];
 const AKEY = "offgrd_team";
@@ -58,13 +59,13 @@ function bar(user){
   acct.innerHTML =
     '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span>'+ badge +
     ' <button class="cbtn" id="cteam">Team</button>'+
-    (canEdit() ? ' <button class="cbtn" id="cs">Sync ↑</button>' : '')+
-    ' <button class="cbtn" id="cd">Load ↓</button>'+
+    ((SYNCABLE && canEdit()) ? ' <button class="cbtn" id="cs">Sync ↑</button>' : '')+
+    (SYNCABLE ? ' <button class="cbtn" id="cd">Load ↓</button>' : '')+
     ' <button class="cbtn" id="co">Sign out</button>';
   styleBtns();
   acct.querySelector("#cteam").onclick = openTeam;
   const cs = acct.querySelector("#cs"); if(cs) cs.onclick = push;
-  acct.querySelector("#cd").onclick = () => pull(false);
+  const cd = acct.querySelector("#cd"); if(cd) cd.onclick = () => pull(false);
   acct.querySelector("#co").onclick = () => Cloud.signOut();
 }
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
@@ -95,7 +96,7 @@ async function setActiveTeam(id){
 
 /* ---------- sync ---------- */
 async function pull(silent){
-  if(!TEAM) return;
+  if(!TEAM || !SYNCABLE) return;
   try{
     if(A.kind==="playbook"){
       const rows = await Cloud.listPlays(TEAM.id);

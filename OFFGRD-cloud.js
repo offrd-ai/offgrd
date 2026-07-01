@@ -110,6 +110,17 @@ export const Cloud = {
   },
   async deleteGame(id) { const { error } = await sb.from("scouting_games").delete().eq("id", id); if (error) throw error; },
 
+  /* ---------- QB reads trainer results ---------- */
+  async saveQuizResult(teamId, r) {
+    const row = { team_id: teamId, quiz: r.quiz || "Test", score: r.score|0, total: r.total|0, detail: r.detail || [] };
+    const { data, error } = await sb.from("qb_results").insert(row).select().single();
+    if (error) throw error; return data;
+  },
+  async listQuizResults(teamId) {
+    const { data, error } = await sb.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
+    if (error) throw error; return data || [];
+  },
+
   /* ---------- plan / billing status ---------- */
   async plan(teamId) {
     const { data } = await sb.from("teams").select("plan, plan_status").eq("id", teamId).single();
