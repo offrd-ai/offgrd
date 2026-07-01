@@ -3,53 +3,173 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#13294B">
-<title>OFFGRD — Coaching Suite</title>
+<meta name="theme-color" content="#0e1f3a">
+<title>OFFGRD — Scout, Predict & Design. Off the grid.</title>
+<meta name="description" content="OFFGRD is the offline-first coaching suite: scout opponents, predict their calls, and design your playbook — synced to your program in the cloud.">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<script src="OFFGRD-config.js"></script>
 <style>
-  :root{ --navy:#13294B; --carolina:#7BAFD4; --ink:#16181d; --line:#e2e5ea; }
+  :root{ --navy:#13294B; --navy2:#0e1f3a; --carolina:#7BAFD4; --ink:#16181d; --line:#e6e9ef; --muted:#8aa0bf; }
   *{box-sizing:border-box}
-  body{margin:0;font:16px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);
-    background:linear-gradient(160deg,#0e1f3a,#13294B 55%,#1c3a63);min-height:100vh}
-  .wrap{max-width:900px;margin:0 auto;padding:48px 20px 64px}
-  .brand{display:flex;align-items:center;gap:12px;color:#fff}
-  .logo{width:44px;height:44px;border-radius:11px;background:var(--carolina);color:var(--navy);
-    display:grid;place-items:center;font-weight:900;letter-spacing:-1px;font-size:19px}
-  h1{font-size:15px;letter-spacing:3px;margin:0;font-weight:800;color:#cfe0f2}
-  .hero{color:#fff;margin:36px 0 8px;font-size:34px;font-weight:900;letter-spacing:-.5px}
-  .sub{color:#9fb6d4;margin:0 0 34px;max-width:560px}
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media(max-width:640px){.cards{grid-template-columns:1fr}}
-  a.card{display:block;text-decoration:none;color:var(--ink);background:#fff;border-radius:18px;
-    padding:24px;border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 40px rgba(0,0,0,.25);
-    transition:transform .12s ease}
-  a.card:hover{transform:translateY(-3px)}
-  .tag{display:inline-block;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--navy);
-    background:var(--carolina);padding:4px 9px;border-radius:999px;margin-bottom:12px}
-  .ct{font-size:21px;font-weight:900;margin:0 0 6px}
-  .cd{color:#5b626e;font-size:14px;margin:0}
-  .foot{color:#7f97ba;font-size:12px;margin-top:40px;line-height:1.7}
-  .foot b{color:#cfe0f2}
+  html,body{margin:0}
+  body{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:#fff}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* nav */
+  header.nav{position:sticky;top:0;z-index:20;background:rgba(14,31,58,.92);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav-in{display:flex;align-items:center;gap:12px;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;color:#fff}
+  .logo{width:38px;height:38px;border-radius:10px;background:var(--carolina);color:var(--navy);display:grid;place-items:center;font-weight:900;letter-spacing:-1px;font-size:16px}
+  .brand b{font-size:15px;letter-spacing:3px}
+  .nav-sp{flex:1}
+  #navAuth{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  #navAuth .who{color:#cfe0f2;font-size:13px}
+  .nav-btn{background:var(--carolina);color:var(--navy);border:0;border-radius:9px;padding:9px 16px;font-weight:800;font-size:14px;cursor:pointer}
+  .nav-btn.ghost{background:transparent;color:#cfe0f2;border:1px solid rgba(255,255,255,.25)}
+
+  /* hero */
+  .hero{background:linear-gradient(165deg,#0e1f3a 0%,#13294B 55%,#1b3a63 100%);color:#fff;padding:72px 0 88px;position:relative;overflow:hidden}
+  .hero:after{content:"";position:absolute;right:-160px;top:-120px;width:520px;height:520px;background:radial-gradient(circle,rgba(123,175,212,.22),transparent 62%);pointer-events:none}
+  .eyebrow{display:inline-block;font-size:12px;letter-spacing:2.5px;font-weight:800;color:var(--carolina);border:1px solid rgba(123,175,212,.4);border-radius:999px;padding:6px 13px;margin-bottom:22px}
+  .hero h1{font-size:52px;line-height:1.05;font-weight:900;letter-spacing:-1px;margin:0 0 18px;max-width:760px}
+  .hero p.lead{font-size:19px;color:#c2d3ea;max-width:600px;margin:0 0 30px}
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap}
+  .btn-primary{background:var(--carolina);color:var(--navy);border:0;border-radius:11px;padding:15px 26px;font-weight:900;font-size:16px;cursor:pointer}
+  .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:11px;padding:15px 24px;font-weight:800;font-size:16px;cursor:pointer}
+  .trust{margin-top:26px;color:#8aa0bf;font-size:13px}
+
+  /* section */
+  section{padding:64px 0}
+  .sec-h{font-size:13px;letter-spacing:2px;font-weight:800;color:var(--carolina);text-transform:uppercase;margin:0 0 8px}
+  .sec-t{font-size:30px;font-weight:900;color:var(--navy);letter-spacing:-.5px;margin:0 0 34px}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:720px){.cards{grid-template-columns:1fr}.hero h1{font-size:38px}}
+  a.card{display:block;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 10px 30px rgba(19,41,75,.06);transition:transform .12s ease,box-shadow .12s ease}
+  a.card:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(19,41,75,.12)}
+  .tag{display:inline-block;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--navy);background:#dce7f6;padding:5px 11px;border-radius:999px;margin-bottom:14px}
+  .card h3{font-size:22px;font-weight:900;margin:0 0 8px;color:var(--navy)}
+  .card p{color:#5b626e;font-size:15px;margin:0}
+
+  .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  @media(max-width:720px){.feat{grid-template-columns:1fr}}
+  .feat .ico{width:46px;height:46px;border-radius:12px;background:#eef3fb;display:grid;place-items:center;font-size:22px;margin-bottom:12px}
+  .feat h4{margin:0 0 6px;font-size:17px;color:var(--navy);font-weight:900}
+  .feat p{margin:0;color:#5b626e;font-size:14.5px}
+  .band{background:#f6f8fb;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  footer{background:var(--navy2);color:#8aa0bf;padding:30px 0}
+  .foot-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
+  .foot-in .logo{width:30px;height:30px;font-size:13px}
+  .foot-sp{flex:1}
 </style>
 </head>
 <body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <div class="brand"><div class="logo">OG</div><b>OFFGRD</b></div>
+    <div class="nav-sp"></div>
+    <div id="navAuth"></div>
+  </div>
+</header>
+
+<div class="hero">
   <div class="wrap">
-    <div class="brand"><div class="logo">OG</div><h1>OFFGRD</h1></div>
-    <div class="hero">Your game plan, off the grid.</div>
-    <p class="sub">Scout opponents, predict their calls, and design your playbook — offline on the sideline, synced to your program in the cloud.</p>
+    <span class="eyebrow">SCOUT · PREDICT · DESIGN</span>
+    <h1>Your game plan, off the grid.</h1>
+    <p class="lead">The coaching suite that scouts opponents, predicts their calls, and draws up your playbook — working offline on the sideline and syncing to your whole staff in the cloud.</p>
+    <div class="cta-row">
+      <button class="btn-primary" id="ctaStart">Get started free</button>
+      <a class="btn-ghost" href="#tools">Explore the tools</a>
+    </div>
+    <div class="trust">Built for football staffs · Works with Hudl &amp; QwikCut exports · No internet required at game time</div>
+  </div>
+</div>
+
+<section id="tools">
+  <div class="wrap">
+    <p class="sec-h">The tools</p>
+    <h2 class="sec-t">Two apps, one program library.</h2>
     <div class="cards">
       <a class="card" href="OFFGRD.html">
         <span class="tag">SCOUT</span>
-        <p class="ct">Scout & Predict →</p>
-        <p class="cd">Import Hudl / QwikCut breakdowns. Predict opponent run/pass, coverage, front & blitz by situation. Build the call sheet and run it live.</p>
+        <h3>Scout &amp; Predict →</h3>
+        <p>Import Hudl / QwikCut breakdowns and predict opponent run/pass, coverage, front, and blitz by situation. Build the call sheet and run it live on the sideline.</p>
       </a>
       <a class="card" href="OFFGRD-Playbook.html">
         <span class="tag">PLAYBOOK</span>
-        <p class="ct">Design & Install →</p>
-        <p class="cd">Draw and animate plays — formations, routes, blocking, motion, defenses & coverages. Tag, schedule, and install with your staff.</p>
+        <h3>Design &amp; Install →</h3>
+        <p>Draw and animate plays — formations, routes, blocking, motion, defenses and coverages. Build with the guided wizard, then tag, schedule, and install with your staff.</p>
       </a>
     </div>
-    <p class="foot"><b>Signed-in coaches</b> get one shared program library across every device. Works offline first, then syncs when you're back online.<br>© Parkway West Longhorns · OFFGRD</p>
   </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="sec-h">Why coaches use it</p>
+    <h2 class="sec-t">Everything a staff needs, in sync.</h2>
+    <div class="feat">
+      <div>
+        <div class="ico">🎯</div>
+        <h4>Predict the defense</h4>
+        <p>Statistical, situation-aware predictions built from real breakdown data — calibrated and back-tested, not guesswork.</p>
+      </div>
+      <div>
+        <div class="ico">✎</div>
+        <h4>Design &amp; animate</h4>
+        <p>A full play designer with formations, routes, protections, and defensive looks — plus a step-by-step play wizard.</p>
+      </div>
+      <div>
+        <div class="ico">👥</div>
+        <h4>Share with your staff</h4>
+        <p>Invite coaches and players with edit or view access. One shared library follows every device, online or off.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap" style="text-align:center">
+    <h2 class="sec-t" style="margin-bottom:14px">Ready to build your program?</h2>
+    <p style="color:#5b626e;max-width:520px;margin:0 auto 24px">Create a free account, set up your program, and invite your staff in minutes.</p>
+    <button class="btn-primary" id="ctaStart2" style="background:var(--navy);color:#fff">Create your free account</button>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <div class="logo">OG</div>
+    <span>OFFGRD — Scout, Predict &amp; Design.</span>
+    <div class="foot-sp"></div>
+    <span>© 2026 OFFGRD. All rights reserved.</span>
+  </div>
+</footer>
+
+<script type="module">
+  import { Cloud } from "./OFFGRD-cloud.js";
+  import { openAuthModal } from "./OFFGRD-auth.js";
+  const navAuth = document.getElementById("navAuth");
+  function render(u){
+    if(u){
+      navAuth.innerHTML = '<span class="who">'+u.email+'</span><a class="nav-btn" href="OFFGRD.html">Open app</a><button class="nav-btn ghost" id="soBtn">Sign out</button>';
+      document.getElementById("soBtn").onclick = ()=>Cloud.signOut();
+    } else {
+      navAuth.innerHTML = '<button class="nav-btn ghost" id="siBtn">Sign in</button><button class="nav-btn" id="suBtn">Get started</button>';
+      document.getElementById("siBtn").onclick = ()=>openAuthModal(null,"signin");
+      document.getElementById("suBtn").onclick = ()=>openAuthModal(null,"signup");
+    }
+  }
+  if(Cloud.ready){
+    Cloud.onAuth(u=>render(u));
+    (async()=>{ try{ render(await Cloud.user()); }catch(e){ render(null); } })();
+  } else { render(null); }
+  const start=()=>openAuthModal(null,"signup");
+  document.getElementById("ctaStart").onclick=start;
+  document.getElementById("ctaStart2").onclick=start;
+</script>
 </body>
 </html>

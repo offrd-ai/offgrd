@@ -2,6 +2,7 @@
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
 import { Cloud } from "./OFFGRD-cloud.js";
+import { openAuthModal } from "./OFFGRD-auth.js";
 
 const A = window.OFFGRD_APP || {};
 const acct = document.getElementById("acct");
@@ -68,18 +69,7 @@ function bar(user){
 }
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
 
-async function login(){
-  const email = prompt("Coach or player email:"); if(!email) return;
-  const pw = prompt("Password (6+ characters):"); if(!pw) return;
-  let r = await Cloud.signIn(email.trim(), pw);
-  if(r.error){
-    if(confirm("No account for that email yet — create one?")){
-      r = await Cloud.signUp(email.trim(), pw);
-      if(r.error){ alert(r.error.message); return; }
-      if(!r.data.session){ alert("Account created. If email confirmation is ON in Supabase, confirm it, then Sign in."); return; }
-    } else return;
-  }
-}
+function login(){ openAuthModal(); }
 
 /* ---------- session / active team ---------- */
 async function onUser(u){
