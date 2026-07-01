@@ -41,7 +41,7 @@
 <script src="OFFGRD-config.js"></script>
 </head>
 <body>
-  <div class="topbar"><b>OFFGRD</b><span>· Playbook — draw &amp; animate</span><span id="acct" style="margin-left:auto"></span></div>
+  <div class="topbar"><b>OFFGRD</b><span>· Playbook — draw &amp; animate</span><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
 
   <!-- SETUP / GENERAL -->
   <div class="panel" data-sec="Setup &amp; field">
@@ -157,6 +157,19 @@
   </div>
 
 <div class="ov" id="installModal"><div class="ovbox"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Install plan</b><div><button class="btn" onclick="window.print()">Print</button> <button class="btn" id="installClose">Close</button></div></div><p class="hint" style="margin:6px 0">Generated from your saved plays, grouped by series, base series first, ~6 installs per day.</p><div id="installBody"></div></div></div>
+
+<div class="ov" id="wizModal"><div class="ovbox" style="max-width:640px">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <b style="font-size:18px;color:var(--navy)">Build a Play</b>
+    <button class="btn" id="wizX">Close</button>
+  </div>
+  <div id="wizSteps" class="hint" style="margin:4px 0 12px;font-weight:800"></div>
+  <div id="wizBody"></div>
+  <div class="row" style="justify-content:space-between;margin-top:18px">
+    <button class="btn" id="wizBack">Back</button>
+    <button class="btn go" id="wizNext" style="min-width:110px">Next</button>
+  </div>
+</div></div>
 
 <script>
 /* ============ OFFGRD Playbook — vector routes, edit, animate ============ */
@@ -343,6 +356,63 @@ function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
   (STATE.draws||[]).forEach(dr=>{ (dr.pts||[]).forEach(pt=>{pt.x=fx(pt.x);}); });
   SEL=null; renderAll(); msg("Flipped left \u21c4 right."); }
 
+/* ===== Guided play-design wizard ===== */
+function applyRunScheme(name){ if(!STATE)return; snap();
+  const ol=STATE.players.filter(p=>p.ol).sort((a,b)=>a.x-b.x);
+  const rb=STATE.players.find(p=>p.type==="rb"); const C=ol[2]||{x:500,y:LOS};
+  const dir=/Lt/.test(name)?-1:1;
+  const setb=(p,t,d)=>{p.type="block";p.blk=null;p.route=[];p.motion=[];p.runblk={type:t,dir:d||0};};
+  if(/Zone/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
+  else if(/Power/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3); if(bsG) setb(p,"pull",dir); else setb(p,"down",0); }); }
+  else if(/Counter/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3), bsT=(dir>0?i===0:i===4); if(bsG) setb(p,"pull",dir); else if(bsT) setb(p,"kick",dir); else setb(p,"down",0); }); }
+  else if(/Draw/.test(name)){ ol.forEach(p=>setb(p,"set",0)); }
+  if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null;
+    const aimX=/Outside/.test(name)?(C.x+dir*150):(C.x+dir*55);
+    const aimY=/Draw/.test(name)?LOS-45:LOS-72;
+    rb.route=[{x:C.x+dir*12,y:rb.y-6,cx:null,cy:null},{x:aimX,y:aimY,cx:null,cy:null}]; }
+  renderAll(); }
+
+const WFORMS=Object.keys(FORMS), WPERS=Object.keys(PERS);
+const WRUN=["Inside Zone Rt","Inside Zone Lt","Outside Zone Rt","Outside Zone Lt","Power Rt","Power Lt","Counter Rt","Counter Lt","Draw"];
+const WSTEPS=["formation","personnel","kind","scheme","protection","defense","name"];
+let WZ=null;
+function wizVis(id){ if(id==="scheme") return WZ.kind!=="Custom"; if(id==="protection") return WZ.kind==="Pass"; return true; }
+function wizOrder(){ return WSTEPS.filter(wizVis); }
+function wizOpen(){ WZ={i:0,formation:WFORMS[0],personnel:"",kind:"Pass",concept:"",scheme:"",protection:"none",front:"none",cov:"none",name:"",family:"",series:"",save:true}; document.getElementById("wizModal").classList.add("show"); wizRender(); }
+function wizClose(){ document.getElementById("wizModal").classList.remove("show"); }
+function wizChips(items,current,onpick){ const w=document.createElement("div"); w.className="row"; w.style.flexWrap="wrap"; items.forEach(it=>{ const v=Array.isArray(it)?it[0]:it, lbl=Array.isArray(it)?it[1]:it; const b=document.createElement("button"); b.className="btn"+(current===v?" go":""); b.style.minWidth="70px"; b.textContent=lbl; b.onclick=()=>onpick(v); w.appendChild(b); }); return w; }
+function wizRender(){
+  const order=wizOrder(), id=order[WZ.i];
+  const titles={formation:"Formation",personnel:"Personnel (optional)",kind:"Pass, Run, or Custom?",scheme:(WZ.kind==="Run"?"Run scheme":"Pass concept"),protection:"Protection",defense:"Defense to draw against (optional)",name:"Name & finish"};
+  document.getElementById("wizSteps").textContent="Step "+(WZ.i+1)+" of "+order.length+"  \u2014  "+titles[id];
+  const body=document.getElementById("wizBody"); body.innerHTML="";
+  const note=t=>{const p=document.createElement("p");p.className="hint";p.style.margin="0 0 10px";p.innerHTML=t;body.appendChild(p);};
+  if(id==="formation"){ note("Pick your base alignment \u2014 you can flip or edit it later."); body.appendChild(wizChips(WFORMS,WZ.formation,v=>{WZ.formation=v;wizRender();})); }
+  else if(id==="personnel"){ note("Optional grouping. <b>Skip</b> keeps the formation exactly as chosen."); body.appendChild(wizChips([["","Skip"]].concat(WPERS.map(p=>[p,p])),WZ.personnel,v=>{WZ.personnel=v;wizRender();})); }
+  else if(id==="kind"){ note("How does this play attack?"); body.appendChild(wizChips(["Pass","Run","Custom"],WZ.kind,v=>{WZ.kind=v;wizRender();})); }
+  else if(id==="scheme"){ if(WZ.kind==="Run"){ note("Blocks and the back\u2019s path get drawn for you."); body.appendChild(wizChips(WRUN,WZ.scheme,v=>{WZ.scheme=v;wizRender();})); } else { note("Routes get assigned to your receivers."); body.appendChild(wizChips([["","None (I\u2019ll draw)"]].concat(CONCEPTS.map(c=>[c,c])),WZ.concept,v=>{WZ.concept=v;wizRender();})); } }
+  else if(id==="protection"){ note("Protection for the line & back."); body.appendChild(wizChips(["none","BOB","Slide R","Slide L","Half-Slide R","Half-Slide L","6-Man (RB)"].map(p=>[p,p==="none"?"None":p]),WZ.protection,v=>{WZ.protection=v;wizRender();})); }
+  else if(id==="defense"){ note("Optionally drop a defense to draw against."); body.appendChild(wizChips(["none","4-3","3-4","4-2-5","Nickel","Bear (46)","3-3-5 (Tite)","Dime (4-1-6)"].map(x=>[x,x==="none"?"No defense":x]),WZ.front,v=>{WZ.front=v;wizRender();})); if(WZ.front!=="none"){ const c=wizChips(["none","Cover 0","Cover 1","2-Man","Cover 2","Cover 3","Cover 4","Cover 6","Tampa 2"].map(x=>[x,x==="none"?"Front only":x]),WZ.cov,v=>{WZ.cov=v;wizRender();}); c.style.marginTop="8px"; body.appendChild(c); } }
+  else if(id==="name"){ note("Name it and finish \u2014 you\u2019ll drop into the editor with it all drawn."); const mk=(lbl,key,ph)=>{const w=document.createElement("label");w.style.cssText="display:flex;flex-direction:column;font-size:12px;font-weight:800;color:#5b626e;gap:4px;margin-bottom:10px";w.appendChild(document.createTextNode(lbl));const inp=document.createElement("input");inp.value=WZ[key]||"";inp.placeholder=ph||"";inp.oninput=e=>WZ[key]=e.target.value;inp.style.minHeight="40px";w.appendChild(inp);body.appendChild(w);}; mk("Play name","name","e.g. DINO"); mk("Family (optional)","family","e.g. Inside Zone"); mk("Series (optional)","series","e.g. Zone"); const sv=document.createElement("label"); sv.style.cssText="display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-top:2px"; const cb=document.createElement("input");cb.type="checkbox";cb.checked=WZ.save;cb.onchange=e=>WZ.save=e.target.checked; sv.appendChild(cb); sv.appendChild(document.createTextNode("Save to my playbook now")); body.appendChild(sv); }
+  const back=document.getElementById("wizBack"), next=document.getElementById("wizNext");
+  back.style.visibility=WZ.i===0?"hidden":"visible";
+  next.textContent=(WZ.i===order.length-1)?"Finish \u2713":"Next";
+}
+function wizNav(d){ const order=wizOrder(); const ni=WZ.i+d; if(ni<0)return; if(ni>=order.length){ wizFinish(); return; } WZ.i=ni; wizRender(); }
+function wizFinish(){
+  newPlay(WZ.formation); const fs=document.getElementById("formSel"); if(fs)fs.value=WZ.formation; set("m-form",WZ.formation);
+  if(WZ.personnel){ placePersonnel(WZ.personnel); const ps=document.getElementById("persSel"); if(ps)ps.value=WZ.personnel; set("m-pers",WZ.personnel); }
+  if(WZ.kind==="Pass" && WZ.concept){ applyConcept(WZ.concept); }
+  if(WZ.kind==="Run" && WZ.scheme){ applyRunScheme(WZ.scheme); }
+  if(WZ.kind==="Pass" && WZ.protection && WZ.protection!=="none"){ applyProtection(WZ.protection); const pr=document.getElementById("protSel"); if(pr)pr.value=WZ.protection; set("m-prot",WZ.protection); }
+  if(WZ.front && WZ.front!=="none"){ placeDefense(WZ.front,WZ.cov); const df=document.getElementById("defFront"),dc=document.getElementById("defCov"),sz=document.getElementById("showZones"); if(df)df.value=WZ.front; if(dc)dc.value=WZ.cov; if(WZ.cov!=="none"&&sz){sz.checked=true;STATE.showZones=true;} }
+  set("m-name",WZ.name); set("m-series",WZ.series);
+  if(WZ.family) set("m-family",WZ.family); else if(WZ.kind==="Run" && WZ.scheme) set("m-family",WZ.scheme.replace(/ (Rt|Lt)$/,""));
+  readMeta(); renderAll();
+  if(WZ.save && WZ.name) savePlay();
+  wizClose(); msg("Play built"+(WZ.save&&WZ.name?" & saved":"")+" \u2014 edit anything on the field.");
+}
+
 /* ---- undo ---- */
 function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>40)UNDO.shift();REDO=[];syncUndo();}
 function undo(){if(!UNDO.length)return;REDO.push(JSON.stringify(STATE));STATE=JSON.parse(UNDO.pop());SEL=null;renderAll();syncUndo();}
@@ -509,6 +579,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("installBtn").onclick=buildInstall;
   document.getElementById("installClose").onclick=()=>document.getElementById("installModal").classList.remove("show");
   document.getElementById("installModal").onclick=e=>{if(e.target.id==="installModal")e.currentTarget.classList.remove("show");};
+  document.getElementById("wizBtn").onclick=wizOpen;
+  document.getElementById("wizX").onclick=wizClose;
+  document.getElementById("wizBack").onclick=()=>wizNav(-1);
+  document.getElementById("wizNext").onclick=()=>wizNav(1);
+  document.getElementById("wizModal").onclick=e=>{if(e.target.id==="wizModal")wizClose();};
   document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
   document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=a;saveLib();renderLib();msg("Imported "+a.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
