@@ -23,7 +23,7 @@
       ".meta input,.meta select{width:100%}",
       "textarea{width:100%!important;min-width:0!important}",
       /* dense button toolbars become swipeable strips instead of exploding vertically */
-      ".seg,.presetrow,.modebar,#routeBar,#conceptBar,#blockBar{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:thin}",
+      ".seg,.presetrow,.modebar,#conceptBar,#blockBar{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:thin}",
       ".seg::-webkit-scrollbar,.presetrow::-webkit-scrollbar,.modebar::-webkit-scrollbar{height:5px}",
       ".seg button,.presetrow .preset,.modebar .btn{flex:0 0 auto;white-space:nowrap}",
       /* comfortable tap targets */
