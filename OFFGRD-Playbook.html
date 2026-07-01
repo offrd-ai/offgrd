@@ -43,51 +43,44 @@
 <body>
   <div class="topbar"><b>OFFGRD</b><span>· Playbook — draw &amp; animate</span><span id="acct" style="margin-left:auto"></span></div>
 
-  <div class="panel">
-    <div class="row" style="margin-bottom:8px">
-      <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">\u21c4 Flip</button>
-      <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">— pers —</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
-      <button class="btn" id="addWR">+ Player</button>
-      <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">— none —</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
-      <span class="lbl" style="margin-left:6px">Field</span><select id="fieldSel"><option selected>High School</option><option>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
+  <!-- SETUP / GENERAL -->
+  <div class="panel" data-sec="Setup &amp; field">
+    <div class="row">
+      <span class="lbl">Field</span><select id="fieldSel"><option selected>High School</option><option>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
       <span class="lbl" style="margin-left:6px">Trace</span><button class="btn" id="imgBtn">Image</button><input type="range" id="bgOp" min="10" max="100" value="50" style="width:84px" title="image opacity"><button class="btn" id="bgClear">Clear</button><input type="file" id="imgFile" accept="image/*" style="display:none">
       <span class="sp" style="flex:1"></span>
-      <button class="btn" id="undoBtn" title="Undo">↶ Undo</button>
-      <button class="btn" id="redoBtn" title="Redo">↷ Redo</button>
-      <button class="btn go" id="playBtn">▶ Play</button>
+      <button class="btn" id="undoBtn" title="Undo">&#8630; Undo</button>
+      <button class="btn" id="redoBtn" title="Redo">&#8631; Redo</button>
+      <button class="btn go" id="playBtn">&#9654; Play</button>
       <button class="btn nav" id="resetBtn">Reset</button>
     </div>
-    <div class="row modebar">
-      <span class="lbl">Tool</span>
+    <div class="row modebar" style="margin-top:8px">
+      <span class="lbl">Annotate</span>
+      <button class="btn" data-mode="text">Text</button>
+      <button class="btn" data-mode="draw">Draw</button>
+      <button class="btn" data-mode="erase">Erase</button>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn dz" id="clearAll">Clear field</button>
+    </div>
+  </div>
+
+  <!-- OFFENSE -->
+  <div class="panel" data-sec="Offense">
+    <div class="row">
+      <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">&#8644; Flip</button>
+      <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">&mdash; pers &mdash;</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
+      <button class="btn" id="addWR">+ Player</button>
+      <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">&mdash; none &mdash;</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
+    </div>
+    <div class="row modebar" style="margin-top:8px">
+      <span class="lbl">Offense tools</span>
       <button class="btn on" data-mode="route">Route</button>
       <button class="btn" data-mode="move">Move</button>
       <button class="btn" data-mode="block">Block</button>
       <button class="btn" data-mode="motion">Motion</button>
-      <button class="btn" data-mode="def">Defender</button>
-      <button class="btn" data-mode="blitz">Blitz</button>
-      <button class="btn" data-mode="erase">Erase</button>
-      <button class="btn" data-mode="text">Text</button>
-      <button class="btn" data-mode="draw">Draw</button>
       <span class="sp" style="flex:1"></span>
       <button class="btn" id="clearRoutes">Clear routes</button>
-      <button class="btn dz" id="clearAll">Clear field</button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <span class="lbl">Defense</span>
-      <select id="defFront"><option value="none">— front —</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
-      <select id="defCov"><option value="none">— coverage —</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
-      <button class="btn" id="placeDef">Place defense</button>
-      <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show zones</label>
-      <span class="hint" style="flex-basis:100%;margin-top:4px">Direct a defender: <b>Route</b> tool \u2192 tap the defender \u2192 tap where he should go (drag green dots to adjust, gray to curve). A drawn path overrides his coverage drop.</span>
-    </div>
-    <div id="selPanel">
-      <span class="lbl">Selected</span>
-      <input id="selLab" maxlength="3" style="width:54px;text-align:center" title="Player letter">
-      <span class="lbl" style="margin-left:4px">Color</span><span id="swatches" class="row" style="gap:5px"></span>
-      <button class="btn" id="selType">Make blocker</button>
-      <button class="btn dz" id="selDel">Delete player</button>
-    </div>
-    <p class="hint" id="hint" style="margin:8px 0 0"></p>
   </div>
 
   <div class="panel" id="routePanel">
@@ -101,12 +94,38 @@
     <div class="row"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
   </div>
 
+  <!-- DEFENSE -->
+  <div class="panel" data-sec="Defense">
+    <div class="row">
+      <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
+      <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
+      <button class="btn" id="placeDef">Place defense</button>
+      <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show zones</label>
+    </div>
+    <div class="row modebar" style="margin-top:8px">
+      <span class="lbl">Defense tools</span>
+      <button class="btn" data-mode="def">Add defender</button>
+      <button class="btn" data-mode="blitz">Blitz</button>
+      <button class="btn" data-mode="move">Move</button>
+      <button class="btn" data-mode="route">Direct</button>
+      <span class="hint" style="flex-basis:100%;margin-top:6px">Direct a defender: <b>Direct</b> tool &rarr; tap the defender &rarr; tap where he should go (drag green dots to adjust, gray to curve). A drawn path overrides his coverage drop.</span>
+    </div>
+  </div>
+
   <div class="panel" style="padding:6px">
     <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
     <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
       <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">▶ Play</button>
       <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
     </div>
+    <div id="selPanel">
+      <span class="lbl">Selected</span>
+      <input id="selLab" maxlength="3" style="width:54px;text-align:center" title="Player letter">
+      <span class="lbl" style="margin-left:4px">Color</span><span id="swatches" class="row" style="gap:5px"></span>
+      <button class="btn" id="selType">Make blocker</button>
+      <button class="btn dz" id="selDel">Delete player</button>
+    </div>
+    <p class="hint" id="hint" style="margin:8px 0 0"></p>
   </div>
 
   <div class="panel">
@@ -448,7 +467,7 @@ function exportPNG(){
 }
 
 /* ---- modes ---- */
-function setMode(m){MODE=m;document.querySelectorAll(".modebar .btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
+function setMode(m){MODE=m;document.querySelectorAll(".btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 
 document.addEventListener("DOMContentLoaded",()=>{
@@ -470,7 +489,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
   document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
   document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
-  document.querySelectorAll(".modebar .btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+  document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
   const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
   document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value)));};
   dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
