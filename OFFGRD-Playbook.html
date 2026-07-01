@@ -117,6 +117,8 @@
     <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
       <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">▶ Play</button>
       <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
+      <button class="btn" id="undoBtn2" title="Undo">&#8630; Undo</button>
+      <button class="btn" id="redoBtn2" title="Redo">&#8631; Redo</button>
     </div>
     <div id="selPanel">
       <span class="lbl">Selected</span>
@@ -417,7 +419,7 @@ function wizFinish(){
 function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>40)UNDO.shift();REDO=[];syncUndo();}
 function undo(){if(!UNDO.length)return;REDO.push(JSON.stringify(STATE));STATE=JSON.parse(UNDO.pop());SEL=null;renderAll();syncUndo();}
 function redo(){if(!REDO.length)return;UNDO.push(JSON.stringify(STATE));STATE=JSON.parse(REDO.pop());SEL=null;renderAll();syncUndo();}
-function syncUndo(){document.getElementById("undoBtn").disabled=!UNDO.length;document.getElementById("redoBtn").disabled=!REDO.length;}
+function syncUndo(){["undoBtn","undoBtn2"].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!UNDO.length;});["redoBtn","redoBtn2"].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!REDO.length;});}
 
 /* ---- coords ---- */
 function toSvg(e){const svg=document.getElementById("field"),r=svg.getBoundingClientRect();const cx=e.clientX,cy=e.clientY;return{x:(cx-r.left)/r.width*W,y:(cy-r.top)/r.height*H};}
@@ -565,7 +567,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
   dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
   sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();};
-  document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;
+  document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
   const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
   document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];});renderAll();};
   document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
