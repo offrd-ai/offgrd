@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" rx="112" fill="#13294B"/>
-  <rect x="120" y="120" width="272" height="272" rx="60" fill="#7BAFD4"/>
-  <text x="256" y="300" font-family="Arial, sans-serif" font-size="150" font-weight="900" fill="#13294B" text-anchor="middle" letter-spacing="-8">OG</text>
+  <rect x="26" y="26" width="460" height="460" rx="92" fill="none" stroke="#2f568c" stroke-width="8"/>
+  <text x="256" y="238" font-family="Arial, Helvetica, sans-serif" font-size="128" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="6">OFF</text>
+  <rect x="150" y="266" width="212" height="12" rx="6" fill="#7BAFD4"/>
+  <text x="256" y="392" font-family="Arial, Helvetica, sans-serif" font-size="128" font-weight="900" fill="#7BAFD4" text-anchor="middle" letter-spacing="6">GRD</text>
 </svg>
