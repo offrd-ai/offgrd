@@ -92,6 +92,7 @@
     <div class="row" style="margin-top:12px;justify-content:space-between">
       <span class="score" id="progressLbl"></span>
       <span class="row">
+        <button class="btn" id="replayBtn">▶ Replay</button>
         <button class="btn" id="quitBtn">End</button>
         <button class="btn go hidden" id="nextBtn">Next →</button>
       </span>
@@ -337,6 +338,86 @@ function editPlay(row){
   };
 }
 
+/* ---------- animated scene (offense runs routes, defense reacts) ---------- */
+let SCENE=null, QBANIM=null;
+function easeIO(t){ return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+function along(pts,frac){ if(!pts.length) return {x:0,y:0}; if(pts.length<2) return pts[0];
+  let seg=[],tot=0; for(let i=1;i<pts.length;i++){const L=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);seg.push(L);tot+=L;}
+  if(tot===0)return pts[0]; let target=frac*tot,acc=0;
+  for(let i=0;i<seg.length;i++){ if(acc+seg[i]>=target){const t=(target-acc)/seg[i];return{x:pts[i].x+(pts[i+1].x-pts[i].x)*t,y:pts[i].y+(pts[i+1].y-pts[i].y)*t};} acc+=seg[i]; }
+  return pts[pts.length-1]; }
+function flattenRoute(sx,sy,route){ let pts=[{x:sx,y:sy}],prev={x:sx,y:sy};
+  (route||[]).forEach(a=>{ if(a.cx!=null){ for(let t=0.34;t<1.001;t+=0.33){ const u=1-t; pts.push({x:u*u*prev.x+2*u*t*a.cx+t*t*a.x, y:u*u*prev.y+2*u*t*a.cy+t*t*a.y}); } } else pts.push({x:a.x,y:a.y}); prev={x:a.x,y:a.y}; });
+  return pts; }
+function offenseActors(rep){
+  const c=rep.concept;
+  if(c.custom){
+    const st=c.play&&c.play.players?c.play:(c.play&&c.play.data?c.play.data:c.play);
+    const players=(st&&st.players)||[];
+    return players.filter(p=>p.type==="route"||p.type==="rb").map(p=>({lab:p.lab, pts:flattenRoute(p.x,p.y,p.route), color:"#c8102e"}));
+  }
+  const list=c.recv.concat([c.back]).filter(Boolean);
+  return list.map(p=>({lab:p.lab, pts:buildRoute(p.x,p.y,p.route), color:"#c8102e"}));
+}
+function coverageActors(cov, recv, los){
+  const defs=[]; let shade="";
+  const Z=(x,y,rx,ry,l)=>{ shade+=zone(x,y,rx,ry,l); };
+  const push=(fx,fy,lab,fill,kind,extra)=>defs.push(Object.assign({fx,fy,lab,fill,kind,r:(kind==="deep"?13:12)},extra||{}));
+  [430,485,540,595].forEach(x=>push(x,los-16,"","#c8963c","dl"));
+  if(cov==="Cover 0"){ recv.forEach((p,i)=>push(p.x+(p.x<500?14:-14),p.y-26,"M","#123a6b","man",{manIdx:i})); push(500,los-30,"B","#b8860b","rush"); }
+  else if(cov==="Cover 1"){ recv.forEach((p,i)=>push(p.x+(p.x<500?14:-14),p.y-26,"M","#123a6b","man",{manIdx:i})); push(500,150,"FS","#123a6b","deep"); push(500,300,"R","#b8860b","zone"); }
+  else if(cov==="Cover 2"){ Z(300,150,120,60,"½");Z(700,150,120,60,"½"); [[160,290,"F"],[840,290,"F"],[380,300,"H"],[620,300,"H"],[500,300,"M"]].forEach(a=>push(a[0],a[1],a[2],"#123a6b","zone")); }
+  else if(cov==="Cover 3"){ Z(230,150,110,58,"⅓");Z(500,140,110,58,"⅓");Z(770,150,110,58,"⅓"); [[190,300,"C","deep"],[810,300,"C","deep"],[400,300,"H","zone"],[600,300,"H","zone"]].forEach(a=>push(a[0],a[1],a[2],a[3]==="deep"?"#123a6b":"#b8860b",a[3])); }
+  else if(cov==="Cover 4"){ Z(180,150,95,55,"¼");Z(400,148,95,55,"¼");Z(600,148,95,55,"¼");Z(820,150,95,55,"¼"); [[250,305,"C"],[500,305,"H"],[750,305,"C"]].forEach(a=>push(a[0],a[1],a[2],"#b8860b","zone")); }
+  else if(cov==="Tampa 2"){ Z(300,150,115,58,"½");Z(700,150,115,58,"½"); push(500,205,"M","#b8860b","deep"); [[170,300,"F"],[830,300,"F"],[400,305,"H"],[600,305,"H"]].forEach(a=>push(a[0],a[1],a[2],"#123a6b","zone")); }
+  return {shade, defs};
+}
+function defStartY(d,los){ if(d.kind==="dl"||d.kind==="man") return d.fy; if(d.kind==="rush") return los-10; return los-8; }
+function defPos(d,t,los,offPos){
+  const e=easeIO(t);
+  if(d.kind==="man" && d.manIdx!=null && offPos[d.manIdx]){ const rp=offPos[d.manIdx]; return {x:rp.x+(rp.x<500?12:-12), y:rp.y-18}; }
+  if(d.kind==="rush"){ return {x:d.fx+(500-d.fx)*e, y:(los-10)+(440-(los-10))*e}; }
+  if(d.kind==="dl"){ return {x:d.fx, y:d.fy-26*e}; }
+  const sy=defStartY(d,los); return {x:d.fx, y:sy+(d.fy-sy)*e};
+}
+function buildScene(rep){
+  const custom=rep.concept.custom;
+  const los=custom?380:360, viewH=custom?640:600;
+  const off=offenseActors(rep);
+  const recvAlign=off.map(o=>({x:o.pts[0].x,y:o.pts[0].y}));
+  const cov=coverageActors(rep.coverage, recvAlign, los);
+  let s="";
+  for(let y=40;y<=viewH-40;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
+  s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
+  s+=cov.shade;
+  if(custom){ const st=rep.concept.play; const players=(st&&st.players)||[];
+    players.filter(p=>p.ol||p.type==="block").forEach(p=>{ s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; });
+    const qb=players.find(p=>p.type==="qb"); if(qb) s+=dot(qb.x,qb.y,"QB","#0e1f3a",13);
+  } else { OL.forEach(o=>{ s+=`<rect x="${o.x-11}" y="${los-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; }); s+=dot(500,470,"QB","#0e1f3a",13); }
+  off.forEach((o,i)=>{ const d="M "+o.pts.map(q=>q.x.toFixed(1)+" "+q.y.toFixed(1)).join(" L "); s+=`<path id="chalk_${i}" d="${d}" fill="none" stroke="#bfe3ff" stroke-width="3.5" opacity="0.85"/>`; });
+  off.forEach(o=>{ const end=o.pts[o.pts.length-1]; s+=`<g data-lab="${o.lab}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="rgba(255,255,255,.16)" stroke="#fff" stroke-width="2.5"/><text x="${end.x}" y="${end.y+5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${o.lab}</text></g>`; });
+  cov.defs.forEach((d,i)=>{ s+=`<g id="d_${i}"><circle r="${d.r}" fill="${d.fill}" stroke="#0b2e17" stroke-width="1.5"/>${d.lab?`<text y="4" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${d.lab}</text>`:""}</g>`; });
+  off.forEach((o,i)=>{ s+=`<g id="o_${i}"><circle r="12" fill="${o.color}" stroke="#fff" stroke-width="2"/><text y="4" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${o.lab}</text></g>`; });
+  const svg=document.getElementById("field"); svg.setAttribute("viewBox",`0 0 1000 ${viewH}`); svg.innerHTML=s;
+  return {off, defs:cov.defs, los};
+}
+function positionTokens(scene,t){
+  const offPos=scene.off.map(o=>along(o.pts, easeIO(t)));
+  scene.off.forEach((o,i)=>{ const g=document.getElementById("o_"+i); if(g) g.setAttribute("transform",`translate(${offPos[i].x} ${offPos[i].y})`); });
+  scene.defs.forEach((d,i)=>{ const p=defPos(d,t,scene.los,offPos); const g=document.getElementById("d_"+i); if(g) g.setAttribute("transform",`translate(${p.x} ${p.y})`); });
+}
+function cancelQB(){ if(QBANIM){ cancelAnimationFrame(QBANIM); QBANIM=null; } }
+function animateScene(scene){ cancelQB(); const dur=1700, start=performance.now(); positionTokens(scene,0);
+  function frame(now){ let t=(now-start)/dur; if(t>1)t=1; positionTokens(scene,t); if(t<1) QBANIM=requestAnimationFrame(frame); else QBANIM=null; }
+  QBANIM=requestAnimationFrame(frame);
+}
+function revealCorrect(scene, lab){
+  cancelQB(); positionTokens(scene,1);
+  const idx=scene.off.findIndex(o=>o.lab===lab);
+  if(idx>=0){ const ch=document.getElementById("chalk_"+idx); if(ch){ ch.setAttribute("stroke","#19c37d"); ch.setAttribute("stroke-width","5"); ch.setAttribute("opacity","1"); }
+    const ring=document.querySelector('#field g[data-lab="'+lab+'"] circle'); if(ring){ ring.setAttribute("fill","rgba(25,195,125,.9)"); ring.setAttribute("stroke","#0b6b3f"); } }
+}
+
 /* ===================== game state ===================== */
 let MODE="train";
 const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
@@ -359,7 +440,7 @@ function pickRep(){
 function showRep(r){
   rep=r; answered=false;
   document.getElementById("prompt").textContent=`Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
-  renderRep(r,null);
+  SCENE=buildScene(r); animateScene(SCENE);
   const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
   document.getElementById("nextBtn").classList.add("hidden");
 }
@@ -367,7 +448,7 @@ function answer(lab){
   if(answered) return; answered=true;
   const correct = lab===rep.correct;
   const read=rep.concept.reads[rep.coverage];
-  renderRep(rep, rep.correct);
+  revealCorrect(SCENE, rep.correct);
   if(MODE==="train"){
     const fb=document.getElementById("fb");
     fb.className="fb show "+(correct?"ok":"bad");
@@ -474,7 +555,8 @@ function init(){
   [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.onclick=()=>setSource(b.dataset.src));
   document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — tap where the ball should go."; };
   document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
-  document.getElementById("quitBtn").onclick=()=>{ test=null; setMode(MODE==="test"?"test":"train"); };
+  document.getElementById("replayBtn").onclick=()=>{ if(SCENE) animateScene(SCENE); };
+  document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(g) answer(g.dataset.lab); });
   window.OFFGRD_APP={kind:"qb"};
 }
