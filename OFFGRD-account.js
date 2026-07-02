@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=11";
-import { openAuthModal } from "./OFFGRD-auth.js?v=11";
+import { Cloud } from "./OFFGRD-cloud.js?v=12";
+import { openAuthModal } from "./OFFGRD-auth.js?v=12";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -108,7 +108,7 @@ async function pull(silent){
       if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
-      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device\u2019s data is now backed up to "+TEAM.name+"."); }
+      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
@@ -241,5 +241,27 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>push(true), 1500); };
 /* ---------- mobile debug line (shows on small screens or with ?debug in URL) ---------- */
-const DBG_V = "11";
-functio
+const DBG_V = "12";
+function dbgInfo(extra){
+  try{
+    const show = /[?&#]debug/.test(location.href) || (window.matchMedia && matchMedia("(max-width:900px)").matches);
+    if(!show) return;
+    let ls="N", tok="N";
+    try{
+      localStorage.setItem("__og","1"); localStorage.removeItem("__og"); ls="Y";
+      for(let i=0;i<localStorage.length;i++){ if(/^sb-.*auth-token/.test(localStorage.key(i)||"")){ tok="Y"; break; } }
+    }catch(e){ ls="ERR"; }
+    let d = document.getElementById("ogDbg");
+    if(!d){
+      d = document.createElement("div"); d.id="ogDbg";
+      d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99999;font:10px/1.6 ui-monospace,Menlo,monospace;color:#5b626e;background:rgba(255,255,255,.94);border-top:1px solid #e2e5ea;padding:2px 8px;white-space:nowrap;overflow:auto";
+      document.body.appendChild(d);
+    }
+    d.textContent = "dbg v"+DBG_V+" · lib:"+(window.supabase?"Y":"N")+" · ready:"+(Cloud.ready?"Y":"N")+" · ls:"+ls+" · tok:"+tok+(extra?" · "+extra:"");
+  }catch(e){}
+}
+
+try{ bar(null); }catch(e){}   /* instant paint so the bar is never blank while auth loads */
+dbgInfo("sess:…");
+Cloud.onAuth(u=>{ onUser(u); dbgInfo("auth:"+(u?u.email:"none")); });
+(async()=>{ try{ const u = await Cloud.session(); onUser(u); dbgInfo("sess:"+(u?u.email:"none")); }catch(e){ bar(null); dbgInfo("err:"+((e&&e.message)||e)); } })();
