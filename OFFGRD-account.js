@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=10";
-import { openAuthModal } from "./OFFGRD-auth.js?v=10";
+import { Cloud } from "./OFFGRD-cloud.js?v=11";
+import { openAuthModal } from "./OFFGRD-auth.js?v=11";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -240,6 +240,6 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 
 let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>push(true), 1500); };
-try{ bar(null); }catch(e){}   /* instant paint so the bar is never blank while auth loads */
-Cloud.onAuth(u=>onUser(u));
-(async()=>{ try{ onUser(await Cloud.session()); }catch(e){ bar(null); } })();
+/* ---------- mobile debug line (shows on small screens or with ?debug in URL) ---------- */
+const DBG_V = "11";
+functio
