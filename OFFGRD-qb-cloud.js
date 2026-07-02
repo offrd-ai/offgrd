@@ -27,5 +27,12 @@ window.QB = {
       Cloud.teamRoster(t.id).catch(()=>[])
     ]);
     return { rows, roster };
+  },
+  async plays(){
+    const t = await activeTeam(); if(!t) return [];
+    return Cloud.listPlays(t.id);
+  },
+  async savePlayReads(id, reads){
+    return Cloud.updatePlayReads(id, reads);
   }
 };

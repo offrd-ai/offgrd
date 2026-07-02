@@ -96,6 +96,10 @@ export const Cloud = {
     if (error) throw error; return data;
   },
   async deletePlay(id) { const { error } = await sb.from("plays").delete().eq("id", id); if (error) throw error; },
+  async updatePlayReads(id, qb_reads) {
+    const { data, error } = await sb.from("plays").update({ qb_reads }).eq("id", id).select().single();
+    if (error) throw error; return data;
+  },
 
   /* ---------- scouting games (season library) ---------- */
   async listGames(teamId) {
