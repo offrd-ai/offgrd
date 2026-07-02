@@ -5,15 +5,15 @@
    Import:  <script type="module"> import { Cloud } from "./OFFGRD-cloud.js"; </script>
    Offline-first: callers keep writing localStorage as the cache; Cloud syncs when online + logged in.
    ============================================================ */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+/* Supabase client is loaded locally via <script src="vendor/supabase.js"> (window.supabase) — no external CDN. */
+const createClient = (typeof window !== "undefined" && window.supabase && window.supabase.createClient) ? window.supabase.createClient : null;
 const cfg = (typeof window !== "undefined" && window.OFFGRD_CONFIG) || {};
-const sb = createClient(cfg.url || "", cfg.anonKey || "", {
+const sb = createClient ? createClient(cfg.url || "", cfg.anonKey || "", {
   auth: { persistSession: true, autoRefreshToken: true }
-});
+}) : null;
 
 export const Cloud = {
-  ready: !!(cfg.url && cfg.anonKey),
+  ready: !!(createClient && cfg.url && cfg.anonKey),
   sb,
 
   /* ---------- auth ---------- */
