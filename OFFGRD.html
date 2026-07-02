@@ -1497,7 +1497,12 @@ document.getElementById("tg-thisyear").onchange=render;
 document.getElementById("loadCsv").onclick=previewImport;
 document.getElementById("commitBtn").onclick=commitPending;
 document.querySelectorAll("#seg-importmode button").forEach(b=>b.onclick=()=>openImport(b.dataset.mode));
-function ensureXLSX(cb){ if(window.XLSX) return cb(); const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=()=>cb(); s.onerror=()=>cb("noload"); document.head.appendChild(s); }
+function ensureXLSX(cb){
+  if(window.XLSX) return cb();
+  const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
+  /* local (vendored, works offline) first; CDN as fallback */
+  tryLoad("xlsx.full.min.js?v=12", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+}
 document.getElementById("fileIn").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
   const msg=document.getElementById("importMsg");
