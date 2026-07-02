@@ -78,6 +78,13 @@
     <div class="chips" id="conceptChips"></div>
     <div class="lbl" style="margin-top:14px">Coverages</div>
     <div class="chips" id="coverageChips"></div>
+    <div id="kindWrap" class="hidden">
+      <div class="lbl" style="margin-top:14px">Test type</div>
+      <div class="seg" id="kindSeg">
+        <button class="on" data-kind="reads">Reads — where's the throw</button>
+        <button data-kind="coverage">Coverage ID — name the coverage</button>
+      </div>
+    </div>
     <div class="row" style="margin-top:16px">
       <span id="testLenWrap" class="row hidden"><span class="lbl" style="margin:0 8px 0 0">Questions</span>
         <select id="testLen" class="btn"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></span>
@@ -88,11 +95,13 @@
   <div class="panel hidden" id="playPanel">
     <p class="prompt" id="prompt"></p>
     <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
+    <div class="chips hidden" id="covChoices" style="margin-top:10px"></div>
     <div class="fb" id="fb"></div>
     <div class="row" style="margin-top:12px;justify-content:space-between">
       <span class="score" id="progressLbl"></span>
       <span class="row">
-        <button class="btn" id="replayBtn">▶ Replay</button>
+        <button class="btn go" id="snapBtn">▶ Snap</button>
+        <button class="btn hidden" id="replayBtn">▶ Replay</button>
         <button class="btn" id="quitBtn">End</button>
         <button class="btn go hidden" id="nextBtn">Next →</button>
       </span>
@@ -404,7 +413,8 @@ function defPos(d,t,los,offPos){
   if(d.kind==="dl"){ return {x:d.fx, y:d.fy-26*e}; }
   const sy=defStartY(d,los); return {x:d.fx, y:sy+(d.fy-sy)*e};
 }
-function buildScene(rep){
+function buildScene(rep, opts){
+  opts=opts||{};
   const custom=rep.concept.custom;
   const los=custom?380:360, viewH=custom?640:600;
   const off=offenseActors(rep);
@@ -413,14 +423,14 @@ function buildScene(rep){
   let s="";
   for(let y=40;y<=viewH-40;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
   s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
-  s+=cov.shade;
+  if(!opts.hideCov) s+=cov.shade;
   if(custom){ const st=rep.concept.play; const players=(st&&st.players)||[];
     players.filter(p=>p.ol||p.type==="block").forEach(p=>{ s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; });
     const qb=players.find(p=>p.type==="qb"); if(qb) s+=dot(qb.x,qb.y,"QB","#0e1f3a",13);
   } else { OL.forEach(o=>{ s+=`<rect x="${o.x-11}" y="${los-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; }); s+=dot(500,470,"QB","#0e1f3a",13); }
   off.forEach((o,i)=>{ const d="M "+o.pts.map(q=>q.x.toFixed(1)+" "+q.y.toFixed(1)).join(" L "); s+=`<path id="chalk_${i}" d="${d}" fill="none" stroke="#bfe3ff" stroke-width="3.5" opacity="0.85"/>`; });
   off.forEach(o=>{ const end=o.pts[o.pts.length-1]; s+=`<g data-lab="${o.lab}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="rgba(255,255,255,.16)" stroke="#fff" stroke-width="2.5"/><text x="${end.x}" y="${end.y+5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${o.lab}</text></g>`; });
-  cov.defs.forEach((d,i)=>{ s+=`<g id="d_${i}"><circle r="${d.r}" fill="${d.fill}" stroke="#0b2e17" stroke-width="1.5"/>${d.lab?`<text y="4" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${d.lab}</text>`:""}</g>`; });
+  cov.defs.forEach((d,i)=>{ const lab=opts.hideCov?"":d.lab; const fill=(opts.hideCov&&d.kind==="rush")?"#b8860b":d.fill; s+=`<g id="d_${i}"><circle r="${d.r}" fill="${fill}" stroke="#0b2e17" stroke-width="1.5"/>${lab?`<text y="4" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${lab}</text>`:""}</g>`; });
   off.forEach((o,i)=>{ s+=`<g id="o_${i}" data-lab="${o.lab}" style="cursor:pointer"><circle r="14" fill="${o.color}" stroke="#fff" stroke-width="2"/><text y="4" font-size="11" font-weight="800" fill="#fff" text-anchor="middle" style="pointer-events:none">${o.lab}</text></g>`; });
   const svg=document.getElementById("field"); svg.setAttribute("viewBox",`0 0 1000 ${viewH}`); svg.innerHTML=s;
   return {off, defs:cov.defs, los};
@@ -446,8 +456,8 @@ function revealCorrect(scene, lab){
 let MODE="train";
 const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
 const enabledCoverages=new Set(COVERAGES);
-let rep=null, answered=false;
-let test=null; // {queue:[], i:0, results:[]}
+let rep=null, answered=false, SNAPPED=false, TESTKIND="reads";
+let test=null; // {queue:[], i:0, results:[], kind:"reads"|"coverage"}
 
 function pickRep(){
   const cs=pool().filter(c=>enabledConcepts.has(c.id));
@@ -461,15 +471,40 @@ function pickRep(){
   }
   return null;
 }
+function isCovTest(){ return MODE==="test" && test && test.kind==="coverage"; }
 function showRep(r){
-  rep=r; answered=false;
-  document.getElementById("prompt").textContent=`Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
-  SCENE=buildScene(r); animateScene(SCENE);
+  rep=r; answered=false; SNAPPED=false;
+  document.getElementById("prompt").textContent = isCovTest()
+    ? `What's the coverage?  (${r.concept.name}) — read the defense, then snap`
+    : `Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
+  SCENE=buildScene(r,{hideCov:isCovTest()}); cancelQB(); positionTokens(SCENE,0);
   const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
   document.getElementById("nextBtn").classList.add("hidden");
+  document.getElementById("snapBtn").classList.remove("hidden");
+  document.getElementById("replayBtn").classList.add("hidden");
+  const cc=document.getElementById("covChoices"); cc.classList.add("hidden"); cc.innerHTML="";
+}
+function snapPlay(){
+  if(!SCENE || SNAPPED) return; SNAPPED=true;
+  document.getElementById("snapBtn").classList.add("hidden");
+  document.getElementById("replayBtn").classList.remove("hidden");
+  animateScene(SCENE);
+  if(isCovTest()) showCovChoices();
+}
+function showCovChoices(){
+  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
+  COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=cv; b.onclick=()=>answerCoverage(cv); cc.appendChild(b); });
+}
+function answerCoverage(cv){
+  if(answered || !SNAPPED || !isCovTest()) return; answered=true;
+  const correct = cv===rep.coverage;
+  test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:cv, answer:rep.coverage});
+  test.i++;
+  if(test.i>=test.queue.length){ finishTest(); }
+  else { showRep(test.queue[test.i]); updateProgress(); }
 }
 function answer(lab){
-  if(answered) return; answered=true;
+  if(answered || !SNAPPED || isCovTest()) return; answered=true;
   const correct = lab===rep.correct;
   const read=rep.concept.reads[rep.coverage];
   revealCorrect(SCENE, rep.correct);
@@ -495,7 +530,7 @@ function updateProgress(){
 /* ---------- test lifecycle ---------- */
 function startTest(){
   const n=parseInt(document.getElementById("testLen").value,10)||10;
-  test={queue:[],i:0,results:[]};
+  test={queue:[],i:0,results:[],kind:TESTKIND};
   for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
   if(!test.queue.length){ alert("No reps match your filters — enable at least one concept and coverage."); return; }
   swap("play"); showRep(test.queue[0]); updateProgress();
@@ -518,7 +553,7 @@ async function finishTest(){
     if(window.QB && window.QB.ready){
       const ctx=await window.QB.context();
       if(ctx && ctx.user && ctx.team){
-        await window.QB.save({quiz:"Reads test", score:got, total:tot, detail:test.results});
+        await window.QB.save({quiz:(test.kind==="coverage"?"Coverage ID test":"Reads test"), score:got, total:tot, detail:test.results});
         saveMsg=`Saved to ${ctx.team.name} ✓ — your coaches can see it under Results.`;
       } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
     }
@@ -558,6 +593,7 @@ function setMode(m){
   MODE=m;
   [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.classList.toggle("on",b.dataset.mode===m));
   document.getElementById("testLenWrap").classList.toggle("hidden", m!=="test");
+  document.getElementById("kindWrap").classList.toggle("hidden", m!=="test");
   document.getElementById("startBtn").textContent = m==="test" ? "Start test" : "Start training";
   if(m==="results"){ swap("results"); showResults(); }
   else if(m==="author"){ swap("author"); loadAuthor(); }
@@ -577,9 +613,11 @@ function init(){
   buildChips();
   [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.onclick=()=>setMode(b.dataset.mode));
   [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.onclick=()=>setSource(b.dataset.src));
-  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — tap where the ball should go."; };
+  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; };
   document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
-  document.getElementById("replayBtn").onclick=()=>{ if(SCENE) animateScene(SCENE); };
+  document.getElementById("snapBtn").onclick=snapPlay;
+  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>{ TESTKIND=b.dataset.kind; [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x===b)); });
+  document.getElementById("replayBtn").onclick=()=>{ if(SCENE && SNAPPED) animateScene(SCENE); };
   document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(g) answer(g.dataset.lab); });
   window.OFFGRD_APP={kind:"qb"};
