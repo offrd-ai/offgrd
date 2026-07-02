@@ -23,6 +23,7 @@ export const Cloud = {
   async signIn(email, password) { return sb.auth.signInWithPassword({ email, password }); },
   async signOut() { return sb.auth.signOut(); },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
+  async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */

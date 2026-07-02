@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=9";
-import { openAuthModal } from "./OFFGRD-auth.js?v=9";
+import { Cloud } from "./OFFGRD-cloud.js?v=10";
+import { openAuthModal } from "./OFFGRD-auth.js?v=10";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -70,7 +70,7 @@ function bar(user){
 }
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
 
-function login(){ openAuthModal(); }
+function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
 
 /* ---------- session / active team ---------- */
 async function onUser(u){
@@ -242,4 +242,4 @@ let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>push(true), 1500); };
 try{ bar(null); }catch(e){}   /* instant paint so the bar is never blank while auth loads */
 Cloud.onAuth(u=>onUser(u));
-(async()=>{ try{ onUser(await Cloud.user()); }catch(e){ bar(null); } })();
+(async()=>{ try{ onUser(await Cloud.session()); }catch(e){ bar(null); } })();
