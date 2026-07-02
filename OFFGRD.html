@@ -565,7 +565,7 @@ function render(){
       '<div class="reslead">Coverage predictor</div>'+
       '<div class="callline"><div class="callname" style="font-size:30px">No coverage data yet</div></div>'+
       (noDef
-        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p>'
+        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button onclick="showGetStarted()" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Get started →</button></div>'
         : '<p class="foot">No charted snaps fit this exact situation. Loosen a filter or pick a different look.</p>');
     renderGrid(useRec); return;
   }
@@ -952,7 +952,7 @@ function seedGames(){
   out.push({key:gameKey("Parkway North","2025","ours"),opponent:"Parkway North",week:"2025",side:"ours",source:"Hudl",rows:OURS_SEED.map(o=>Object.assign({},o))});
   return out;
 }
-function loadGames(){ try{ const s=localStorage.getItem(STORE_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) return a; } }catch(e){} return seedGames(); }
+function loadGames(){ try{ const s=localStorage.getItem(STORE_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) return a; } }catch(e){} return []; }
 function upsertGame(opp,week,side,source,rows){
   const k=gameKey(opp,week,side); const existed=GAMES.some(g=>g.key===k);
   GAMES=GAMES.filter(g=>g.key!==k);
@@ -1511,11 +1511,38 @@ document.getElementById("downloadTemplate").onclick=()=>{
   const a=document.createElement("a"); a.href=url; a.download="dc-tendency-template.csv"; a.click(); URL.revokeObjectURL(url);
 };
 
+/* ---------- getting started ---------- */
+const PW_EMAIL="info@elitefootball.net";
+function seedForAccount(email){ if((email||"").toLowerCase()!==PW_EMAIL) return; if(GAMES && GAMES.length) return; GAMES=seedGames(); saveGames(); rebuildActive(); sit.opp=defaultOpponent(); buildControls(); render(); closeGetStarted(); }
+let gsEl=null;
+function ensureGS(){
+  if(gsEl) return gsEl;
+  gsEl=document.createElement("div");
+  gsEl.style.cssText="position:fixed;inset:0;background:rgba(9,18,34,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:9998";
+  gsEl.innerHTML='<div style="background:#fff;max-width:560px;width:100%;border-radius:16px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.4);font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="icon.svg" style="width:32px;height:32px;border-radius:7px"><b style="font-size:18px;color:#13294B">Welcome to OFFGRD Scout</b></div>'
+    +'<p style="color:#5b626e;margin:0 0 16px">Set up your first opponent. Import a Hudl or QwikCut breakdown, or add a game by hand \u2014 then Scout predicts their calls by down, distance, and situation.</p>'
+    +'<div style="display:grid;gap:10px">'
+    +'<button id="gsImport" style="text-align:left;border:1px solid #d7dbe2;background:#fff;border-radius:12px;padding:14px 16px;cursor:pointer"><b style="color:#13294B">Import a breakdown (Hudl / QwikCut)</b><div style="color:#5b626e;font-size:13px">Paste or upload an exported CSV of an opponent.</div></button>'
+    +'<button id="gsManual" style="text-align:left;border:1px solid #d7dbe2;background:#fff;border-radius:12px;padding:14px 16px;cursor:pointer"><b style="color:#13294B">Add a game manually</b><div style="color:#5b626e;font-size:13px">Open your season library to add an opponent and enter snaps.</div></button>'
+    +'</div>'
+    +'<div style="text-align:right;margin-top:16px"><button id="gsClose" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer">Explore first</button></div>'
+    +'</div>';
+  document.body.appendChild(gsEl);
+  gsEl.addEventListener("click",e=>{ if(e.target===gsEl) closeGetStarted(); });
+  gsEl.querySelector("#gsImport").onclick=()=>{ closeGetStarted(); openImport("full"); };
+  gsEl.querySelector("#gsManual").onclick=()=>{ closeGetStarted(); openManager(); };
+  gsEl.querySelector("#gsClose").onclick=closeGetStarted;
+  return gsEl;
+}
+function showGetStarted(){ ensureGS().style.display="flex"; }
+function closeGetStarted(){ if(gsEl) gsEl.style.display="none"; }
+
 /* ---------- init ---------- */
 DEF_SAMPLE=buildSample();
 OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadLive();
-window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;saveGames();rebuildActive();buildControls();render();}}};
+window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;saveGames();rebuildActive();buildControls();render();}},onUser:email=>seedForAccount(email)};
 rebuildActive();
 document.getElementById("brandCrest").innerHTML=crest(OUR_TEAM,34);
 if(gamesRows("off").length && !gamesRows("def").length) SCOUT_MODE="offense";
@@ -1529,6 +1556,7 @@ document.querySelectorAll("#seg-scoutmode button").forEach(b=>b.onclick=()=>{
 });
 buildControls();
 render();
+if(!GAMES.length) showGetStarted();
 </script>
 <script type="module" src="OFFGRD-account.js"></script>
 <script src="OFFGRD-mobile.js"></script>

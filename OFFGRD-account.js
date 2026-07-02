@@ -84,6 +84,7 @@ async function onUser(u){
     } else { TEAM = null; ROLE = null; }
     bar(u);
     if(TEAM) await pull(true);
+    try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
 async function setActiveTeam(id){
