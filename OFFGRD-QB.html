@@ -362,14 +362,38 @@ function offenseActors(rep){
 function coverageActors(cov, recv, los){
   const defs=[]; let shade="";
   const Z=(x,y,rx,ry,l)=>{ shade+=zone(x,y,rx,ry,l); };
+  const DLc="#c8963c", LB="#b8860b", DB="#123a6b", RED="#d9382c";
   const push=(fx,fy,lab,fill,kind,extra)=>defs.push(Object.assign({fx,fy,lab,fill,kind,r:(kind==="deep"?13:12)},extra||{}));
-  [430,485,540,595].forEach(x=>push(x,los-16,"","#c8963c","dl"));
-  if(cov==="Cover 0"){ recv.forEach((p,i)=>push(p.x+(p.x<500?14:-14),p.y-26,"M","#123a6b","man",{manIdx:i})); push(500,los-30,"B","#b8860b","rush"); }
-  else if(cov==="Cover 1"){ recv.forEach((p,i)=>push(p.x+(p.x<500?14:-14),p.y-26,"M","#123a6b","man",{manIdx:i})); push(500,150,"FS","#123a6b","deep"); push(500,300,"R","#b8860b","zone"); }
-  else if(cov==="Cover 2"){ Z(300,150,120,60,"½");Z(700,150,120,60,"½"); [[160,290,"F"],[840,290,"F"],[380,300,"H"],[620,300,"H"],[500,300,"M"]].forEach(a=>push(a[0],a[1],a[2],"#123a6b","zone")); }
-  else if(cov==="Cover 3"){ Z(230,150,110,58,"⅓");Z(500,140,110,58,"⅓");Z(770,150,110,58,"⅓"); [[190,300,"C","deep"],[810,300,"C","deep"],[400,300,"H","zone"],[600,300,"H","zone"]].forEach(a=>push(a[0],a[1],a[2],a[3]==="deep"?"#123a6b":"#b8860b",a[3])); }
-  else if(cov==="Cover 4"){ Z(180,150,95,55,"¼");Z(400,148,95,55,"¼");Z(600,148,95,55,"¼");Z(820,150,95,55,"¼"); [[250,305,"C"],[500,305,"H"],[750,305,"C"]].forEach(a=>push(a[0],a[1],a[2],"#b8860b","zone")); }
-  else if(cov==="Tampa 2"){ Z(300,150,115,58,"½");Z(700,150,115,58,"½"); push(500,205,"M","#b8860b","deep"); [[170,300,"F"],[830,300,"F"],[400,305,"H"],[600,305,"H"]].forEach(a=>push(a[0],a[1],a[2],"#123a6b","zone")); }
+  [430,485,540,595].forEach(x=>push(x,los-16,"",DLc,"dl"));   /* 4-man rush */
+  const nMan=recv.length;
+  if(cov==="Cover 0"){
+    recv.forEach((p,idx)=>push(p.x+(p.x<500?14:-14),p.y-26,"M",DB,"man",{manIdx:idx}));
+    const rush=Math.max(0,7-nMan), xs=[500,452,548,476,524,428,572];
+    for(let k=0;k<rush;k++) push(xs[k]||500, los-30, "B", RED, "rush");
+  } else if(cov==="Cover 1"){
+    recv.forEach((p,idx)=>push(p.x+(p.x<500?14:-14),p.y-26,"M",DB,"man",{manIdx:idx}));
+    push(500,148,"FS",DB,"deep");
+    const extra=Math.max(0,6-nMan);
+    if(extra>0) push(500,300,"R",LB,"zone");                 /* robber / rat */
+    for(let k=1;k<extra;k++) push(452+k*70, los-28, "B", RED, "rush");
+  } else if(cov==="Cover 2"){
+    Z(300,150,120,60,"½");Z(700,150,120,60,"½");
+    push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep");
+    push(150,288,"C",DB,"zone"); push(850,288,"C",DB,"zone");
+    push(400,300,"H",LB,"zone"); push(500,300,"M",LB,"zone"); push(600,300,"H",LB,"zone");
+  } else if(cov==="Cover 3"){
+    Z(230,150,110,58,"⅓");Z(500,140,110,58,"⅓");Z(770,150,110,58,"⅓");
+    push(200,150,"C",DB,"deep"); push(500,140,"FS",DB,"deep"); push(800,150,"C",DB,"deep");
+    push(240,300,"F",LB,"zone"); push(760,300,"F",LB,"zone"); push(410,302,"H",LB,"zone"); push(590,302,"H",LB,"zone");
+  } else if(cov==="Cover 4"){
+    Z(180,150,95,55,"¼");Z(400,148,95,55,"¼");Z(600,148,95,55,"¼");Z(820,150,95,55,"¼");
+    push(180,158,"C",DB,"deep"); push(400,152,"S",DB,"deep"); push(600,152,"S",DB,"deep"); push(820,158,"C",DB,"deep");
+    push(280,300,"N",LB,"zone"); push(500,305,"M",LB,"zone"); push(720,300,"N",LB,"zone");
+  } else if(cov==="Tampa 2"){
+    Z(300,150,115,58,"½");Z(700,150,115,58,"½");
+    push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep"); push(500,202,"M",LB,"deep");
+    push(180,300,"F",DB,"zone"); push(820,300,"F",DB,"zone"); push(400,305,"H",LB,"zone"); push(600,305,"H",LB,"zone");
+  }
   return {shade, defs};
 }
 function defStartY(d,los){ if(d.kind==="dl"||d.kind==="man") return d.fy; if(d.kind==="rush") return los-10; return los-8; }
