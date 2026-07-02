@@ -70,6 +70,7 @@ async function submit(){
   if(!email){ err.textContent="Enter your email."; return; }
   if(!pw || pw.length<6){ err.textContent="Password must be at least 6 characters."; return; }
   go.disabled=true; err.textContent="";
+  if(!Cloud || !Cloud.ready){ err.textContent="Cloud isn\u2019t loaded \u2014 reload the page. If it persists, the supabase.js file hasn\u2019t deployed yet."; go.disabled=false; return; }
   try{
     let r;
     if(mode==="signin"){
