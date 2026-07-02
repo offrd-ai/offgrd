@@ -415,7 +415,13 @@ function defStartY(d,los){
 }
 function defPos(d,t,los,offPos){
   const e=easeIO(t);
-  if(d.kind==="man" && d.manIdx!=null && offPos[d.manIdx]){ const rp=offPos[d.manIdx]; return {x:rp.x+(rp.x<500?12:-12), y:rp.y-18}; }
+  if(d.kind==="man" && d.manIdx!=null && offPos[d.manIdx]){
+    const rp=offPos[d.manIdx];
+    const align={x:d.fx, y:Math.min(d.fy, los-26)};              /* pre-snap: never on the offense's side */
+    const track={x:rp.x+(rp.x<500?12:-12), y:rp.y-18};
+    const k=Math.min(1, t*4);                                     /* close onto the man just after the snap */
+    return {x:align.x+(track.x-align.x)*k, y:align.y+(track.y-align.y)*k};
+  }
   if(d.kind==="rush"){ return {x:d.fx+(500-d.fx)*e, y:(los-28)+(440-(los-28))*e}; }
   if(d.kind==="dl"){ return {x:d.fx, y:d.fy-26*e}; }
   const sy=defStartY(d,los); return {x:d.fx, y:sy+(d.fy-sy)*e};
