@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=12";
-import { openAuthModal } from "./OFFGRD-auth.js?v=12";
+import { Cloud } from "./OFFGRD-cloud.js?v=13";
+import { openAuthModal } from "./OFFGRD-auth.js?v=13";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -108,7 +108,7 @@ async function pull(silent){
       if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
-      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
+      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device\u2019s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
@@ -244,7 +244,7 @@ window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clea
 const DBG_V = "12";
 function dbgInfo(extra){
   try{
-    const show = /[?&#]debug/.test(location.href) || (window.matchMedia && matchMedia("(max-width:900px)").matches);
+    const show = /[?&#]debug/.test(location.href);   /* add ?debug to the URL to show diagnostics */
     if(!show) return;
     let ls="N", tok="N";
     try{
