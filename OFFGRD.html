@@ -295,7 +295,7 @@
         <div class="field"><div class="lbl">Opponent</div><input id="imp-opp" placeholder="e.g. Parkway North" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
         <div class="field"><div class="lbl">Week / game label</div><input id="imp-week" placeholder="e.g. Wk 3 or 2024" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
       </div>
-      <p><b>Works directly with Hudl.</b> In Hudl Classic → Reports / Breakdown, hit <b>Export to Excel</b>, save as <code>.csv</code>, then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK…). One row per snap; header row required.</p>
+      <p><b>Works directly with Hudl.</b> In Hudl Classic → Reports / Breakdown, hit <b>Export to Excel</b> — upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK…). One row per snap; header row required.</p>
       <p style="color:var(--muted)">Only <code>coverage</code> is required. Everything else is optional and auto-mapped:</p>
       <ul style="margin:6px 0 0 0;padding-left:18px;color:var(--muted)">
         <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> → Cover 3 / Cover 4 / 2-man, etc.</li>
@@ -303,7 +303,7 @@
         <li><b>Field zone</b> reads from a zone column or is derived from <code>YARD LN</code>; an <code>ODK</code> column auto-filters to defensive snaps only.</li>
         <li>After loading, the box below lists exactly which columns it mapped — check it once for a new Hudl export.</li>
       </ul>
-      <div style="margin-top:12px"><input type="file" id="fileIn" accept=".csv,text/csv"></div>
+      <div style="margin-top:12px"><input type="file" id="fileIn" accept=".csv,.xlsx,.xls,text/csv"></div>
       <textarea id="csvText" placeholder="date,opponent,qtr,scoreMargin,down,distance,fieldZone,hash,personnel,formation,front,coverage,pressure,blitz,result&#10;2025-09-06,State,1,0,1,10,OWN,M,11,Trips,42 OVER-G,Cover 3,0,,inc"></textarea>
       <div class="row">
         <button class="btnp" id="loadCsv">Preview import</button>
@@ -945,7 +945,7 @@ function rebuildActive(){
   const off=gamesRows("off"); SCOUT_DATA=off; SCOUT_SOURCE=off.length?"library":"empty";
   const ours=gamesRows("ours"); OFF_DATA=ours.length?ours:OURS_SAMPLE;
 }
-function saveGames(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(GAMES)); }catch(e){} }
+function saveGames(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(GAMES)); }catch(e){} try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(e){} }
 function seedGames(){
   const by={}; SCOUT_SAMPLE.forEach(r=>{ const d=r.date||"?"; (by[d]=by[d]||[]).push(Object.assign({},r)); });
   const out=[]; Object.keys(by).sort().forEach(d=>{ const yr=(d||"").slice(0,4)||d; out.push({key:gameKey("Parkway North",yr,"off"),opponent:"Parkway North",week:yr,side:"off",source:"Hudl",rows:by[d]}); });
@@ -1496,10 +1496,21 @@ document.getElementById("tg-thisyear").onchange=render;
 document.getElementById("loadCsv").onclick=previewImport;
 document.getElementById("commitBtn").onclick=commitPending;
 document.querySelectorAll("#seg-importmode button").forEach(b=>b.onclick=()=>openImport(b.dataset.mode));
+function ensureXLSX(cb){ if(window.XLSX) return cb(); const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=()=>cb(); s.onerror=()=>cb("noload"); document.head.appendChild(s); }
 document.getElementById("fileIn").onchange=e=>{
-  const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
-  rd.onload=()=>{ document.getElementById("csvText").value=rd.result; };
-  rd.readAsText(f);
+  const f=e.target.files[0]; if(!f)return;
+  const msg=document.getElementById("importMsg");
+  if(/\.xl(sx|s|sm)$/i.test(f.name)){
+    if(msg) msg.textContent="Reading Excel file\u2026";
+    ensureXLSX(err=>{
+      if(err){ alert("Couldn\u2019t load the Excel reader (are you offline?). In Excel, use File \u2192 Save As \u2192 CSV and upload that instead."); if(msg) msg.textContent=""; return; }
+      const rd=new FileReader();
+      rd.onload=()=>{ try{ const wb=XLSX.read(new Uint8Array(rd.result),{type:"array"}); const ws=wb.Sheets[wb.SheetNames[0]]; document.getElementById("csvText").value=XLSX.utils.sheet_to_csv(ws); if(msg) msg.textContent="Excel loaded \u2014 click Preview import."; }catch(ex){ alert("Couldn\u2019t read that Excel file \u2014 try saving it as CSV. ("+ex.message+")"); if(msg) msg.textContent=""; } };
+      rd.readAsArrayBuffer(f);
+    });
+  } else {
+    const rd=new FileReader(); rd.onload=()=>{ document.getElementById("csvText").value=rd.result; }; rd.readAsText(f);
+  }
 };
 document.getElementById("manageBtn").onclick=openManager;
 document.getElementById("brandBtn").onclick=openBranding;

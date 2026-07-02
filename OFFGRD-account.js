@@ -64,7 +64,7 @@ function bar(user){
     ' <button class="cbtn" id="co">Sign out</button>';
   styleBtns();
   acct.querySelector("#cteam").onclick = openTeam;
-  const cs = acct.querySelector("#cs"); if(cs) cs.onclick = push;
+  const cs = acct.querySelector("#cs"); if(cs) cs.onclick = ()=>push();
   const cd = acct.querySelector("#cd"); if(cd) cd.onclick = () => pull(false);
   acct.querySelector("#co").onclick = () => Cloud.signOut();
 }
@@ -99,26 +99,30 @@ async function setActiveTeam(id){
 async function pull(silent){
   if(!TEAM || !SYNCABLE) return;
   try{
-    if(A.kind==="playbook"){
-      const rows = await Cloud.listPlays(TEAM.id);
-      A.set(rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name})));
+    let rows;
+    if(A.kind==="playbook") rows = await Cloud.listPlays(TEAM.id);
+    else rows = await Cloud.listGames(TEAM.id);
+    if(rows && rows.length){
+      if(A.kind==="playbook") A.set(rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name})));
+      else A.set(rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id})));
+      if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
-      const rows = await Cloud.listGames(TEAM.id);
-      A.set(rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id})));
+      const local = A.get();
+      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device\u2019s data is now backed up to "+TEAM.name+"."); }
+      else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
-    if(!silent) alert("Loaded "+TEAM.name+".");
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
 }
-async function push(){
-  if(!TEAM){ alert("Sign in first."); return; }
-  if(!canEdit()){ alert("Your role is view-only, so you can’t save to the program."); return; }
+async function push(silent){
+  if(!TEAM){ if(!silent) alert("Sign in first."); return; }
+  if(!canEdit()){ if(!silent) alert("Your role is view-only, so you can’t save to the program."); return; }
   try{
     const items = A.get();
     if(A.kind==="playbook"){ for(const p of items){ const row = await Cloud.savePlay(TEAM.id, Object.assign({}, p, {id:p.cid, data:p})); p.cid = row.id; } }
     else { for(const g of items){ const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid})); g.cid = row.id; } }
     A.set(items);
-    alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" ✓");
-  }catch(e){ alert(e.message||"Sync failed"); }
+    if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" ✓");
+  }catch(e){ if(!silent) alert(e.message||"Sync failed"); }
 }
 
 /* ---------- team modal ---------- */
@@ -234,5 +238,7 @@ function renderTeamKeep(msg){ _keepMsg=msg; renderTeam(); }
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
+let _syncT=null;
+window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>push(true), 1500); };
 Cloud.onAuth(u=>onUser(u));
 (async()=>{ try{ onUser(await Cloud.user()); }catch(e){ bar(null); } })();
