@@ -1588,7 +1588,7 @@ function wireBranding(){
 
 /* ---------- getting started ---------- */
 const PW_EMAIL="info@elitefootball.net";
-function seedForAccount(email){ if((email||"").toLowerCase()!==PW_EMAIL) return; if(GAMES && GAMES.length) return; GAMES=seedGames(); saveGames(); OUR_TEAM="Parkway West"; saveIdentity("Parkway West"); applyTeamColors(); rebuildActive(); sit.opp=defaultOpponent(); { const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); } buildControls(); render(); closeGetStarted(); }
+function seedForAccount(email){ if((email||"").toLowerCase()!==PW_EMAIL) return; if(!loadIdentity()){ OUR_TEAM="Parkway West"; saveIdentity("Parkway West"); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); } if(GAMES && GAMES.length) return; GAMES=seedGames(); saveGames(); rebuildActive(); sit.opp=defaultOpponent(); buildControls(); render(); closeGetStarted(); }
 let gsEl=null;
 function ensureGS(){
   if(gsEl) return gsEl;
