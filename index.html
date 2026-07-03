@@ -3,76 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e1f3a">
-<title>OFFGRD — Scout, Predict & Design. Off the grid.</title>
-<meta name="description" content="OFFGRD is the offline-first coaching suite: scout opponents, predict their calls, and design your playbook — synced to your program in the cloud.">
+<meta name="theme-color" content="#0b1017">
+<title>OFFGRD — Never off guard. Scout, predict, teach & call.</title>
+<meta name="description" content="OFFGRD is the offline-first football program suite: predict opponent calls from real breakdown data, build and animate your playbook, train and test your roster, and call the game from the sideline — with zero bars.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=24"></script>
 <script src="supabase.js?v=24"></script>
 <style>
-  :root{ --navy:#13294B; --navy2:#0e1f3a; --carolina:#7BAFD4; --ink:#16181d; --line:#e6e9ef; --muted:#8aa0bf; }
+  :root{
+    --bg:#0b1017; --bg2:#0e141d; --panel:#131a24; --line:#243041;
+    --ink:#eef2f7; --muted:#94a3b8; --navy:#13294B;
+    --car:#7BAFD4; --car2:#a9cdec; --good:#3fc777;
+  }
   *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
   html,body{margin:0}
-  body{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:#fff}
+  body{font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
   a{color:inherit;text-decoration:none}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  ::selection{background:rgba(123,175,212,.35)}
 
-  /* nav */
-  header.nav{position:sticky;top:0;z-index:20;background:rgba(14,31,58,.92);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}
-  .nav-in{display:flex;align-items:center;gap:12px;height:64px}
-  .brand{display:flex;align-items:center;gap:11px;color:#fff}
-  .logo{width:38px;height:38px;border-radius:10px;display:block}
-  .brand .gr{color:var(--carolina)}
-  .brand b{font-size:15px;letter-spacing:3px}
+  /* ---------- nav ---------- */
+  header.nav{position:sticky;top:0;z-index:40;background:rgba(11,16,23,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;gap:22px;height:64px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .logo{width:36px;height:36px;border-radius:9px;display:block}
+  .brand b{font-size:15px;letter-spacing:3px;color:#fff}
+  .brand .gr{color:var(--car)}
+  .brand .sub{font-size:10px;letter-spacing:2.5px;color:var(--muted);display:block;margin-top:-2px}
+  nav.links{display:flex;gap:20px;font-size:14px;font-weight:700;color:var(--muted)}
+  nav.links a:hover{color:#fff}
+  @media(max-width:720px){nav.links{display:none}}
   .nav-sp{flex:1}
   #navAuth{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-  #navAuth .who{color:#cfe0f2;font-size:13px}
-  .nav-btn{background:var(--carolina);color:var(--navy);border:0;border-radius:9px;padding:9px 16px;font-weight:800;font-size:14px;cursor:pointer}
-  .nav-btn.ghost{background:transparent;color:#cfe0f2;border:1px solid rgba(255,255,255,.25)}
+  #navAuth .who{color:var(--muted);font-size:13px}
+  .nav-btn{background:var(--car);color:#0b1017;border:0;border-radius:9px;padding:9px 16px;font-weight:800;font-size:14px;cursor:pointer}
+  .nav-btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 
-  /* hero */
-  .hero{background:linear-gradient(165deg,#0e1f3a 0%,#13294B 55%,#1b3a63 100%);color:#fff;padding:72px 0 88px;position:relative;overflow:hidden}
-  .hero:after{content:"";position:absolute;right:-160px;top:-120px;width:520px;height:520px;background:radial-gradient(circle,rgba(123,175,212,.22),transparent 62%);pointer-events:none}
-  .eyebrow{display:inline-block;font-size:12px;letter-spacing:2.5px;font-weight:800;color:var(--carolina);border:1px solid rgba(123,175,212,.4);border-radius:999px;padding:6px 13px;margin-bottom:22px}
-  .hero h1{font-size:52px;line-height:1.05;font-weight:900;letter-spacing:-1px;margin:0 0 18px;max-width:760px}
-  .hero p.lead{font-size:19px;color:#c2d3ea;max-width:600px;margin:0 0 30px}
-  .cta-row{display:flex;gap:14px;flex-wrap:wrap}
-  .btn-primary{background:var(--carolina);color:var(--navy);border:0;border-radius:11px;padding:15px 26px;font-weight:900;font-size:16px;cursor:pointer}
-  .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:11px;padding:15px 24px;font-weight:800;font-size:16px;cursor:pointer}
-  .trust{margin-top:26px;color:#8aa0bf;font-size:13px}
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:84px 0 40px;overflow:hidden;
+    background:
+      radial-gradient(900px 420px at 85% -10%, rgba(123,175,212,.14), transparent 60%),
+      linear-gradient(rgba(123,175,212,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,175,212,.05) 1px, transparent 1px);
+    background-size:auto, 44px 44px, 44px 44px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:2px;font-weight:800;color:var(--car2);border:1px solid rgba(123,175,212,.35);border-radius:999px;padding:7px 14px;margin-bottom:26px;background:rgba(123,175,212,.06)}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .hero h1{font-size:62px;line-height:1.02;font-weight:900;letter-spacing:-1.5px;margin:0 0 22px;max-width:840px;color:#fff}
+  .hero h1 .ac{color:var(--car)}
+  .hero p.lead{font-size:19px;color:var(--muted);max-width:640px;margin:0 0 32px}
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .btn-primary{background:var(--car);color:#0b1017;border:0;border-radius:11px;padding:16px 28px;font-weight:900;font-size:16px;cursor:pointer;box-shadow:0 0 34px rgba(123,175,212,.35)}
+  .btn-primary:hover{background:var(--car2)}
+  .btn-ghost{background:transparent;color:#fff;border:1px solid var(--line);border-radius:11px;padding:16px 24px;font-weight:800;font-size:16px;cursor:pointer}
+  .trust{margin-top:24px;color:var(--muted);font-size:13.5px}
+  .trust b{color:var(--car2)}
+  @media(max-width:820px){.hero h1{font-size:40px}.hero{padding-top:56px}}
 
-  /* section */
-  section{padding:64px 0}
-  .sec-h{font-size:13px;letter-spacing:2px;font-weight:800;color:var(--carolina);text-transform:uppercase;margin:0 0 8px}
-  .sec-t{font-size:30px;font-weight:900;color:var(--navy);letter-spacing:-.5px;margin:0 0 34px}
+  /* ---------- browser frame ---------- */
+  .frame{margin:56px auto 0;max-width:1060px;border:1px solid var(--line);border-radius:16px;background:#0d1118;box-shadow:0 40px 90px rgba(0,0,0,.55);overflow:hidden}
+  .frame .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:#10151d}
+  .frame .b-dot{width:10px;height:10px;border-radius:50%;background:#2a3546}
+  .frame .b-url{flex:1;max-width:420px;margin:0 auto;background:#0b1017;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:12px;padding:5px 12px;text-align:center}
+  .frame .viewport{position:relative;height:560px;overflow:hidden;background:#f4f5f7}
+  .frame iframe{width:1440px;height:1120px;border:0;transform:scale(.736);transform-origin:0 0;pointer-events:none}
+  .frame .veil{position:absolute;inset:0}
+  @media(max-width:820px){.frame .viewport{height:400px}.frame iframe{width:1200px;height:1600px;transform:scale(.32)}}
 
-  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-  @media(max-width:820px){.cards{grid-template-columns:1fr}.hero h1{font-size:38px}}
-  a.card{display:block;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 10px 30px rgba(19,41,75,.06);transition:transform .12s ease,box-shadow .12s ease}
-  a.card:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(19,41,75,.12)}
-  .tag{display:inline-block;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--navy);background:#dce7f6;padding:5px 11px;border-radius:999px;margin-bottom:14px}
-  .card h3{font-size:22px;font-weight:900;margin:0 0 8px;color:var(--navy)}
-  .card p{color:#5b626e;font-size:15px;margin:0}
+  /* ---------- sections ---------- */
+  section{padding:84px 0}
+  .sec-h{font-size:12.5px;letter-spacing:2.5px;font-weight:800;color:var(--car);text-transform:uppercase;margin:0 0 10px}
+  .sec-t{font-size:38px;font-weight:900;color:#fff;letter-spacing:-1px;margin:0 0 14px;line-height:1.1}
+  .sec-p{color:var(--muted);font-size:16.5px;max-width:640px;margin:0 0 40px}
 
-  .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
-  @media(max-width:720px){.feat{grid-template-columns:1fr}}
-  .feat .ico{width:46px;height:46px;border-radius:12px;background:#eef3fb;display:grid;place-items:center;font-size:22px;margin-bottom:12px}
-  .feat h4{margin:0 0 6px;font-size:17px;color:var(--navy);font-weight:900}
-  .feat p{margin:0;color:#5b626e;font-size:14.5px}
-  .band{background:#f6f8fb;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  /* 3-up value cards */
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:820px){.trio{grid-template-columns:1fr}}
+  .vcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .vcard .k{font-size:11.5px;letter-spacing:2px;font-weight:900;color:var(--car);text-transform:uppercase}
+  .vcard p{margin:8px 0 0;color:var(--muted);font-size:14.5px}
+  .vcard p b{color:var(--ink)}
 
-  footer{background:var(--navy2);color:#8aa0bf;padding:30px 0}
-  .foot-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
-  .foot-in .logo{width:30px;height:30px;font-size:13px}
+  /* feature rows */
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:96px}
+  .row2:last-child{margin-bottom:0}
+  @media(max-width:900px){.row2{grid-template-columns:1fr;gap:26px}.row2 .media{order:2}}
+  .row2 h3{font-size:28px;font-weight:900;color:#fff;letter-spacing:-.5px;margin:0 0 12px;line-height:1.15}
+  .row2 .k{font-size:12px;letter-spacing:2.5px;font-weight:800;color:var(--car);text-transform:uppercase;display:block;margin-bottom:10px}
+  .row2 p{color:var(--muted);font-size:15.5px;margin:0 0 10px}
+  .row2 p b{color:var(--ink)}
+  .media{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+  .media svg{display:block;width:100%;height:auto;border-radius:10px}
+
+  .band{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  /* pricing */
+  .price{max-width:520px;margin:0 auto;background:var(--panel);border:1px solid rgba(123,175,212,.5);border-radius:20px;padding:34px;box-shadow:0 0 60px rgba(123,175,212,.12)}
+  .price .amt{font-size:46px;font-weight:900;color:#fff}
+  .price .amt span{font-size:16px;color:var(--muted);font-weight:700}
+  .price ul{list-style:none;margin:20px 0 24px;padding:0}
+  .price li{padding:8px 0;color:var(--muted);font-size:15px;border-bottom:1px solid rgba(36,48,65,.6)}
+  .price li:before{content:"✓  ";color:var(--good);font-weight:900}
+  .price li b{color:var(--ink)}
+
+  /* faq */
+  .faq{max-width:760px;margin:0 auto}
+  .faq details{border-bottom:1px solid var(--line);padding:4px 0}
+  .faq summary{cursor:pointer;font-weight:800;font-size:16.5px;color:#fff;padding:16px 0;list-style:none;display:flex}
+  .faq summary:after{content:"+";margin-left:auto;color:var(--car);font-size:20px}
+  .faq details[open] summary:after{content:"–"}
+  .faq p{color:var(--muted);margin:0 0 16px;font-size:15px}
+
+  /* final cta */
+  .final{text-align:center;padding:96px 0}
+  .final h2{font-size:44px;font-weight:900;color:#fff;letter-spacing:-1px;margin:0 0 14px;line-height:1.08}
+  .final h2 .ac{color:var(--car)}
+  @media(max-width:820px){.final h2{font-size:32px}}
+
+  footer{border-top:1px solid var(--line);color:var(--muted);padding:34px 0;font-size:13px}
+  .foot-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .foot-in .logo{width:28px;height:28px}
   .foot-sp{flex:1}
+  .foot-in a{color:var(--muted)} .foot-in a:hover{color:#fff}
 </style>
 </head>
 <body>
 
 <header class="nav">
   <div class="wrap nav-in">
-    <a class="brand" href="index.html"><img class="logo" src="icon.svg" alt="OFFGRD"><b>OFF<span class="gr">GRD</span></b></a>
+    <a class="brand" href="index.html"><img class="logo" src="icon.svg" alt="OFFGRD"><span><b>OFF<span class="gr">GRD</span></b><span class="sub">PROGRAM SUITE</span></span></a>
+    <nav class="links">
+      <a href="#suite">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
     <div class="nav-sp"></div>
     <div id="navAuth"></div>
   </div>
@@ -80,79 +145,214 @@
 
 <div class="hero">
   <div class="wrap">
-    <span class="eyebrow">SCOUT · PREDICT · DESIGN</span>
-    <h1>Your game plan, off the grid.</h1>
-    <p class="lead">The coaching suite that scouts opponents, predicts their calls, and draws up your playbook — working offline on the sideline and syncing to your whole staff in the cloud.</p>
+    <span class="eyebrow"><span class="dot"></span>BUILT FOR THE SIDELINE — WORKS WITH ZERO BARS</span>
+    <h1>Know their next call.<br><span class="ac">Teach yours to everyone.</span></h1>
+    <p class="lead">OFFGRD turns your Hudl breakdown into situation-by-situation predictions, your playbook into a program-wide teaching system, and your Friday night into a series of answered questions. Offline on the sideline. Synced to your whole staff.</p>
     <div class="cta-row">
-      <button class="btn-primary" id="ctaStart">Get started free</button>
-      <a class="btn-ghost" href="#tools">Explore the tools</a>
+      <button class="btn-primary" id="ctaStart">Start free — no card</button>
+      <a class="btn-ghost" href="#suite">See the suite</a>
     </div>
-    <div class="trust">Built for football staffs · Works with Hudl &amp; QwikCut exports · No internet required at game time</div>
+    <div class="trust">One program library · <b>Coaches plan, players train, everyone syncs</b> · Hudl &amp; QwikCut imports · No internet needed at game time</div>
+
+    <div class="frame">
+      <div class="bar"><span class="b-dot"></span><span class="b-dot"></span><span class="b-dot"></span><span class="b-url">offgrd-pi.vercel.app/OFFGRD — live product</span></div>
+      <div class="viewport"><iframe src="OFFGRD.html" loading="lazy" title="OFFGRD Scout — live preview" tabindex="-1"></iframe><div class="veil"></div></div>
+    </div>
   </div>
 </div>
 
-<section id="tools">
+<section id="why">
   <div class="wrap">
-    <p class="sec-h">The tools</p>
-    <h2 class="sec-t">Three tools, one program library.</h2>
-    <div class="cards">
-      <a class="card" href="OFFGRD.html">
-        <span class="tag">SCOUT</span>
-        <h3>Scout &amp; Predict →</h3>
-        <p>Import Hudl / QwikCut breakdowns and predict opponent run/pass, coverage, front, and blitz by situation. Build the call sheet and run it live on the sideline.</p>
-      </a>
-      <a class="card" href="OFFGRD-Playbook.html">
-        <span class="tag">PLAYBOOK</span>
-        <h3>Design &amp; Install →</h3>
-        <p>Draw and animate plays — formations, routes, blocking, motion, defenses and coverages. Build with the guided wizard, then tag, schedule, and install with your staff.</p>
-      </a>
-      <a class="card" href="OFFGRD-QB.html">
-        <span class="tag">QB ACADEMY</span>
-        <h3>Train &amp; Test →</h3>
-        <p>Rep your quarterbacks: where does the ball go on each concept versus every coverage? Tap the read, get instant coaching, and take graded tests your staff can track.</p>
-      </a>
+    <p class="sec-h">Why programs switch</p>
+    <h2 class="sec-t">Film tells you what happened.<br>OFFGRD tells you what's coming.</h2>
+    <div class="trio">
+      <div class="vcard"><span class="k">Predict it</span><p>Import a breakdown and get <b>coverage, front, and blitz probabilities by down, distance, and field zone</b> — with confidence levels, not guesswork. Log what they show on Friday and the prediction sharpens live.</p></div>
+      <div class="vcard"><span class="k">Teach it</span><p>Your playbook isn't a PDF — it's <b>animated, tagged, and testable</b>. Players take reads tests, coverage-ID tests, and route quizzes built from <b>your</b> plays. Coaches see every score.</p></div>
+      <div class="vcard"><span class="k">Call it</span><p>Game night, the Caller puts the predicted look and your best calls on one glanceable screen — <b>fully offline</b>. Dead stadium wifi is somebody else's problem.</p></div>
     </div>
   </div>
 </section>
 
-<section class="band">
+<section class="band" id="suite">
   <div class="wrap">
-    <p class="sec-h">Why coaches use it</p>
-    <h2 class="sec-t">Everything a staff needs, in sync.</h2>
-    <div class="feat">
+    <p class="sec-h">The suite</p>
+    <h2 class="sec-t">From film study to Friday night, one system.</h2>
+    <p class="sec-p">Scout, Playbook, Trainer, and the live Caller share one cloud library — draw a play once and it's on every coach's screen, in every player's quiz, and on your call sheet.</p>
+
+    <div class="row2">
       <div>
-        <div class="ico">🎯</div>
-        <h4>Predict the defense</h4>
-        <p>Statistical, situation-aware predictions built from real breakdown data — calibrated and back-tested, not guesswork.</p>
+        <span class="k">Scout &amp; Predict</span>
+        <h3>Their tendencies, decoded before warmups.</h3>
+        <p>Upload the Hudl or QwikCut export <b>as-is</b> — no conversion, no re-tagging. OFFGRD maps the columns, skips the junk rows, and builds the picture: most likely coverage with confidence, pressure rate, front distribution, and the attack plan against each look.</p>
+        <p>Small samples are widened automatically and flagged — it tells you when to trust it.</p>
       </div>
+      <div class="media"><svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+        <rect width="520" height="320" rx="10" fill="#0b1017"/>
+        <text x="28" y="42" fill="#94a3b8" font-size="10" font-weight="800" letter-spacing="2">MOST LIKELY COVERAGE · 1ST &amp; 10</text>
+        <text x="28" y="86" fill="#7BAFD4" font-size="38" font-weight="900">Cover 4</text>
+        <text x="196" y="86" fill="#eef2f7" font-size="34" font-weight="900">54%</text>
+        <rect x="28" y="102" width="118" height="20" rx="10" fill="rgba(63,199,119,.15)"/>
+        <text x="40" y="116" fill="#3fc777" font-size="10" font-weight="900">HIGH CONFIDENCE</text>
+        <text x="158" y="116" fill="#94a3b8" font-size="10">based on 28 snaps · recency-weighted</text>
+        <text x="28" y="158" fill="#94a3b8" font-size="9" font-weight="800" letter-spacing="1.5">COVERAGE DISTRIBUTION</text>
+        <rect x="98" y="172" width="220" height="16" rx="8" fill="#7BAFD4"/><text x="30" y="184" fill="#eef2f7" font-size="11" font-weight="700">Cover 4</text><text x="326" y="184" fill="#94a3b8" font-size="11">54%</text>
+        <rect x="98" y="196" width="146" height="16" rx="8" fill="#13294B" stroke="#243041"/><text x="30" y="208" fill="#eef2f7" font-size="11" font-weight="700">Cover 3</text><text x="252" y="208" fill="#94a3b8" font-size="11">36%</text>
+        <rect x="98" y="220" width="46" height="16" rx="8" fill="#2a3546"/><text x="30" y="232" fill="#eef2f7" font-size="11" font-weight="700">Cover 1</text><text x="152" y="232" fill="#94a3b8" font-size="11">11%</text>
+        <rect x="28" y="258" width="464" height="40" rx="8" fill="rgba(123,175,212,.08)" stroke="rgba(123,175,212,.25)"/>
+        <text x="42" y="275" fill="#7BAFD4" font-size="9.5" font-weight="900" letter-spacing="1">ATTACK — QUARTERS</text>
+        <text x="42" y="290" fill="#94a3b8" font-size="10.5">Safeties carry verticals, so the flat is soft. Curl-flat · out routes · dig/over · RB swing</text>
+      </svg></div>
+    </div>
+
+    <div class="row2">
+      <div class="media"><svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+        <rect width="520" height="320" rx="10" fill="#123c22"/>
+        <g stroke="rgba(255,255,255,.14)" stroke-width="1"><line x1="20" y1="60" x2="500" y2="60"/><line x1="20" y1="110" x2="500" y2="110"/><line x1="20" y1="210" x2="500" y2="210"/><line x1="20" y1="260" x2="500" y2="260"/></g>
+        <line x1="20" y1="160" x2="500" y2="160" stroke="#ffd24a" stroke-width="2.5"/>
+        <g fill="#9aa4b2" stroke="#fff" stroke-width="1.2"><rect x="216" y="152" width="16" height="16" rx="3"/><rect x="240" y="152" width="16" height="16" rx="3"/><rect x="264" y="152" width="16" height="16" rx="3"/><rect x="288" y="152" width="16" height="16" rx="3"/><rect x="312" y="152" width="16" height="16" rx="3"/></g>
+        <g fill="none" stroke="#bfe3ff" stroke-width="2.5"><path d="M70 160 L70 96 L118 76"/><path d="M448 160 L448 70"/><path d="M160 172 L196 120 L238 108"/><path d="M368 172 L338 128"/></g>
+        <path d="M272 214 L306 214 L306 250 L380 250" fill="none" stroke="#ffb14a" stroke-width="2.5" stroke-dasharray="5 4"/>
+        <g><circle cx="70" cy="160" r="11" fill="#c8102e" stroke="#fff" stroke-width="1.5"/><text x="70" y="164" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">X</text></g>
+        <g><circle cx="160" cy="172" r="11" fill="#c8102e" stroke="#fff" stroke-width="1.5"/><text x="160" y="176" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">H</text></g>
+        <g><circle cx="368" cy="172" r="11" fill="#c8102e" stroke="#fff" stroke-width="1.5"/><text x="368" y="176" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">Y</text></g>
+        <g><circle cx="448" cy="160" r="11" fill="#c8102e" stroke="#fff" stroke-width="1.5"/><text x="448" y="164" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">Z</text></g>
+        <g><circle cx="272" cy="214" r="11" fill="#c8102e" stroke="#fff" stroke-width="1.5"/><text x="272" y="218" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">RB</text></g>
+        <g><circle cx="248" cy="216" r="11" fill="#0e1f3a" stroke="#fff" stroke-width="1.5"/><text x="248" y="220" fill="#fff" font-size="8.5" font-weight="800" text-anchor="middle">QB</text></g>
+        <ellipse cx="150" cy="70" rx="86" ry="34" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.4)"/><text x="150" y="74" fill="rgba(255,255,255,.8)" font-size="10" font-weight="800" text-anchor="middle">DEEP ½</text>
+        <ellipse cx="380" cy="70" rx="86" ry="34" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.4)"/><text x="380" y="74" fill="rgba(255,255,255,.8)" font-size="10" font-weight="800" text-anchor="middle">DEEP ½</text>
+        <rect x="196" y="286" width="60" height="22" rx="6" fill="#1d7a45"/><text x="226" y="301" fill="#fff" font-size="10" font-weight="800" text-anchor="middle">▶ Play</text>
+        <rect x="264" y="286" width="60" height="22" rx="6" fill="#13294B"/><text x="294" y="301" fill="#fff" font-size="10" font-weight="800" text-anchor="middle">Reset</text>
+      </svg></div>
       <div>
-        <div class="ico">✎</div>
-        <h4>Design &amp; animate</h4>
-        <p>A full play designer with formations, routes, protections, and defensive looks — plus a step-by-step play wizard.</p>
+        <span class="k">Playbook — Draw &amp; Animate</span>
+        <h3>See the play move before you ever run it.</h3>
+        <p>Formations, routes, motion, protections, blocking schemes, and full defensive looks — then hit <b>Play</b> and watch it all animate: motion fires first, then the snap, every route and drop in real time.</p>
+        <p>Tap any player and the right tools appear <b>right under the field</b> — routes and motion for skill players, protections and blocks for linemen, zone/man/blitz for defenders. New program? Start with the <b>12-play tagged starter book</b>, not a blank page.</p>
       </div>
+    </div>
+
+    <div class="row2">
       <div>
-        <div class="ico">👥</div>
-        <h4>Share with your staff</h4>
-        <p>Invite coaches and players with edit or view access. One shared library follows every device, online or off.</p>
+        <span class="k">Trainer — the piece nobody else has</span>
+        <h3>Your whole roster, tested on your system.</h3>
+        <p>Every play saved in your Playbook becomes teaching material automatically. Quarterbacks read defenses frozen pre-snap, hit <b>Snap</b>, and make the throw. Receivers prove they know their routes. Anyone can name the coverage from the drop.</p>
+        <p>Three graded test types — <b>Reads, Coverage ID, Route quiz</b> — every score saved to the program, by player and position. You'll know who's ready on Thursday, not at halftime.</p>
+      </div>
+      <div class="media"><svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+        <rect width="520" height="320" rx="10" fill="#0b1017"/>
+        <text x="28" y="40" fill="#eef2f7" font-size="15" font-weight="900">Where's the throw vs Cover 2?  <tspan fill="#94a3b8" font-weight="700">(Smash)</tspan></text>
+        <rect x="28" y="56" width="464" height="180" rx="10" fill="#123c22"/>
+        <line x1="46" y1="176" x2="474" y2="176" stroke="#ffd24a" stroke-width="2"/>
+        <g fill="none" stroke="#bfe3ff" stroke-width="2"><path d="M96 176 L96 130"/><path d="M420 176 L420 120 L452 96"/><path d="M360 186 L360 132"/><path d="M160 186 L196 150"/></g>
+        <g><circle cx="96" cy="130" r="13" fill="rgba(255,255,255,.16)" stroke="#fff" stroke-width="1.6"/><text x="96" y="134" fill="#fff" font-size="9" font-weight="900" text-anchor="middle">X</text></g>
+        <g><circle cx="452" cy="96" r="13" fill="rgba(25,195,125,.9)" stroke="#0b6b3f" stroke-width="2"/><text x="452" y="100" fill="#fff" font-size="9" font-weight="900" text-anchor="middle">Z</text></g>
+        <g><circle cx="360" cy="132" r="13" fill="rgba(255,255,255,.16)" stroke="#fff" stroke-width="1.6"/><text x="360" y="136" fill="#fff" font-size="9" font-weight="900" text-anchor="middle">H</text></g>
+        <g><circle cx="196" cy="150" r="13" fill="rgba(255,255,255,.16)" stroke="#fff" stroke-width="1.6"/><text x="196" y="154" fill="#fff" font-size="9" font-weight="900" text-anchor="middle">Y</text></g>
+        <ellipse cx="140" cy="92" rx="70" ry="24" fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.35)"/>
+        <ellipse cx="330" cy="92" rx="70" ry="24" fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.35)"/>
+        <rect x="28" y="252" width="220" height="44" rx="10" fill="rgba(63,199,119,.12)" stroke="rgba(63,199,119,.4)"/>
+        <text x="44" y="270" fill="#3fc777" font-size="12" font-weight="900">✓ Correct — throw the Z</text>
+        <text x="44" y="287" fill="#94a3b8" font-size="10.5">High-low the corner: he jams the flat, safety's deep.</text>
+        <rect x="382" y="256" width="110" height="34" rx="9" fill="#13294B" stroke="#243041"/>
+        <text x="437" y="278" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">▶ Snap</text>
+      </svg></div>
+    </div>
+
+    <div class="row2">
+      <div class="media"><svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+        <rect width="520" height="320" rx="10" fill="#0b1017"/>
+        <text x="28" y="42" fill="#94a3b8" font-size="10" font-weight="800" letter-spacing="2">1ST &amp; 10+ — THEY SHOW</text>
+        <text x="28" y="82" fill="#7BAFD4" font-size="32" font-weight="900">Cover 4 54%</text>
+        <text x="28" y="104" fill="#94a3b8" font-size="12">4-3 front · 32% pressure · 28 snaps · <tspan fill="#3fc777">incl. 6 live</tspan></text>
+        <text x="28" y="140" fill="#94a3b8" font-size="9" font-weight="800" letter-spacing="1.5">YOUR BEST CALLS</text>
+        <g font-size="12" font-weight="800" fill="#eef2f7">
+          <text x="28" y="166">KARATE COMBO</text><rect x="180" y="154" width="150" height="15" rx="7" fill="rgba(123,175,212,.25)"/><rect x="180" y="154" width="94" height="15" rx="7" fill="#7BAFD4"/><rect x="410" y="150" width="60" height="24" rx="7" fill="none" stroke="#243041"/><text x="440" y="166" text-anchor="middle" fill="#eef2f7" font-size="11">Call</text>
+          <text x="28" y="196">HOUSTON</text><rect x="180" y="184" width="150" height="15" rx="7" fill="rgba(123,175,212,.25)"/><rect x="180" y="184" width="86" height="15" rx="7" fill="#7BAFD4"/><rect x="410" y="180" width="60" height="24" rx="7" fill="none" stroke="#243041"/><text x="440" y="196" text-anchor="middle" fill="#eef2f7" font-size="11">Call</text>
+        </g>
+        <text x="28" y="238" fill="#94a3b8" font-size="9" font-weight="800" letter-spacing="1.5">THEY SHOWED — LOG IT</text>
+        <g font-size="11" font-weight="800" fill="#eef2f7" text-anchor="middle">
+          <rect x="28" y="250" width="82" height="34" rx="9" fill="none" stroke="#243041"/><text x="69" y="271">Cover 2</text>
+          <rect x="118" y="250" width="82" height="34" rx="9" fill="#7BAFD4"/><text x="159" y="271" fill="#0b1017">Cover 3</text>
+          <rect x="208" y="250" width="82" height="34" rx="9" fill="none" stroke="#243041"/><text x="249" y="271">Cover 4</text>
+          <rect x="298" y="250" width="82" height="34" rx="9" fill="none" stroke="#243041"/><text x="339" y="271">2-man</text>
+          <rect x="388" y="250" width="82" height="34" rx="9" fill="none" stroke="#243041"/><text x="429" y="271">Man</text>
+        </g>
+        <text x="28" y="306" fill="#94a3b8" font-size="10">Tap the coverage they ran — it blends into the prediction live.</text>
+      </svg></div>
+      <div>
+        <span class="k">Caller — game night</span>
+        <h3>One glanceable screen. Zero bars required.</h3>
+        <p>Down, distance, hash, field zone — the Caller shows the predicted look and your best calls against it, ranked by <b>your own success rates</b>. Tap Call to log it, mark Hit or Miss, and track your night.</p>
+        <p>Log what they actually showed and the prediction <b>updates live, mid-game</b>. Everything runs on-device: the stadium's wifi can die and your call sheet doesn't care.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section>
-  <div class="wrap" style="text-align:center">
-    <h2 class="sec-t" style="margin-bottom:14px">Ready to build your program?</h2>
-    <p style="color:#5b626e;max-width:520px;margin:0 auto 24px">Create a free account, set up your program, and invite your staff in minutes.</p>
-    <button class="btn-primary" id="ctaStart2" style="background:var(--navy);color:#fff">Create your free account</button>
+<section id="onboarding">
+  <div class="wrap">
+    <p class="sec-h">No blank page</p>
+    <h2 class="sec-t">Game-ready in your first session.</h2>
+    <p class="sec-p">Coaches get a guided setup — name your program, set your logo and colors, take the 12-play tagged starter book, and share one join code. Players enter the code, pick their position, and take their first reps <b style="color:var(--ink)">inside sixty seconds</b>. A live checklist tracks the program until everything's green.</p>
+    <div class="trio">
+      <div class="vcard"><span class="k">Coaches</span><p>Create the program → colors &amp; crest → starter playbook → import a breakdown. The setup checklist follows you on every page until you're done.</p></div>
+      <div class="vcard"><span class="k">Players</span><p>Join code → name &amp; position → first training rep, immediately. Every test score lands on the coach's Results board.</p></div>
+      <div class="vcard"><span class="k">The program</span><p>One shared library. Auto-sync every 45 seconds. Your logo and colors on every device the moment anyone signs in.</p></div>
+    </div>
   </div>
 </section>
+
+<section class="band" id="pricing">
+  <div class="wrap">
+    <p class="sec-h" style="text-align:center">Pricing</p>
+    <h2 class="sec-t" style="text-align:center">One program. Whole staff. Every player.</h2>
+    <div class="price">
+      <div class="amt">Free <span>while in beta</span></div>
+      <p style="color:var(--muted);margin:6px 0 0;font-size:14.5px">Founding programs keep beta perks when paid plans arrive. No card required.</p>
+      <ul>
+        <li><b>Scout &amp; Predict</b> — coverage / front / blitz by situation, live in-game blending</li>
+        <li><b>Playbook</b> — draw, animate, tag; 12-play starter book included</li>
+        <li><b>Trainer</b> — reads, coverage-ID &amp; route tests, graded to the roster</li>
+        <li><b>Caller</b> — offline sideline call screen with hit/miss logging</li>
+        <li><b>Unlimited coaches &amp; players</b> with roles and positions</li>
+        <li><b>Offline-first</b> — everything works with zero bars</li>
+      </ul>
+      <button class="btn-primary" id="ctaStart2" style="width:100%">Create your program — free</button>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <p class="sec-h" style="text-align:center">FAQ</p>
+    <h2 class="sec-t" style="text-align:center;margin-bottom:38px">Questions coaches ask.</h2>
+    <div class="faq">
+      <details><summary>Does it replace Hudl?</summary><p>No — it rides on it. Keep your film in Hudl; export the breakdown and upload it to OFFGRD as-is (.xlsx or .csv, no conversion). Hudl stores what happened. OFFGRD tells you what's coming and teaches your roster what to do about it.</p></details>
+      <details><summary>Does it really work without internet?</summary><p>Yes. Predictions, the Caller, the playbook, and training all run on-device. The cloud is for syncing your program between coaches and players — when you're back on a connection, everything catches up automatically.</p></details>
+      <details><summary>Who owns the playbook?</summary><p>The program. Your plays live in your team's account with roles — Admin, Coach·Edit, Coach·View, Player — so the whole staff builds one system and every player studies the same library. Export your playbook as a file any time.</p></details>
+      <details><summary>How do players join?</summary><p>One join code. They sign up, tap "I'm a player", enter the code, pick their position, and start training. Coaches see every test score by player under Results.</p></details>
+      <details><summary>What does the coach have to build before players can train?</summary><p>Nothing. The Trainer ships with built-in concepts versus six coverages, and the starter playbook is testable the moment you load it. Add your own plays and the tests grow with your system.</p></details>
+    </div>
+  </div>
+</section>
+
+<div class="final">
+  <div class="wrap">
+    <h2>Never <span class="ac">off guard.</span></h2>
+    <p style="color:var(--muted);max-width:480px;margin:0 auto 28px">Set up your program, invite your staff, and see your opponent's next call before Friday.</p>
+    <button class="btn-primary" id="ctaStart3">Start free — no card</button>
+  </div>
+</div>
 
 <footer>
   <div class="wrap foot-in">
     <img class="logo" src="icon.svg" alt="OFFGRD">
-    <span>OFFGRD — Scout, Predict &amp; Design.</span>
+    <span>OFFGRD — Scout, predict, teach &amp; call. Never off guard.</span>
     <div class="foot-sp"></div>
-    <span>© 2026 OFFGRD. All rights reserved.</span>
+    <a href="#suite">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <span>© 2026 OFFGRD</span>
   </div>
 </footer>
 
@@ -165,7 +365,7 @@
       navAuth.innerHTML = '<span class="who">'+u.email+'</span><a class="nav-btn" href="OFFGRD.html">Open app</a><button class="nav-btn ghost" id="soBtn">Sign out</button>';
       document.getElementById("soBtn").onclick = ()=>Cloud.signOut();
     } else {
-      navAuth.innerHTML = '<button class="nav-btn ghost" id="siBtn">Sign in</button><button class="nav-btn" id="suBtn">Get started</button>';
+      navAuth.innerHTML = '<button class="nav-btn ghost" id="siBtn">Sign in</button><button class="nav-btn" id="suBtn">Start free</button>';
       document.getElementById("siBtn").onclick = ()=>openAuthModal(null,"signin");
       document.getElementById("suBtn").onclick = ()=>openAuthModal(null,"signup");
     }
@@ -177,7 +377,8 @@
   const start=()=>openAuthModal(null,"signup");
   document.getElementById("ctaStart").onclick=start;
   document.getElementById("ctaStart2").onclick=start;
+  document.getElementById("ctaStart3").onclick=start;
 </script>
-<script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
+<script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn’t load — tap to reload</a>';}},6000);</script>
 </body>
 </html>
