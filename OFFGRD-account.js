@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=22";
-import { openAuthModal } from "./OFFGRD-auth.js?v=22";
+import { Cloud } from "./OFFGRD-cloud.js?v=23";
+import { openAuthModal } from "./OFFGRD-auth.js?v=23";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -321,16 +321,61 @@ function obCoach(){
 }
 function obCoachDone(){
   const b=ensureOB().querySelector("#obBody"); markOB();
+  let _logo="";
   b.innerHTML='<p class="ogm-note" style="font-size:14px"><b style="color:#13294B">'+esc(TEAM?TEAM.name:"Your program")+'</b> is live. Do these in any order — the <b>setup checklist</b> at the top of every page tracks your progress until you’re game-ready:</p>'
    +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
    +'<p class="ogm-note">They sign up, tap “I’m a player”, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours</div><p class="ogm-note"><a href="OFFGRD.html#brand" style="font-weight:800">Set your colors &amp; logo</a> — the whole suite wears them.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours — logo &amp; colors</div>'
+   +'<div class="ogm-row" style="align-items:center;margin-top:6px">'
+   +'<span id="obCrest" style="display:inline-flex;width:42px;height:42px;border-radius:9px;align-items:center;justify-content:center;font-weight:900;font-size:13px;overflow:hidden;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span>'
+   +'<input class="ogm-in" id="obTeamNm" placeholder="Display name (e.g. Test High Tigers)" style="flex:1;min-width:170px">'
+   +'</div>'
+   +'<div class="ogm-row" style="margin-top:8px;align-items:center">'
+   +'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px">Primary <input type="color" id="obC1" value="#13294B" style="width:38px;height:30px;border:0;padding:0;background:none;cursor:pointer"></label>'
+   +'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px">Text <input type="color" id="obC2" value="#7BAFD4" style="width:38px;height:30px;border:0;padding:0;background:none;cursor:pointer"></label>'
+   +'<button class="ogm-b" id="obLogo">Upload logo</button>'
+   +'<button class="ogm-b go" id="obBrandSave">Save look</button>'
+   +'<input type="file" id="obLogoFile" accept="image/*" style="display:none">'
+   +'</div><p class="ogm-note" id="obBrandMsg">Your crest and colors show across the whole suite and on printed reports.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">3 · Load your plays</div><p class="ogm-note">Open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a> — take the 12-play starter book and rename it to your terminology, or draw your own. Plays sync to the whole program and power player testing.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">4 · Scout your first opponent</div><p class="ogm-note"><a href="OFFGRD.html#import" style="font-weight:800">Import a breakdown</a> — upload your Hudl/QwikCut export as-is. Predictions appear instantly.</p></div>'
    +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Let’s go</button></div>';
+  const nmIn=b.querySelector("#obTeamNm"), c1=b.querySelector("#obC1"), c2=b.querySelector("#obC2");
+  nmIn.value=(TEAM&&TEAM.name)||"";
+  const crestPrev=()=>{ const cEl=b.querySelector("#obCrest"); if(!cEl) return;
+    cEl.style.background=c1.value; cEl.style.color=c2.value;
+    if(_logo){ cEl.innerHTML='<img src="'+_logo+'" style="width:100%;height:100%;object-fit:contain">'; }
+    else { cEl.textContent=obAbbr(nmIn.value); } };
+  nmIn.oninput=crestPrev; c1.oninput=crestPrev; c2.oninput=crestPrev; crestPrev();
+  b.querySelector("#obLogo").onclick=()=>b.querySelector("#obLogoFile").click();
+  b.querySelector("#obLogoFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return; obReadLogo(f,url=>{ _logo=url; crestPrev(); }); };
+  b.querySelector("#obBrandSave").onclick=()=>{
+    const nm=nmIn.value.trim()||((TEAM&&TEAM.name)||"My Team");
+    obApplyBrand(nm, c1.value, c2.value, _logo);
+    b.querySelector("#obBrandMsg").innerHTML='<b style="color:#1d7a45">Saved ✓</b> — the suite now wears '+esc(nm)+'’s colors. You can fine-tune any time under <b>Team &amp; logos</b>.';
+  };
   b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied ✓"; }catch(e){} };
   b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderChecklist); }catch(e){} };
+}
+function obAbbr(name){ return ((name||"").split(/\s+/).map(w=>w[0]||"").join("").slice(0,3).toUpperCase())||"TM"; }
+function obReadLogo(file, cb){
+  const rd=new FileReader();
+  rd.onload=()=>{ const img=new Image();
+    img.onload=()=>{ try{ const s=Math.min(1, 128/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*s)); c.height=Math.max(1,Math.round(img.height*s)); c.getContext("2d").drawImage(img,0,0,c.width,c.height); cb(c.toDataURL("image/png")); }catch(e){ cb(rd.result); } };
+    img.onerror=()=>cb(rd.result); img.src=rd.result; };
+  rd.readAsDataURL(file);
+}
+function obApplyBrand(name, bg, fg, logo){
+  const brand={abbr:obAbbr(name), fg:fg, bg:bg, logo:logo||""};
+  if(window.OFFGRD_BRAND){ try{ window.OFFGRD_BRAND(name, brand); return; }catch(e){} }
+  /* not on the Scout page: write the same storage Scout reads on next load */
+  try{
+    const bs=JSON.parse(localStorage.getItem("offgrd_brands")||"{}");
+    bs[name]=brand;
+    localStorage.setItem("offgrd_brands", JSON.stringify(bs));
+    localStorage.setItem("offgrd_identity", name);
+  }catch(e){}
 }
 function obPlayer(){
   const b=ensureOB().querySelector("#obBody");
