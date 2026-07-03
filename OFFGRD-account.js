@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=23";
-import { openAuthModal } from "./OFFGRD-auth.js?v=23";
+import { Cloud } from "./OFFGRD-cloud.js?v=24";
+import { openAuthModal } from "./OFFGRD-auth.js?v=24";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -103,6 +103,7 @@ async function onUser(u){
       TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
       ROLE = await Cloud.myRole(TEAM.id);
     } else { TEAM = null; ROLE = null; }
+    applyCloudBrand();
     bar(u);
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
@@ -368,6 +369,7 @@ function obReadLogo(file, cb){
 }
 function obApplyBrand(name, bg, fg, logo){
   const brand={abbr:obAbbr(name), fg:fg, bg:bg, logo:logo||""};
+  pushBrand(name, brand);   /* cloud: whole staff sees the same crest */
   if(window.OFFGRD_BRAND){ try{ window.OFFGRD_BRAND(name, brand); return; }catch(e){} }
   /* not on the Scout page: write the same storage Scout reads on next load */
   try{
@@ -375,6 +377,32 @@ function obApplyBrand(name, bg, fg, logo){
     bs[name]=brand;
     localStorage.setItem("offgrd_brands", JSON.stringify(bs));
     localStorage.setItem("offgrd_identity", name);
+  }catch(e){}
+}
+
+/* ---------- team brand in the cloud: one look for the whole program ---------- */
+function pushBrand(name, brand){
+  try{
+    if(!TEAM || !canEdit() || !Cloud.setTeamBrand) return;
+    const b=Object.assign({name:name}, brand||{});
+    TEAM.brand=b;
+    Cloud.setTeamBrand(TEAM.id, b).catch(()=>{});
+  }catch(e){}
+}
+window.OFFGRD_PUSH_BRAND=pushBrand;   /* Scout's Team & logos editor calls this on save */
+function applyCloudBrand(){
+  try{
+    const b=TEAM && TEAM.brand; if(!b || !b.name) return;
+    const brand={abbr:b.abbr||obAbbr(b.name), fg:b.fg||"#ffffff", bg:b.bg||"#13294B", logo:b.logo||""};
+    let cur={}; try{ cur=JSON.parse(localStorage.getItem("offgrd_brands")||"{}"); }catch(e){}
+    let curId=""; try{ curId=localStorage.getItem("offgrd_identity")||""; }catch(e){}
+    if(curId===b.name && JSON.stringify(cur[b.name]||{})===JSON.stringify(brand)) return;   /* already current on this device */
+    if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(b.name, brand); }
+    else{
+      cur[b.name]=brand;
+      localStorage.setItem("offgrd_brands", JSON.stringify(cur));
+      localStorage.setItem("offgrd_identity", b.name);
+    }
   }catch(e){}
 }
 function obPlayer(){
