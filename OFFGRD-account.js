@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=14";
-import { openAuthModal } from "./OFFGRD-auth.js?v=14";
+import { Cloud } from "./OFFGRD-cloud.js?v=16";
+import { openAuthModal } from "./OFFGRD-auth.js?v=16";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -103,7 +103,15 @@ async function pull(silent){
     if(A.kind==="playbook") rows = await Cloud.listPlays(TEAM.id);
     else rows = await Cloud.listGames(TEAM.id);
     if(rows && rows.length){
-      if(A.kind==="playbook") A.set(rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name})));
+      if(A.kind==="playbook"){
+        /* merge: cloud is the source of truth, but never discard local plays that
+           haven't been synced yet (drawn while signed out / before joining the team) */
+        const cloud = rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name}));
+        let local=[]; try{ local=A.get()||[]; }catch(e){ local=[]; }
+        const unsynced = local.filter(p=>!p.cid && !cloud.some(c=>(c.key&&p.key)?c.key===p.key:((c.name||"")===(p.name||""))));
+        A.set(cloud.concat(unsynced));
+        if(unsynced.length && canEdit()) await push(true);
+      }
       else A.set(rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id})));
       if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
