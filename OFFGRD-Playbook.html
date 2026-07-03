@@ -38,8 +38,8 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=17"></script>
-<script src="supabase.js?v=17"></script>
+<script src="OFFGRD-config.js?v=18"></script>
+<script src="supabase.js?v=18"></script>
 </head>
 <body>
   <div class="topbar"><a href="index.html" title="OFFGRD home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>· Playbook — draw &amp; animate</span><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
@@ -573,6 +573,59 @@ function exportPNG(){
 
 /* ---- modes ---- */
 function setMode(m){MODE=m;document.querySelectorAll(".btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
+/* ---------- starter playbook — no blank page (coach onboarding) ---------- */
+function starterLib(){
+  const out=[];
+  const P=lab=>STATE.players.find(p=>p.lab===lab);
+  const R=(lab,rt)=>{ const p=P(lab); if(p) rebuildRoute(p,rt); };
+  const runBlk=dir=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.runblk={type:"base",dir:dir}; p.blk=null; }); };
+  const rbPath=pts=>{ const p=P("RB"); if(p) p.route=pts.map(q=>({x:q.x,y:q.y,cx:null,cy:null})); };
+  const mk=(name,family,series,pers,form,prot,build)=>{
+    newPlay(form);
+    STATE.name=name; STATE.family=family; STATE.series=series; STATE.personnel=pers; STATE.formation=form;
+    if(prot && prot!=="none"){ STATE.protection=prot; try{ applyProtection(prot); }catch(e){} }
+    try{ if(build) build(); }catch(e){}
+    const copy=JSON.parse(JSON.stringify(STATE)); copy.bg=null;
+    copy.key=name.toLowerCase()+"|"+form.toLowerCase();
+    out.push(copy);
+  };
+  /* quick game */
+  mk("Stick","Quick Game","Quick","10","Trips Rt (Gun)","BOB",()=>applyConcept("Stick"));
+  mk("Hitches","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ ["X","H","Y","Z"].forEach(l=>R(l,"Hitch")); const rb=P("RB"); if(rb){ rb.type="block"; rb.blk="set"; rb.runblk=null; rb.route=[]; } });
+  mk("Slant-Flat","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ R("X","Slant"); R("Z","Slant"); R("H","Flat"); R("Y","Flat"); R("RB","Screen"); });
+  /* dropback */
+  mk("Smash","Dropback","Smash","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Smash"));
+  mk("Flood Rt","Dropback","Flood","10","Trips Rt (Gun)","Slide L",()=>applyConcept("Flood"));
+  mk("Mesh","Dropback","Mesh","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Mesh"));
+  mk("Four Verts","Dropback","Verts","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Four Verts"));
+  mk("Curl-Flat","Dropback","Curl","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Curl-Flat"));
+  /* screen */
+  mk("RB Screen Rt","Screen","Screen","10","2x2 Doubles (Gun)","none",()=>{ R("X","Go"); R("Z","Go"); R("H","Slant"); R("Y","Slant"); R("RB","Screen"); });
+  /* run game */
+  mk("Inside Zone Rt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(1); rbPath([{x:560,y:430},{x:575,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
+  mk("Inside Zone Lt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(-1); rbPath([{x:440,y:430},{x:425,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
+  mk("Power Lt","Run","Power","10","2x2 Doubles (Gun)","none",()=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.blk=null; p.runblk={type:"down",dir:-1}; }); const rg=P("RG"); if(rg) rg.runblk={type:"pull",dir:-1}; rbPath([{x:455,y:435},{x:420,y:300}]); });
+  return out;
+}
+function offerStarter(){
+  let done=null; try{ done=localStorage.getItem("offgrd_pb_starter"); }catch(e){}
+  if(done || (LIB && LIB.length)) return;
+  const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9998;
+  ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
+   +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book — <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don’t run. If you’re signed in, they sync to your whole program automatically.</p>'
+   +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
+  document.body.appendChild(ov);
+  const close=()=>{ try{ localStorage.setItem("offgrd_pb_starter","1"); }catch(e){} ov.remove(); };
+  ov.querySelector("#stSkip").onclick=close;
+  ov.querySelector("#stGo").onclick=()=>{
+    if(LIB && LIB.length){ close(); msg("Your team playbook already loaded from the cloud."); return; }
+    LIB=starterLib(); saveLib(); renderLib();
+    newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
+    msg("Starter playbook loaded — 12 plays. Open any play, rename it, make it yours.");
+    close();
+  };
+}
+
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 /* Expose the sync bridge IMMEDIATELY — OFFGRD-account.js (a deferred module) reads
    window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
@@ -581,7 +634,7 @@ window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=
 
 document.addEventListener("DOMContentLoaded",()=>{
   const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
-  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();
+  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();offerStarter();
   const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
   const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
   const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
@@ -627,8 +680,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=a;saveLib();renderLib();msg("Imported "+a.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=17"></script>
-<script src="OFFGRD-mobile.js?v=17"></script>
+<script type="module" src="OFFGRD-account.js?v=18"></script>
+<script src="OFFGRD-mobile.js?v=18"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -59,6 +59,10 @@ export const Cloud = {
     const { data, error } = await sb.rpc("my_role", { t: teamId });
     if (error) throw error; return data;
   },
+  async setMyPosition(teamId, pos) {
+    const { error } = await sb.rpc("set_my_position", { t: teamId, pos });
+    if (error) throw error;
+  },
   async inviteMember(teamId, email, role) {
     // returns 'added' (user existed) or 'pending' (will join on signup)
     const { data, error } = await sb.rpc("invite_member", { t: teamId, member_email: email, member_role: role });

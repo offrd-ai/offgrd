@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=17";
-import { openAuthModal } from "./OFFGRD-auth.js?v=17";
+import { Cloud } from "./OFFGRD-cloud.js?v=18";
+import { openAuthModal } from "./OFFGRD-auth.js?v=18";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -49,9 +49,9 @@ function bar(user){
     acct.querySelector("#ci").onclick = login; return;
   }
   if(!TEAM){
-    acct.innerHTML = '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span> <button class="cbtn" id="csetup">Set up program</button> <button class="cbtn" id="co">Sign out</button>';
+    acct.innerHTML = '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span> <button class="cbtn" id="csetup">Get started</button> <button class="cbtn" id="co">Sign out</button>';
     styleBtns();
-    acct.querySelector("#csetup").onclick = openTeam;
+    acct.querySelector("#csetup").onclick = openOnboard;
     acct.querySelector("#co").onclick = () => Cloud.signOut();
     return;
   }
@@ -86,6 +86,7 @@ async function onUser(u){
     bar(u);
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
+    if(!TEAM){ let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){} if(!ob) openOnboard(); }
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
@@ -235,7 +236,7 @@ async function renderTeam(){
   const me = (await Cloud.user()); const myId = me ? me.id : null;
   roster.forEach(m=>{
     const row=el('<div class="ogm-mem"></div>');
-    row.appendChild(el('<span class="nm">'+esc(m.full_name||m.email||"—")+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
+    row.appendChild(el('<span class="nm">'+esc(m.full_name||m.email||"—")+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
     if(isAdmin() && m.role!=="owner"){
       const rs=document.createElement("select"); rs.className="ogm-sel"; rs.style.minWidth="120px";
       ALL_ROLES.filter(([v])=>v!=="owner").forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===m.role)o.selected=true;rs.appendChild(o);});
@@ -254,6 +255,91 @@ async function renderTeam(){
 }
 let _keepMsg=null;
 function renderTeamKeep(msg){ _keepMsg=msg; renderTeam(); }
+
+/* ---------- onboarding: coach & player flows ---------- */
+const POSITIONS=["QB","WR","RB","TE","OL","DL","LB","DB"];
+let obEl=null;
+function ensureOB(){
+  if(obEl) return obEl;
+  obEl=document.createElement("div"); obEl.className="ogm-ov"; obEl.id="obModal";
+  obEl.innerHTML='<div class="ogm-box"><div class="ogm-row" style="justify-content:space-between"><h3>Welcome to OFFGRD</h3><button class="ogm-b" id="obX">Close</button></div><div id="obBody"></div></div>';
+  document.body.appendChild(obEl);
+  obEl.querySelector("#obX").onclick=()=>{ obEl.classList.remove("show"); markOB(); };
+  obEl.onclick=e=>{ if(e.target===obEl){ obEl.classList.remove("show"); markOB(); } };
+  return obEl;
+}
+function markOB(){ try{ localStorage.setItem("offgrd_onboarded","1"); }catch(e){} }
+function openOnboard(){ ensureOB().classList.add("show"); obChoose(); }
+function obChoose(){
+  const b=ensureOB().querySelector("#obBody");
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Let’s get you set up in about a minute. Which are you?</p>';
+  const row=el('<div class="ogm-row" style="margin-top:12px"></div>');
+  const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🏈 I’m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
+  const p=el('<button class="ogm-b" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🎓 I’m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
+  c.onclick=obCoach; p.onclick=obPlayer;
+  row.appendChild(c); row.appendChild(p); b.appendChild(row);
+}
+function obCoach(){
+  const b=ensureOB().querySelector("#obBody");
+  b.innerHTML='<p class="ogm-note">Name your program — you’ll be its Admin. You can add coaches and players right after.</p>';
+  const row=el('<div class="ogm-row" style="margin-top:10px"></div>');
+  const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
+  const go=el('<button class="ogm-b go">Create program</button>');
+  const stat=el('<p class="ogm-note"></p>');
+  go.onclick=async()=>{ const n=nm.value.trim()||"My Program"; go.disabled=true;
+    try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obCoachDone(); }
+    catch(e){ stat.textContent=e.message||"Couldn’t create the program."; go.disabled=false; } };
+  row.appendChild(nm); row.appendChild(go); b.appendChild(row); b.appendChild(stat);
+  nm.focus();
+}
+function obCoachDone(){
+  const b=ensureOB().querySelector("#obBody"); markOB();
+  b.innerHTML='<p class="ogm-note" style="font-size:14px"><b style="color:#13294B">'+esc(TEAM?TEAM.name:"Your program")+'</b> is live. Three steps and you’re game-ready:</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite your staff &amp; players</div>'
+   +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
+   +'<p class="ogm-note">They sign up, tap “I’m a player”, and enter this code. Coaches join the same way — then promote them under <b>Team</b>.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">2 · Load your plays</div><p class="ogm-note">The <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a> starts you with 12 tagged spread-gun plays — rename them to your terms or draw your own. They sync to the whole program.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">3 · Scout your opponent</div><p class="ogm-note">In <a href="OFFGRD.html" style="font-weight:800">Scout</a>, tap <b>Import data</b> and upload a Hudl/QwikCut export — predictions appear instantly.</p></div>'
+   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Done</button></div>';
+  b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied ✓"; }catch(e){} };
+  b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); };
+}
+function obPlayer(){
+  const b=ensureOB().querySelector("#obBody");
+  b.innerHTML='<p class="ogm-note">Enter the join code your coach gave you.</p>';
+  const row=el('<div class="ogm-row" style="margin-top:10px"></div>');
+  const code=el('<input class="ogm-in" placeholder="Join code (e.g. 3DBCC4)" autocapitalize="characters">');
+  const go=el('<button class="ogm-b go">Join team</button>');
+  const stat=el('<p class="ogm-note"></p>');
+  go.onclick=async()=>{ const cd=code.value.trim(); if(!cd){ stat.textContent="Enter the code."; return; } go.disabled=true;
+    try{ const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obPosition(); }
+    catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
+  row.appendChild(code); row.appendChild(go); b.appendChild(row); b.appendChild(stat);
+  code.focus();
+}
+function obPosition(){
+  const b=ensureOB().querySelector("#obBody");
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">You’re on <b style="color:#13294B">'+esc(TEAM?TEAM.name:"the team")+'</b> ✓</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">What position do you play?</div></div>';
+  const grid=el('<div class="ogm-row" style="margin-top:8px"></div>');
+  POSITIONS.forEach(ps=>{
+    const bt=el('<button class="ogm-b" style="min-width:62px;min-height:44px">'+ps+'</button>');
+    bt.onclick=async()=>{
+      try{ await Cloud.setMyPosition(TEAM.id, ps); }catch(e){}
+      try{ localStorage.setItem("offgrd_pos", ps); }catch(e){}
+      obPlayerDone(ps);
+    };
+    grid.appendChild(bt);
+  });
+  b.appendChild(grid);
+}
+function obPlayerDone(ps){
+  const b=ensureOB().querySelector("#obBody"); markOB();
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b> ✓</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">Start training</div><p class="ogm-note">Open the <a href="OFFGRD-QB.html" style="font-weight:800">Trainer</a> — learn the reads, name coverages, know your routes. Your test scores save to the team, so your coaches see the work you put in.</p></div>'
+   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Trainer</a><button class="ogm-b" id="obDone2">Done</button></div>';
+  b.querySelector("#obDone2").onclick=()=>{ obEl.classList.remove("show"); };
+}
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
