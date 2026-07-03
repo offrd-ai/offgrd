@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=20";
-import { openAuthModal } from "./OFFGRD-auth.js?v=20";
+import { Cloud } from "./OFFGRD-cloud.js?v=21";
+import { openAuthModal } from "./OFFGRD-auth.js?v=21";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -107,7 +107,7 @@ async function onUser(u){
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
     if(!TEAM){ let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){} if(!ob) openOnboard(); }
-    if(TEAM && canEdit()){ try{ setupState().then(renderSetup); }catch(e){} }
+    if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
@@ -330,7 +330,7 @@ function obCoachDone(){
    +'<div class="ogm-sec"><div class="ogm-lbl">4 · Scout your first opponent</div><p class="ogm-note"><a href="OFFGRD.html#import" style="font-weight:800">Import a breakdown</a> — upload your Hudl/QwikCut export as-is. Predictions appear instantly.</p></div>'
    +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Let’s go</button></div>';
   b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied ✓"; }catch(e){} };
-  b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderSetup); }catch(e){} };
+  b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderChecklist); }catch(e){} };
 }
 function obPlayer(){
   const b=ensureOB().querySelector("#obBody");
@@ -385,7 +385,7 @@ async function setupState(){
   try{ const g=await Cloud.listGames(TEAM.id); s.games=(g||[]).length; }catch(e){}
   return s;
 }
-function renderSetup(s){
+function renderChecklist(s){
   let hidden=null; try{ hidden=localStorage.getItem("offgrd_setup_done"); }catch(e){}
   let host=document.getElementById("ogSetup");
   const items=[
