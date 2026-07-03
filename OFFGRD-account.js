@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=18";
-import { openAuthModal } from "./OFFGRD-auth.js?v=18";
+import { Cloud } from "./OFFGRD-cloud.js?v=19";
+import { openAuthModal } from "./OFFGRD-auth.js?v=19";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -74,8 +74,28 @@ function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(
 function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
 
 /* ---------- session / active team ---------- */
+/* Different account on the same device? Wipe the previous account's local app data
+   (games, plays, identity, logos, logs) so nothing leaks between users on shared
+   computers. Supabase auth tokens (sb-*) and device prefs (booth mode) are kept. */
+function switchGuard(u){
+  let prev=null; try{ prev=localStorage.getItem("offgrd_uid"); }catch(e){}
+  if(prev && u && prev!==u.id){
+    try{
+      const keep=["offgrd_uid","offgrd_booth"];
+      const kill=[];
+      for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("offgrd_")===0 && keep.indexOf(k)<0) kill.push(k); }
+      kill.forEach(k=>localStorage.removeItem(k));
+      localStorage.setItem("offgrd_uid", u.id);
+    }catch(e){}
+    location.reload();
+    return true;
+  }
+  try{ if(u) localStorage.setItem("offgrd_uid", u.id); }catch(e){}
+  return false;
+}
 async function onUser(u){
   if(!u){ TEAM=null; ROLE=null; TEAMS=[]; clearInterval(_autoT); bar(null); return; }
+  if(switchGuard(u)) return;
   try{
     TEAMS = await Cloud.myTeams();
     if(TEAMS.length){
