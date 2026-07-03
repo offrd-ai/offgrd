@@ -132,6 +132,20 @@
     <p class="hint" id="hint" style="margin:8px 0 0"></p>
   </div>
 
+  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in QB Trainer; feeds the education engine) -->
+  <div class="panel" id="asnPanel">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
+      <button class="btn" id="asnToggle">Show ▾</button>
+    </div>
+    <div id="asnBody" style="display:none">
+      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew — type to override it (your text is never overwritten). Saved with the play; players see their job in the QB Trainer.</p>
+      <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
+      <div class="lbl" style="margin:12px 0 4px">QB notes — progression, hots, reminders</div>
+      <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="meta">
       <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
@@ -263,13 +277,13 @@ function placeDefense(front,cov){
   STATE.front=front; STATE.coverage=cov; assignCoverage(STATE.defs,cov);
 }
 function applyProtection(prot){ STATE.protection=prot; const ol=STATE.players.filter(p=>p.ol); const rb=STATE.players.find(p=>p.type==="rb");
-  ol.forEach(p=>{p.type="block";p.route=[];p.motion=[];});
+  ol.forEach(p=>{p.type="block";p.route=[];p.motion=[];p.rname=null;});
   if(prot==="BOB"){ ol.forEach(p=>p.blk="set"); }
   else if(prot==="Slide R"){ ol.forEach(p=>p.blk="R"); }
   else if(prot==="Slide L"){ ol.forEach(p=>p.blk="L"); }
   else if(prot==="Half-Slide R"){ ol.forEach(p=>p.blk=(p.x>=500?"R":"set")); }
   else if(prot==="Half-Slide L"){ ol.forEach(p=>p.blk=(p.x<=500?"L":"set")); }
-  else if(prot==="6-Man (RB)"){ ol.forEach(p=>p.blk="set"); if(rb){rb.type="block";rb.blk="set";rb.route=[];} }
+  else if(prot==="6-Man (RB)"){ ol.forEach(p=>p.blk="set"); if(rb){rb.type="block";rb.blk="set";rb.route=[];rb.rname=null;} }
   else { ol.forEach(p=>p.blk=null); }
 }
 function zoneShapes(cov){ const T="rgba(36,150,128,.30)",S="rgba(120,230,200,.55)",D=DLAND;
@@ -320,7 +334,7 @@ const ROUTES={
  Whip:[{x:0,y:-36,d:"N"},{x:55,y:-30,d:"M"},{x:120,y:-44,d:"S"}],
  Pivot:[{x:0,y:-40,d:"N"},{x:50,y:-34,d:"S"},{x:0,y:-30,d:"M"}]
 };
-function rebuildRoute(p,name){ if(!p||p.group||!ROUTES[name])return; if(p.type==="block")p.type="route"; const side=(p.x<500?-1:1),mid=-side,cl=v=>Math.max(30,Math.min(970,v)); p.route=ROUTES[name].map(o=>{const sgn=o.d==="S"?side:o.d==="M"?mid:1;return{x:cl(p.x+o.x*sgn),y:p.y+o.y,cx:null,cy:null};}); }
+function rebuildRoute(p,name){ if(!p||p.group||!ROUTES[name])return; if(p.type==="block")p.type="route"; const side=(p.x<500?-1:1),mid=-side,cl=v=>Math.max(30,Math.min(970,v)); p.route=ROUTES[name].map(o=>{const sgn=o.d==="S"?side:o.d==="M"?mid:1;return{x:cl(p.x+o.x*sgn),y:p.y+o.y,cx:null,cy:null};}); p.rname=name; }
 function applyRoute(name){ if(!SEL){msg("Tap a player first, then choose a route.");return;} if(SEL.group){msg("Routes are for offensive players. Pick one of yours.");return;} snap(); rebuildRoute(SEL,name); renderAll(); msg(SEL.lab+": "+name); }
 const CONCEPTS=["Four Verts","Smash","Mesh","Flood","Stick","Curl-Flat"];
 function applyConcept(name){ if(!STATE)return; snap();
@@ -334,14 +348,50 @@ function applyConcept(name){ if(!STATE)return; snap();
   else if(name==="Flood"){ const strong=R.length>=L.length?R:L, weak=strong===R?L:R; if(strong[0])rebuildRoute(strong[0],"Go"); if(strong[1])rebuildRoute(strong[1],"Out"); if(backs[0])rebuildRoute(backs[0],"Flat"); else if(strong[2])rebuildRoute(strong[2],"Flat"); if(weak[0])rebuildRoute(weak[0],"Comeback"); }
   renderAll(); msg("Concept: "+name); }
 const BLOCKS=[["Base","base",0],["Reach\u25c0","reach",-1],["Reach\u25b6","reach",1],["Down","down",0],["Kick","kick",0],["Pull\u25c0","pull",-1],["Pull\u25b6","pull",1],["Combo\u25c0","combo",-1],["Combo\u25b6","combo",1],["Pass set","set",0]];
-function applyBlock(type,dir){ if(!SEL){msg("Tap a lineman first.");return;} if(SEL.group){msg("Blocks are for your players.");return;} snap(); SEL.type="block"; SEL.route=[]; SEL.motion=[]; if(type==="set"){SEL.runblk=null;SEL.blk="set";} else {SEL.runblk={type:type,dir:dir};SEL.blk=null;} renderAll(); msg(SEL.lab+" block: "+type); }
+function applyBlock(type,dir){ if(!SEL){msg("Tap a lineman first.");return;} if(SEL.group){msg("Blocks are for your players.");return;} snap(); SEL.type="block"; SEL.route=[]; SEL.motion=[]; SEL.rname=null; if(type==="set"){SEL.runblk=null;SEL.blk="set";} else {SEL.runblk={type:type,dir:dir};SEL.blk=null;} renderAll(); msg(SEL.lab+" block: "+type); }
 const RKW=[["post-corner","Post-Corner"],["post corner","Post-Corner"],["sluggo","Sluggo"],["comeback","Comeback"],["hitch","Hitch"],["slant","Slant"],["curl","Curl"],["dig","Dig"],["corner","Corner"],["post","Post"],["seam","Seam"],["fade","Fade"],["wheel","Wheel"],["drag","Drag"],["cross","Drag"],["screen","Screen"],["stick","Stick"],["whip","Whip"],["pivot","Pivot"],["flat","Flat"],["out","Out"],["vert","Go"],["streak","Go"],["go","Go"]];
 function applyAssignments(text){ if(!STATE||!text.trim())return; snap(); const lines=text.split(/\n|,|;/).map(l=>l.trim()).filter(Boolean); let n=0;
   lines.forEach(line=>{ const m=line.match(/^([A-Za-z$]{1,3})\b/); if(!m)return; const lab=m[1].toUpperCase(); const p=STATE.players.find(pp=>!pp.group && pp.lab.toUpperCase()===lab); if(!p)return; const low=line.toLowerCase();
-    if(/pass\s*pro|protection|\bblock\b|\bscan\b|\bcheck\b/.test(low)){ p.type="block"; p.blk="set"; p.runblk=null; p.route=[]; n++; return; }
+    if(/pass\s*pro|protection|\bblock\b|\bscan\b|\bcheck\b/.test(low)){ p.type="block"; p.blk="set"; p.runblk=null; p.route=[]; p.rname=null; n++; return; }
     for(const kv of RKW){ if(low.indexOf(kv[0])>=0){ rebuildRoute(p,kv[1]); n++; break; } }
   });
   renderAll(); msg("Applied "+n+" assignment"+(n===1?"":"s")+"."); }
+/* ---------- per-play assignments: auto-derived from the drawing, coach text always wins ---------- */
+function autoAsn(p){ if(!p||p.group) return "";
+  const parts=[]; if(p.motion&&p.motion.length) parts.push("Motion");
+  if(p.type==="block"){
+    if(p.runblk){ const M={base:"Base block",reach:"Reach block",down:"Down block",kick:"Kick out",pull:"Pull",combo:"Combo block"}; let t=M[p.runblk.type]||"Block"; if(p.runblk.dir<0)t+=" left"; else if(p.runblk.dir>0)t+=" right"; parts.push(t); }
+    else if(p.blk==="L") parts.push("Slide protection left");
+    else if(p.blk==="R") parts.push("Slide protection right");
+    else if(p.blk==="set") parts.push("Pass set");
+    else parts.push("Block");
+  } else if(p.route&&p.route.length){ parts.push(p.rname?p.rname+" route":"Route as drawn"); }
+  return parts.join(" · ");
+}
+let ASN_SIG=null;
+function asnSig(){ if(!STATE) return ""; return STATE.players.map(p=>p.id+"|"+p.lab+"|"+(p.asn||"")+"|"+autoAsn(p)).join("~")+"~"+(STATE.qbNotes||""); }
+function renderAsn(){
+  const list=document.getElementById("asnList"); if(!list||!STATE) return;
+  const sig=asnSig(); if(sig===ASN_SIG) return;
+  ASN_SIG=sig;
+  if(list.contains(document.activeElement)) return; /* don't yank the field out from under a typing coach */
+  list.innerHTML="";
+  const ps=STATE.players.slice().sort((a,b)=>(a.ol||0)-(b.ol||0)); /* skill first, line after */
+  ps.forEach(p=>{
+    const w=document.createElement("div"); w.style.cssText="display:flex;align-items:center;gap:6px";
+    const chip=document.createElement("span"); chip.textContent=p.lab; chip.style.cssText="min-width:36px;text-align:center;font-weight:800;font-size:12px;background:#13294B;color:#fff;border-radius:7px;padding:6px 4px;flex:none";
+    const inp=document.createElement("input"); inp.style.flex="1"; inp.style.minWidth="0"; inp.value=p.asn||""; inp.placeholder=autoAsn(p)||"assignment…"; inp.dataset.pid=p.id;
+    inp.oninput=e=>{ p.asn=e.target.value; ASN_SIG=asnSig(); };
+    w.appendChild(chip); w.appendChild(inp); list.appendChild(w);
+  });
+  const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
+}
+function ctxAsnInput(host){ if(!SEL||SEL.group) return;
+  ctxLbl(host,(SEL.lab||"Player")+" — assignment (shows in QB Trainer)");
+  const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignment…";
+  inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
+  host.appendChild(inp);
+}
 const PERS={"00":{RB:0,TE:0,WR:5},"10":{RB:1,TE:0,WR:4},"11":{RB:1,TE:1,WR:3},"12":{RB:1,TE:2,WR:2},"13":{RB:1,TE:3,WR:1},"20":{RB:2,TE:0,WR:3},"21":{RB:2,TE:1,WR:2},"22":{RB:2,TE:2,WR:1}};
 function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:"X",x:120,y:380},{lab:"Z",x:880,y:380},{lab:"H",x:250,y:405},{lab:"F",x:750,y:405},{lab:"A",x:500,y:545}]; const TE=[{lab:"Y",x:332,y:380},{lab:"U",x:668,y:380},{lab:"W",x:705,y:402}]; const RB=[{lab:"RB",x:545,y:470},{lab:"FB",x:455,y:478},{lab:"B",x:500,y:528}];
   const arr=OL().map(p=>({lab:p.lab,x:p.x,y:p.y,type:p.type,ol:1}));
@@ -352,7 +402,7 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
   STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
   STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
   (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
   (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
@@ -365,12 +415,12 @@ function applyRunScheme(name){ if(!STATE)return; snap();
   const ol=STATE.players.filter(p=>p.ol).sort((a,b)=>a.x-b.x);
   const rb=STATE.players.find(p=>p.type==="rb"); const C=ol[2]||{x:500,y:LOS};
   const dir=/Lt/.test(name)?-1:1;
-  const setb=(p,t,d)=>{p.type="block";p.blk=null;p.route=[];p.motion=[];p.runblk={type:t,dir:d||0};};
+  const setb=(p,t,d)=>{p.type="block";p.blk=null;p.route=[];p.motion=[];p.rname=null;p.runblk={type:t,dir:d||0};};
   if(/Zone/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
   else if(/Power/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3); if(bsG) setb(p,"pull",dir); else setb(p,"down",0); }); }
   else if(/Counter/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3), bsT=(dir>0?i===0:i===4); if(bsG) setb(p,"pull",dir); else if(bsT) setb(p,"kick",dir); else setb(p,"down",0); }); }
   else if(/Draw/.test(name)){ ol.forEach(p=>setb(p,"set",0)); }
-  if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null;
+  if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null; rb.rname=null;
     const aimX=/Outside/.test(name)?(C.x+dir*150):(C.x+dir*55);
     const aimY=/Draw/.test(name)?LOS-45:LOS-72;
     rb.route=[{x:C.x+dir*12,y:rb.y-6,cx:null,cy:null},{x:aimX,y:aimY,cx:null,cy:null}]; }
@@ -467,7 +517,7 @@ function renderAll(anim){
   STATE.players.forEach(p=>{ const pos=anim?(p._ap||{x:p.x,y:p.y}):null; s+=playerNode(p,pos); });
   if(!anim&&SEL)s+=handles(SEL);
   if(STATE.texts)STATE.texts.forEach(t=>{s+=textNode(t);});
-  svg.innerHTML=s; updateSelPanel();
+  svg.innerHTML=s; updateSelPanel(); renderAsn();
 }
 
 /* ---- selected panel ---- */
@@ -493,6 +543,7 @@ function buildCtxBar(){
     const ps=document.getElementById("protSel");
     if(ps){ const sel=ps.cloneNode(true); sel.removeAttribute("id"); sel.value=ps.value; sel.style.maxWidth="180px"; sel.title="Protection (whole line)"; sel.onchange=()=>{ ps.value=sel.value; ps.dispatchEvent(new Event("change")); }; host.appendChild(sel); }
     BLOCKS.forEach(bl=>ctxBtn(host,bl[0],()=>applyBlock(bl[1],bl[2])));
+    ctxAsnInput(host);
     return;
   }
   /* skill player (WR / TE / RB / QB): routes + motion */
@@ -501,7 +552,8 @@ function buildCtxBar(){
   ctxLbl(host,"Tools");
   ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"’s route.");},MODE==="route");
   ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"’s pre-snap motion.");},MODE==="motion");
-  ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];renderAll();});
+  ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];SEL.rname=null;renderAll();});
+  ctxAsnInput(host);
 }
 function buildSwatches(){const host=document.getElementById("swatches");host.innerHTML=SWATCH.map(c=>`<button class="sw" style="background:${c}" data-c="${c}"></button>`).join("");host.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{if(SEL){snap();SEL.color=b.dataset.c;renderAll();}});}
 
@@ -527,10 +579,10 @@ function onDown(e){if(!STATE)return;e.preventDefault();cancelAnim();const pt=toS
   if(MODE==="text"){const ti=hitText(pt);if(ti>=0){const nv=prompt("Edit text (blank to delete):",STATE.texts[ti].text);if(nv!==null){snap();if(nv.trim()==="")STATE.texts.splice(ti,1);else STATE.texts[ti].text=nv;}}else{const nv=prompt("Text label:");if(nv&&nv.trim()){snap();STATE.texts.push({x:pt.x,y:pt.y,text:nv.trim(),color:"#13294B",size:18});}}renderAll();return;}
   if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};renderAll();return;}
   const hit=nearestHit(pt);
-  if(MODE==="erase"){if(hit){snap();hit.route=[];if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
+  if(MODE==="erase"){if(hit){snap();hit.route=[];hit.rname=null;if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
   if(MODE==="block"){const pl=hitPlayer(pt);if(pl){snap();pl.type=(pl.type==="block"?"route":"block");pl.route=[];}renderAll();return;}
   if(MODE==="move"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}renderAll();return;}
-  if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
+  if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.rname=null;SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
   if(MODE==="motion"){if(hit){SEL=hit;}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
 }
 function onMove(e){if(!DRAG)return;e.preventDefault();const pt=toSvg(e);
@@ -548,7 +600,7 @@ function val(id){return document.getElementById(id).value.trim();}
 function set(id,v){document.getElementById(id).value=v||"";}
 function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");}
 function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);}
-function savePlay(){readMeta();if(!STATE.name){msg("Give the play a name first.");return;}const copy=JSON.parse(JSON.stringify(STATE));copy.bg=null;copy.key=STATE.name.toLowerCase()+"|"+(STATE.formation||"").toLowerCase();const i=LIB.findIndex(p=>p.key===copy.key);if(i>=0)LIB[i]=copy;else LIB.push(copy);saveLib();renderLib();msg((i>=0?"Updated ":"Saved ")+STATE.name+".");}
+function savePlay(){readMeta();if(!STATE.name){msg("Give the play a name first.");return;}const copy=JSON.parse(JSON.stringify(STATE));copy.bg=null;copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});copy.key=STATE.name.toLowerCase()+"|"+(STATE.formation||"").toLowerCase();const i=LIB.findIndex(p=>p.key===copy.key);if(i>=0)LIB[i]=copy;else LIB.push(copy);saveLib();renderLib();msg((i>=0?"Updated ":"Saved ")+STATE.name+".");}
 function loadPlay(i){STATE=JSON.parse(JSON.stringify(LIB[i]));SEL=null;UNDO=[];REDO=[];syncUndo();cancelAnim();writeMeta();renderAll();msg("Loaded "+STATE.name+".");}
 function dupPlay(i){const c=JSON.parse(JSON.stringify(LIB[i]));c.name=c.name+" (copy)";c.key=c.name.toLowerCase()+"|"+(c.formation||"").toLowerCase();LIB.push(c);saveLib();renderLib();msg("Duplicated "+LIB[i].name+".");}
 function delPlay(i){const n=LIB[i].name;LIB.splice(i,1);saveLib();renderLib();msg("Deleted "+n+".");}
@@ -586,6 +638,7 @@ function starterLib(){
     if(prot && prot!=="none"){ STATE.protection=prot; try{ applyProtection(prot); }catch(e){} }
     try{ if(build) build(); }catch(e){}
     const copy=JSON.parse(JSON.stringify(STATE)); copy.bg=null;
+    copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
     copy.key=name.toLowerCase()+"|"+form.toLowerCase();
     out.push(copy);
   };
@@ -650,6 +703,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
   document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
   document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
+  const asnT=document.getElementById("asnToggle"), asnB=document.getElementById("asnBody");
+  const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ▴":"Show ▾"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
+  asnT.onclick=()=>asnSet(asnB.style.display==="none");
+  let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
+  document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); } };
   document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
   const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
   document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value)));};
@@ -658,10 +716,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();};
   document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
   const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
-  document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];});renderAll();};
+  document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
   document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
   document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
-  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block")SEL.route=[];renderAll();}};
+  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
   document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
   document.getElementById("saveBtn").onclick=savePlay;
   document.getElementById("newBtn").onclick=()=>{newPlay(fs.value);writeMeta();renderAll();msg("New play.");};

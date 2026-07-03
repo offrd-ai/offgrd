@@ -268,6 +268,18 @@ function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE
 function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function customRouteD(p){ if(!p.route||!p.route.length) return ""; let d="M "+p.x+" "+p.y; p.route.forEach(a=>{ d += (a.cx!=null? " Q "+a.cx+" "+a.cy+" "+a.x+" "+a.y : " L "+a.x+" "+a.y); }); return d; }
 function customEnd(p){ if(p.route&&p.route.length){ const a=p.route[p.route.length-1]; return {x:a.x,y:a.y}; } return {x:p.x,y:p.y}; }
+/* ---------- coach-authored assignments (saved on the play in the Playbook) ---------- */
+function playState(c){ if(!c||!c.play) return null; return c.play.players?c.play:(c.play.data||c.play); }
+function asnFeedback(rep){
+  if(!rep.concept.custom) return "";
+  const st=playState(rep.concept); if(!st) return "";
+  let s="";
+  const tp=(st.players||[]).find(p=>p.lab===rep.correct);
+  const job=tp&&(tp.asn||tp.asnAuto);
+  if(job) s+=`<div class="prog"><b>${esc(rep.correct)}’s job:</b> ${esc(job)}</div>`;
+  if(st.qbNotes) s+=`<div class="prog"><b>QB notes:</b> ${esc(st.qbNotes)}</div>`;
+  return s;
+}
 function renderCustomField(state, coverage, revealLab, targetId, los){
   los=los||380; state=state||{}; const players=state.players||[];
   let s="";
@@ -552,8 +564,10 @@ function answerRoute(i){
   const ci=rep.options.findIndex(x=>x.correct); const cc=document.getElementById("ropt_"+ci);
   if(cc){ cc.setAttribute("stroke","#19c37d"); cc.setAttribute("stroke-width","5"); cc.setAttribute("opacity","1"); }
   test.results.push({concept:rep.play.name+" — "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
+  const job=rep.target.asn||rep.target.asnAuto;
+  if(job){ const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad"); fb.innerHTML=`<h4>${correct?"✓":"✗"} ${esc(rep.target.lab)}’s assignment</h4><div>${esc(job)}</div>`; }
   test.i++;
-  setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?450:900);
+  setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, job?(correct?1600:2400):(correct?450:900));
 }
 
 /* ===================== game state ===================== */
@@ -628,7 +642,8 @@ function answer(lab){
     fb.className="fb show "+(correct?"ok":"bad");
     fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${rep.correct}</b></h4>`+
       `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
-      (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`:"");
+      (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`:"")+
+      asnFeedback(rep);
     document.getElementById("nextBtn").classList.remove("hidden");
   } else if(MODE==="test"){
     test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:rep.correct});
