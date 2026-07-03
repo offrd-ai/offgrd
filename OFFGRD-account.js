@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=24";
-import { openAuthModal } from "./OFFGRD-auth.js?v=24";
+import { Cloud } from "./OFFGRD-cloud.js?v=25";
+import { openAuthModal } from "./OFFGRD-auth.js?v=25";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -151,6 +151,7 @@ async function pull(silent){
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
+    try{ if(A.kind==="scout") pullWeek(); }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
 }
@@ -405,6 +406,38 @@ function applyCloudBrand(){
     }
   }catch(e){}
 }
+/* ---------- week plan bridge (Phase A of the education engine) ----------
+   Scout registers window.OFFGRD_WEEK = { set:(plan|null, canEdit)=>void } at top level.
+   We feed it the active week plan on every pull, and expose push/start/plays helpers. */
+let WEEK_ID=null, _weekT=null;
+async function pullWeek(){
+  try{
+    if(_weekT) return;   /* an edit is about to push — don't clobber it with a stale pull */
+    if(!TEAM || A.kind!=="scout" || !window.OFFGRD_WEEK || !Cloud.activeWeekPlan) return;
+    const wp = await Cloud.activeWeekPlan(TEAM.id);
+    WEEK_ID = wp ? wp.id : null;
+    window.OFFGRD_WEEK.set(wp||null, canEdit());
+  }catch(e){}
+}
+window.OFFGRD_WEEK_PUSH=function(fields){
+  if(!TEAM || !WEEK_ID || !canEdit()) return;
+  clearTimeout(_weekT);
+  _weekT=setTimeout(()=>{ _weekT=null; Cloud.saveWeekPlan(WEEK_ID, fields).then(()=>syncStamp()).catch(()=>{}); }, 1500);
+};
+window.OFFGRD_WEEK_START=async function(opp, gameDate, buckets){
+  if(!TEAM) throw new Error("Sign in and join a program first.");
+  if(!canEdit()) throw new Error("Only coaches can start a week plan.");
+  const id=await Cloud.startWeekPlan(TEAM.id, opp, gameDate, buckets);
+  await pullWeek();
+  return id;
+};
+window.OFFGRD_WEEK_PLAYS=async function(){
+  if(!TEAM) return [];
+  try{ const rows=await Cloud.listPlays(TEAM.id);
+    return (rows||[]).map(r=>({id:r.id, name:r.name||"Play", formation:r.formation||"", family:r.family||""}));
+  }catch(e){ return []; }
+};
+
 function obPlayer(){
   const b=ensureOB().querySelector("#obBody");
   b.innerHTML='<p class="ogm-note">Your name (so your coaches see you, not an email address) and the join code from your coach.</p>';

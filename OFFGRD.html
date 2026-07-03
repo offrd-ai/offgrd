@@ -231,8 +231,8 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=24"></script>
-<script src="supabase.js?v=24"></script>
+<script src="OFFGRD-config.js?v=25"></script>
+<script src="supabase.js?v=25"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1127,10 +1127,76 @@ function defSituation(def,dn,db,zone){
   return {rows:def,predicted:true,from:"full sample"};
 }
 const PLAN_KEY="offgrd_plan_v1"; let WB_PANELS=5, USE_WB=true;
+/* ---------- THIS WEEK (Phase A): cloud week plan riding the Plan view ----------
+   WEEK = active week_plans row {id,opponent,game_date,buckets,...} fed by account.js
+   via window.OFFGRD_WEEK.set(plan, canEdit). Buckets carry plays:[{id,name}]. */
+const WEEK_KEY="offgrd_week_v1"; let WEEK=null, WEEK_EDIT=false, PBOOK=[];
+function loadWeekCache(){ try{ const x=localStorage.getItem(WEEK_KEY); if(x) WEEK=JSON.parse(x); }catch(e){} }
+function weekPushBuckets(){ if(WEEK && WEEK_EDIT && window.OFFGRD_WEEK_PUSH){ WEEK.buckets=planBuckets(); try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); } }
+function weekSet(k,v){ if(!WEEK||!WEEK_EDIT) return; WEEK[k]=v||null; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(window.OFFGRD_WEEK_PUSH){ const f={}; f[k]=WEEK[k]; window.OFFGRD_WEEK_PUSH(f); } if(k==="opponent"&&v&&GAMES.some(g=>g.opponent===v)) setOpponent(v); else refreshView(); }
+function weekCountdown(){ if(!WEEK||!WEEK.game_date) return ""; const d=Math.ceil((new Date(WEEK.game_date+"T12:00:00")-Date.now())/86400000); if(isNaN(d)) return ""; if(d<0) return "played"; if(d===0) return "GAMEDAY"; return "in "+d+" day"+(d===1?"":"s"); }
+function nextFridayISO(){ const d=new Date(); const add=((5-d.getDay())+7)%7||7; d.setDate(d.getDate()+add); return d.toISOString().slice(0,10); }
+async function weekStartUI(){
+  if(!window.OFFGRD_WEEK_START){ alert("Sign in (top right) to start a week plan."); return; }
+  if(WEEK && !confirm("Start a new week? The current plan vs "+(WEEK.opponent||"—")+" will be archived.")) return;
+  let opp = sit.opp!=="ANY" ? sit.opp : (uniq(GAMES.map(g=>g.opponent))[0]||"");
+  opp = prompt("This week's opponent:", opp); if(opp===null) return;
+  const gd = prompt("Game date (YYYY-MM-DD):", nextFridayISO()); if(gd===null) return;
+  ensurePlan();
+  const bks = planBuckets().map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:[]}));
+  try{ await window.OFFGRD_WEEK_START(String(opp).trim(), String(gd).trim()||null, bks); }
+  catch(e){ alert((e&&e.message)||"Couldn't start the week."); }
+}
+function bucketPlays(i){ ensurePlan(); const b=PLAN_BUCKETS[i]; if(!b) return []; if(!Array.isArray(b.plays)) b.plays=[]; return b.plays; }
+function planCommit(i,name,id){ name=String(name||"").trim(); if(!name) return; const ps=bucketPlays(i);
+  if(ps.some(p=>(p.name||"").toLowerCase()===name.toLowerCase())) return;
+  if(!id){ const hit=(PBOOK||[]).find(p=>(p.name||"").toLowerCase()===name.toLowerCase()); if(hit) id=hit.id; }
+  ps.push({id:id||null,name:name}); savePlan(); renderPlan(); }
+function planUncommit(i,j){ const ps=bucketPlays(i); ps.splice(j,1); savePlan(); renderPlan(); }
+let _wkPick=null;
+function openWeekPicker(i){
+  if(!_wkPick){ _wkPick=document.createElement("div"); _wkPick.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:24px;z-index:9999;overflow:auto"; document.body.appendChild(_wkPick); _wkPick.onclick=e=>{ if(e.target===_wkPick) _wkPick.style.display="none"; }; }
+  _wkPick.style.display="flex";
+  const box=document.createElement("div"); box.style.cssText="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.35)";
+  _wkPick.innerHTML=""; _wkPick.appendChild(box);
+  const b=planBuckets()[i];
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:16px">Add to “'+esc(b?b.name:"bucket")+'”</b><button class="ghost" id="wkpX">Close</button></div>'
+    +'<input id="wkpQ" placeholder="Search your playbook…" style="width:100%;margin:10px 0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;box-sizing:border-box;background:var(--bg);color:var(--ink);font-weight:700">'
+    +'<div id="wkpList" style="max-height:340px;overflow:auto"></div>'
+    +'<p class="foot" style="margin:8px 0 0">From your program playbook. Type a name and press Enter to add a call that isn’t drawn yet.</p>';
+  box.querySelector("#wkpX").onclick=()=>{ _wkPick.style.display="none"; };
+  const list=box.querySelector("#wkpList"), q=box.querySelector("#wkpQ");
+  const rf=()=>{ const s=q.value.trim().toLowerCase();
+    const items=(PBOOK||[]).filter(p=>!s||((p.name||"")+" "+(p.family||"")+" "+(p.formation||"")).toLowerCase().indexOf(s)>=0).slice(0,40);
+    list.innerHTML=items.length?items.map(p=>'<div class="wkpRow" data-nm="'+esc(p.name)+'" data-id="'+esc(p.id)+'" style="display:flex;justify-content:space-between;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer"><b>'+esc(p.name)+'</b><span class="foot">'+esc([p.formation,p.family].filter(Boolean).join(" · "))+'</span></div>').join("")
+      :'<p class="foot">'+((PBOOK&&PBOOK.length)?"No matches.":"No playbook loaded — sign in, or draw plays in the Playbook.")+'</p>';
+    [].forEach.call(list.querySelectorAll(".wkpRow"),r=>{ r.onclick=()=>{ planCommit(i, r.dataset.nm, r.dataset.id); _wkPick.style.display="none"; }; });
+  };
+  q.oninput=rf; q.onkeydown=e=>{ if(e.key==="Enter"&&q.value.trim()){ planCommit(i, q.value.trim(), null); _wkPick.style.display="none"; } };
+  rf(); q.focus();
+}
+function weekBarHTML(){
+  const wrap=inner=>'<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
+  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" — a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">▶ Start new week</button>':""));
+  const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
+  const cd=weekCountdown();
+  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
+  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
+  return wrap('<b>This week</b>'+crest(WEEK.opponent||"",26)+oppSel+'<span class="foot">gameday</span>'+dateIn+(cd?'<span class="wb" style="min-width:auto;padding:0 9px">'+cd+'</span>':"")+'<span style="flex:1"></span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart">Start new week</button>':""));
+}
+function wireWeekUI(host){
+  if(!host) return;
+  const ws=host.querySelector("#wkStart"); if(ws) ws.onclick=weekStartUI;
+  const wo=host.querySelector("#wkOpp"); if(wo) wo.onchange=()=>weekSet("opponent",wo.value);
+  const wd=host.querySelector("#wkDate"); if(wd) wd.onchange=()=>weekSet("game_date",wd.value);
+  [].forEach.call(host.querySelectorAll("[data-wkadd]"),bt=>{ bt.onclick=()=>planCommit(+bt.dataset.wkadd, bt.dataset.wkplay, null); });
+  [].forEach.call(host.querySelectorAll("[data-wkdel]"),bt=>{ bt.onclick=()=>{ const a=bt.dataset.wkdel.split(":"); planUncommit(+a[0],+a[1]); }; });
+  [].forEach.call(host.querySelectorAll("[data-wkpick]"),bt=>{ bt.onclick=()=>openWeekPicker(+bt.dataset.wkpick); });
+}
 function defaultBuckets(){ return [{name:"1st & 10 (openers)",dn:"1",db:"10+",zone:"ANY"},{name:"2nd & medium",dn:"2",db:"4-6",zone:"ANY"},{name:"2nd & long",dn:"2",db:"10+",zone:"ANY"},{name:"3rd & short",dn:"3",db:"1-3",zone:"ANY"},{name:"3rd & medium",dn:"3",db:"4-6",zone:"ANY"},{name:"3rd & long",dn:"3",db:"10+",zone:"ANY"},{name:"Red zone",dn:"ANY",db:"ANY",zone:"REDZONE"},{name:"Goal line",dn:"ANY",db:"1-3",zone:"REDZONE"}]; }
 function ensurePlan(){ if(!PLAN_BUCKETS) PLAN_BUCKETS=defaultBuckets(); }
 function planBuckets(){ ensurePlan(); return PLAN_BUCKETS; }
-function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify({buckets:PLAN_BUCKETS,wb:WB_PANELS,use:USE_WB})); }catch(e){} }
+function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify({buckets:PLAN_BUCKETS,wb:WB_PANELS,use:USE_WB})); }catch(e){} try{ weekPushBuckets(); }catch(e){} }
 function loadPlanCfg(){ try{ const x=localStorage.getItem(PLAN_KEY); if(x){ const o=JSON.parse(x); if(o.buckets&&o.buckets.length)PLAN_BUCKETS=o.buckets; if(o.wb)WB_PANELS=+o.wb; if(typeof o.use==="boolean")USE_WB=o.use; } }catch(e){} ensurePlan(); }
 function planField(i,k,v){ ensurePlan(); if(PLAN_BUCKETS[i]){ PLAN_BUCKETS[i][k]=v; savePlan(); renderPlan(); } }
 function planAdd(){ ensurePlan(); PLAN_BUCKETS.push({name:"New bucket",dn:"ANY",db:"ANY",zone:"ANY"}); savePlan(); renderPlan(); }
@@ -1220,13 +1286,15 @@ function renderPlan(){
   const opp=sit.opp, oppName=opp!=="ANY"?opp:"All opponents";
   let h=`<div class="panel"><div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(opp!=="ANY"?opp:"",34)}<span class="pl" style="font-size:18px"><b>${esc(oppName)}</b> &mdash; game plan</span><button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button></div>`;
   h+=`<div class="seg no-print" style="max-width:480px;margin-bottom:10px;flex-wrap:wrap"><button${PLAN_SIDE!=="def"?' class="on"':''} onclick="setPlanSide('off')">Offensive plan (attack their D)</button><button${PLAN_SIDE==="def"?' class="on"':''} onclick="setPlanSide('def')">Defensive plan (stop their O)</button></div>`;
+  h+=weekBarHTML();
   h+=planEditorHTML();
-  if(PLAN_SIDE==="def"){ h+=renderDefPlanBody(oppName); h+=`</div>`; host.innerHTML=h; return; }
+  if(PLAN_SIDE==="def"){ h+=renderDefPlanBody(oppName); h+=`</div>`; host.innerHTML=h; wireWeekUI(host); return; }
   const def=oppRows("def");
-  if(!def.length){ h+=`<p class="foot">No defensive data for ${esc(oppName)} yet. Tag coverage/front/blitz and import as Defense to auto-build the plan.</p></div>`; host.innerHTML=h; return; }
+  if(!def.length){ h+=`<p class="foot">No defensive data for ${esc(oppName)} yet. Tag coverage/front/blitz and import as Defense to auto-build the plan.</p></div>`; host.innerHTML=h; wireWeekUI(host); return; }
   const buckets=planBuckets(); let wb=1;
-  h+=`<table class="plan-tbl"><tr><th>Situation</th><th>They show</th><th>Best calls (success vs that look)</th></tr>`;
-  buckets.forEach(b=>{
+  const planCol = !!WEEK || buckets.some(b=>b.plays&&b.plays.length);
+  h+=`<table class="plan-tbl"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
+  buckets.forEach((b,bi)=>{
     const ds=defSituation(def,b.dn,b.db,b.zone||"ANY"); const g=ds.rows;
     const gc=g.filter(r=>r.coverage&&r.coverage!=="—");
     const cov=gc.length?weightedDist(gc,"coverage",false).arr[0]:null;
@@ -1236,12 +1304,16 @@ function renderPlan(){
     const runs=target?bestCallsFor(target,b.dn,b.db,"Run"):[]; const passes=target?bestCallsFor(target,b.dn,b.db,"Pass"):[];
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
     const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
-    const cl2=c=>`<span class="wb">${wbLabel(wb++)}</span>${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span>`;
+    const mine=Array.isArray(b.plays)?b.plays:[];
+    const chip=(p,j)=>`<span style="display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:2px 3px 2px 0;font-weight:800;font-size:12px"><span class="wb">${wbLabel(wb++)}</span>${esc(p.name)}${(WEEK&&WEEK_EDIT)?`<button class="no-print" data-wkdel="${bi}:${j}" style="border:0;background:none;color:var(--bad);font-weight:900;cursor:pointer;padding:0 2px" title="Remove">×</button>`:""}</span>`;
+    const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="padding:2px 9px;margin:2px 0">+ Add</button>`:"");
+    const cl2=c=>`${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span>${(WEEK&&WEEK_EDIT)?` <button class="ghost no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" style="padding:0 7px;font-weight:900" title="Add to this week's calls">+</button>`:""}`;
     const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join("<br>"):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join("<br>"):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
-    h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td><td>${callStr}</td></tr>`;
+    h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
-  h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}Best calls rank your plays by on-schedule success vs the look they most likely show.</p></div>`;
+  h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;
   host.innerHTML=h;
+  wireWeekUI(host);
 }
 
 function setPlanSide(sde){ PLAN_SIDE=sde; renderPlan(); }
@@ -1576,7 +1648,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=24", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=25", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 document.getElementById("fileIn").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
@@ -1697,8 +1769,26 @@ function closeGetStarted(){ if(gsEl) gsEl.style.display="none"; }
 /* ---------- init ---------- */
 DEF_SAMPLE=buildSample();
 OURS_SAMPLE=buildOffenseSample();
-GAMES=loadGames(); loadPlanCfg(); loadLive(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
+GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;saveGames();rebuildActive();buildControls();render();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}}};
+/* week plan hook — account.js feeds the active week_plans row here on every pull.
+   Registered at TOP LEVEL, synchronously (the Playbook sync lesson — never move into DOMContentLoaded). */
+window.OFFGRD_WEEK={set:function(wp,ce){
+  const changed = JSON.stringify(wp||null)!==JSON.stringify(WEEK) || WEEK_EDIT!==!!ce;
+  WEEK_EDIT=!!ce;
+  if(!changed) return;
+  WEEK=wp||null;
+  try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){}
+  if(WEEK){
+    if(Array.isArray(WEEK.buckets)&&WEEK.buckets.length){
+      PLAN_BUCKETS=WEEK.buckets.map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:Array.isArray(b.plays)?b.plays:[]}));
+      try{ localStorage.setItem(PLAN_KEY, JSON.stringify({buckets:PLAN_BUCKETS,wb:WB_PANELS,use:USE_WB})); }catch(e){}
+    } else { ensurePlan(); WEEK.buckets=planBuckets(); if(WEEK_EDIT&&window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); }
+    if(WEEK.opponent && sit.opp!==WEEK.opponent && GAMES.some(g=>g.opponent===WEEK.opponent)) setOpponent(WEEK.opponent);
+    if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); }).catch(function(){});
+  }
+  if(CURRENT_VIEW==="plan") renderPlan();
+}};
 /* live-apply hook for the onboarding brand editor (account.js) */
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
 rebuildActive();
@@ -1720,8 +1810,8 @@ render();
 if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=24"></script>
-<script src="OFFGRD-mobile.js?v=24"></script>
+<script type="module" src="OFFGRD-account.js?v=25"></script>
+<script src="OFFGRD-mobile.js?v=25"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

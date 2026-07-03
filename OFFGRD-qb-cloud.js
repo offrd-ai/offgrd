@@ -1,5 +1,5 @@
 /* Bridge for the QB Reads Trainer — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=24";
+import { Cloud } from "./OFFGRD-cloud.js?v=25";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
