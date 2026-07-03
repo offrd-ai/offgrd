@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=21";
-import { openAuthModal } from "./OFFGRD-auth.js?v=21";
+import { Cloud } from "./OFFGRD-cloud.js?v=22";
+import { openAuthModal } from "./OFFGRD-auth.js?v=22";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -111,12 +111,12 @@ async function onUser(u){
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
-async function setActiveTeam(id){
+async function setActiveTeam(id, silent){
   TEAM = TEAMS.find(t => t.id === id) || TEAM; if(!TEAM) return;
   try{ localStorage.setItem(AKEY, TEAM.id); }catch(e){}
   ROLE = await Cloud.myRole(TEAM.id);
   bar(await Cloud.user());
-  await pull(false);
+  await pull(!!silent);
 }
 
 /* ---------- sync ---------- */
@@ -313,7 +313,7 @@ function obCoach(){
   go.onclick=async()=>{ const n=pn.value.trim()||"My Program"; go.disabled=true;
     try{
       if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
-      const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obCoachDone();
+      const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true); obCoachDone();
     }catch(e){ stat.textContent=e.message||"Couldn’t create the program."; go.disabled=false; } };
   r2.appendChild(pn); r2.appendChild(go);
   b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
@@ -345,7 +345,7 @@ function obPlayer(){
   go.onclick=async()=>{ const cd=code.value.trim(); if(!cd){ stat.textContent="Enter the code."; return; } go.disabled=true;
     try{
       if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
-      const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obPosition();
+      const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true); obPosition();
     }catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
   r2.appendChild(code); r2.appendChild(go);
   b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
