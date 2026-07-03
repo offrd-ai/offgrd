@@ -8,6 +8,7 @@
   var css = document.createElement("style");
   css.textContent = [
     ".acc-head{display:none}",                 /* hidden on desktop */
+    "#appnav{display:none}",                   /* app switcher: phones only */
     "@media "+MQ+"{",
       "body{-webkit-text-size-adjust:100%}",
       /* stop sideways scroll and let grid/flex children shrink */
@@ -39,9 +40,17 @@
       ".wrap,main,body>.container{padding-left:10px!important;padding-right:10px!important}",
       /* accordion */
       ".acc-head{display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;",
-        "background:linear-gradient(180deg,#fff,#f6f8fb);border:0;border-bottom:1px solid var(--line,#e2e5ea);",
+        "background:var(--panel,#fff);border:0;border-bottom:1px solid var(--line,#e2e5ea);",
         "margin:-14px -16px 12px;padding:13px 16px;border-radius:12px 12px 0 0;",
-        "font-weight:900;font-size:15px;color:var(--navy,#13294B);text-align:left}",
+        "font-weight:900;font-size:15px;color:var(--accent2,var(--navy,#13294B));text-align:left}",
+      /* phone app switcher (injected on Playbook / QB pages) */
+      "#appnav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;gap:4px;",
+        "background:var(--panel,#fff);border-top:1px solid var(--line,#e2e5ea);",
+        "padding:6px 8px calc(6px + env(safe-area-inset-bottom))}",
+      "#appnav a{flex:1;text-align:center;text-decoration:none;color:var(--ink,#16181d);font-weight:800;",
+        "font-size:13.5px;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:10px}",
+      "#appnav a.on{background:var(--accent,var(--carolina,#4B9CD3));color:#fff}",
+      "body.has-appnav{padding-bottom:calc(72px + env(safe-area-inset-bottom))}",
       ".acc-head .chev{margin-left:auto;transition:transform .18s ease;font-size:13px;color:#7BAFD4}",
       ".panel.collapsed .acc-head{margin-bottom:-14px;border-bottom:0;border-radius:12px}",
       ".panel.collapsed .acc-head .chev{transform:rotate(-90deg)}",
@@ -72,6 +81,7 @@
 
   function skip(panel){
     if(panel.dataset.accDone) return true;
+    if(panel.dataset.accSkip!=null) return true;           // opted out (e.g. game-night caller panels)
     if(panel.classList.contains("result")) return true;   // prediction output stays open
     if(panel.querySelector("#field")) return true;         // the play field stays open
     if(panel.querySelector("summary")) return true;        // native <details> already collapses
@@ -114,8 +124,25 @@
     for(var i=0;i<panels.length;i++) enhance(panels[i]);
   }
 
+  /* ---------- phone app switcher (Playbook / QB pages; Scout has its own tabs) ---------- */
+  function appnav(){
+    if(!mq.matches) return;
+    if(document.getElementById("navbar") || document.getElementById("appnav")) return;
+    if(!(window.OFFGRD_APP && window.OFFGRD_APP.kind)) return;
+    var k=window.OFFGRD_APP.kind;
+    var el=document.createElement("div");
+    el.id="appnav"; el.className="no-print";
+    el.innerHTML=
+      '<a href="OFFGRD.html">Scout</a>'+
+      '<a href="OFFGRD-Playbook.html"'+(k==="playbook"?' class="on"':'')+'>Playbook</a>'+
+      '<a href="OFFGRD-QB.html"'+(k==="qb"?' class="on"':'')+'>QB</a>';
+    document.body.appendChild(el);
+    document.body.classList.add("has-appnav");
+  }
+
   function start(){
     pass();
+    appnav();
     var obs = new MutationObserver(function(muts){
       for(var m=0;m<muts.length;m++){
         for(var n=0;n<muts[m].addedNodes.length;n++){
@@ -127,8 +154,9 @@
       }
     });
     obs.observe(document.body, {childList:true, subtree:true});
-    if(mq.addEventListener) mq.addEventListener("change", pass);
-    else if(mq.addListener) mq.addListener(pass);
+    var onmq=function(){ pass(); appnav(); };
+    if(mq.addEventListener) mq.addEventListener("change", onmq);
+    else if(mq.addListener) mq.addListener(onmq);
   }
 
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", start);
