@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=16";
-import { openAuthModal } from "./OFFGRD-auth.js?v=16";
+import { Cloud } from "./OFFGRD-cloud.js?v=17";
+import { openAuthModal } from "./OFFGRD-auth.js?v=17";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -61,6 +61,7 @@ function bar(user){
     ' <button class="cbtn" id="cteam">Team</button>'+
     ((SYNCABLE && canEdit()) ? ' <button class="cbtn" id="cs">Sync ↑</button>' : '')+
     (SYNCABLE ? ' <button class="cbtn" id="cd">Load ↓</button>' : '')+
+    (SYNCABLE ? ' <span id="syncstat" style="font-size:11px;color:#9aa4b2;font-weight:700;margin-left:2px"></span>' : '')+
     ' <button class="cbtn" id="co">Sign out</button>';
   styleBtns();
   acct.querySelector("#cteam").onclick = openTeam;
@@ -74,7 +75,7 @@ function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.
 
 /* ---------- session / active team ---------- */
 async function onUser(u){
-  if(!u){ TEAM=null; ROLE=null; TEAMS=[]; bar(null); return; }
+  if(!u){ TEAM=null; ROLE=null; TEAMS=[]; clearInterval(_autoT); bar(null); return; }
   try{
     TEAMS = await Cloud.myTeams();
     if(TEAMS.length){
@@ -84,6 +85,7 @@ async function onUser(u){
     } else { TEAM = null; ROLE = null; }
     bar(u);
     if(TEAM) await pull(true);
+    clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
@@ -98,6 +100,7 @@ async function setActiveTeam(id){
 /* ---------- sync ---------- */
 async function pull(silent){
   if(!TEAM || !SYNCABLE) return;
+  if(_busy) return; _busy=true; _lastPull=Date.now();
   try{
     let rows;
     if(A.kind==="playbook") rows = await Cloud.listPlays(TEAM.id);
@@ -109,17 +112,24 @@ async function pull(silent){
         const cloud = rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name}));
         let local=[]; try{ local=A.get()||[]; }catch(e){ local=[]; }
         const unsynced = local.filter(p=>!p.cid && !cloud.some(c=>(c.key&&p.key)?c.key===p.key:((c.name||"")===(p.name||""))));
-        A.set(cloud.concat(unsynced));
+        const next = cloud.concat(unsynced);
+        if(JSON.stringify(next)!==JSON.stringify(local)) A.set(next);   /* only re-render if something changed */
         if(unsynced.length && canEdit()) await push(true);
       }
-      else A.set(rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id})));
+      else{
+        const next = rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id}));
+        let cur=[]; try{ cur=A.get()||[]; }catch(e){}
+        if(JSON.stringify(next)!==JSON.stringify(cur)) A.set(next);     /* only re-render if something changed */
+      }
       if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
       if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device\u2019s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
+    syncStamp();
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
+  finally{ _busy=false; }
 }
 async function push(silent){
   if(!TEAM){ if(!silent) alert("Sign in first."); return; }
@@ -129,6 +139,7 @@ async function push(silent){
     if(A.kind==="playbook"){ for(const p of items){ const row = await Cloud.savePlay(TEAM.id, Object.assign({}, p, {id:p.cid, data:p})); p.cid = row.id; } }
     else { for(const g of items){ const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid})); g.cid = row.id; } }
     A.set(items);
+    syncStamp();
     if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" ✓");
   }catch(e){ if(!silent) alert(e.message||"Sync failed"); }
 }
@@ -247,7 +258,20 @@ function renderTeamKeep(msg){ _keepMsg=msg; renderTeam(); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 let _syncT=null;
-window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>push(true), 1500); };
+window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; push(true); }, 1500); };
+
+/* ---------- auto-sync: pull fresh team data every 45s and on window focus ---------- */
+let _busy=false, _lastPull=0, _autoT=null;
+function syncStamp(){ try{ const el=document.getElementById("syncstat"); if(!el) return; const d=new Date(); el.textContent="synced "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")+" ✓"; el.title="Auto-sync is on — time of last successful sync"; }catch(e){} }
+function maybePull(){
+  if(!TEAM || !SYNCABLE) return;
+  if(document.hidden) return;                      /* tab in background */
+  if(_syncT || _busy) return;                      /* a save is being pushed — don't pull over it */
+  if(Date.now()-_lastPull<10000) return;           /* throttle */
+  pull(true);
+}
+window.addEventListener("focus", maybePull);
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) maybePull(); });
 /* ---------- mobile debug line (shows on small screens or with ?debug in URL) ---------- */
 const DBG_V = "12";
 function dbgInfo(extra){
