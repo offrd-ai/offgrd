@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=19";
-import { openAuthModal } from "./OFFGRD-auth.js?v=19";
+import { Cloud } from "./OFFGRD-cloud.js?v=20";
+import { openAuthModal } from "./OFFGRD-auth.js?v=20";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -107,6 +107,7 @@ async function onUser(u){
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
     if(!TEAM){ let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){} if(!ob) openOnboard(); }
+    if(TEAM && canEdit()){ try{ setupState().then(renderSetup); }catch(e){} }
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
 }
@@ -301,41 +302,54 @@ function obChoose(){
 }
 function obCoach(){
   const b=ensureOB().querySelector("#obBody");
-  b.innerHTML='<p class="ogm-note">Name your program — you’ll be its Admin. You can add coaches and players right after.</p>';
-  const row=el('<div class="ogm-row" style="margin-top:10px"></div>');
-  const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
+  b.innerHTML='<p class="ogm-note">Two quick things — your name (so your roster knows who you are) and your program.</p>';
+  const r1=el('<div class="ogm-row" style="margin-top:10px"></div>');
+  const nm=el('<input class="ogm-in" placeholder="Your name (e.g. Coach Biermann)">');
+  r1.appendChild(nm);
+  const r2=el('<div class="ogm-row" style="margin-top:8px"></div>');
+  const pn=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
   const go=el('<button class="ogm-b go">Create program</button>');
   const stat=el('<p class="ogm-note"></p>');
-  go.onclick=async()=>{ const n=nm.value.trim()||"My Program"; go.disabled=true;
-    try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obCoachDone(); }
-    catch(e){ stat.textContent=e.message||"Couldn’t create the program."; go.disabled=false; } };
-  row.appendChild(nm); row.appendChild(go); b.appendChild(row); b.appendChild(stat);
+  go.onclick=async()=>{ const n=pn.value.trim()||"My Program"; go.disabled=true;
+    try{
+      if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
+      const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obCoachDone();
+    }catch(e){ stat.textContent=e.message||"Couldn’t create the program."; go.disabled=false; } };
+  r2.appendChild(pn); r2.appendChild(go);
+  b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
   nm.focus();
 }
 function obCoachDone(){
   const b=ensureOB().querySelector("#obBody"); markOB();
-  b.innerHTML='<p class="ogm-note" style="font-size:14px"><b style="color:#13294B">'+esc(TEAM?TEAM.name:"Your program")+'</b> is live. Three steps and you’re game-ready:</p>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite your staff &amp; players</div>'
+  b.innerHTML='<p class="ogm-note" style="font-size:14px"><b style="color:#13294B">'+esc(TEAM?TEAM.name:"Your program")+'</b> is live. Do these in any order — the <b>setup checklist</b> at the top of every page tracks your progress until you’re game-ready:</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
-   +'<p class="ogm-note">They sign up, tap “I’m a player”, and enter this code. Coaches join the same way — then promote them under <b>Team</b>.</p></div>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">2 · Load your plays</div><p class="ogm-note">The <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a> starts you with 12 tagged spread-gun plays — rename them to your terms or draw your own. They sync to the whole program.</p></div>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">3 · Scout your opponent</div><p class="ogm-note">In <a href="OFFGRD.html" style="font-weight:800">Scout</a>, tap <b>Import data</b> and upload a Hudl/QwikCut export — predictions appear instantly.</p></div>'
-   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Done</button></div>';
+   +'<p class="ogm-note">They sign up, tap “I’m a player”, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours</div><p class="ogm-note"><a href="OFFGRD.html#brand" style="font-weight:800">Set your colors &amp; logo</a> — the whole suite wears them.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">3 · Load your plays</div><p class="ogm-note">Open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a> — take the 12-play starter book and rename it to your terminology, or draw your own. Plays sync to the whole program and power player testing.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">4 · Scout your first opponent</div><p class="ogm-note"><a href="OFFGRD.html#import" style="font-weight:800">Import a breakdown</a> — upload your Hudl/QwikCut export as-is. Predictions appear instantly.</p></div>'
+   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Let’s go</button></div>';
   b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied ✓"; }catch(e){} };
-  b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); };
+  b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderSetup); }catch(e){} };
 }
 function obPlayer(){
   const b=ensureOB().querySelector("#obBody");
-  b.innerHTML='<p class="ogm-note">Enter the join code your coach gave you.</p>';
-  const row=el('<div class="ogm-row" style="margin-top:10px"></div>');
+  b.innerHTML='<p class="ogm-note">Your name (so your coaches see you, not an email address) and the join code from your coach.</p>';
+  const r1=el('<div class="ogm-row" style="margin-top:10px"></div>');
+  const nm=el('<input class="ogm-in" placeholder="Your name (e.g. Braden Biermann)">');
+  r1.appendChild(nm);
+  const r2=el('<div class="ogm-row" style="margin-top:8px"></div>');
   const code=el('<input class="ogm-in" placeholder="Join code (e.g. 3DBCC4)" autocapitalize="characters">');
   const go=el('<button class="ogm-b go">Join team</button>');
   const stat=el('<p class="ogm-note"></p>');
   go.onclick=async()=>{ const cd=code.value.trim(); if(!cd){ stat.textContent="Enter the code."; return; } go.disabled=true;
-    try{ const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obPosition(); }
-    catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
-  row.appendChild(code); row.appendChild(go); b.appendChild(row); b.appendChild(stat);
-  code.focus();
+    try{
+      if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
+      const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); obPosition();
+    }catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
+  r2.appendChild(code); r2.appendChild(go);
+  b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
+  nm.focus();
 }
 function obPosition(){
   const b=ensureOB().querySelector("#obBody");
@@ -355,10 +369,48 @@ function obPosition(){
 }
 function obPlayerDone(ps){
   const b=ensureOB().querySelector("#obBody"); markOB();
-  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b> ✓</p>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">Start training</div><p class="ogm-note">Open the <a href="OFFGRD-QB.html" style="font-weight:800">Trainer</a> — learn the reads, name coverages, know your routes. Your test scores save to the team, so your coaches see the work you put in.</p></div>'
-   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Trainer</a><button class="ogm-b" id="obDone2">Done</button></div>';
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b> ✓ — time to get your first reps.</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>▶ Snap</b>, watch it develop, make your read. Every test you take saves to the team — your coaches see the work you put in.</p></div>'
+   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html#train" style="text-decoration:none;display:inline-flex;align-items:center">▶ Take your first reps</a><button class="ogm-b" id="obDone2">Later</button></div>';
   b.querySelector("#obDone2").onclick=()=>{ obEl.classList.remove("show"); };
+}
+
+/* ---------- setup checklist: lives at the top of every page for coaches until the program is game-ready ---------- */
+async function setupState(){
+  const s={roster:0,plays:0,games:0,identity:false};
+  try{ s.identity=!!localStorage.getItem("offgrd_identity"); }catch(e){}
+  if(!TEAM) return s;
+  try{ const r=await Cloud.teamRoster(TEAM.id); s.roster=(r||[]).length; }catch(e){}
+  try{ const p=await Cloud.listPlays(TEAM.id); s.plays=(p||[]).length; }catch(e){}
+  try{ const g=await Cloud.listGames(TEAM.id); s.games=(g||[]).length; }catch(e){}
+  return s;
+}
+function renderSetup(s){
+  let hidden=null; try{ hidden=localStorage.getItem("offgrd_setup_done"); }catch(e){}
+  let host=document.getElementById("ogSetup");
+  const items=[
+    {t:"Invite staff & players", done:s.roster>=2, act:openTeam},
+    {t:"Load your playbook", done:s.plays>=1, href:"OFFGRD-Playbook.html"},
+    {t:"Set colors & logo", done:s.identity, href:"OFFGRD.html#brand"},
+    {t:"Import a breakdown", done:s.games>=1, href:"OFFGRD.html#import"}
+  ];
+  const doneN=items.filter(i=>i.done).length;
+  if(hidden || doneN===items.length){
+    if(doneN===items.length){ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} }
+    if(host) host.remove(); return;
+  }
+  if(!host){
+    host=document.createElement("div"); host.id="ogSetup"; host.className="no-print";
+    const tb=document.querySelector(".topbar");
+    if(tb&&tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling); else document.body.prepend(host);
+  }
+  host.innerHTML='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
+   +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup · '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px">Hide</button></div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+   +items.map((i,ix)=>'<'+(i.href?'a href="'+i.href+'"':'button type="button"')+' data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'✓':'○')+' '+i.t+'</'+(i.href?'a':'button')+'>').join("")
+   +'</div></div>';
+  host.querySelector("#ogSetupHide").onclick=()=>{ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} host.remove(); };
+  [].forEach.call(host.querySelectorAll("button[data-ix]"),bt=>{ const i=items[+bt.dataset.ix]; if(i&&i.act) bt.onclick=i.act; });
 }
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
