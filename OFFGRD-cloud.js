@@ -139,6 +139,27 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
 
+  /* ---------- week plans (Phase A of the education engine) ---------- */
+  async activeWeekPlan(teamId) {
+    const { data, error } = await sb.from("week_plans").select("*")
+      .eq("team_id", teamId).eq("status", "active").maybeSingle();
+    if (error) throw error; return data || null;
+  },
+  async startWeekPlan(teamId, opponent, gameDate, buckets) {
+    const { data, error } = await sb.rpc("start_week_plan",
+      { t: teamId, opp: opponent || "", gd: gameDate || null, bks: buckets || [] });
+    if (error) throw error; return data;   // new week_plan id
+  },
+  async saveWeekPlan(id, fields) {          // {opponent?, game_date?, buckets?, notes?}
+    const { data, error } = await sb.from("week_plans").update(fields).eq("id", id).select().single();
+    if (error) throw error; return data;
+  },
+  async listWeekPlans(teamId) {
+    const { data, error } = await sb.from("week_plans").select("id,opponent,game_date,status,updated_at")
+      .eq("team_id", teamId).order("updated_at", { ascending: false });
+    if (error) throw error; return data || [];
+  },
+
   /* ---------- plan / billing status ---------- */
   async plan(teamId) {
     const { data } = await sb.from("teams").select("plan, plan_status").eq("id", teamId).single();

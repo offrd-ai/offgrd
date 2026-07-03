@@ -1,5 +1,5 @@
 /* Bridge for the QB Reads Trainer — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=25";
+import { Cloud } from "./OFFGRD-cloud.js?v=26";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -34,5 +34,22 @@ window.QB = {
   },
   async savePlayReads(id, reads){
     return Cloud.updatePlayReads(id, reads);
+  },
+  /* Phase B: active week plan + observed coverage distribution for its opponent */
+  async weekContext(){
+    const t = await activeTeam(); if(!t) return null;
+    let wp = null;
+    try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
+    if(!wp) return null;
+    let coverages = [];
+    try{
+      const games = await Cloud.listGames(t.id);
+      const counts = {};
+      (games||[]).filter(g => g.side==="def" && g.opponent===wp.opponent).forEach(g => {
+        (g.rows||[]).forEach(r => { const c = r && r.coverage; if(c && c!=="—"){ counts[c]=(counts[c]||0)+1; } });
+      });
+      coverages = Object.keys(counts).map(k=>({k, n:counts[k]})).sort((a,b)=>b.n-a.n);
+    }catch(e){}
+    return { plan: wp, coverages };
   }
 };

@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — QB Reads Trainer</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=25"></script>
-<script src="supabase.js?v=25"></script>
+<script src="OFFGRD-config.js?v=26"></script>
+<script src="supabase.js?v=26"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -67,6 +67,7 @@
   </div>
 
   <div class="panel" id="setupPanel">
+    <div id="weekBar" style="display:none;gap:10px;align-items:center;flex-wrap:wrap;background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:9px 12px;margin-bottom:14px"></div>
     <div class="lbl">Source</div>
     <div class="seg" id="srcSeg" style="margin-bottom:4px">
       <button class="on" data-src="builtin">Built-in</button>
@@ -264,7 +265,66 @@ function renderBuiltin(rep, revealLab){
 
 /* ---------- custom (coach-authored) plays ---------- */
 let CUSTOM=[]; let SOURCE="builtin";
-function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE!=="builtin") p=p.concat(CUSTOM); return p; }
+/* ---------- THIS WEEK (Phase B): tests scoped to the active week plan ---------- */
+let WEEKPLAN=null, WEEKMODE=false, WEEKCOVS=[], WEEKSET={ids:new Set(),names:new Set()};
+function buildWeekSet(){ WEEKSET={ids:new Set(),names:new Set()};
+  if(!WEEKPLAN) return;
+  (WEEKPLAN.buckets||[]).forEach(b=>{ (b.plays||[]).forEach(p=>{ if(p.id) WEEKSET.ids.add(String(p.id)); if(p.name) WEEKSET.names.add(String(p.name).toLowerCase()); }); });
+}
+function weekPlayMatch(p){ if(!WEEKPLAN) return true; return WEEKSET.ids.has(String(p.id)) || WEEKSET.names.has(String(p.name||"").toLowerCase()); }
+function normCov(c){ c=String(c||"").toLowerCase(); if(!c) return null;
+  if(c.indexOf("tampa")>=0) return "Tampa 2";
+  const m=c.match(/[0-4]/); if(m) return "Cover "+m[0];
+  return null;
+}
+function weekDue(){ if(!WEEKPLAN||!WEEKPLAN.game_date) return ""; const d=Math.ceil((new Date(WEEKPLAN.game_date+"T12:00:00")-Date.now())/86400000); if(isNaN(d)) return ""; if(d<0) return "played"; if(d===0) return "GAMEDAY"; return "due in "+d+" day"+(d===1?"":"s"); }
+function renderWeekBar(){
+  const el=document.getElementById("weekBar"); if(!el) return;
+  if(!WEEKPLAN){ el.style.display="none"; return; }
+  el.style.display="flex";
+  const gd=WEEKPLAN.game_date||"", cd=weekDue();
+  el.innerHTML='<b style="color:var(--navy)">This week vs '+esc(WEEKPLAN.opponent||"—")+'</b>'
+    +'<span class="tag">'+(gd?("gameday "+esc(gd)):"no game date set")+(cd?(" · "+esc(cd)):"")+(WEEKCOVS.length?(' · they show: '+WEEKCOVS.slice(0,3).map(esc).join(", ")):"")+'</span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"✓ Week mode ON":"🎯 Week mode — this week's plays & looks")+'</button>';
+  document.getElementById("weekModeBtn").onclick=()=>setWeekMode(!WEEKMODE);
+}
+function setWeekMode(on){
+  WEEKMODE=!!on;
+  const note=document.getElementById("srcNote");
+  if(WEEKMODE){
+    SOURCE="custom";
+    [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src==="custom"));
+    if(note) note.textContent="Week mode: only this week's plan plays are used — sourced from your program playbook.";
+    RQLABS.clear();
+    loadCustom().then(()=>{
+      rebuildPool();
+      if(WEEKCOVS.length){ enabledCoverages.clear(); WEEKCOVS.forEach(c=>{ if(COVERAGES.indexOf(c)>=0) enabledCoverages.add(c); }); if(!enabledCoverages.size) COVERAGES.forEach(c=>enabledCoverages.add(c)); }
+      buildChips();
+      if(TESTKIND==="routes"){ loadRoutePlays().then(buildPosChips); }
+    });
+  } else {
+    if(note) note.textContent="";
+    RQLABS.clear();
+    rebuildPool();
+    enabledCoverages.clear(); COVERAGES.forEach(c=>enabledCoverages.add(c));
+    buildChips();
+    if(TESTKIND==="routes"){ loadRoutePlays().then(buildPosChips); }
+  }
+  renderWeekBar();
+}
+let _wkTry=0;
+function initWeek(){
+  if(!(window.QB && window.QB.ready && window.QB.weekContext)){ if(_wkTry++<14) setTimeout(initWeek, 500); return; }
+  window.QB.weekContext().then(wc=>{
+    if(!wc || !wc.plan) return;
+    WEEKPLAN=wc.plan; buildWeekSet();
+    WEEKCOVS=[]; const seen={};
+    (wc.coverages||[]).forEach(c=>{ const n=normCov(c.k); if(n && !seen[n]){ seen[n]=1; WEEKCOVS.push(n); } });
+    renderWeekBar();
+  }).catch(()=>{});
+}
+function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE!=="builtin") p=p.concat(CUSTOM); if(WEEKMODE) p=CUSTOM.filter(c=>weekPlayMatch({id:c.rowId,name:c.name})); return p; }
 function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function customRouteD(p){ if(!p.route||!p.route.length) return ""; let d="M "+p.x+" "+p.y; p.route.forEach(a=>{ d += (a.cx!=null? " Q "+a.cx+" "+a.cy+" "+a.x+" "+a.y : " L "+a.x+" "+a.y); }); return d; }
 function customEnd(p){ if(p.route&&p.route.length){ const a=p.route[p.route.length-1]; return {x:a.x,y:a.y}; } return {x:p.x,y:p.y}; }
@@ -307,7 +367,7 @@ async function loadCustom(){
   if(!(window.QB&&window.QB.ready)) return;
   try{ const rows=await window.QB.plays();
     CUSTOM=(rows||[]).filter(r=>r.qb_reads&&Object.keys(r.qb_reads).length)
-      .map(r=>({id:"p_"+r.id, name:r.name||"Play", custom:true, play:r.data||r, reads:r.qb_reads}));
+      .map(r=>({id:"p_"+r.id, rowId:r.id, name:r.name||"Play", custom:true, play:r.data||r, reads:r.qb_reads}));
   }catch(e){ CUSTOM=[]; }
 }
 function rebuildPool(){ enabledConcepts.clear(); pool().forEach(c=>enabledConcepts.add(c.id)); buildChips(); }
@@ -492,6 +552,7 @@ async function loadRoutePlays(){
     const rows=await window.QB.plays();
     RQPLAYS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r)}))
       .filter(p=>((p.state&&p.state.players)||[]).some(q=>(q.type==="route"||q.type==="rb")&&q.route&&q.route.length));
+    if(WEEKMODE) RQPLAYS=RQPLAYS.filter(p=>weekPlayMatch(p));
   }catch(e){ RQPLAYS=[]; }
 }
 function rqAllLabs(){ return [...new Set(RQPLAYS.reduce((a,p)=>a.concat(((p.state.players)||[]).filter(q=>(q.type==="route"||q.type==="rb")&&q.route&&q.route.length).map(q=>q.lab)),[]))]; }
@@ -499,7 +560,13 @@ function buildPosChips(){
   const pc=document.getElementById("posChips"); if(!pc) return; pc.innerHTML="";
   const labs=rqAllLabs();
   if(!labs.length){ pc.innerHTML='<span class="tag">No saved plays with routes yet — draw and save plays in the Playbook first.</span>'; return; }
-  if(!RQLABS.size) labs.forEach(l=>RQLABS.add(l));
+  if(!RQLABS.size){
+    let want=null;
+    if(WEEKMODE){ let pos=""; try{ pos=localStorage.getItem("offgrd_pos")||""; }catch(e){}
+      const M={WR:["X","Z","H","F","A"],TE:["Y","U","W"],RB:["RB","FB","B"]}; want=M[pos]||null; }
+    if(want){ const sel=labs.filter(l=>want.indexOf(l)>=0); (sel.length?sel:labs).forEach(l=>RQLABS.add(l)); }
+    else labs.forEach(l=>RQLABS.add(l));
+  }
   labs.forEach(l=>{ const b=document.createElement("button"); b.className="chip"+(RQLABS.has(l)?" on":""); b.textContent=l;
     b.onclick=()=>{ if(RQLABS.has(l)&&RQLABS.size>1){RQLABS.delete(l);b.classList.remove("on");} else {RQLABS.add(l);b.classList.add("on");} };
     pc.appendChild(b); });
@@ -660,16 +727,16 @@ function updateProgress(){
 /* ---------- test lifecycle ---------- */
 async function startTest(){
   const n=parseInt(document.getElementById("testLen").value,10)||10;
-  test={queue:[],i:0,results:[],kind:TESTKIND};
+  test={queue:[],i:0,results:[],kind:TESTKIND,week:(WEEKMODE&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||""}:null};
   if(TESTKIND==="routes"){
     await loadRoutePlays();
     if(!RQLABS.size) rqAllLabs().forEach(l=>RQLABS.add(l));
     for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickRouteRep(); if(r) test.queue.push(r); }
-    if(!test.queue.length){ alert("No saved plays with routes yet — draw and save plays in the Playbook, then try again."); test=null; return; }
+    if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have drawn routes yet — draw them in the Playbook, or add plays to the week plan.":"No saved plays with routes yet — draw and save plays in the Playbook, then try again."); test=null; return; }
     swap("play"); showRep(test.queue[0]); updateProgress(); return;
   }
   for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
-  if(!test.queue.length){ alert("No reps match your filters — enable at least one concept and coverage."); test=null; return; }
+  if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have authored reads for the selected coverages yet — a coach can add them in Author mode.":"No reps match your filters — enable at least one concept and coverage."); test=null; return; }
   swap("play"); showRep(test.queue[0]); updateProgress();
 }
 async function finishTest(){
@@ -690,14 +757,71 @@ async function finishTest(){
     if(window.QB && window.QB.ready){
       const ctx=await window.QB.context();
       if(ctx && ctx.user && ctx.team){
-        await window.QB.save({quiz:(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":"Reads test"), score:got, total:tot, detail:test.results});
-        saveMsg=`Saved to ${ctx.team.name} ✓ — your coaches can see it under Results.`;
+        const wkPrefix=test.week?("Week vs "+(test.week.opp||"—")+" · "):"";
+        await window.QB.save({quiz:wkPrefix+(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":"Reads test"), score:got, total:tot, detail:test.results});
+        saveMsg=`Saved to ${ctx.team.name} ✓ — your coaches can see it under Results.`+(test.week?(" This one counts toward the week"+(test.week.due?(" (game "+test.week.due+")"):"")+"."):"");
       } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
     }
   }catch(e){ saveMsg="Couldn’t save score: "+(e.message||e); }
   const sm=document.getElementById("saveMsg"); if(sm) sm.textContent=saveMsg;
 }
 
+/* ---------- Phase C: readiness — green/yellow/red by player, by position group ---------- */
+const READY_MIN_TESTS=2, READY_AVG=0.8;
+const READY_DOT={green:"#1d7a45",yellow:"#b8860b",red:"#b3261e"};
+function readinessOf(rows){
+  if(!rows.length) return {s:"red",label:"Not started",tests:0,avg:0};
+  const avg=rows.reduce((a,r)=>a+(r.total?r.score/r.total:0),0)/rows.length;
+  if(rows.length>=READY_MIN_TESTS && avg>=READY_AVG) return {s:"green",label:"Ready",tests:rows.length,avg};
+  return {s:"yellow",label:"In progress",tests:rows.length,avg};
+}
+function weekRowsOf(rows){
+  if(!WEEKPLAN) return [];
+  const pref="Week vs "+(WEEKPLAN.opponent||"—");
+  return (rows||[]).filter(r=>r.quiz&&String(r.quiz).indexOf(pref)===0);
+}
+function readinessHTML(roster,rows){
+  if(!WEEKPLAN) return "";
+  const opp=WEEKPLAN.opponent||"—";
+  const wkRows=weekRowsOf(rows);
+  const players=(roster||[]).filter(m=>m.role==="player");
+  if(!players.length) return "";
+  const by={}; wkRows.forEach(r=>{ (by[r.user_id]=by[r.user_id]||[]).push(r); });
+  const evald=players.map(m=>({m, st:readinessOf(by[m.user_id]||[])}));
+  const nG=evald.filter(x=>x.st.s==="green").length, nY=evald.filter(x=>x.st.s==="yellow").length, nR=evald.filter(x=>x.st.s==="red").length;
+  const due=weekDue();
+  const groups=["QB","RB","WR","TE","OL","DL","LB","DB"];
+  const gk=m=>{ const p=String(m.position||"").toUpperCase(); return groups.indexOf(p)>=0?p:"—"; };
+  const ORD={red:0,yellow:1,green:2};
+  let h='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px 14px;margin:0 0 16px">'
+    +'<div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Readiness — vs '+esc(opp)+'</b><span class="tag">'+(WEEKPLAN.game_date?("game "+esc(WEEKPLAN.game_date)+(due?" · "+esc(due):"")):"no game date set")+'</span></div>'
+    +'<div class="row" style="margin:6px 0 4px;gap:14px;flex-wrap:wrap">'
+    +'<span style="font-weight:800;color:'+READY_DOT.green+'">● '+nG+' ready</span>'
+    +'<span style="font-weight:800;color:'+READY_DOT.yellow+'">● '+nY+' in progress</span>'
+    +'<span style="font-weight:800;color:'+READY_DOT.red+'">● '+nR+' not started</span>'
+    +'<span class="tag">ready = '+READY_MIN_TESTS+'+ week tests at '+Math.round(READY_AVG*100)+'%+ average</span></div>'
+    +'<table class="res"><thead><tr><th>Player</th><th>Week tests</th><th>Avg</th><th>Status</th></tr></thead><tbody>';
+  groups.concat(["—"]).forEach(g=>{
+    const ms=evald.filter(x=>gk(x.m)===g);
+    if(!ms.length) return;
+    ms.sort((a,b)=>ORD[a.st.s]-ORD[b.st.s]||String(a.m.full_name||a.m.email||"").localeCompare(String(b.m.full_name||b.m.email||"")));
+    h+='<tr><td colspan="4" style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#7a8494;padding-top:10px;border-bottom:0">'+esc(g==="—"?"NO POSITION SET":g)+' · '+ms.length+'</td></tr>';
+    ms.forEach(x=>{ h+='<tr><td>'+esc(x.m.full_name||x.m.email||"—")+'</td><td>'+x.st.tests+'</td><td>'+(x.st.tests?Math.round(x.st.avg*100)+'%':'—')+'</td><td><span style="font-weight:800;color:'+READY_DOT[x.st.s]+'">● '+x.st.label+'</span></td></tr>'; });
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function myReadinessHTML(rows,uid){
+  if(!WEEKPLAN) return "";
+  const opp=WEEKPLAN.opponent||"—";
+  const mine=weekRowsOf(rows).filter(r=>r.user_id===uid);
+  const st=readinessOf(mine); const due=weekDue();
+  return '<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin:0 0 16px">'
+    +'<b style="color:var(--navy)">Your week vs '+esc(opp)+':</b> <span style="font-weight:800;color:'+READY_DOT[st.s]+'">● '+st.label+'</span>'
+    +' <span class="tag">'+st.tests+' week test'+(st.tests===1?"":"s")+(st.tests?(' · avg '+Math.round(st.avg*100)+'%'):'')+(due?(' · '+esc(due)):'')+'</span>'
+    +(st.s==="green"?'':' <span class="tag">— take tests with 🎯 Week mode on to go green ('+READY_MIN_TESTS+'+ tests at '+Math.round(READY_AVG*100)+'%+).</span>')
+    +'</div>';
+}
 /* ---------- coach results ---------- */
 async function showResults(){
   const rp=document.getElementById("resultPanel");
@@ -709,10 +833,13 @@ async function showResults(){
   let data; try{ data=await window.QB.results(); }catch(e){ rp.innerHTML='<p class="tag">Could not load results: '+(e.message||e)+'</p>'; return; }
   const nameOf={}; (data.roster||[]).forEach(m=>nameOf[m.user_id]=m.full_name||m.email);
   const rows=data.rows||[];
-  if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3><p class="tag">No test results yet. Take a test in Test mode.</p>'; return; }
   const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
+  /* Phase C: make sure the active week plan is loaded, then build the readiness block */
+  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; buildWeekSet(); renderWeekBar(); } }catch(e){} }
+  const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id);
+  if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<p class="tag">No test results yet. Take a test in Test mode.</p>'; return; }
   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results — ${ctx.team.name}</h3>
-    <p class="tag">${coach?"Your whole roster’s scores.":"Your saved scores."}</p>
+    <p class="tag">${coach?"Your whole roster’s scores.":"Your saved scores."}</p>`+ready+`
     <table class="res"><thead><tr><th>Player</th><th>Test</th><th>Score</th><th>%</th><th>When</th></tr></thead><tbody>`+
     rows.map(r=>{ const pct=r.total?Math.round(r.score/r.total*100):0; const when=new Date(r.created_at).toLocaleDateString();
       return `<tr><td>${(nameOf[r.user_id]||"—")}</td><td>${r.quiz||"Test"}</td><td>${r.score}/${r.total}</td><td>${pct}%</td><td>${when}</td></tr>`; }).join("")+
@@ -742,7 +869,7 @@ function buildChips(){
   const cc=document.getElementById("conceptChips"); cc.innerHTML="";
   pool().forEach(c=>{ const b=document.createElement("button"); b.className="chip"+(enabledConcepts.has(c.id)?" on":""); b.textContent=c.name; b.onclick=()=>{ if(enabledConcepts.has(c.id)&&enabledConcepts.size>1){enabledConcepts.delete(c.id);b.classList.remove("on");} else {enabledConcepts.add(c.id);b.classList.add("on");} }; cc.appendChild(b); });
   const vc=document.getElementById("coverageChips"); vc.innerHTML="";
-  COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip on"; b.textContent=cv; b.onclick=()=>{ if(enabledCoverages.has(cv)&&enabledCoverages.size>1){enabledCoverages.delete(cv);b.classList.remove("on");} else {enabledCoverages.add(cv);b.classList.add("on");} }; vc.appendChild(b); });
+  COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip"+(enabledCoverages.has(cv)?" on":""); b.textContent=cv; b.onclick=()=>{ if(enabledCoverages.has(cv)&&enabledCoverages.size>1){enabledCoverages.delete(cv);b.classList.remove("on");} else {enabledCoverages.add(cv);b.classList.add("on");} }; vc.appendChild(b); });
 }
 
 /* ---------- init ---------- */
@@ -762,14 +889,15 @@ function init(){
   document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
   window.OFFGRD_APP={kind:"qb"};
+  initWeek();   /* Phase B: week-scoped tests once the cloud bridge is up */
   /* deep link from onboarding: drop straight into a first rep */
   if(location.hash==="#train"){ const r=pickRep(); if(r){ swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; } }
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=25"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=25"></script>
-<script type="module" src="OFFGRD-account.js?v=25"></script>
+<script src="OFFGRD-mobile.js?v=26"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=26"></script>
+<script type="module" src="OFFGRD-account.js?v=26"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
