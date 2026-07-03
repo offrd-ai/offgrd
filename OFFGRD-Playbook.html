@@ -574,11 +574,14 @@ function exportPNG(){
 /* ---- modes ---- */
 function setMode(m){MODE=m;document.querySelectorAll(".btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
+/* Expose the sync bridge IMMEDIATELY — OFFGRD-account.js (a deferred module) reads
+   window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
+   DOMContentLoaded handler meant the Playbook page never synced plays at all. */
+window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=a;saveLib();renderLib();}}};
 
 document.addEventListener("DOMContentLoaded",()=>{
   const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
   loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();
-  window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=a;saveLib();renderLib();}}};
   const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
   const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
   const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
