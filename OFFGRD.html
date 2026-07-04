@@ -150,6 +150,15 @@
   .plan-tbl th{background:var(--chip);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
   .wb{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:6px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:12px;margin-right:6px}
   body.dark .wb{color:#08111d}
+  /* week-plan table: keep calls & suggestions inside their cells */
+  .wkplan th:nth-child(1),.wkplan td:nth-child(1){width:15%}
+  .wkplan th:nth-child(2),.wkplan td:nth-child(2){width:20%}
+  .wkplan td{word-break:break-word;overflow-wrap:anywhere}
+  .wkcall{display:flex;align-items:center;gap:6px;margin:3px 0}
+  .wkcall .nm{flex:1;min-width:0}
+  .wkadd{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-weight:900;cursor:pointer;padding:0;font-size:14px}
+  .wkchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:2px 4px 2px 0;font-weight:800;font-size:12px;max-width:100%}
+  .wkchip .cx{border:0;background:none;color:var(--bad);font-weight:900;cursor:pointer;padding:0 2px;font-size:13px}
   .tell{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
   .tell b{color:var(--accent)}
   .tell .n{color:var(--muted);font-size:12px;font-weight:700;margin-left:auto}
@@ -1193,12 +1202,24 @@ function weekGenHTML(){
     return '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
       +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>';
   }
+  const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
   let h='<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px">'
-    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">✦ Week briefing — vs '+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>'
-    +'<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
-  if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
-  if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
-  if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
+    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+  if(defSide){
+    if(!d||!d.narrative){
+      h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
+    } else {
+      h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(d.narrative||"")+'</div>';
+      if(Array.isArray(d.keys)&&d.keys.length){ h+='<div class="lbl" style="margin-top:10px">Defensive keys</div>'; d.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+      if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(d.situations[nm])+'</div>'; }); }
+      if(d.positions&&Object.keys(d.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(d.positions).forEach(ps=>{ if(d.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(d.positions[ps])+'</div>'; }); }
+    }
+  } else {
+    h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
+    if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+    if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
+  }
   h+=(genBtn?('<div class="no-print" style="margin-top:10px">'+genBtn+'</div>'):'')+'</details>';
   return h;
 }
@@ -1319,7 +1340,7 @@ function renderPlan(){
   if(!def.length){ h+=`<p class="foot">No defensive data for ${esc(oppName)} yet. Tag coverage/front/blitz and import as Defense to auto-build the plan.</p></div>`; host.innerHTML=h; wireWeekUI(host); return; }
   const buckets=planBuckets(); let wb=1;
   const planCol = !!WEEK || buckets.some(b=>b.plays&&b.plays.length);
-  h+=`<table class="plan-tbl"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
+  h+=`<table class="plan-tbl wkplan"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
   buckets.forEach((b,bi)=>{
     const ds=defSituation(def,b.dn,b.db,b.zone||"ANY"); const g=ds.rows;
     const gc=g.filter(r=>r.coverage&&r.coverage!=="—");
@@ -1331,10 +1352,10 @@ function renderPlan(){
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
     const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
     const mine=Array.isArray(b.plays)?b.plays:[];
-    const chip=(p,j)=>`<span style="display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:2px 3px 2px 0;font-weight:800;font-size:12px"><span class="wb">${wbLabel(wb++)}</span>${esc(p.name)}${(WEEK&&WEEK_EDIT)?`<button class="no-print" data-wkdel="${bi}:${j}" style="border:0;background:none;color:var(--bad);font-weight:900;cursor:pointer;padding:0 2px" title="Remove">×</button>`:""}</span>`;
-    const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="padding:2px 9px;margin:2px 0">+ Add</button>`:"");
-    const cl2=c=>`${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span>${(WEEK&&WEEK_EDIT)?` <button class="ghost no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" style="padding:0 7px;font-weight:900" title="Add to this week's calls">+</button>`:""}`;
-    const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join("<br>"):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join("<br>"):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
+    const chip=(p,j)=>`<span class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</span>`;
+    const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="padding:2px 9px;margin:2px 0;white-space:nowrap">+ Add</button>`:"");
+    const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
+    const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
   h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;

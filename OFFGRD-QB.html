@@ -303,14 +303,16 @@ async function openBriefing(){
   _briefEl.style.display="flex";
   let pos=""; try{ pos=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
   let uid=null; try{ const ctx=await window.QB.context(); uid=ctx&&ctx.user&&ctx.user.id; }catch(e){}
-  const posNote=(g.positions&&pos&&g.positions[pos])||null;
+  const isDef=["DL","LB","DB"].indexOf(pos)>=0 && g.defense && g.defense.narrative;
+  const src=isDef?g.defense:g;   /* defensive players read the defensive briefing */
+  const posNote=(((isDef?g.defense.positions:g.positions)||{})[pos])||null;
   const rem=(uid&&g.remediation&&g.remediation[uid])||null;
   let h='<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.35)">'
-    +'<div class="row" style="justify-content:space-between"><b style="font-size:17px;color:var(--navy)">📖 Week briefing — vs '+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX">Close</button></div>'
+    +'<div class="row" style="justify-content:space-between"><b style="font-size:17px;color:var(--navy)">📖 Week briefing — '+(isDef?'our defense vs ':'vs ')+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX">Close</button></div>'
     +(rem?'<div style="background:#fdf3e2;border:1px solid #ecd9b0;border-radius:10px;padding:10px 12px;margin-top:10px"><b>Your focus this week:</b> '+esc(rem)+'</div>':'')
     +(posNote?'<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin-top:10px"><b>'+esc(pos)+' notes:</b> '+esc(posNote)+'</div>':'')
-    +'<div style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
-  if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:12px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-weight:700;font-size:14px;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+    +'<div style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(src.narrative||"")+'</div>';
+  if(Array.isArray(src.keys)&&src.keys.length){ h+='<div class="lbl" style="margin-top:12px">Keys to the game</div>'; src.keys.forEach((k,i)=>{ h+='<div style="font-weight:700;font-size:14px;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
   h+='</div>';
   _briefEl.innerHTML=h;
   _briefEl.querySelector("#brX").onclick=()=>{ _briefEl.style.display="none"; };
