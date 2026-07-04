@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — QB Reads Trainer</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=26"></script>
-<script src="supabase.js?v=26"></script>
+<script src="OFFGRD-config.js?v=27"></script>
+<script src="supabase.js?v=27"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -286,8 +286,34 @@ function renderWeekBar(){
   el.innerHTML='<b style="color:var(--navy)">This week vs '+esc(WEEKPLAN.opponent||"—")+'</b>'
     +'<span class="tag">'+(gd?("gameday "+esc(gd)):"no game date set")+(cd?(" · "+esc(cd)):"")+(WEEKCOVS.length?(' · they show: '+WEEKCOVS.slice(0,3).map(esc).join(", ")):"")+'</span>'
     +'<span style="flex:1"></span>'
+    +(WEEKPLAN.gen?'<button class="btn" id="weekBriefBtn">📖 Briefing</button>':'')
     +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"✓ Week mode ON":"🎯 Week mode — this week's plays & looks")+'</button>';
   document.getElementById("weekModeBtn").onclick=()=>setWeekMode(!WEEKMODE);
+  const bb=document.getElementById("weekBriefBtn"); if(bb) bb.onclick=openBriefing;
+}
+let _briefEl=null;
+async function openBriefing(){
+  const g=WEEKPLAN&&WEEKPLAN.gen; if(!g) return;
+  if(!_briefEl){
+    _briefEl=document.createElement("div");
+    _briefEl.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:20px;z-index:9999;overflow:auto";
+    document.body.appendChild(_briefEl);
+    _briefEl.onclick=e=>{ if(e.target===_briefEl) _briefEl.style.display="none"; };
+  }
+  _briefEl.style.display="flex";
+  let pos=""; try{ pos=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
+  let uid=null; try{ const ctx=await window.QB.context(); uid=ctx&&ctx.user&&ctx.user.id; }catch(e){}
+  const posNote=(g.positions&&pos&&g.positions[pos])||null;
+  const rem=(uid&&g.remediation&&g.remediation[uid])||null;
+  let h='<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.35)">'
+    +'<div class="row" style="justify-content:space-between"><b style="font-size:17px;color:var(--navy)">📖 Week briefing — vs '+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX">Close</button></div>'
+    +(rem?'<div style="background:#fdf3e2;border:1px solid #ecd9b0;border-radius:10px;padding:10px 12px;margin-top:10px"><b>Your focus this week:</b> '+esc(rem)+'</div>':'')
+    +(posNote?'<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin-top:10px"><b>'+esc(pos)+' notes:</b> '+esc(posNote)+'</div>':'')
+    +'<div style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
+  if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:12px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-weight:700;font-size:14px;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+  h+='</div>';
+  _briefEl.innerHTML=h;
+  _briefEl.querySelector("#brX").onclick=()=>{ _briefEl.style.display="none"; };
 }
 function setWeekMode(on){
   WEEKMODE=!!on;
@@ -338,6 +364,13 @@ function asnFeedback(rep){
   const job=tp&&(tp.asn||tp.asnAuto);
   if(job) s+=`<div class="prog"><b>${esc(rep.correct)}’s job:</b> ${esc(job)}</div>`;
   if(st.qbNotes) s+=`<div class="prog"><b>QB notes:</b> ${esc(st.qbNotes)}</div>`;
+  /* Phase D: the AI briefing's "why this call this week" for plan plays */
+  try{
+    const g=(typeof WEEKPLAN!=="undefined")&&WEEKPLAN&&WEEKPLAN.gen;
+    const nm=rep.concept.name;
+    const gp=g&&g.plays&&(g.plays[nm]||g.plays[String(nm||"").toLowerCase()]);
+    if(gp&&gp.why) s+=`<div class="prog"><b>Why this week:</b> ${esc(gp.why)}</div>`;
+  }catch(e){}
   return s;
 }
 function renderCustomField(state, coverage, revealLab, targetId, los){
@@ -895,9 +928,9 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=26"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=26"></script>
-<script type="module" src="OFFGRD-account.js?v=26"></script>
+<script src="OFFGRD-mobile.js?v=27"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=27"></script>
+<script type="module" src="OFFGRD-account.js?v=27"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

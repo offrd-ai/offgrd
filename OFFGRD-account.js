@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=26";
-import { openAuthModal } from "./OFFGRD-auth.js?v=26";
+import { Cloud } from "./OFFGRD-cloud.js?v=27";
+import { openAuthModal } from "./OFFGRD-auth.js?v=27";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -430,6 +430,13 @@ window.OFFGRD_WEEK_START=async function(opp, gameDate, buckets){
   const id=await Cloud.startWeekPlan(TEAM.id, opp, gameDate, buckets);
   await pullWeek();
   return id;
+};
+window.OFFGRD_WEEK_GEN=async function(force){
+  if(!TEAM) throw new Error("Sign in and join a program first.");
+  if(!canEdit()) throw new Error("Only coaches can generate the briefing.");
+  const res=await Cloud.generateWeek(TEAM.id, force);
+  await pullWeek();
+  return res && res.gen;
 };
 window.OFFGRD_WEEK_PLAYS=async function(){
   if(!TEAM) return [];

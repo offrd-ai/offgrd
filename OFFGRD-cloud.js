@@ -159,6 +159,21 @@ export const Cloud = {
       .eq("team_id", teamId).order("updated_at", { ascending: false });
     if (error) throw error; return data || [];
   },
+  /* Phase D: ask the generate-week Edge Function for the AI briefing (cached in week_plans.gen).
+     Plain fetch with the session token — the Anthropic key lives ONLY in the function's secrets. */
+  async generateWeek(teamId, force) {
+    const { data: sess } = await sb.auth.getSession();
+    const tok = sess && sess.session && sess.session.access_token;
+    if (!tok) throw new Error("Sign in first.");
+    const r = await fetch(String(cfg.url || "").replace(/\/$/, "") + "/functions/v1/generate-week", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok, "apikey": cfg.anonKey },
+      body: JSON.stringify({ team_id: teamId, force: !!force })
+    });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(out.error || ("Briefing generation failed (" + r.status + ")"));
+    return out;   // { gen, cached }
+  },
 
   /* ---------- plan / billing status ---------- */
   async plan(teamId) {
