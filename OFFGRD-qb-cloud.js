@@ -1,5 +1,5 @@
 /* Bridge for the QB Reads Trainer — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=27";
+import { Cloud } from "./OFFGRD-cloud.js?v=28";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -34,6 +34,9 @@ window.QB = {
   },
   async savePlayReads(id, reads){
     return Cloud.updatePlayReads(id, reads);
+  },
+  async saveOlKeys(id, keys){
+    return Cloud.updatePlayOlKeys(id, keys);
   },
   /* Phase B: active week plan + observed coverage distribution for its opponent */
   async weekContext(){

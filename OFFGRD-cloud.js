@@ -114,6 +114,10 @@ export const Cloud = {
     const { data, error } = await sb.from("plays").update({ qb_reads }).eq("id", id).select().single();
     if (error) throw error; return data;
   },
+  async updatePlayOlKeys(id, ol_keys) {
+    const { data, error } = await sb.from("plays").update({ ol_keys }).eq("id", id).select().single();
+    if (error) throw error; return data;
+  },
 
   /* ---------- scouting games (season library) ---------- */
   async listGames(teamId) {

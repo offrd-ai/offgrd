@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — QB Reads Trainer</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=27"></script>
-<script src="supabase.js?v=27"></script>
+<script src="OFFGRD-config.js?v=28"></script>
+<script src="supabase.js?v=28"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -85,6 +85,7 @@
         <button class="on" data-kind="reads">Reads — where's the throw</button>
         <button data-kind="coverage">Coverage ID — name the coverage</button>
         <button data-kind="routes">Routes — know your install</button>
+        <button data-kind="protect">Protection — O-line</button>
       </div>
       <div class="tag" id="kindNote" style="margin-top:6px"></div>
       <div id="rqWrap" class="hidden">
@@ -426,9 +427,54 @@ async function loadAuthor(){
   if(!coach){ ap.innerHTML='<p class="tag">Only coaches can author reads. Players use Train and Test.</p>'; return; }
   let rows; try{ rows=await window.QB.plays(); }catch(e){ ap.innerHTML='<p class="tag">Couldn’t load plays: '+(e.message||e)+'</p>'; return; }
   if(!rows.length){ ap.innerHTML='<p class="tag">No saved plays yet. Build and save plays in the Playbook, then author their reads here.</p>'; return; }
-  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author reads on your plays</h3><p class="tag">Pick a play, then set the correct target for each coverage.</p><div id="playPick" class="chips" style="margin-top:10px"></div><div id="authEditor"></div>';
+  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'
+    +'<div class="seg" id="authSeg" style="margin:6px 0 4px"><button data-ak="reads"'+(AUTHKIND==="reads"?' class="on"':'')+'>QB reads</button><button data-ak="ol"'+(AUTHKIND==="ol"?' class="on"':'')+'>OL keys — who blocks whom</button></div>'
+    +'<p class="tag">'+(AUTHKIND==="reads"?"Pick a play, then set the correct target for each coverage.":"Pick a play — its drawn defense is the look. Tap a blocker, then tap his man on the field (or a rule).")+'</p>'
+    +'<div id="playPick" class="chips" style="margin-top:10px"></div><div id="authEditor"></div>';
+  [].forEach.call(document.querySelectorAll("#authSeg button"),b=>{ b.onclick=()=>{ AUTHKIND=b.dataset.ak; loadAuthor(); }; });
   const pk=document.getElementById("playPick");
-  rows.forEach(r=>{ const b=document.createElement("button"); b.className="chip"; const done=r.qb_reads&&Object.keys(r.qb_reads).length; b.textContent=(r.name||"Play")+(done?" ✓":""); b.onclick=()=>{ [].forEach.call(pk.children,x=>x.classList.remove("on")); b.classList.add("on"); editPlay(r); }; pk.appendChild(b); });
+  rows.forEach(r=>{ const b=document.createElement("button"); b.className="chip";
+    const done=AUTHKIND==="reads"?(r.qb_reads&&Object.keys(r.qb_reads).length):(r.ol_keys&&r.ol_keys.keys&&Object.keys(r.ol_keys.keys).length);
+    b.textContent=(r.name||"Play")+(done?" ✓":"");
+    b.onclick=()=>{ [].forEach.call(pk.children,x=>x.classList.remove("on")); b.classList.add("on"); if(AUTHKIND==="reads") editPlay(r); else editOlKeys(r); };
+    pk.appendChild(b); });
+}
+let AUTHKIND="reads";
+function editOlKeys(row){
+  const ed=document.getElementById("authEditor");
+  const state=(row.data&&row.data.players)?row.data:(row.data||row); const defs=(state&&state.defs)||[];
+  if(!defs.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No defense drawn on “'+esc(row.name||"this play")+'” yet — open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a>, load the play, use <b>Place defense</b> (add Blitz / Direct paths for stunts), save it, then come back.</p>'; return; }
+  const cur=(row.ol_keys&&row.ol_keys.keys)?JSON.parse(JSON.stringify(row.ol_keys)):{v:1,front:"",note:"",keys:{}};
+  cur.front=(state.front&&state.front!=="none")?state.front:""; cur.n=defs.length;
+  const blockers=olBlockers(state);
+  if(!blockers.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No linemen/blockers on this play.</p>'; return; }
+  let SELB=blockers[0].lab;
+  ed.innerHTML='<div class="lbl" style="margin-top:16px">'+esc(row.name||"Play")+' — vs '+esc(cur.front||"drawn defense")+'</div>'
+    +'<div class="chips" id="olBlk" style="margin:6px 0"></div>'
+    +'<div class="field-wrap"><svg id="olAuthField" viewBox="0 0 1000 640"></svg></div>'
+    +'<p class="tag" style="margin-top:6px">Tap his man on the field — or pick a rule:</p>'
+    +'<div class="chips" id="olRules"></div>'
+    +'<div class="row" style="margin-top:10px"><input id="olNote" class="btn" style="flex:1;min-width:160px" placeholder="note for the room (optional — e.g. Mike A-gap is the alert)" value="'+esc((row.ol_keys&&row.ol_keys.note)||"")+'">'
+    +'<button class="btn go" id="olSave">Save OL keys</button><span id="olSaveMsg" class="tag"></span></div>';
+  const keyTxt=l=>{ const k=cur.keys[l]&&cur.keys[l].pre; if(!k) return ""; return " ✓→"+(k.t==="def"?esc((defs[k.di]||{}).lab||"?"):esc(olRuleName(k.r))); };
+  const paint=()=>{
+    const host=document.getElementById("olBlk"); host.innerHTML="";
+    blockers.forEach(p=>{ const b=document.createElement("button"); b.className="chip"+(SELB===p.lab?" on":""); b.innerHTML=esc(p.lab)+keyTxt(p.lab); b.onclick=()=>{ SELB=p.lab; paint(); }; host.appendChild(b); });
+    const k=cur.keys[SELB]&&cur.keys[SELB].pre;
+    document.getElementById("olAuthField").innerHTML=olField(state, SELB, (k&&k.t==="def")?+k.di:null, null, true);
+    const rl=document.getElementById("olRules"); rl.innerHTML="";
+    OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]={pre:{t:"rule",r:pair[0]}}; paint(); }; rl.appendChild(b); });
+  };
+  document.getElementById("olAuthField").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g||!SELB) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]={pre:{t:"def",di:parseInt(L.slice(3),10)}}; paint(); } });
+  document.getElementById("olSave").onclick=async()=>{
+    cur.note=document.getElementById("olNote").value.trim();
+    const msg=document.getElementById("olSaveMsg");
+    if(!Object.keys(cur.keys).length){ msg.textContent="Key at least one blocker first."; return; }
+    msg.textContent="Saving…";
+    try{ await window.QB.saveOlKeys(row.id, cur); row.ol_keys=cur; msg.textContent="Saved ✓ — live under Test → Protection."; }
+    catch(e){ msg.textContent=e.message||"Save failed"; }
+  };
+  paint();
 }
 function editPlay(row){
   const ed=document.getElementById("authEditor");
@@ -672,6 +718,94 @@ function answerRoute(i){
   setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, job?(correct?1600:2400):(correct?450:900));
 }
 
+/* ---------- OL assignment quiz — "who do you block?" (coach keys the play's drawn front) ---------- */
+const OLRULES=[["bob","Big-on-big"],["climb","Climb to backer"],["fan","Fan / out"],["combo","Combo then climb"],["pull","I'm pulling"],["reach","Reach playside"],["down","Down block"],["kick","Kick out"],["scan","Scan / check"],["checkrel","Check-release"],["free","Free release"]];
+function olRuleName(r){ const m=OLRULES.find(x=>x[0]===r); return m?m[1]:String(r||""); }
+let OLPLAYS=[];
+async function loadOlPlays(){
+  OLPLAYS=[];
+  if(!(window.QB&&window.QB.ready)) return;
+  try{
+    const rows=await window.QB.plays();
+    OLPLAYS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
+      .filter(p=>p.ol&&p.ol.keys&&Object.keys(p.ol.keys).length&&((p.state&&p.state.defs)||[]).length);
+    if(WEEKMODE) OLPLAYS=OLPLAYS.filter(p=>weekPlayMatch(p));
+  }catch(e){ OLPLAYS=[]; }
+}
+function olBlockers(state){ return ((state&&state.players)||[]).filter(p=>p.ol||p.type==="block"||p.type==="rb"); }
+function olKeyValid(p,lab){
+  const k=p.ol&&p.ol.keys&&p.ol.keys[lab]; if(!k||!k.pre) return false;
+  if(k.pre.t==="def"){ const defs=(p.state&&p.state.defs)||[]; if(k.pre.di==null||+k.pre.di>=defs.length) return false; }
+  if(p.ol.front&&p.state&&p.state.front&&p.state.front!=="none"&&p.ol.front!==p.state.front) return false; /* defense changed since keying */
+  return true;
+}
+function pickOlRep(){
+  if(!OLPLAYS.length) return null;
+  for(let tries=0;tries<40;tries++){
+    const p=OLPLAYS[Math.floor(Math.random()*OLPLAYS.length)];
+    const labs=Object.keys(p.ol.keys).filter(l=>olKeyValid(p,l)&&olBlockers(p.state).some(b=>b.lab===l));
+    if(!labs.length) continue;
+    const lab=labs[Math.floor(Math.random()*labs.length)];
+    return {protect:true, play:p, blocker:lab, key:p.ol.keys[lab].pre};
+  }
+  return null;
+}
+function olField(state, ringLab, revealDi, wrongDi, paths){
+  const los=380, players=(state&&state.players)||[], defs=(state&&state.defs)||[];
+  let s="";
+  for(let y=40;y<=600;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
+  s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
+  players.filter(p=>p.ol||p.type==="block").forEach(p=>{
+    if(p.lab===ringLab) s+=`<circle cx="${p.x}" cy="${p.y}" r="22" fill="none" stroke="#ffd24a" stroke-width="3.5"/>`;
+    s+=`<rect x="${p.x-12}" y="${p.y-12}" width="24" height="24" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/><text x="${p.x}" y="${p.y+4}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab)}</text>`;
+  });
+  players.filter(p=>!(p.ol||p.type==="block")).forEach(p=>{
+    if(p.lab===ringLab) s+=`<circle cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="#ffd24a" stroke-width="3.5"/>`;
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="12" fill="${p.type==="qb"?"#0e1f3a":"#c8102e"}" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab)}</text>`;
+  });
+  defs.forEach((d,i)=>{
+    let path="";
+    if(paths&&d.route&&d.route.length) path=`<path d="${customRouteD(d)}" fill="none" stroke="rgba(255,120,120,.85)" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+    s+=path+`<g data-lab="ol_${i}" style="cursor:pointer">`
+      +((revealDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#19c37d" stroke-width="4"/>`:"")
+      +((wrongDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#e23b2e" stroke-width="4"/>`:"")
+      +`<circle cx="${d.x}" cy="${d.y}" r="15" fill="${d.color||"#13294B"}" stroke="#fff" stroke-width="2"/><text x="${d.x}" y="${d.y+4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle" style="pointer-events:none">${esc(d.lab||"D")}</text></g>`;
+  });
+  return s;
+}
+function olChipsFor(rep){
+  const set=new Set();
+  Object.keys(rep.play.ol.keys).forEach(l=>{ const k=rep.play.ol.keys[l]&&rep.play.ol.keys[l].pre; if(k&&k.t==="rule") set.add(k.r); });
+  ["climb","scan","bob"].forEach(r=>set.add(r));
+  if(rep.key.t==="rule") set.add(rep.key.r);
+  return Array.from(set).slice(0,6);
+}
+function renderOlQuiz(rep){
+  const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
+  svg.innerHTML=olField(rep.play.state, rep.blocker, null, null, false);
+  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
+  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center"; lbl.textContent="Tap your man on the field — or a rule:"; cc.appendChild(lbl);
+  olChipsFor(rep).forEach(r=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=olRuleName(r); b.onclick=()=>answerOl({t:"rule",r:r}); cc.appendChild(b); });
+}
+function isOlTest(){ return MODE==="test" && test && test.kind==="protect"; }
+function answerOl(sel){
+  if(answered||!isOlTest()) return; answered=true;
+  const k=rep.key, defs=(rep.play.state.defs)||[];
+  const correct=(k.t===sel.t)&&(k.t==="def" ? +sel.di===+k.di : sel.r===k.r);
+  const revealDi=k.t==="def"?+k.di:null;
+  const wrongDi=(!correct&&sel.t==="def")?+sel.di:null;
+  document.getElementById("field").innerHTML=olField(rep.play.state, rep.blocker, revealDi, wrongDi, false);
+  const ansTxt=k.t==="def"?("block "+((defs[k.di]||{}).lab||"that man")):olRuleName(k.r);
+  const bp=(rep.play.state.players||[]).find(p=>p.lab===rep.blocker);
+  const job=bp&&(bp.asn||bp.asnAuto);
+  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
+  fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not your man"} — ${esc(rep.blocker)}: ${esc(ansTxt)}</h4>`
+    +(job?`<div><b>Your job on this play:</b> ${esc(job)}</div>`:"")
+    +((rep.play.ol&&rep.play.ol.note)?`<div class="prog">${esc(rep.play.ol.note)}</div>`:"");
+  test.results.push({concept:rep.play.name+" — "+rep.blocker, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct, chose:(sel.t==="def"?("block "+((defs[sel.di]||{}).lab||"?")):olRuleName(sel.r)), answer:ansTxt});
+  test.i++;
+  setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?1400:2500);
+}
 /* ===================== game state ===================== */
 let MODE="train";
 const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
@@ -694,6 +828,16 @@ function pickRep(){
 function isCovTest(){ return MODE==="test" && test && test.kind==="coverage"; }
 function showRep(r){
   rep=r; answered=false; SNAPPED=false;
+  if(r.protect){
+    SNAPPED=true;
+    document.getElementById("prompt").textContent=`“${r.play.name}” vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} — you're the ${r.blocker}. Who do you block?`;
+    cancelQB(); renderOlQuiz(r);
+    const fbp=document.getElementById("fb"); fbp.className="fb"; fbp.innerHTML="";
+    document.getElementById("nextBtn").classList.add("hidden");
+    document.getElementById("snapBtn").classList.add("hidden");
+    document.getElementById("replayBtn").classList.add("hidden");
+    return;
+  }
   if(r.routes){
     SNAPPED=true;
     document.getElementById("prompt").textContent=`“${r.play.name}” — which route does ${r.target.lab} run?`;
@@ -763,6 +907,12 @@ function updateProgress(){
 async function startTest(){
   const n=parseInt(document.getElementById("testLen").value,10)||10;
   test={queue:[],i:0,results:[],kind:TESTKIND,week:(WEEKMODE&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||""}:null};
+  if(TESTKIND==="protect"){
+    await loadOlPlays();
+    for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickOlRep(); if(r) test.queue.push(r); }
+    if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have OL keys yet — a coach places the front on the play (Playbook) and keys it under Author → OL keys.":"No plays with OL keys yet — a coach places the opponent's front on a play in the Playbook, then keys who blocks whom under Author → OL keys."); test=null; return; }
+    swap("play"); showRep(test.queue[0]); updateProgress(); return;
+  }
   if(TESTKIND==="routes"){
     await loadRoutePlays();
     if(!RQLABS.size) rqAllLabs().forEach(l=>RQLABS.add(l));
@@ -793,7 +943,7 @@ async function finishTest(){
       const ctx=await window.QB.context();
       if(ctx && ctx.user && ctx.team){
         const wkPrefix=test.week?("Week vs "+(test.week.opp||"—")+" · "):"";
-        await window.QB.save({quiz:wkPrefix+(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":"Reads test"), score:got, total:tot, detail:test.results});
+        await window.QB.save({quiz:wkPrefix+(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":"Reads test"), score:got, total:tot, detail:test.results});
         saveMsg=`Saved to ${ctx.team.name} ✓ — your coaches can see it under Results.`+(test.week?(" This one counts toward the week"+(test.week.due?(" (game "+test.week.due+")"):"")+"."):"");
       } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
     }
@@ -918,11 +1068,11 @@ function init(){
   [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>{ TESTKIND=b.dataset.kind; [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x===b));
     const rq=TESTKIND==="routes";
     document.getElementById("rqWrap").classList.toggle("hidden",!rq);
-    document.getElementById("kindNote").textContent=rq?"Uses plays saved from your Playbook — the concept & coverage filters above don't apply.":"";
+    document.getElementById("kindNote").textContent=rq?"Uses plays saved from your Playbook — the concept & coverage filters above don't apply.":(TESTKIND==="protect"?"Who do you block? A coach places the opponent's front on the play (Playbook) and keys the answers under Author → OL keys. Filters above don't apply.":"");
     if(rq){ loadRoutePlays().then(buildPosChips); } });
   document.getElementById("replayBtn").onclick=()=>{ if(SCENE && SNAPPED) animateScene(SCENE); };
   document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
-  document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
+  document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ if(isOlTest()) answerOl({t:"def",di:parseInt(L.slice(3),10)}); return; } if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
   window.OFFGRD_APP={kind:"qb"};
   initWeek();   /* Phase B: week-scoped tests once the cloud bridge is up */
   /* deep link from onboarding: drop straight into a first rep */
@@ -930,9 +1080,9 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=27"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=27"></script>
-<script type="module" src="OFFGRD-account.js?v=27"></script>
+<script src="OFFGRD-mobile.js?v=28"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=28"></script>
+<script type="module" src="OFFGRD-account.js?v=28"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
