@@ -132,14 +132,14 @@
     <p class="hint" id="hint" style="margin:8px 0 0"></p>
   </div>
 
-  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in QB Trainer; feeds the education engine) -->
+  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in Reps Lab; feeds the education engine) -->
   <div class="panel" id="asnPanel">
     <div class="row" style="justify-content:space-between;align-items:center">
       <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
       <button class="btn" id="asnToggle">Show ▾</button>
     </div>
     <div id="asnBody" style="display:none">
-      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew — type to override it (your text is never overwritten). Saved with the play; players see their job in the QB Trainer.</p>
+      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew — type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
       <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
       <div class="lbl" style="margin:12px 0 4px">QB notes — progression, hots, reminders</div>
       <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
@@ -387,7 +387,7 @@ function renderAsn(){
   const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
 }
 function ctxAsnInput(host){ if(!SEL||SEL.group) return;
-  ctxLbl(host,(SEL.lab||"Player")+" — assignment (shows in QB Trainer)");
+  ctxLbl(host,(SEL.lab||"Player")+" — assignment (shows in Reps Lab)");
   const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignment…";
   inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
   host.appendChild(inp);

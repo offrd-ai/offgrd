@@ -135,7 +135,7 @@
     el.innerHTML=
       '<a href="OFFGRD.html">Scout</a>'+
       '<a href="OFFGRD-Playbook.html"'+(k==="playbook"?' class="on"':'')+'>Playbook</a>'+
-      '<a href="OFFGRD-QB.html"'+(k==="qb"?' class="on"':'')+'>QB</a>';
+      '<a href="OFFGRD-QB.html"'+(k==="qb"?' class="on"':'')+'>Reps</a>';
     document.body.appendChild(el);
     document.body.classList.add("has-appnav");
   }

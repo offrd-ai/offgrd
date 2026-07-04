@@ -1,4 +1,4 @@
-/* Bridge for the QB Reads Trainer — exposes window.QB for saving/reading results. */
+/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
 import { Cloud } from "./OFFGRD-cloud.js?v=28";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
