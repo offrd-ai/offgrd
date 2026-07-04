@@ -151,13 +151,16 @@
   .wb{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:6px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:12px;margin-right:6px}
   body.dark .wb{color:#08111d}
   /* week-plan table: keep calls & suggestions inside their cells */
+  .wkplan{table-layout:fixed}
   .wkplan th:nth-child(1),.wkplan td:nth-child(1){width:15%}
   .wkplan th:nth-child(2),.wkplan td:nth-child(2){width:20%}
+  .wkplan th:nth-child(3),.wkplan td:nth-child(3){width:35%}
+  .wkplan th:nth-child(4),.wkplan td:nth-child(4){width:30%}
   .wkplan td{word-break:break-word;overflow-wrap:anywhere}
   .wkcall{display:flex;align-items:center;gap:6px;margin:3px 0}
   .wkcall .nm{flex:1;min-width:0}
   .wkadd{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-weight:900;cursor:pointer;padding:0;font-size:14px}
-  .wkchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:2px 4px 2px 0;font-weight:800;font-size:12px;max-width:100%}
+  .wkchip{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;margin:3px 0;font-weight:800;font-size:12px;width:max-content;max-width:100%}
   .wkchip .cx{border:0;background:none;color:var(--bad);font-weight:900;cursor:pointer;padding:0 2px;font-size:13px}
   .tell{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
   .tell b{color:var(--accent)}
@@ -1340,7 +1343,7 @@ function renderPlan(){
   if(!def.length){ h+=`<p class="foot">No defensive data for ${esc(oppName)} yet. Tag coverage/front/blitz and import as Defense to auto-build the plan.</p></div>`; host.innerHTML=h; wireWeekUI(host); return; }
   const buckets=planBuckets(); let wb=1;
   const planCol = !!WEEK || buckets.some(b=>b.plays&&b.plays.length);
-  h+=`<table class="plan-tbl wkplan"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
+  h+=`<table class="plan-tbl${planCol?" wkplan":""}"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
   buckets.forEach((b,bi)=>{
     const ds=defSituation(def,b.dn,b.db,b.zone||"ANY"); const g=ds.rows;
     const gc=g.filter(r=>r.coverage&&r.coverage!=="—");
@@ -1352,8 +1355,8 @@ function renderPlan(){
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
     const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
     const mine=Array.isArray(b.plays)?b.plays:[];
-    const chip=(p,j)=>`<span class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</span>`;
-    const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="padding:2px 9px;margin:2px 0;white-space:nowrap">+ Add</button>`:"");
+    const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</div>`;
+    const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="display:block;padding:2px 9px;margin:5px 0 0;white-space:nowrap">+ Add</button>`:"");
     const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
     const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
