@@ -80,6 +80,8 @@
     <div class="lbl" style="margin-top:14px">Coverages</div>
     <div class="chips" id="coverageChips"></div>
     <div id="kindWrap" class="hidden">
+      <div class="lbl" style="margin-top:14px">Position</div>
+      <div class="chips" id="posFilter"></div>
       <div class="lbl" style="margin-top:14px">Test type</div>
       <div class="seg" id="kindSeg">
         <button class="on" data-kind="reads">Reads — where's the throw</button>
@@ -350,15 +352,13 @@ function setWeekMode(on){
 }
 async function myWeekTest(){
   let pos=""; try{ pos=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
-  const map={QB:"reads",WR:"routes",TE:"routes",RB:"routes",FB:"routes",OL:"protect",DL:"protect",DB:"coverage",LB:"coverage",S:"coverage",CB:"coverage"};
-  const kind=map[pos];
-  if(!kind){ alert("Set your position first so I can pick your test — open the Team panel / onboarding and choose your position."); return; }
+  const kinds=POSKINDS[pos];
+  if(!kinds){ alert("Set your position first so I can pick your test — open the Team panel / onboarding and choose your position."); return; }
+  const kind=kinds[0];
   setMode("test");
-  TESTKIND=kind;
-  [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x.dataset.kind===kind));
+  applyPosFilter(pos);
+  selectKind(kind);
   const rq=(kind==="routes");
-  const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
-  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=rq?"Your routes from this week's plan.":(kind==="protect"?"Your blocking assignments vs this week's front.":(kind==="coverage"?"Name the coverages this opponent shows.":""));
   await setWeekMode(true);
   if(rq){ await loadRoutePlays(); buildPosChips(); }
   startTest();
@@ -469,11 +469,13 @@ function editOlKeys(row){
   cur.front=(state.front&&state.front!=="none")?state.front:""; cur.n=defs.length;
   const blockers=olBlockers(state);
   if(!blockers.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No linemen/blockers on this play.</p>'; return; }
-  const hasStunts=defs.some(d=>d.route&&d.route.length);
   let SELB=blockers[0].lab, PHASE="pre";
+  cur.stunt=cur.stunt||{};
   ed.innerHTML='<div class="lbl" style="margin-top:16px">'+esc(row.name||"Play")+' — vs '+esc(cur.front||"drawn defense")+'</div>'
     +'<div class="chips" id="olBlk" style="margin:6px 0"></div>'
-    +(hasStunts?'<div class="seg" id="olPhaseSeg" style="margin:4px 0"><button class="on" data-ph="pre">Pre-snap picture</button><button data-ph="post">After the stunt</button></div><button class="btn" id="olPreview" style="margin:2px 0 6px">▶ Preview stunt</button>':'')
+    +'<div class="lbl" style="margin-top:8px;font-size:11px">This week’s stunt (auto-draws on the front)</div>'
+    +'<div class="chips" id="olStunts" style="margin:4px 0"></div>'
+    +'<div class="seg" id="olPhaseSeg" style="margin:4px 0"><button class="on" data-ph="pre">Pre-snap picture</button><button data-ph="post">After the stunt</button></div><button class="btn" id="olPreview" style="margin:2px 0 6px">▶ Preview stunt</button>'
     +'<div class="field-wrap"><svg id="olAuthField" viewBox="0 0 1000 640"></svg></div>'
     +'<p class="tag" id="olKeyPrompt" style="margin-top:6px">Tap his man on the field — or pick a rule:</p>'
     +'<div class="chips" id="olRules"></div>'
@@ -484,23 +486,25 @@ function editOlKeys(row){
     const host=document.getElementById("olBlk"); host.innerHTML="";
     blockers.forEach(p=>{ const b=document.createElement("button"); b.className="chip"+(SELB===p.lab?" on":""); b.innerHTML=esc(p.lab)+keyTxt(p.lab); b.onclick=()=>{ SELB=p.lab; paint(); }; host.appendChild(b); });
     const k=cur.keys[SELB]&&cur.keys[SELB][PHASE];
-    document.getElementById("olAuthField").innerHTML=olField(state, SELB, (k&&k.t==="def")?+k.di:null, null, true);
+    document.getElementById("olAuthField").innerHTML=olField(state, SELB, (k&&k.t==="def")?+k.di:null, null, true, cur.stunt);
     const pr=document.getElementById("olKeyPrompt"); if(pr) pr.textContent=(PHASE==="post")?("After the stunt develops — tap who "+SELB+" ends up on (or a rule):"):("Pre-snap — tap "+SELB+"'s man on the field (or a rule):");
     const rl=document.getElementById("olRules"); rl.innerHTML="";
     OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"rule",r:pair[0]}; paint(); }; rl.appendChild(b); });
   };
-  if(hasStunts){
-    [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),b=>b.onclick=()=>{ PHASE=b.dataset.ph; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x===b)); paint(); });
-    document.getElementById("olPreview").onclick=()=>{ document.getElementById("olAuthField").innerHTML=olField(state, SELB, null, null, true); animateOlStunts(state, null, "olAuthField"); };
-  }
+  const preview=()=>{ paint(); animateOlStunts(state, null, "olAuthField", cur.stunt); };
+  const stHost=document.getElementById("olStunts");
+  OL_STUNTS.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+(pair[0]==="clear"?"":" go"); b.textContent=pair[1]; b.onclick=()=>{ applyStunt(state, cur, pair[0]); if(pair[0]!=="clear"){ PHASE="post"; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x.dataset.ph==="post")); } preview(); }; stHost.appendChild(b); });
+  [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),b=>b.onclick=()=>{ PHASE=b.dataset.ph; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x===b)); paint(); });
+  document.getElementById("olPreview").onclick=preview;
   document.getElementById("olAuthField").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g||!SELB) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"def",di:parseInt(L.slice(3),10)}; paint(); } });
   document.getElementById("olSave").onclick=async()=>{
     cur.note=document.getElementById("olNote").value.trim();
     const msg=document.getElementById("olSaveMsg");
     Object.keys(cur.keys).forEach(l=>{ if(!(cur.keys[l]&&(cur.keys[l].pre||cur.keys[l].post))) delete cur.keys[l]; });
     if(!Object.keys(cur.keys).length){ msg.textContent="Key at least one blocker first."; return; }
+    const nStunt=Object.keys(cur.stunt||{}).length;
     msg.textContent="Saving…";
-    try{ await window.QB.saveOlKeys(row.id, cur); row.ol_keys=cur; msg.textContent="Saved ✓ — live under Test → Protection"+(hasStunts?" (with the stunt re-ask).":"."); }
+    try{ await window.QB.saveOlKeys(row.id, cur); row.ol_keys=cur; msg.textContent="Saved ✓ — live under Test → Protection"+(nStunt?" (with the stunt re-ask).":"."); }
     catch(e){ msg.textContent=e.message||"Save failed"; }
   };
   paint();
@@ -782,7 +786,41 @@ function pickOlRep(){
   }
   return null;
 }
-function olField(state, ringLab, revealDi, wrongDi, paths){
+function routeD(sx,sy,route){ if(!route||!route.length) return ""; let d="M "+sx+" "+sy; route.forEach(a=>{ d += (a.cx!=null? " Q "+a.cx+" "+a.cy+" "+a.x+" "+a.y : " L "+a.x+" "+a.y); }); return d; }
+function olLosY(state){ const b=((state&&state.players)||[]).filter(p=>p.ol||p.type==="block"); return b.length? b.reduce((s,p)=>s+p.y,0)/b.length : 380; }
+function olCenterX(state){ const b=((state&&state.players)||[]).filter(p=>p.ol||p.type==="block"); if(!b.length) return 500; const xs=b.map(p=>p.x).sort((a,z)=>a-z); return xs[Math.floor(xs.length/2)]; }
+function olRushers(state){ const los=olLosY(state); return ((state&&state.defs)||[]).map((d,i)=>({d,i})).filter(o=>o.d.y>los-48 && o.d.y<los+12).sort((a,b)=>a.d.x-b.d.x); }
+function olBackers(state){ const los=olLosY(state); return ((state&&state.defs)||[]).map((d,i)=>({d,i})).filter(o=>o.d.y>los-100 && o.d.y<=los-48).sort((a,b)=>a.d.x-b.d.x); }
+const OL_STUNTS=[["twistL","Twist ◄"],["twistR","Twist ►"],["mike","Mike A-gap"],["crossdog","Cross dog"],["clear","Clear stunts"]];
+function applyStunt(state, cur, preset){
+  cur.stunt = cur.stunt || {};
+  if(preset==="clear"){ cur.stunt={}; return; }
+  const los=olLosY(state), cx=olCenterX(state), gy=los+34;
+  const dl=olRushers(state), lb=olBackers(state);
+  if(preset==="twistR" || preset==="twistL"){
+    const R=(preset==="twistR");
+    const side=dl.filter(o=> R ? o.d.x>=cx-6 : o.d.x<=cx+6);
+    side.sort((a,b)=> R ? (a.d.x-b.d.x) : (b.d.x-a.d.x)); /* inside-first */
+    if(side.length>=2){
+      const inside=side[0], outside=side[1];
+      cur.stunt[inside.i]=[{x: cx + (R?8:-8), y: gy}];
+      cur.stunt[outside.i]=[{x: outside.d.x + (R?26:-26), y: outside.d.y-16, cx: outside.d.x + (R?30:-30), cy: outside.d.y-22},{x: inside.d.x, y: gy, cx: inside.d.x + (R?26:-26), cy: los}];
+    }
+  } else if(preset==="mike"){
+    let m=lb.find(o=>String(o.d.lab||"").toUpperCase()==="M");
+    if(!m){ m=lb.slice().sort((a,b)=>Math.abs(a.d.x-cx)-Math.abs(b.d.x-cx))[0]; }
+    if(m) cur.stunt[m.i]=[{x: cx-8, y: gy}];
+  } else if(preset==="crossdog"){
+    const inner=lb.slice().sort((a,b)=>Math.abs(a.d.x-cx)-Math.abs(b.d.x-cx)).slice(0,2);
+    if(inner.length>=2){
+      const l=inner[0].d.x<inner[1].d.x?inner[0]:inner[1];
+      const r=inner[0].d.x<inner[1].d.x?inner[1]:inner[0];
+      cur.stunt[l.i]=[{x: cx+12, y: gy, cx: l.d.x, cy: los-6}];
+      cur.stunt[r.i]=[{x: cx-12, y: gy, cx: r.d.x, cy: los-6}];
+    }
+  }
+}
+function olField(state, ringLab, revealDi, wrongDi, paths, stunt){
   const los=380, players=(state&&state.players)||[], defs=(state&&state.defs)||[];
   let s="";
   for(let y=40;y<=600;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
@@ -797,7 +835,9 @@ function olField(state, ringLab, revealDi, wrongDi, paths){
   });
   defs.forEach((d,i)=>{
     let path="";
-    if(paths&&d.route&&d.route.length) path=`<path d="${customRouteD(d)}" fill="none" stroke="rgba(255,120,120,.85)" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+    const sr=(stunt&&stunt[i])||null;
+    if(sr) path=`<path d="${routeD(d.x,d.y,sr)}" fill="none" stroke="rgba(255,120,120,.95)" stroke-width="2.8" stroke-dasharray="6 5"/>`;
+    else if(paths&&d.route&&d.route.length) path=`<path d="${customRouteD(d)}" fill="none" stroke="rgba(255,120,120,.85)" stroke-width="2.5" stroke-dasharray="6 5"/>`;
     s+=path+`<g data-lab="ol_${i}" style="cursor:pointer">`
       +((revealDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#19c37d" stroke-width="4"/>`:"")
       +((wrongDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#e23b2e" stroke-width="4"/>`:"")
@@ -820,7 +860,7 @@ function renderOlQuiz(rep){
   olChipsFor(rep).forEach(r=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=olRuleName(r); b.onclick=()=>answerOl({t:"rule",r:r}); cc.appendChild(b); });
 }
 function isOlTest(){ return MODE==="test" && test && test.kind==="protect"; }
-function olHasStunts(state){ return ((state&&state.defs)||[]).some(d=>d.route&&d.route.length); }
+function olHasStunts(state, stunt){ return (stunt && Object.keys(stunt).length>0) || ((state&&state.defs)||[]).some(d=>d.route&&d.route.length); }
 function scoreOl(key,sel){ return (key.t===sel.t)&&(key.t==="def" ? +sel.di===+key.di : sel.r===key.r); }
 function olAnsTxt(k,defs){ return k.t==="def"?("block "+((defs[+k.di]||{}).lab||"that man")):olRuleName(k.r); }
 function olChoiceTxt(sel,defs){ return sel.t==="def"?("block "+((defs[+sel.di]||{}).lab||"?")):olRuleName(sel.r); }
@@ -828,11 +868,11 @@ function olRing(di,color){ const g=document.querySelector('#field g[data-lab="ol
 function olClearRings(){ [].forEach.call(document.querySelectorAll("#field .olreveal"),e=>e.remove()); }
 function olReveal(k,sel){ if(k.t==="def") olRing(+k.di,"#19c37d"); if(sel.t==="def" && !(k.t==="def"&&+sel.di===+k.di)) olRing(+sel.di,"#e23b2e"); }
 let OLANIM=null;
-function animateOlStunts(state, onDone, svgId){
+function animateOlStunts(state, onDone, svgId, stunt){
   svgId=svgId||"field";
   if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; }
   const defs=(state&&state.defs)||[];
-  const paths=defs.map(d=>(d.route&&d.route.length)?flattenRoute(d.x,d.y,d.route):null);
+  const paths=defs.map((d,i)=>{ const r=(stunt&&stunt[i])||d.route; return (r&&r.length)?flattenRoute(d.x,d.y,r):null; });
   const dur=1500, start=performance.now();
   function frame(now){ let t=(now-start)/dur; if(t>1)t=1; const e=easeIO(t);
     defs.forEach((d,i)=>{ if(!paths[i]) return; const pt=along(paths[i],e); const g=document.querySelector('#'+svgId+' g[data-lab="ol_'+i+'"]'); if(g) g.setAttribute("transform","translate("+(pt.x-d.x)+" "+(pt.y-d.y)+")"); });
@@ -845,7 +885,7 @@ function olSnap(){
   document.getElementById("snapBtn").classList.add("hidden");
   const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
   document.getElementById("prompt").textContent="Stunt developing — watch the front move…";
-  animateOlStunts(rep.play.state, function(){ OLPHASE="post"; document.getElementById("prompt").textContent="After the stunt — "+rep.blocker+", who's your man now?"; document.getElementById("replayBtn").classList.remove("hidden"); });
+  animateOlStunts(rep.play.state, function(){ OLPHASE="post"; document.getElementById("prompt").textContent="After the stunt — "+rep.blocker+", who's your man now?"; document.getElementById("replayBtn").classList.remove("hidden"); }, "field", rep.play.ol&&rep.play.ol.stunt);
 }
 function answerOl(sel){
   if(!isOlTest()) return;
@@ -857,7 +897,7 @@ function answerOl(sel){
     const k=rep.key, correct=scoreOl(k,sel);
     olReveal(k,sel);
     rep._pre={correct:correct, chose:olChoiceTxt(sel,defs), answer:olAnsTxt(k,defs)};
-    if(rep.postKey && olHasStunts(rep.play.state)){
+    if(rep.postKey && olHasStunts(rep.play.state, rep.play.ol&&rep.play.ol.stunt)){
       OLPHASE="await-snap";
       const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
       fb.innerHTML="<h4>"+(correct?"✓ Pre-snap: right man":"✗ Pre-snap: not your man")+" — "+esc(rep.blocker)+": "+esc(rep._pre.answer)+"</h4><div>Now ▶ Snap — read the stunt and pick up your new man.</div>";
@@ -1131,6 +1171,7 @@ function setMode(m){
   document.getElementById("testLenWrap").classList.toggle("hidden", m!=="test");
   document.getElementById("kindWrap").classList.toggle("hidden", m!=="test");
   document.getElementById("startBtn").textContent = m==="test" ? "Start test" : "Start training";
+  if(m==="test") buildPosFilter();
   if(m==="results"){ swap("results"); showResults(); }
   else if(m==="author"){ swap("author"); loadAuthor(); }
   else swap("setup");
@@ -1144,6 +1185,32 @@ function buildChips(){
   COVERAGES.forEach(cv=>{ const b=document.createElement("button"); b.className="chip"+(enabledCoverages.has(cv)?" on":""); b.textContent=cv; b.onclick=()=>{ if(enabledCoverages.has(cv)&&enabledCoverages.size>1){enabledCoverages.delete(cv);b.classList.remove("on");} else {enabledCoverages.add(cv);b.classList.add("on");} }; vc.appendChild(b); });
 }
 
+/* ---------- position drill-down ---------- */
+const POSKINDS={QB:["reads","coverage","routes","protect"],RB:["routes","protect"],WR:["routes","coverage"],TE:["routes","protect"],OL:["protect"],DL:["protect"],LB:["coverage","protect"],DB:["coverage","routes"],ALL:["reads","coverage","routes","protect"]};
+const POSLIST=["QB","RB","WR","TE","OL","DL","LB","DB"];
+let POSFILTER="ALL";
+function selectKind(kind){
+  TESTKIND=kind;
+  [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x.dataset.kind===kind));
+  const rq=(kind==="routes");
+  const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
+  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=rq?"Uses plays saved from your Playbook — the concept & coverage filters above don't apply.":(kind==="protect"?"Who do you block? A coach places the opponent's front on a play (Playbook) and keys the answers under Author → OL keys. Filters above don't apply.":"");
+  if(rq){ loadRoutePlays().then(buildPosChips); }
+}
+function applyPosFilter(pos){
+  POSFILTER=pos;
+  [].forEach.call(document.querySelectorAll("#posFilter button"),b=>b.classList.toggle("on",b.dataset.pos===pos));
+  const allowed=POSKINDS[pos]||POSKINDS.ALL;
+  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>{ b.style.display = allowed.indexOf(b.dataset.kind)>=0 ? "" : "none"; });
+  if(allowed.indexOf(TESTKIND)<0) selectKind(allowed[0]);
+}
+function buildPosFilter(){
+  const host=document.getElementById("posFilter"); if(!host) return;
+  let mine=""; try{ mine=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
+  host.innerHTML="";
+  POSLIST.concat(["ALL"]).forEach(p=>{ const b=document.createElement("button"); b.className="chip"; b.dataset.pos=p; b.textContent=(p==="ALL"?"All":p)+(p===mine?" ★":""); b.onclick=()=>applyPosFilter(p); host.appendChild(b); });
+  applyPosFilter((mine&&POSKINDS[mine])?mine:"ALL");
+}
 /* ---------- init ---------- */
 function init(){
   buildChips();
@@ -1152,12 +1219,9 @@ function init(){
   document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; };
   document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
   document.getElementById("snapBtn").onclick=snapPlay;
-  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>{ TESTKIND=b.dataset.kind; [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x===b));
-    const rq=TESTKIND==="routes";
-    document.getElementById("rqWrap").classList.toggle("hidden",!rq);
-    document.getElementById("kindNote").textContent=rq?"Uses plays saved from your Playbook — the concept & coverage filters above don't apply.":(TESTKIND==="protect"?"Who do you block? A coach places the opponent's front on the play (Playbook) and keys the answers under Author → OL keys. Filters above don't apply.":"");
-    if(rq){ loadRoutePlays().then(buildPosChips); } });
-  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
+  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>selectKind(b.dataset.kind));
+  buildPosFilter();
+  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
   document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ if(isOlTest()) answerOl({t:"def",di:parseInt(L.slice(3),10)}); return; } if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
   window.OFFGRD_APP={kind:"qb"};
