@@ -399,13 +399,14 @@ function asnFeedback(rep){
   }catch(e){}
   return s;
 }
-function renderCustomField(state, coverage, revealLab, targetId, los){
+function renderCustomField(state, coverage, revealLab, targetId, los, covOnTop){
   los=los||380; state=state||{}; const players=state.players||[];
   let s="";
   for(let y=40;y<=600;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
   s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
   const skill=players.filter(p=>p.type==="route"||p.type==="rb");
-  if(coverage) s+=drawCoverage(coverage, skill.map(p=>({x:p.x,y:p.y})), los);
+  const covSVG=coverage?drawCoverage(coverage, skill.map(p=>({x:p.x,y:p.y})), los):"";
+  if(covSVG && !covOnTop) s+=covSVG;
   players.filter(p=>p.ol||p.type==="block").forEach(p=>{ s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/>`; });
   const qb=players.find(p=>p.type==="qb"); if(qb) s+=dot(qb.x,qb.y,"QB","#0e1f3a",13);
   skill.forEach(p=>{
@@ -414,6 +415,7 @@ function renderCustomField(state, coverage, revealLab, targetId, los){
     s+=`<circle cx="${p.x}" cy="${p.y}" r="12" fill="#c8102e" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${p.lab}</text>`;
     s+=`<g data-lab="${p.lab}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="${isR?'rgba(25,195,125,.9)':'rgba(255,255,255,.18)'}" stroke="${isR?'#0b6b3f':'#fff'}" stroke-width="2.5"/><text x="${end.x}" y="${end.y+5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${p.lab}</text></g>`;
   });
+  if(covSVG && covOnTop) s+=covSVG;
   document.getElementById(targetId||"field").innerHTML=s;
 }
 function renderRep(rep, revealLab){
@@ -526,15 +528,17 @@ function editPlay(row){
     const r1=document.createElement("div"); r1.className="row"; r1.style.margin="6px 0"; r1.dataset.cov=cv;
     const nm=document.createElement("span"); nm.style.cssText="width:78px;font-weight:800;font-size:13px;cursor:pointer"; nm.textContent=cv;
     const sel=document.createElement("select"); sel.className="btn"; sel.innerHTML='<option value="">— skip —</option>'+labs.map(l=>`<option${reads[cv]&&reads[cv].t===l?" selected":""}>${l}</option>`).join("");
+    const altV=(reads[cv]&&reads[cv].alt&&reads[cv].alt[0])||"";
+    const sel2=document.createElement("select"); sel2.className="btn"; sel2.title="second correct answer (for mirrored routes)"; sel2.innerHTML='<option value="">— or also —</option>'+labs.map(l=>`<option${altV===l?" selected":""}>${l}</option>`).join("");
     const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder="coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
-    r1._sel=sel; r1._note=note; r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(note);
-    nm.onclick=()=>renderCustomField(state, cv, sel.value||null, "authField", 380);
-    sel.onchange=()=>renderCustomField(state, cv, sel.value||null, "authField", 380);
+    r1._sel=sel; r1._sel2=sel2; r1._note=note; r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(sel2); r1.appendChild(note);
+    nm.onclick=()=>renderCustomField(state, cv, sel.value||null, "authField", 380, true);
+    sel.onchange=()=>renderCustomField(state, cv, sel.value||null, "authField", 380, true);
     cr.appendChild(r1);
   });
-  renderCustomField(state, Object.keys(reads)[0]||"Cover 3", null, "authField", 380);
+  renderCustomField(state, Object.keys(reads)[0]||"Cover 3", null, "authField", 380, true);
   document.getElementById("saveReads").onclick=async()=>{
-    const out={}; [].forEach.call(cr.children,r1=>{ const t=r1._sel.value, why=r1._note.value.trim(); if(t) out[r1.dataset.cov]={t,why}; });
+    const out={}; [].forEach.call(cr.children,r1=>{ const t=r1._sel.value, a=r1._sel2.value, why=r1._note.value.trim(); if(t){ const o={t,why}; if(a&&a!==t) o.alt=[a]; out[r1.dataset.cov]=o; } });
     const msg=document.getElementById("saveReadsMsg"); msg.textContent="Saving…";
     try{ await window.QB.savePlayReads(row.id,out); row.qb_reads=out; msg.textContent="Saved ✓ — now available in Train/Test under “Our plays”."; }
     catch(e){ msg.textContent=e.message||"Save failed"; }
@@ -949,7 +953,7 @@ function pickRep(){
     const covs=(c.custom?Object.keys(c.reads):COVERAGES).filter(cv=>enabledCoverages.has(cv));
     if(!covs.length) continue;
     const cov=covs[Math.floor(Math.random()*covs.length)];
-    if(c.reads[cov]&&c.reads[cov].t) return {concept:c, coverage:cov, correct:c.reads[cov].t};
+    if(c.reads[cov]&&c.reads[cov].t){ const rd=c.reads[cov]; return {concept:c, coverage:cov, correct:rd.t, accept:[rd.t].concat(rd.alt||[])}; }
   }
   return null;
 }
@@ -1009,19 +1013,24 @@ function answerCoverage(cv){
 }
 function answer(lab){
   if(answered || !SNAPPED || isCovTest()) return; answered=true;
-  const correct = lab===rep.correct;
+  const accept=rep.accept||[rep.correct];
+  const correct = accept.indexOf(lab)>=0;
   const read=rep.concept.reads[rep.coverage];
+  const alts=accept.filter(a=>a!==rep.correct);
+  const ansTxt=rep.correct+(alts.length?(" or "+alts.join(" / ")):"");
   revealCorrect(SCENE, rep.correct);
+  if(correct && lab!==rep.correct) revealCorrect(SCENE, lab);
   if(MODE==="train"){
     const fb=document.getElementById("fb");
     fb.className="fb show "+(correct?"ok":"bad");
-    fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${rep.correct}</b></h4>`+
+    fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${ansTxt}</b></h4>`+
       `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
+      (alts.length?`<div class="prog">Mirrored concept — either side is a correct throw.</div>`:"")+
       (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" → ")}</div>`:"")+
       asnFeedback(rep);
     document.getElementById("nextBtn").classList.remove("hidden");
   } else if(MODE==="test"){
-    test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:rep.correct});
+    test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:ansTxt});
     test.i++;
     if(test.i>=test.queue.length){ finishTest(); }
     else { showRep(test.queue[test.i]); updateProgress(); }
