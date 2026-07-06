@@ -22,6 +22,8 @@
   .seg button.on{background:var(--navy);color:#fff}
   .lbl{font-size:11px;font-weight:800;letter-spacing:.5px;color:#7a8494;text-transform:uppercase;margin:0 0 6px}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
+  #kindSeg{display:flex;flex-wrap:wrap;max-width:100%}
+  @media(max-width:520px){ .seg button{padding:8px 11px;font-size:13px} #kindSeg button{flex:1 1 auto;text-align:center} }
   .chip{border:1px solid #d7dbe2;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer}
   .chip.on{background:var(--carolina);border-color:var(--carolina);color:var(--navy)}
   .btn{border:1px solid #d7dbe2;background:#fff;color:#16181d;padding:10px 15px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer}
@@ -84,10 +86,10 @@
       <div class="chips" id="posFilter"></div>
       <div class="lbl" style="margin-top:14px">Test type</div>
       <div class="seg" id="kindSeg">
-        <button class="on" data-kind="reads">Reads — where's the throw</button>
-        <button data-kind="coverage">Coverage ID — name the coverage</button>
-        <button data-kind="routes">Routes — know your install</button>
-        <button data-kind="protect">Protection — O-line</button>
+        <button class="on" data-kind="reads">Reads</button>
+        <button data-kind="coverage">Coverage ID</button>
+        <button data-kind="routes">Routes</button>
+        <button data-kind="protect">Protection</button>
       </div>
       <div class="tag" id="kindNote" style="margin-top:6px"></div>
       <div id="rqWrap" class="hidden">
@@ -1194,7 +1196,8 @@ function selectKind(kind){
   [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x.dataset.kind===kind));
   const rq=(kind==="routes");
   const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
-  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=rq?"Uses plays saved from your Playbook — the concept & coverage filters above don't apply.":(kind==="protect"?"Who do you block? A coach places the opponent's front on a play (Playbook) and keys the answers under Author → OL keys. Filters above don't apply.":"");
+  const NOTES={reads:"Where's the throw — read the coverage, snap, then pick the target.",coverage:"Name the coverage after you snap and read it.",routes:"Your Playbook plays — which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author → OL keys. (Filters don't apply.)"};
+  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=NOTES[kind]||"";
   if(rq){ loadRoutePlays().then(buildPosChips); }
 }
 function applyPosFilter(pos){
