@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=28"></script>
-<script src="supabase.js?v=28"></script>
+<script src="OFFGRD-config.js?v=29"></script>
+<script src="supabase.js?v=29"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -272,7 +272,7 @@ function renderBuiltin(rep, revealLab){
 /* ---------- custom (coach-authored) plays ---------- */
 let CUSTOM=[]; let SOURCE="builtin";
 /* ---------- THIS WEEK (Phase B): tests scoped to the active week plan ---------- */
-let WEEKPLAN=null, WEEKMODE=false, WEEKCOVS=[], WEEKSET={ids:new Set(),names:new Set()};
+let WEEKPLAN=null, WEEKMODE=false, WEEKCOVS=[], WEEKDEF={}, WEEKSET={ids:new Set(),names:new Set()};
 function buildWeekSet(){ WEEKSET={ids:new Set(),names:new Set()};
   if(!WEEKPLAN) return;
   (WEEKPLAN.buckets||[]).forEach(b=>{ (b.plays||[]).forEach(p=>{ if(p.id) WEEKSET.ids.add(String(p.id)); if(p.name) WEEKSET.names.add(String(p.name).toLowerCase()); }); });
@@ -371,7 +371,7 @@ function initWeek(){
   if(!(window.QB && window.QB.ready && window.QB.weekContext)){ if(_wkTry++<14) setTimeout(initWeek, 500); return; }
   window.QB.weekContext().then(wc=>{
     if(!wc || !wc.plan) return;
-    WEEKPLAN=wc.plan; buildWeekSet();
+    WEEKPLAN=wc.plan; WEEKDEF=(wc.plan&&wc.plan.def_aligns)||{}; buildWeekSet();
     WEEKCOVS=[]; const seen={};
     (wc.coverages||[]).forEach(c=>{ const n=normCov(c.k); if(n && !seen[n]){ seen[n]=1; WEEKCOVS.push(n); } });
     renderWeekBar();
@@ -466,23 +466,71 @@ async function loadAuthor(){
   const ap=document.getElementById("authorPanel"); ap.innerHTML='<p class="tag">Loading…</p>';
   if(!(window.QB&&window.QB.ready)){ ap.innerHTML='<p class="tag">Cloud not configured.</p>'; return; }
   let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
-  if(!ctx||!ctx.user){ ap.innerHTML='<p class="tag">Sign in (top-right) to author reads.</p>'; return; }
+  if(!ctx||!ctx.user){ ap.innerHTML='<p class="tag">Sign in (top-right) to author.</p>'; return; }
   if(!ctx.team){ ap.innerHTML='<p class="tag">Create or join a program first (Team button).</p>'; return; }
   const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
-  if(!coach){ ap.innerHTML='<p class="tag">Only coaches can author reads. Players use Train and Test.</p>'; return; }
+  if(!coach){ ap.innerHTML='<p class="tag">Only coaches can author. Players use Train and Test.</p>'; return; }
+  const seg='<div class="seg" id="authSeg" style="margin:6px 0 4px;flex-wrap:wrap"><button data-ak="reads"'+(AUTHKIND==="reads"?' class="on"':'')+'>QB reads</button><button data-ak="ol"'+(AUTHKIND==="ol"?' class="on"':'')+'>OL keys</button><button data-ak="weekd"'+(AUTHKIND==="weekd"?' class="on"':'')+'>This week’s D</button></div>';
+  const wireSeg=()=>{ [].forEach.call(document.querySelectorAll("#authSeg button"),b=>{ b.onclick=()=>{ AUTHKIND=b.dataset.ak; loadAuthor(); }; }); };
+  if(AUTHKIND==="weekd"){
+    ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+seg+'<div id="weekdBody"></div>';
+    wireSeg(); editWeekDef(); return;
+  }
   let rows; try{ rows=await window.QB.plays(); }catch(e){ ap.innerHTML='<p class="tag">Couldn’t load plays: '+(e.message||e)+'</p>'; return; }
-  if(!rows.length){ ap.innerHTML='<p class="tag">No saved plays yet. Build and save plays in the Playbook, then author their reads here.</p>'; return; }
-  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'
-    +'<div class="seg" id="authSeg" style="margin:6px 0 4px"><button data-ak="reads"'+(AUTHKIND==="reads"?' class="on"':'')+'>QB reads</button><button data-ak="ol"'+(AUTHKIND==="ol"?' class="on"':'')+'>OL keys — who blocks whom</button></div>'
+  if(!rows.length){ ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+seg+'<p class="tag">No saved plays yet. Build and save plays in the Playbook, then author here.</p>'; wireSeg(); return; }
+  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+seg
     +'<p class="tag">'+(AUTHKIND==="reads"?"Pick a play, then set the correct target for each coverage.":"Pick a play — its drawn defense is the look. Tap a blocker, then tap his man on the field (or a rule).")+'</p>'
     +'<div id="playPick" class="chips" style="margin-top:10px"></div><div id="authEditor"></div>';
-  [].forEach.call(document.querySelectorAll("#authSeg button"),b=>{ b.onclick=()=>{ AUTHKIND=b.dataset.ak; loadAuthor(); }; });
+  wireSeg();
   const pk=document.getElementById("playPick");
   rows.forEach(r=>{ const b=document.createElement("button"); b.className="chip";
     const done=AUTHKIND==="reads"?(r.qb_reads&&Object.keys(r.qb_reads).length):(r.ol_keys&&r.ol_keys.keys&&Object.keys(r.ol_keys.keys).length);
     b.textContent=(r.name||"Play")+(done?" ✓":"");
     b.onclick=()=>{ [].forEach.call(pk.children,x=>x.classList.remove("on")); b.classList.add("on"); if(AUTHKIND==="reads") editPlay(r); else editOlKeys(r); };
     pk.appendChild(b); });
+}
+const STDFORM={front:"none",players:[
+  {type:"route",lab:"X",x:120,y:380,route:[{x:120,y:250}]},{type:"route",lab:"H",x:290,y:380,route:[{x:290,y:300}]},
+  {type:"route",lab:"Y",x:710,y:380,route:[{x:710,y:300}]},{type:"route",lab:"Z",x:880,y:380,route:[{x:880,y:250}]},
+  {type:"rb",lab:"RB",x:500,y:432,route:[{x:560,y:405}]},{type:"qb",lab:"QB",x:500,y:470},
+  {ol:true,lab:"LT",x:430,y:380},{ol:true,lab:"LG",x:465,y:380},{ol:true,lab:"C",x:500,y:380},{ol:true,lab:"RG",x:535,y:380},{ol:true,lab:"RT",x:570,y:380}
+]};
+function wireDrag(fsvg, store, getCov){
+  let dragI=null;
+  fsvg.addEventListener("pointerdown", e=>{ const g=e.target.closest&&e.target.closest(".dragdef"); if(!g) return; dragI=+g.dataset.di; try{ g.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+  fsvg.addEventListener("pointermove", e=>{ if(dragI==null) return; const p=svgPoint(fsvg,e.clientX,e.clientY); if(!p) return; const x=Math.max(24,Math.min(976,Math.round(p.x))), y=Math.max(44,Math.min(364,Math.round(p.y))); const cv=getCov(); if(!cv) return; store[cv]=store[cv]||{}; store[cv][dragI]={x,y}; const g=fsvg.querySelector('.dragdef[data-di="'+dragI+'"]'); if(g) g.setAttribute("transform","translate("+x+" "+y+")"); });
+  const endDrag=()=>{ dragI=null; }; fsvg.addEventListener("pointerup", endDrag); fsvg.addEventListener("pointercancel", endDrag);
+}
+function editWeekDef(){
+  const body=document.getElementById("weekdBody");
+  if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet — a coach starts one in <b>Scout → Game Plan → This Week</b>, then set the opponent’s alignments here.</p>'; return; }
+  WEEKDEF=WEEKDEF||{};
+  const allCovs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
+  const shown=(WEEKCOVS&&WEEKCOVS.length)?WEEKCOVS.slice():[];
+  Object.keys(WEEKDEF).forEach(c=>{ if(shown.indexOf(c)<0) shown.push(c); });
+  if(!shown.length) shown.push("Cover 3");
+  let curCov=shown[0];
+  body.innerHTML='<p class="tag" style="margin-top:8px">Set how <b>'+esc(WEEKPLAN.opponent||"this opponent")+'</b> lines up in each look — drag any defender. The base coverage still plays out; this is the pre-snap picture your players see in Train/Test with 🎯 Week mode on.</p>'
+    +'<div class="lbl" style="margin-top:8px">Their looks this week</div><div class="chips" id="wdCovs" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:6px;font-size:11px">Add a look</div><div class="chips" id="wdAdd" style="margin:4px 0"></div>'
+    +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px"><span class="tag" id="wdCur"></span><button class="btn" id="wdReset" title="reset this look to base">↺ Base look</button></div>'
+    +'<div class="field-wrap"><svg id="authField" viewBox="0 0 1000 640"></svg></div>'
+    +'<div class="row" style="margin-top:10px"><button class="btn go" id="wdSave">Save this week’s D</button><span id="wdMsg" class="tag"></span></div>';
+  const paintCovChips=()=>{
+    const host=document.getElementById("wdCovs"); host.innerHTML="";
+    shown.forEach(cv=>{ const b=document.createElement("button"); b.className="chip"+(cv===curCov?" on":""); b.textContent=cv+(WEEKDEF[cv]?" ✓":""); b.onclick=()=>{ curCov=cv; render(); }; host.appendChild(b); });
+    const add=document.getElementById("wdAdd"); add.innerHTML="";
+    allCovs.filter(c=>shown.indexOf(c)<0).forEach(cv=>{ const b=document.createElement("button"); b.className="chip"; b.textContent="+ "+cv; b.onclick=()=>{ shown.push(cv); curCov=cv; render(); }; add.appendChild(b); });
+  };
+  const render=()=>{ const cur=document.getElementById("wdCur"); if(cur) cur.textContent="Editing: "+curCov+(WEEKDEF[curCov]?" · customized":" · base"); readsAuthorRender(STDFORM, curCov, WEEKDEF[curCov], "authField"); paintCovChips(); };
+  wireDrag(document.getElementById("authField"), WEEKDEF, ()=>curCov);
+  document.getElementById("wdReset").onclick=()=>{ delete WEEKDEF[curCov]; render(); };
+  document.getElementById("wdSave").onclick=async()=>{
+    const msg=document.getElementById("wdMsg"); msg.textContent="Saving…";
+    try{ await window.QB.saveWeekDef(WEEKPLAN.id, WEEKDEF); WEEKPLAN.def_aligns=JSON.parse(JSON.stringify(WEEKDEF)); msg.textContent="Saved ✓ — live in Train/Test under 🎯 Week mode."; }
+    catch(e){ msg.textContent=e.message||"Save failed"; }
+  };
+  render();
 }
 let AUTHKIND="reads";
 function editOlKeys(row){
@@ -667,7 +715,9 @@ function buildScene(rep, opts){
   const off=offenseActors(rep);
   const recvAlign=off.map(o=>({x:o.pts[0].x,y:o.pts[0].y}));
   const cov=coverageActors(rep.coverage, recvAlign, los);
-  const _al=(rep.concept.reads&&rep.concept.reads[rep.coverage]&&rep.concept.reads[rep.coverage].align)||null;
+  const weekAl=(WEEKMODE && typeof WEEKDEF!=="undefined" && WEEKDEF && WEEKDEF[rep.coverage])||null;   /* this week's opponent look (Week mode) */
+  const playAl=(rep.concept.reads&&rep.concept.reads[rep.coverage]&&rep.concept.reads[rep.coverage].align)||null;   /* per-play override */
+  const _al=(weekAl||playAl)?Object.assign({}, weekAl||{}, playAl||{}):null;   /* per-play wins per defender */
   if(_al) cov.defs.forEach((d,i)=>{ if(_al[i]){ d._ax=_al[i].x; d._ay=_al[i].y; } });
   let s="";
   for(let y=40;y<=viewH-40;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
@@ -1196,7 +1246,7 @@ async function showResults(){
   const rows=data.rows||[];
   const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
   /* Phase C: make sure the active week plan is loaded, then build the readiness block */
-  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; buildWeekSet(); renderWeekBar(); } }catch(e){} }
+  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; WEEKDEF=(wc.plan&&wc.plan.def_aligns)||{}; buildWeekSet(); renderWeekBar(); } }catch(e){} }
   const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id);
   if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<p class="tag">No test results yet. Take a test in Test mode.</p>'; return; }
   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results — ${ctx.team.name}</h3>
@@ -1281,9 +1331,9 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=28"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=28"></script>
-<script type="module" src="OFFGRD-account.js?v=28"></script>
+<script src="OFFGRD-mobile.js?v=29"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=29"></script>
+<script type="module" src="OFFGRD-account.js?v=29"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

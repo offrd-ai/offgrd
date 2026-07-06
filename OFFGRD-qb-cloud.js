@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=28";
+import { Cloud } from "./OFFGRD-cloud.js?v=29";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -37,6 +37,9 @@ window.QB = {
   },
   async saveOlKeys(id, keys){
     return Cloud.updatePlayOlKeys(id, keys);
+  },
+  async saveWeekDef(planId, defAligns){
+    return Cloud.saveWeekPlan(planId, { def_aligns: defAligns });
   },
   /* Phase B: active week plan + observed coverage distribution for its opponent */
   async weekContext(){
