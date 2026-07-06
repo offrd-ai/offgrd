@@ -234,15 +234,16 @@ function manDefs(recv,deep){
   let s=""; recv.forEach(p=>{ const dx=p.x+(p.x<500?14:-14), dy=p.y-26; s+=`<line x1="${dx}" y1="${dy}" x2="${p.x}" y2="${p.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`+dot(dx,dy,"M",DB,11); });
   return s;
 }
+function uzone(x,y,rx,ry){ return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.32)" stroke-width="1.2" stroke-dasharray="5 4"/>`; }
 function drawCoverage(cov,recv,los){
   los=los||LOS;
   let s=dline(los);
   if(cov==="Cover 0"){ s+=manDefs(recv); s+=dot(500,326,"B",LB,12)+`<path d="M500 316 L500 292" stroke="#e23b2e" stroke-width="4" stroke-linecap="round"/><path d="M493 300 L500 288 L507 300" fill="none" stroke="#e23b2e" stroke-width="4" stroke-linejoin="round"/>`; }
-  else if(cov==="Cover 1"){ s+=manDefs(recv,true); s+=dot(500,150,"FS",DB,13)+dot(500,300,"R",LB,12); }
-  else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"½")+zone(700,150,120,60,"½")+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
-  else if(cov==="Cover 3"){ s+=zone(230,150,110,58,"⅓")+zone(500,140,110,58,"⅓")+zone(770,150,110,58,"⅓")+dot(190,300,"C",DB,12)+dot(810,300,"C",DB,12)+dot(400,300,"H",LB,12)+dot(600,300,"H",LB,12); }
-  else if(cov==="Cover 4"){ s+=zone(180,150,95,55,"¼")+zone(400,148,95,55,"¼")+zone(600,148,95,55,"¼")+zone(820,150,95,55,"¼")+dot(250,305,"C",LB,12)+dot(500,305,"H",LB,12)+dot(750,305,"C",LB,12); }
-  else if(cov==="Tampa 2"){ s+=zone(300,150,115,58,"½")+zone(700,150,115,58,"½")+dot(500,205,"M",LB,13)+dot(170,300,"F",DB,12)+dot(830,300,"F",DB,12)+dot(400,305,"H",LB,12)+dot(600,305,"H",LB,12); }
+  else if(cov==="Cover 1"){ s+=manDefs(recv,true); s+=uzone(500,300,80,40)+dot(500,150,"FS",DB,13)+dot(500,300,"R",LB,12); }
+  else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"½")+zone(700,150,120,60,"½")+uzone(160,290,80,40)+uzone(840,290,80,40)+uzone(380,300,78,40)+uzone(500,300,78,40)+uzone(620,300,78,40)+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
+  else if(cov==="Cover 3"){ s+=zone(230,150,110,58,"⅓")+zone(500,140,110,58,"⅓")+zone(770,150,110,58,"⅓")+uzone(190,300,84,40)+uzone(810,300,84,40)+uzone(400,300,80,40)+uzone(600,300,80,40)+dot(190,300,"C",DB,12)+dot(810,300,"C",DB,12)+dot(400,300,"H",LB,12)+dot(600,300,"H",LB,12); }
+  else if(cov==="Cover 4"){ s+=zone(180,150,95,55,"¼")+zone(400,148,95,55,"¼")+zone(600,148,95,55,"¼")+zone(820,150,95,55,"¼")+uzone(250,305,88,40)+uzone(500,305,88,40)+uzone(750,305,88,40)+dot(250,305,"C",LB,12)+dot(500,305,"H",LB,12)+dot(750,305,"C",LB,12); }
+  else if(cov==="Tampa 2"){ s+=zone(300,150,115,58,"½")+zone(700,150,115,58,"½")+uzone(170,300,80,40)+uzone(830,300,80,40)+uzone(400,305,80,40)+uzone(600,305,80,40)+dot(500,205,"M",LB,13)+dot(170,300,"F",DB,12)+dot(830,300,"F",DB,12)+dot(400,305,"H",LB,12)+dot(600,305,"H",LB,12); }
   return s;
 }
 
@@ -569,6 +570,7 @@ function offenseActors(rep){
 function coverageActors(cov, recv, los){
   const defs=[]; let shade="";
   const Z=(x,y,rx,ry,l)=>{ shade+=zone(x,y,rx,ry,l); };
+  const U=(x,y,rx,ry)=>{ shade+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.32)" stroke-width="1.2" stroke-dasharray="5 4"/>`; };
   const DLc="#c8963c", LB="#b8860b", DB="#123a6b", RED="#d9382c";
   const push=(fx,fy,lab,fill,kind,extra)=>defs.push(Object.assign({fx,fy,lab,fill,kind,r:(kind==="deep"?13:12)},extra||{}));
   [430,485,540,595].forEach(x=>push(x,los-16,"",DLc,"dl"));   /* 4-man rush */
@@ -581,23 +583,27 @@ function coverageActors(cov, recv, los){
     recv.forEach((p,idx)=>push(p.x+(p.x<500?14:-14),p.y-26,"M",DB,"man",{manIdx:idx}));
     push(500,148,"FS",DB,"deep");
     const extra=Math.max(0,6-nMan);
-    if(extra>0) push(500,300,"R",LB,"zone");                 /* robber / rat */
+    if(extra>0){ U(500,300,80,40); push(500,300,"R",LB,"zone"); }   /* robber / rat */
     for(let k=1;k<extra;k++) push(452+k*70, los-28, "B", RED, "rush");
   } else if(cov==="Cover 2"){
     Z(300,150,120,60,"½");Z(700,150,120,60,"½");
+    U(150,288,80,40);U(850,288,80,40);U(400,300,78,40);U(500,300,78,40);U(600,300,78,40);
     push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep");
     push(150,288,"C",DB,"zone"); push(850,288,"C",DB,"zone");
     push(400,300,"H",LB,"zone"); push(500,300,"M",LB,"zone"); push(600,300,"H",LB,"zone");
   } else if(cov==="Cover 3"){
     Z(230,150,110,58,"⅓");Z(500,140,110,58,"⅓");Z(770,150,110,58,"⅓");
+    U(240,300,84,40);U(760,300,84,40);U(410,302,80,40);U(590,302,80,40);
     push(200,150,"C",DB,"deep"); push(500,140,"FS",DB,"deep"); push(800,150,"C",DB,"deep");
     push(240,300,"F",LB,"zone"); push(760,300,"F",LB,"zone"); push(410,302,"H",LB,"zone"); push(590,302,"H",LB,"zone");
   } else if(cov==="Cover 4"){
     Z(180,150,95,55,"¼");Z(400,148,95,55,"¼");Z(600,148,95,55,"¼");Z(820,150,95,55,"¼");
+    U(280,300,88,40);U(500,305,88,40);U(720,300,88,40);
     push(180,158,"C",DB,"deep"); push(400,152,"S",DB,"deep"); push(600,152,"S",DB,"deep"); push(820,158,"C",DB,"deep");
     push(280,300,"N",LB,"zone"); push(500,305,"M",LB,"zone"); push(720,300,"N",LB,"zone");
   } else if(cov==="Tampa 2"){
     Z(300,150,115,58,"½");Z(700,150,115,58,"½");
+    U(180,300,80,40);U(820,300,80,40);U(400,305,80,40);U(600,305,80,40);
     push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep"); push(500,202,"M",LB,"deep");
     push(180,300,"F",DB,"zone"); push(820,300,"F",DB,"zone"); push(400,305,"H",LB,"zone"); push(600,305,"H",LB,"zone");
   }
