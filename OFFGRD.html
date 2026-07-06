@@ -1223,6 +1223,7 @@ function weekGenHTML(){
     h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
     if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
     if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection — why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> — '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
     if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
   }
   h+=(genBtn?('<div class="no-print" style="margin-top:10px">'+genBtn+'</div>'):'')+'</details>';

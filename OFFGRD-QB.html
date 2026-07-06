@@ -323,6 +323,7 @@ async function openBriefing(){
     +(posNote?'<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin-top:10px"><b>'+esc(pos)+' notes:</b> '+esc(posNote)+'</div>':'')
     +'<div style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(src.narrative||"")+'</div>';
   if(Array.isArray(src.keys)&&src.keys.length){ h+='<div class="lbl" style="margin-top:12px">Keys to the game</div>'; src.keys.forEach((k,i)=>{ h+='<div style="font-weight:700;font-size:14px;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+  if((pos==="OL"||pos==="")&&g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:12px">O-line — your protection this week</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> — '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
   h+='</div>';
   _briefEl.innerHTML=h;
   _briefEl.querySelector("#brX").onclick=()=>{ _briefEl.style.display="none"; };
