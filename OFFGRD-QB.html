@@ -730,7 +730,11 @@ function buildScene(rep, opts){
   const weekAl=(WEEKMODE && typeof WEEKDEF!=="undefined" && WEEKDEF && WEEKDEF[rep.coverage])||null;   /* this week's opponent look (Week mode) */
   const playAl=(rep.concept.reads&&rep.concept.reads[rep.coverage]&&rep.concept.reads[rep.coverage].align)||null;   /* per-play override */
   const _al=(weekAl||playAl)?Object.assign({}, weekAl||{}, playAl||{}):null;   /* per-play wins per defender */
-  if(_al) cov.defs.forEach((d,i)=>{ const o=_al[i]; if(!o) return; if(o.x!=null){ d._ax=o.x; d._ay=o.y; } if(o.lab) d.lab=o.lab; if(o.man && d.kind==="man"){ const j=recvAlign.findIndex(r=>r.lab===o.man); if(j>=0) d.manIdx=j; } });
+  if(_al) cov.defs.forEach((d,i)=>{ const o=_al[i]; if(!o) return;
+    if(d.kind==="man"){ if(o.man){ const j=recvAlign.findIndex(r=>r.lab===o.man); if(j>=0){ d.manIdx=j; const rp=recvAlign[j]; d.fx=rp.x+(rp.x<500?14:-14); d.fy=rp.y-26; } } }   /* man: align OVER the covered receiver (no absolute pos → no crossing) */
+    else if(o.x!=null){ d._ax=o.x; d._ay=o.y; }   /* zone: formation-independent absolute alignment */
+    if(o.lab) d.lab=o.lab;
+  });
   let s="";
   for(let y=40;y<=viewH-40;y+=53) s+=`<line x1="24" y1="${y}" x2="976" y2="${y}" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>`;
   s+=`<line x1="24" y1="${los}" x2="976" y2="${los}" stroke="#ffd24a" stroke-width="3"/>`;
