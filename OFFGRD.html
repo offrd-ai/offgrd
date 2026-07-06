@@ -266,6 +266,7 @@
   <div class="navbar no-print" id="navbar">
     <button class="on" data-view="scout" onclick="setView('scout')">Scout</button>
     <button data-view="plan" onclick="setView('plan')">Game Plan</button>
+    <button data-view="practice" onclick="setView('practice')">Practice</button>
     <button data-view="caller" onclick="setView('caller')">Caller</button>
     <button data-view="report" onclick="setView('report')">Report</button>
   </div>
@@ -344,6 +345,7 @@
   <div id="view-plan" style="display:none"></div>
   <div id="view-caller" style="display:none"></div>
   <div id="view-report" style="display:none"></div>
+  <div id="view-practice" style="display:none"></div>
 
   <!-- IMPORT MODAL -->
   <div class="modalwrap" id="modal">
@@ -1107,10 +1109,10 @@ let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY"};
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
 function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return rows.length?r.length/rows.length:0; }
-function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else render(); }
+function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
 function setView(v){
   CURRENT_VIEW=v;
-  ["scout","plan","caller","report"].forEach(id=>{ const el=document.getElementById("view-"+id); if(el) el.style.display=(id===v)?"":"none"; });
+  ["scout","plan","caller","report","practice"].forEach(id=>{ const el=document.getElementById("view-"+id); if(el) el.style.display=(id===v)?"":"none"; });
   const nv=document.getElementById("navbar"); if(nv) [].forEach.call(nv.querySelectorAll("button"),b=>{ if(b.dataset.view===v)b.classList.add("on"); else b.classList.remove("on"); });
   refreshView();
 }
@@ -1367,6 +1369,54 @@ function renderPlan(){
 }
 
 function setPlanSide(sde){ PLAN_SIDE=sde; renderPlan(); }
+/* ---------- Practice script (auto-drafted from the week plan; printable; live rep-marking) ---------- */
+function practiceSave(){ if(!WEEK) return; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(WEEK_EDIT && window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({practice:WEEK.practice}); }
+function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team — "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
+function practiceRedraft(){ if(!confirm("Re-draft the script from the current game plan? Replaces the periods (rep counts and marks reset).")) return; WEEK.practice=draftPractice(); practiceSave(); renderPractice(); }
+function practiceAddPeriod(){ WEEK.practice=WEEK.practice||draftPractice(); WEEK.practice.periods.push({name:"New period",plays:[]}); practiceSave(); renderPractice(); }
+function renderPractice(){
+  const host=document.getElementById("view-practice"); if(!host) return;
+  if(!WEEK){ host.innerHTML='<div class="panel"><p class="foot">No active week plan yet. Start one in <b>Game Plan &rarr; This week</b>, then build your practice script here.</p></div>'; return; }
+  if(!WEEK.practice||!Array.isArray(WEEK.practice.periods)) WEEK.practice=draftPractice();
+  const P=WEEK.practice, edit=WEEK_EDIT;
+  let totReps=0,totGood=0,totNeeds=0; P.periods.forEach(pd=>pd.plays.forEach(pl=>{ totReps+=(+pl.reps||0); totGood+=(+pl.good||0); totNeeds+=(+pl.needs||0); }));
+  let h='<div class="panel">';
+  h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(WEEK.opponent||"",30)}<span class="pl" style="font-size:18px"><b>${esc(WEEK.opponent||"This week")}</b> &mdash; practice script</span>${WEEK.game_date?`<span class="foot" style="margin-left:8px">game ${esc(WEEK.game_date)}${weekCountdown()?" ("+weekCountdown()+")":""}</span>`:""}<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button></div>`;
+  if(edit) h+=`<div class="seg no-print" style="margin-bottom:8px;flex-wrap:wrap"><button onclick="practiceRedraft()">&#8635; Re-draft from game plan</button><button onclick="practiceAddPeriod()">+ Add period</button></div>`;
+  h+=`<p class="foot">${P.periods.length} periods &middot; ${totReps} planned reps${(totGood+totNeeds)?` &middot; run ${totGood+totNeeds} (${totGood} &#10003; / ${totNeeds} &#9651;)`:""}</p>`;
+  if(!P.periods.length) h+='<p class="foot">No periods yet &mdash; add one, or re-draft from the game plan.</p>';
+  P.periods.forEach((pd,pi)=>{
+    h+=`<div style="border:1px solid #e2e5ea;border-radius:10px;padding:8px 10px;margin:8px 0">`;
+    h+=`<div class="row" style="justify-content:space-between;align-items:center;gap:6px">`;
+    h+= edit ? `<input class="prdname" data-pi="${pi}" value="${esc(pd.name)}" style="font-weight:800;font-size:15px;border:1px solid #e2e5ea;border-radius:6px;background:none;flex:1;padding:3px 6px">` : `<b style="font-size:15px">${esc(pd.name)}</b>`;
+    if(edit) h+=`<span class="no-print" style="white-space:nowrap"><button class="ghost" data-prdup="${pi}">&#8593;</button><button class="ghost" data-prddn="${pi}">&#8595;</button><button class="ghost" data-prddel="${pi}">&times;</button></span>`;
+    h+=`</div>`;
+    if(pd.plays.length){
+      h+=`<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:14px"><tr class="foot"><th style="text-align:left;padding-bottom:3px">Play</th><th style="width:56px">Reps</th><th style="width:170px">Mark</th></tr>`;
+      pd.plays.forEach((pl,pj)=>{
+        h+=`<tr style="border-top:1px solid #eef1f5"><td style="padding:5px 0">${esc(pl.name)}</td>`;
+        h+=`<td style="text-align:center">`+(edit?`<input class="prep" data-pi="${pi}" data-pj="${pj}" type="number" min="0" value="${+pl.reps||0}" style="width:46px;text-align:center">`:`${+pl.reps||0}`)+`</td>`;
+        h+=`<td style="text-align:center"><span class="mk" data-mk="good" data-pi="${pi}" data-pj="${pj}" style="cursor:pointer;color:#1d7a45;font-weight:800;user-select:none">&#10003; ${+pl.good||0}</span><span class="mk" data-mk="needs" data-pi="${pi}" data-pj="${pj}" style="cursor:pointer;color:#b8860b;font-weight:800;user-select:none;margin-left:12px">&#9651; ${+pl.needs||0}</span>${edit?`<button class="ghost no-print" data-pdel="${pi}:${pj}" style="margin-left:10px">&times;</button>`:""}</td></tr>`;
+      });
+      h+=`</table>`;
+    } else h+=`<p class="foot" style="margin:5px 0">No plays in this period yet.</p>`;
+    if(edit && PBOOK && PBOOK.length){ h+=`<select class="no-print paddsel" data-pi="${pi}" style="margin-top:6px;max-width:220px"><option value="">+ add a play…</option>${PBOOK.map(p=>`<option value="${esc(String(p.id||p.name))}">${esc(p.name)}</option>`).join("")}</select>`; }
+    h+=`</div>`;
+  });
+  h+='</div>';
+  host.innerHTML=h;
+  wirePractice(host);
+}
+function wirePractice(host){
+  [].forEach.call(host.querySelectorAll(".prdname"),el=>{ el.onchange=()=>{ WEEK.practice.periods[+el.dataset.pi].name=el.value; practiceSave(); }; });
+  [].forEach.call(host.querySelectorAll(".prep"),el=>{ el.onchange=()=>{ WEEK.practice.periods[+el.dataset.pi].plays[+el.dataset.pj].reps=Math.max(0,(+el.value)||0); practiceSave(); }; });
+  [].forEach.call(host.querySelectorAll(".mk"),el=>{ el.onclick=()=>{ const pl=WEEK.practice.periods[+el.dataset.pi].plays[+el.dataset.pj]; const k=el.dataset.mk; pl[k]=(+pl[k]||0)+1; practiceSave(); renderPractice(); }; });
+  [].forEach.call(host.querySelectorAll("[data-prdup]"),el=>{ el.onclick=()=>{ const i=+el.dataset.prdup, a=WEEK.practice.periods; if(i>0){ const t=a[i]; a[i]=a[i-1]; a[i-1]=t; practiceSave(); renderPractice(); } }; });
+  [].forEach.call(host.querySelectorAll("[data-prddn]"),el=>{ el.onclick=()=>{ const i=+el.dataset.prddn, a=WEEK.practice.periods; if(i<a.length-1){ const t=a[i]; a[i]=a[i+1]; a[i+1]=t; practiceSave(); renderPractice(); } }; });
+  [].forEach.call(host.querySelectorAll("[data-prddel]"),el=>{ el.onclick=()=>{ if(confirm("Delete this period?")){ WEEK.practice.periods.splice(+el.dataset.prddel,1); practiceSave(); renderPractice(); } }; });
+  [].forEach.call(host.querySelectorAll("[data-pdel]"),el=>{ el.onclick=()=>{ const a=el.dataset.pdel.split(":").map(Number); WEEK.practice.periods[a[0]].plays.splice(a[1],1); practiceSave(); renderPractice(); }; });
+  [].forEach.call(host.querySelectorAll(".paddsel"),el=>{ el.onchange=()=>{ const v=el.value; if(!v) return; const p=(PBOOK||[]).find(x=>String(x.id||x.name)===v); if(p){ WEEK.practice.periods[+el.dataset.pi].plays.push({id:p.id||null,name:p.name,reps:2,good:0,needs:0}); practiceSave(); renderPractice(); } }; });
+}
 function dbToNum(db){ return db==="1-3"?2:db==="4-6"?5:db==="7-9"?8:12; }
 function suggestDef(off,dn,db){
   const run=runShare(off);
