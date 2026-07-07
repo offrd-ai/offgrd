@@ -408,7 +408,7 @@
 
   <!-- DATA MANAGER -->
   <div class="modalwrap" id="sched">
-    <div class="modal">
+    <div class="modal" style="max-width:760px">
       <h3>Season schedule</h3>
       <p class="foot" style="margin:0 0 8px">Add your games below. This schedule can appear on your program&rsquo;s <b>OFFRD recruiting page</b>.</p>
       <p class="foot" id="schedPid" style="margin:0 0 8px"></p>
@@ -1147,18 +1147,21 @@ function renderSchedule(){
     host.innerHTML=recH+'<table><thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Time</th><th>Result</th></tr></thead><tbody>'+body+'</tbody></table>';
     return;
   }
-  const st='padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)';
-  const inp=(id,field,val,ph,w)=>'<input value="'+esc(val==null?"":val)+'" placeholder="'+ph+'" oninput="schedField(\''+id+'\',\''+field+'\',this.value)" style="'+st+';width:'+w+'">';
+  const st='box-sizing:border-box;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-size:13px';
+  const inp=(id,field,val,ph,fw)=>'<input value="'+esc(val==null?"":val)+'" placeholder="'+ph+'" oninput="schedField(\''+id+'\',\''+field+'\',this.value)" style="'+st+';'+fw+'">';
   const body=list.map(g=>{
     const ha='<select onchange="schedField(\''+g.id+'\',\'ha\',this.value)" style="'+st+'">'+["H","A","N"].map(o=>'<option value="'+o+'"'+((g.ha||"H")===o?" selected":"")+'>'+haName[o]+'</option>').join("")+'</select>';
-    return '<tr class="tagrow"><td><input type="date" value="'+esc(g.date||"")+'" oninput="schedField(\''+g.id+'\',\'date\',this.value)" style="'+st+'"></td>'
-      +'<td>'+ha+' '+inp(g.id,"opponent",g.opponent,"Opponent","120px")+'</td>'
-      +'<td>'+inp(g.id,"site",g.site,"Site","110px")+'</td>'
-      +'<td>'+inp(g.id,"time",g.time,"7:00 PM","78px")+'</td>'
-      +'<td>'+inp(g.id,"us",g.us,"Us","42px")+' - '+inp(g.id,"them",g.them,"Opp","42px")+'</td>'
-      +'<td><button class="ghost" style="padding:3px 9px" onclick="schedDel(\''+g.id+'\')">✕</button></td></tr>';
+    return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:7px">'
+      +'<input type="date" value="'+esc(g.date||"")+'" oninput="schedField(\''+g.id+'\',\'date\',this.value)" style="'+st+'">'
+      +ha
+      +inp(g.id,"opponent",g.opponent,"Opponent","flex:2 1 130px")
+      +inp(g.id,"site",g.site,"Site","flex:1 1 90px")
+      +inp(g.id,"time",g.time,"Time","width:78px")
+      +'<span style="display:inline-flex;align-items:center;gap:4px">'+inp(g.id,"us",g.us,"Us","width:44px")+'<span style="color:var(--muted)">-</span>'+inp(g.id,"them",g.them,"Opp","width:44px")+'</span>'
+      +'<button class="ghost" title="Remove game" style="margin-left:auto;padding:4px 9px" onclick="schedDel(\''+g.id+'\')">✕</button>'
+      +'</div>';
   }).join("");
-  host.innerHTML=recH+'<table><thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Time</th><th>Us - Opp</th><th></th></tr></thead><tbody>'+body+'</tbody></table>';
+  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score – opp score</div>'+body;
 }
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
