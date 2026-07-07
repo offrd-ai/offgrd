@@ -413,6 +413,7 @@
       <p class="foot" style="margin:0 0 8px">Add your games below. This schedule can appear on your program&rsquo;s <b>OFFRD recruiting page</b>.</p>
       <p class="foot" id="schedPid" style="margin:0 0 8px"></p>
       <input type="file" id="schedOppFile" accept="image/*" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="foot">Season</span><select id="schedSeason" style="padding:5px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-weight:700;font-size:13px"></select></div>
       <div id="schedBody"></div>
       <div class="row">
         <button class="btnp" id="schedAdd">+ Add game</button>
@@ -1134,7 +1135,9 @@ function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCH
 function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) return; g[field]=val; scheduleSave(); }
 function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
 function schedAdd(){ SCHEDULE.push({id:schedUID(),date:"",opponent:"",ha:"H",site:"",time:"",us:"",them:""}); renderSchedule(); scheduleSave(); }
-function schedRecord(){ let w=0,l=0,t=0; SCHEDULE.forEach(g=>{ if(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null){ const a=+g.us,b=+g.them; if(isNaN(a)||isNaN(b))return; if(a>b)w++; else if(a<b)l++; else t++; } }); return (w||l||t)?(w+"-"+l+(t?"-"+t:"")):""; }
+function schedRecord(){ let w=0,l=0,t=0; SCHEDULE.forEach(g=>{ if(SCHED_SEASON&&SCHED_SEASON!=="ALL"){ const y=(g.date||"").slice(0,4); if(y&&y!==SCHED_SEASON) return; } if(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null){ const a=+g.us,b=+g.them; if(isNaN(a)||isNaN(b))return; if(a>b)w++; else if(a<b)l++; else t++; } }); return (w||l||t)?(w+"-"+l+(t?"-"+t:"")):""; }
+function schedYears(){ const ys=uniq(SCHEDULE.map(g=>(g.date||"").slice(0,4)).filter(Boolean)); const cur=String(new Date().getFullYear()); if(ys.indexOf(cur)<0) ys.push(cur); return ys.sort(); }
+function buildSchedSeason(){ const sel=document.getElementById("schedSeason"); if(!sel) return; const ys=schedYears(); if(!SCHED_SEASON) SCHED_SEASON = ys.length? ys[ys.length-1] : String(new Date().getFullYear()); const opts=ys.slice().reverse().map(y=>'<option value="'+y+'"'+(y===SCHED_SEASON?" selected":"")+'>'+y+'</option>'); opts.push('<option value="ALL"'+(SCHED_SEASON==="ALL"?" selected":"")+'>All seasons</option>'); sel.innerHTML=opts.join(""); sel.onchange=function(){ SCHED_SEASON=sel.value; renderSchedule(); }; }
 function schedScoutCounts(opp){ let off=0,def=0; if(opp) GAMES.forEach(g=>{ if(g.opponent===opp){ if(g.side==="off")off+=g.rows.length; else if(g.side==="def")def+=g.rows.length; } }); return {off,def}; }
 function schedStatusLine(g){
   const opp=(g.opponent||"").trim(); if(!opp) return '';
@@ -1154,14 +1157,16 @@ async function schedPlanWeek(id){
 }
 let _schedPendingOpp="";
 function schedUploadLogo(id){ const g=SCHEDULE.find(x=>x.id===id); const opp=((g&&g.opponent)||"").trim(); if(!opp){ alert("Type the opponent's name first, then tap the crest to add their logo."); return; } _schedPendingOpp=opp; const f=document.getElementById("schedOppFile"); if(f){ f.value=""; f.click(); } }
-function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof fileToDataURL!=="function") return; fileToDataURL(file,function(url){ const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
+function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof fileToDataURL!=="function") return; fileToDataURL(file,function(url){ const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); let _ch=false; SCHEDULE.forEach(function(g){ if(g.opponent===o){ g.logo=url; _ch=true; } }); if(_ch) scheduleSave(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
 function renderSchedule(){
   const host=document.getElementById("schedBody"); if(!host) return;
   const ed=SCHED_EDIT;
+  buildSchedSeason();
   const addB=document.getElementById("schedAdd"); if(addB) addB.style.display=ed?"":"none";
   const rec=schedRecord(); const recH=rec?'<p class="foot" style="margin:0 0 6px">Record <b>'+esc(rec)+'</b></p>':'';
-  if(!SCHEDULE.length){ host.innerHTML=recH+'<p class="foot">No games yet. '+(ed?'Click <b>+ Add game</b> to build your schedule.':'A coach can add games here.')+'</p>'; return; }
-  const list=SCHEDULE.slice().sort((a,b)=>((a.date||"")+"").localeCompare((b.date||"")+""));
+  let list=SCHEDULE.slice().sort((a,b)=>((a.date||"")+"").localeCompare((b.date||"")+""));
+  if(SCHED_SEASON && SCHED_SEASON!=="ALL") list=list.filter(function(g){ const y=(g.date||"").slice(0,4); return !y || y===SCHED_SEASON; });
+  if(!list.length){ host.innerHTML=recH+'<p class="foot">No games '+((SCHED_SEASON&&SCHED_SEASON!=="ALL")?("for "+esc(SCHED_SEASON)):"yet")+'. '+(ed?'Click <b>+ Add game</b> to add one.':'A coach can add games here.')+'</p>'; return; }
   const haName={H:"Home",A:"Away",N:"Neutral"};
   if(!ed){
     const body=list.map(g=>{ const res=(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null)?((+g.us>+g.them?"W":(+g.us<+g.them?"L":"T"))+" "+esc(g.us)+"-"+esc(g.them)):""; const pre=({H:"vs",A:"@",N:"vs"}[g.ha]||"vs"); return '<tr class="tagrow"><td>'+esc(g.date||"")+'</td><td>'+pre+' '+esc(g.opponent||"")+'</td><td>'+esc(g.site||"")+'</td><td>'+esc(g.time||"")+'</td><td>'+res+'</td></tr>'; }).join("");
@@ -1324,9 +1329,9 @@ const PLAN_KEY="offgrd_plan_v1"; let WB_PANELS=5, USE_WB=true;
    WEEK = active week_plans row {id,opponent,game_date,buckets,...} fed by account.js
    via window.OFFGRD_WEEK.set(plan, canEdit). Buckets carry plays:[{id,name}]. */
 const WEEK_KEY="offgrd_week_v1"; let WEEK=null, WEEK_EDIT=false, PBOOK=[];
-const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false; let SCHED_TEAM_ID="";
+const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false; let SCHED_TEAM_ID=""; let SCHED_SEASON=null;
 try{ const _s=localStorage.getItem(SCHED_KEY); if(_s){ const _a=JSON.parse(_s); if(Array.isArray(_a)) SCHEDULE=_a; } }catch(e){}
-window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag,teamId){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; if(teamId)SCHED_TEAM_ID=teamId; try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
+window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag,teamId){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; if(teamId)SCHED_TEAM_ID=teamId; try{ SCHEDULE.forEach(function(g){ if(g.logo && g.opponent && !(USER_BRANDS[g.opponent]&&USER_BRANDS[g.opponent].logo)){ const pv=(USER_BRANDS[g.opponent]||teamBrand(g.opponent)); USER_BRANDS[g.opponent]={abbr:pv.abbr,fg:pv.fg,bg:pv.bg,logo:g.logo}; } }); if(typeof saveBrands==="function") saveBrands(); }catch(e){} try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
 function loadWeekCache(){ try{ const x=localStorage.getItem(WEEK_KEY); if(x) WEEK=JSON.parse(x); }catch(e){} }
 function weekPushBuckets(){ if(WEEK && WEEK_EDIT && window.OFFGRD_WEEK_PUSH){ WEEK.buckets=planBuckets(); try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); } }
 function weekSet(k,v){ if(!WEEK||!WEEK_EDIT) return; WEEK[k]=v||null; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(window.OFFGRD_WEEK_PUSH){ const f={}; f[k]=WEEK[k]; window.OFFGRD_WEEK_PUSH(f); } if(k==="opponent"&&v&&GAMES.some(g=>g.opponent===v)) setOpponent(v); else refreshView(); }
