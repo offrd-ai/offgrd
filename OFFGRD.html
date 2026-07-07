@@ -1134,6 +1134,23 @@ function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) r
 function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
 function schedAdd(){ SCHEDULE.push({id:schedUID(),date:"",opponent:"",ha:"H",site:"",time:"",us:"",them:""}); renderSchedule(); scheduleSave(); }
 function schedRecord(){ let w=0,l=0,t=0; SCHEDULE.forEach(g=>{ if(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null){ const a=+g.us,b=+g.them; if(isNaN(a)||isNaN(b))return; if(a>b)w++; else if(a<b)l++; else t++; } }); return (w||l||t)?(w+"-"+l+(t?"-"+t:"")):""; }
+function schedScoutCounts(opp){ let off=0,def=0; if(opp) GAMES.forEach(g=>{ if(g.opponent===opp){ if(g.side==="off")off+=g.rows.length; else if(g.side==="def")def+=g.rows.length; } }); return {off,def}; }
+function schedStatusLine(g){
+  const opp=(g.opponent||"").trim(); if(!opp) return '';
+  const sc=schedScoutCounts(opp);
+  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">✓ scouting</span> <span class="foot">off '+sc.off+' · def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
+  const isPlan=WEEK&&WEEK.opponent===opp;
+  const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">● this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">▶ Plan this week</button>':'');
+  return '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px">'+scout+' '+planChip+'</div>';
+}
+async function schedPlanWeek(id){
+  const g=SCHEDULE.find(x=>x.id===id); if(!g) return;
+  const opp=(g.opponent||"").trim(); if(!opp){ alert("Add an opponent for this game first."); return; }
+  if(!window.OFFGRD_WEEK_START){ alert("Sign in to your program (top right) to start a week plan."); return; }
+  if(WEEK && WEEK.opponent && WEEK.opponent!==opp && !confirm("Start a new week plan vs "+opp+"? The current plan vs "+(WEEK.opponent||"—")+" will be archived.")) return;
+  try{ if(typeof ensurePlan==="function") ensurePlan(); const bks=(typeof planBuckets==="function"?planBuckets():[]).map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:[]})); await window.OFFGRD_WEEK_START(opp,(g.date||"").trim()||null,bks); const m=document.getElementById("sched"); if(m)m.classList.remove("show"); if(typeof setView==="function") setView("plan"); }
+  catch(e){ alert((e&&e.message)||"Couldn't start the week."); }
+}
 function renderSchedule(){
   const host=document.getElementById("schedBody"); if(!host) return;
   const ed=SCHED_EDIT;
@@ -1159,6 +1176,7 @@ function renderSchedule(){
       +inp(g.id,"time",g.time,"Time","width:78px")
       +'<span style="display:inline-flex;align-items:center;gap:4px">'+inp(g.id,"us",g.us,"Us","width:44px")+'<span style="color:var(--muted)">-</span>'+inp(g.id,"them",g.them,"Opp","width:44px")+'</span>'
       +'<button class="ghost" title="Remove game" style="margin-left:auto;padding:4px 9px" onclick="schedDel(\''+g.id+'\')">✕</button>'
+      +schedStatusLine(g)
       +'</div>';
   }).join("");
   host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score – opp score</div>'+body;
