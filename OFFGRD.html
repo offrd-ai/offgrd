@@ -411,6 +411,7 @@
     <div class="modal">
       <h3>Season schedule</h3>
       <p class="foot" style="margin:0 0 8px">Add your games below. This schedule can appear on your program&rsquo;s <b>OFFRD recruiting page</b>.</p>
+      <p class="foot" id="schedPid" style="margin:0 0 8px"></p>
       <div id="schedBody"></div>
       <div class="row">
         <button class="btnp" id="schedAdd">+ Add game</button>
@@ -1126,7 +1127,8 @@ function upsertGame(opp,week,side,source,rows){
 function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
 /* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
 function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); renderSchedule(); } }
+function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); const p=document.getElementById("schedPid"); if(p){ p.innerHTML = SCHED_TEAM_ID ? ('Program ID for your OFFRD link: <code>'+esc(SCHED_TEAM_ID)+'</code> <button class="ghost" style="padding:2px 8px" onclick="schedCopyId()">Copy</button>') : '<span class="foot">Sign in to your program to see your OFFRD link ID.</span>'; } renderSchedule(); } }
+function schedCopyId(){ try{ navigator.clipboard.writeText(SCHED_TEAM_ID); const p=document.getElementById("schedPid"); if(p){ const b=p.querySelector("button"); if(b){ b.textContent="Copied ✓"; setTimeout(function(){ b.textContent="Copy"; },1200); } } }catch(e){} }
 function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only — a coach can edit."; }
 function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) return; g[field]=val; scheduleSave(); }
 function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
@@ -1296,9 +1298,9 @@ const PLAN_KEY="offgrd_plan_v1"; let WB_PANELS=5, USE_WB=true;
    WEEK = active week_plans row {id,opponent,game_date,buckets,...} fed by account.js
    via window.OFFGRD_WEEK.set(plan, canEdit). Buckets carry plays:[{id,name}]. */
 const WEEK_KEY="offgrd_week_v1"; let WEEK=null, WEEK_EDIT=false, PBOOK=[];
-const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false;
+const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false; let SCHED_TEAM_ID="";
 try{ const _s=localStorage.getItem(SCHED_KEY); if(_s){ const _a=JSON.parse(_s); if(Array.isArray(_a)) SCHEDULE=_a; } }catch(e){}
-window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
+window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag,teamId){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; if(teamId)SCHED_TEAM_ID=teamId; try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
 function loadWeekCache(){ try{ const x=localStorage.getItem(WEEK_KEY); if(x) WEEK=JSON.parse(x); }catch(e){} }
 function weekPushBuckets(){ if(WEEK && WEEK_EDIT && window.OFFGRD_WEEK_PUSH){ WEEK.buckets=planBuckets(); try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); } }
 function weekSet(k,v){ if(!WEEK||!WEEK_EDIT) return; WEEK[k]=v||null; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(window.OFFGRD_WEEK_PUSH){ const f={}; f[k]=WEEK[k]; window.OFFGRD_WEEK_PUSH(f); } if(k==="opponent"&&v&&GAMES.some(g=>g.opponent===v)) setOpponent(v); else refreshView(); }

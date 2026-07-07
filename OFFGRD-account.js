@@ -426,7 +426,7 @@ window.OFFGRD_WEEK_PUSH=function(fields){
 };
 /* ---------- season schedule bridge (shared to the OFFRD recruiting page) ---------- */
 let _schedT=null;
-function pushSchedule(){ try{ if(A.kind==="scout" && window.OFFGRD_SCHEDULE && TEAM) window.OFFGRD_SCHEDULE.set(TEAM.schedule||[], canEdit()); }catch(e){} }
+function pushSchedule(){ try{ if(A.kind==="scout" && window.OFFGRD_SCHEDULE && TEAM) window.OFFGRD_SCHEDULE.set(TEAM.schedule||[], canEdit(), TEAM.id); }catch(e){} }
 window.OFFGRD_SCHEDULE_PUSH=function(schedule){
   if(!TEAM || !canEdit()) return;
   TEAM.schedule = schedule;   /* keep the local team copy fresh so a pull doesn't clobber a fresh edit */
