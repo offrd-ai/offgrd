@@ -1564,6 +1564,31 @@ function previewImport(){
   let H=`<div class="lbl" style="margin-top:6px">Detected columns</div><div class="mapgrid">`;
   [["down","Down"],["distance","Distance"],["coverage","Coverage"],["front","Def front"],["blitz","Blitz"],["playtype","Play type"],["play","Off. play"],["hash","Hash"],["formation","Formation"],["yardline","Yard line"],["odk","ODK"]].forEach(f=>{ const c=cols[f[0]]; if(c) H+=`<div class="maprow"><span>${f[1]}</span><b>${esc(c.header)}</b><span class="foot">${esc(String(firstRow[c.idx]||"").slice(0,14))}</span></div>`; });
   H+=`</div><div class="lbl" style="margin-top:10px">Will load</div><p style="font-size:14px">`+PENDING.games.map(g=>`<b>${g.rows.length}</b> ${esc(g.opp)} ${lbl[g.side]}`).join(" &middot; ")+` &mdash; ${esc(PENDING.week)}</p>`;
+  // ---- import sanity readout: ODK split + what each side captures + inversion/blank-tag flags ----
+  (function(){
+    let H2='<div class="lbl" style="margin-top:10px">Import check</div>';
+    let odkDist={}, offByODK={}, defByODK={};
+    const oi=cols.odk?cols.odk.idx:-1, pti=cols.playtype?cols.playtype.idx:-1, cvi=cols.coverage?cols.coverage.idx:-1, fri=cols.front?cols.front.idx:-1;
+    lines.slice(1).forEach(l=>{ const c=splitCSVLine(l); if(!c.length||c.join("").trim()==="")return;
+      const k=(oi>=0?(((c[oi]||"").trim().toUpperCase()[0])||"—"):"—"); odkDist[k]=(odkDist[k]||0)+1;
+      const pt=(pti>=0?(c[pti]||""):"").toLowerCase(); if(pt.indexOf("run")>=0||pt.indexOf("pass")>=0) offByODK[k]=(offByODK[k]||0)+1;
+      const hd=(cvi>=0&&(c[cvi]||"").trim())||(fri>=0&&(c[fri]||"").trim()); if(hd) defByODK[k]=(defByODK[k]||0)+1;
+    });
+    if(oi>=0) H2+='<p style="font-size:13px;margin:2px 0">ODK column: '+Object.keys(odkDist).sort().map(k=>'<b>'+esc(k)+'</b> '+odkDist[k]).join(" &middot; ")+'</p>';
+    else H2+='<p style="font-size:13px;margin:2px 0">No ODK column — every row treated as one side.</p>';
+    let warns=[];
+    const hasO=(odkDist.O||0)>0, hasD=(odkDist.D||0)>0;
+    if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected (O and D snaps). If this is "+esc(nameA)+"’s own film, set ODK “O” = their offense so O/D aren’t swapped.");
+    teams.forEach(T=>{
+      const ok=keepFor(T,"off"), dk=keepFor(T,"def");
+      const oN=offByODK[ok]||0, dN=defByODK[dk]||0, oOpp=offByODK[ok==="O"?"D":"O"]||0;
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="scout") && oN===0 && oOpp>0) warns.push(esc(T)+": 0 offense snaps on ODK="+ok+", but "+oOpp+" on the other side — perspective may be flipped.");
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="defense") && dN===0 && (odkDist[dk]||0)>0) warns.push(esc(T)+": "+(odkDist[dk]||0)+" ODK="+dk+" snaps but none tagged with coverage/front — no defense captured (untagged rows, or perspective flipped).");
+    });
+    if(warns.length) H2+='<div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">'+warns.map(w=>"⚠ "+w).join("<br>")+'</div>';
+    else H2+='<p class="foot" style="margin:2px 0">Looks consistent — no inversion or blank-tag flags.</p>';
+    H+=H2;
+  })();
   const cl=rawCleanup(txt);
   function block(title,arr){ if(!arr||!arr.length)return""; const fixed=arr.filter(x=>x.raw!==x.clean).length; let tot=0; arr.forEach(x=>tot+=x.n); return `<div class="lbl" style="margin-top:10px">${title} <span class="foot">(${tot} tagged${fixed?", "+fixed+" cleaned":", clean"})</span></div><div class="cleanwrap">`+arr.slice(0,18).map(x=>`<span class="chip${x.raw!==x.clean?' fix':''}">${esc(x.raw)}${x.raw!==x.clean?' &rarr; '+esc(x.clean):''} <i>&times;${x.n}</i></span>`).join("")+`</div>`; }
   if(cl) H+=block("Coverage",cl.Coverage)+block("Front",cl.Front)+block("Blitz / pressure",cl.Blitz)+block("Hash",cl.Hash);
