@@ -412,6 +412,7 @@
       <h3>Season schedule</h3>
       <p class="foot" style="margin:0 0 8px">Add your games below. This schedule can appear on your program&rsquo;s <b>OFFRD recruiting page</b>.</p>
       <p class="foot" id="schedPid" style="margin:0 0 8px"></p>
+      <input type="file" id="schedOppFile" accept="image/*" style="display:none">
       <div id="schedBody"></div>
       <div class="row">
         <button class="btnp" id="schedAdd">+ Add game</button>
@@ -1151,6 +1152,9 @@ async function schedPlanWeek(id){
   try{ if(typeof ensurePlan==="function") ensurePlan(); const bks=(typeof planBuckets==="function"?planBuckets():[]).map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:[]})); await window.OFFGRD_WEEK_START(opp,(g.date||"").trim()||null,bks); const m=document.getElementById("sched"); if(m)m.classList.remove("show"); if(typeof setView==="function") setView("plan"); }
   catch(e){ alert((e&&e.message)||"Couldn't start the week."); }
 }
+let _schedPendingOpp="";
+function schedUploadLogo(id){ const g=SCHEDULE.find(x=>x.id===id); const opp=((g&&g.opponent)||"").trim(); if(!opp){ alert("Type the opponent's name first, then tap the crest to add their logo."); return; } _schedPendingOpp=opp; const f=document.getElementById("schedOppFile"); if(f){ f.value=""; f.click(); } }
+function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof fileToDataURL!=="function") return; fileToDataURL(file,function(url){ const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
 function renderSchedule(){
   const host=document.getElementById("schedBody"); if(!host) return;
   const ed=SCHED_EDIT;
@@ -1170,6 +1174,7 @@ function renderSchedule(){
     const ha='<select onchange="schedField(\''+g.id+'\',\'ha\',this.value)" style="'+st+'">'+["H","A","N"].map(o=>'<option value="'+o+'"'+((g.ha||"H")===o?" selected":"")+'>'+haName[o]+'</option>').join("")+'</select>';
     return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:7px">'
       +'<input type="date" value="'+esc(g.date||"")+'" oninput="schedField(\''+g.id+'\',\'date\',this.value)" style="'+st+'">'
+      +'<span onclick="schedUploadLogo(\''+g.id+'\')" title="Set opponent logo" style="cursor:pointer;display:inline-flex;flex:0 0 auto">'+crest(g.opponent||"",26)+'</span>'
       +ha
       +inp(g.id,"opponent",g.opponent,"Opponent","flex:2 1 130px")
       +inp(g.id,"site",g.site,"Site","flex:1 1 90px")
@@ -1179,7 +1184,7 @@ function renderSchedule(){
       +schedStatusLine(g)
       +'</div>';
   }).join("");
-  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score – opp score</div>'+body;
+  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score – opp score &nbsp;·&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
 }
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
@@ -1987,6 +1992,7 @@ document.getElementById("manageBtn").onclick=openManager;
 document.getElementById("schedBtn").onclick=openSchedule;
 { const _c=document.getElementById("closeSched"); if(_c) _c.onclick=()=>document.getElementById("sched").classList.remove("show"); }
 { const _a=document.getElementById("schedAdd"); if(_a) _a.onclick=schedAdd; }
+{ const _lf=document.getElementById("schedOppFile"); if(_lf) _lf.onchange=function(e){ schedLogoPicked(e.target.files[0]); }; }
 document.getElementById("brandBtn").onclick=openBranding;
 document.getElementById("closeMgr").onclick=()=>document.getElementById("mgr").classList.remove("show");
 document.getElementById("mgr").onclick=e=>{ if(e.target.id==="mgr") e.currentTarget.classList.remove("show"); };
