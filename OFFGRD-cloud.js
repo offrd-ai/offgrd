@@ -158,6 +158,10 @@ export const Cloud = {
     const { data, error } = await sb.from("week_plans").update(fields).eq("id", id).select().single();
     if (error) throw error; return data;
   },
+  async saveSchedule(teamId, schedule) {    // season schedule stored on teams.schedule (jsonb)
+    const { error } = await sb.from("teams").update({ schedule }).eq("id", teamId);
+    if (error) throw error; return true;
+  },
   async listWeekPlans(teamId) {
     const { data, error } = await sb.from("week_plans").select("id,opponent,game_date,status,updated_at")
       .eq("team_id", teamId).order("updated_at", { ascending: false });

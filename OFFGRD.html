@@ -243,8 +243,8 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=29"></script>
-<script src="supabase.js?v=29"></script>
+<script src="OFFGRD-config.js?v=30"></script>
+<script src="supabase.js?v=30"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -255,6 +255,7 @@
     <div id="tools">
       <button class="ghost" id="importBtn">Import data</button>
       <button class="ghost" id="manageBtn">Manage</button>
+      <button class="ghost" id="schedBtn">Schedule</button>
       <button class="ghost" id="brandBtn">Team &amp; logos</button>
       <button class="ghost" id="darkBtn">Booth mode</button>
       <a class="ghost" href="OFFGRD-Playbook.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">Playbook</a>
@@ -315,6 +316,7 @@
 
     <div class="grid" style="margin-top:14px">
       <div class="field"><div class="lbl">Opponent filter</div><label><select id="sel-opp"></select></label></div>
+      <div class="field"><div class="lbl">Games (scope)</div><label><select id="sel-scope"></select></label></div>
       <div class="field" style="grid-column:span 2">
         <div class="lbl">Weighting</div>
         <div class="toggles">
@@ -405,6 +407,19 @@
   </div>
 
   <!-- DATA MANAGER -->
+  <div class="modalwrap" id="sched">
+    <div class="modal">
+      <h3>Season schedule</h3>
+      <p class="foot" style="margin:0 0 8px">Add your games below. This schedule can appear on your program&rsquo;s <b>OFFRD recruiting page</b>.</p>
+      <div id="schedBody"></div>
+      <div class="row">
+        <button class="btnp" id="schedAdd">+ Add game</button>
+        <button class="ghost" id="closeSched" style="margin-left:auto">Close</button>
+      </div>
+      <p class="foot" id="schedMsg" style="margin-top:10px"></p>
+    </div>
+  </div>
+
   <div class="modalwrap" id="mgr">
     <div class="modal">
       <h3>Season data manager</h3>
@@ -552,6 +567,7 @@ function buildControls(){
   if(topSel){ topSel.innerHTML=""; opps.forEach(v=>{ const o=document.createElement("option"); o.value=v; o.textContent=(v==="ANY"?"All opponents":v); if(String(sit.opp)===String(v))o.selected=true; topSel.appendChild(o); }); topSel.onchange=()=>setOpponent(topSel.value); }
   const tc=document.getElementById("topOppCrest"); if(tc) tc.innerHTML=crest(sit.opp!=="ANY"?sit.opp:"",30);
   updateModeLabels();
+  buildScopeSelect();
 }
 
 /* ---------- matching + widening ---------- */
@@ -577,6 +593,37 @@ const RELAX_ORDER=[
   ["hash","ANY","hash"],["qtr","ANY","quarter"],["score","ANY","score"],
   ["form","ANY","formation"],["pers","ANY","personnel"],["zone","ANY","field zone"]
 ];
+/* ---------- season library: scope the current opponent's games ---------- */
+let SCOPE={mode:"ALL"};   // {mode:"ALL"} | {mode:"LASTN",n,_keep:Set} | {mode:"GAME",date}
+function scopeDatesForOpp(){
+  const opp=sit.opp;
+  return uniq(GAMES.filter(g=>opp==="ANY"||g.opponent===opp).reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
+}
+function scopeAllows(row){
+  if(!SCOPE||SCOPE.mode==="ALL") return true;
+  if(SCOPE.mode==="GAME") return row.date===SCOPE.date;
+  if(SCOPE.mode==="LASTN") return SCOPE._keep?SCOPE._keep.has(row.date):true;
+  return true;
+}
+function setScope(val){
+  if(val&&val.indexOf("LASTN:")===0){ const n=+val.slice(6); const ds=scopeDatesForOpp(); SCOPE={mode:"LASTN",n:n,_keep:new Set(ds.slice(-n))}; }
+  else if(val&&val.indexOf("GAME:")===0){ SCOPE={mode:"GAME",date:val.slice(5)}; }
+  else SCOPE={mode:"ALL"};
+  refreshView();
+}
+function buildScopeSelect(){
+  const sel=document.getElementById("sel-scope"); if(!sel) return;
+  const ds=scopeDatesForOpp(), dsDesc=ds.slice().reverse();
+  let opts=['<option value="ALL">All games'+(ds.length?" ("+ds.length+")":"")+'</option>'];
+  if(ds.length>3) opts.push('<option value="LASTN:3">Last 3 games</option>');
+  if(ds.length>5) opts.push('<option value="LASTN:5">Last 5 games</option>');
+  dsDesc.forEach(d=>opts.push('<option value="GAME:'+esc(d)+'">Game: '+esc(d)+'</option>'));
+  sel.innerHTML=opts.join("");
+  const cur = SCOPE.mode==="ALL"?"ALL":(SCOPE.mode==="LASTN"?"LASTN:"+SCOPE.n:(SCOPE.mode==="GAME"?"GAME:"+SCOPE.date:"ALL"));
+  if(Array.prototype.some.call(sel.options,o=>o.value===cur)) sel.value=cur; else { sel.value="ALL"; SCOPE={mode:"ALL"}; }
+  sel.onchange=()=>setScope(sel.value);
+}
+function setOpponentFromLib(opp){ const m=document.getElementById("mgr"); if(m)m.classList.remove("show"); setView("scout"); setOpponent(opp); }
 function gather(){
   let f={down:sit.down,dist:sit.dist,zone:sit.zone,hash:sit.hash,pers:sit.pers,form:sit.form,score:sit.score,qtr:sit.qtr,opp:sit.opp};
   if(document.getElementById("tg-thisyear").checked) f._year=SEASON_NOW;
@@ -584,6 +631,7 @@ function gather(){
   let relaxed=[];
   const pool=()=>activeData().filter(rr=>{
     if(f._year && (+(rr.date||"").slice(0,4))!==f._year) return false;
+    if(!scopeAllows(rr)) return false;
     return matches(rr,f);
   });
   let rows=pool(), idx=0;
@@ -733,6 +781,7 @@ function renderGrid(useRec){
   const base=DATA.filter(rw=>{
     if(document.getElementById("tg-thisyear").checked && (+(rw.date||"").slice(0,4))!==SEASON_NOW) return false;
     if(sit.opp!=="ANY" && rw.opponent!==sit.opp) return false;
+    if(!scopeAllows(rw)) return false;
     return true;
   });
   const heat=p=>{ const a=Math.min(.85,Math.max(.06,p)); return "background:rgba(168,17,43,"+(a*0.5)+");"; };
@@ -1028,6 +1077,7 @@ function renderOffenseGrid(useRec){
   const base=SCOUT_DATA.filter(rw=>{
     if(document.getElementById("tg-thisyear").checked && (+(rw.date||"").slice(0,4))!==SEASON_NOW) return false;
     if(sit.opp!=="ANY" && rw.opponent!==sit.opp) return false;
+    if(!scopeAllows(rw)) return false;
     return true;
   });
   const heat=p=>{ const a=Math.min(.85,Math.max(.06,p)); return "background:rgba(19,41,75,"+(a*0.5)+");"; };
@@ -1074,11 +1124,66 @@ function upsertGame(opp,week,side,source,rows){
   saveGames(); rebuildActive(); return existed;
 }
 function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
+/* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
+function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); renderSchedule(); } }
+function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only — a coach can edit."; }
+function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) return; g[field]=val; scheduleSave(); }
+function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
+function schedAdd(){ SCHEDULE.push({id:schedUID(),date:"",opponent:"",ha:"H",site:"",time:"",us:"",them:""}); renderSchedule(); scheduleSave(); }
+function schedRecord(){ let w=0,l=0,t=0; SCHEDULE.forEach(g=>{ if(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null){ const a=+g.us,b=+g.them; if(isNaN(a)||isNaN(b))return; if(a>b)w++; else if(a<b)l++; else t++; } }); return (w||l||t)?(w+"-"+l+(t?"-"+t:"")):""; }
+function renderSchedule(){
+  const host=document.getElementById("schedBody"); if(!host) return;
+  const ed=SCHED_EDIT;
+  const addB=document.getElementById("schedAdd"); if(addB) addB.style.display=ed?"":"none";
+  const rec=schedRecord(); const recH=rec?'<p class="foot" style="margin:0 0 6px">Record <b>'+esc(rec)+'</b></p>':'';
+  if(!SCHEDULE.length){ host.innerHTML=recH+'<p class="foot">No games yet. '+(ed?'Click <b>+ Add game</b> to build your schedule.':'A coach can add games here.')+'</p>'; return; }
+  const list=SCHEDULE.slice().sort((a,b)=>((a.date||"")+"").localeCompare((b.date||"")+""));
+  const haName={H:"Home",A:"Away",N:"Neutral"};
+  if(!ed){
+    const body=list.map(g=>{ const res=(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null)?((+g.us>+g.them?"W":(+g.us<+g.them?"L":"T"))+" "+esc(g.us)+"-"+esc(g.them)):""; const pre=({H:"vs",A:"@",N:"vs"}[g.ha]||"vs"); return '<tr class="tagrow"><td>'+esc(g.date||"")+'</td><td>'+pre+' '+esc(g.opponent||"")+'</td><td>'+esc(g.site||"")+'</td><td>'+esc(g.time||"")+'</td><td>'+res+'</td></tr>'; }).join("");
+    host.innerHTML=recH+'<table><thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Time</th><th>Result</th></tr></thead><tbody>'+body+'</tbody></table>';
+    return;
+  }
+  const st='padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)';
+  const inp=(id,field,val,ph,w)=>'<input value="'+esc(val==null?"":val)+'" placeholder="'+ph+'" oninput="schedField(\''+id+'\',\''+field+'\',this.value)" style="'+st+';width:'+w+'">';
+  const body=list.map(g=>{
+    const ha='<select onchange="schedField(\''+g.id+'\',\'ha\',this.value)" style="'+st+'">'+["H","A","N"].map(o=>'<option value="'+o+'"'+((g.ha||"H")===o?" selected":"")+'>'+haName[o]+'</option>').join("")+'</select>';
+    return '<tr class="tagrow"><td><input type="date" value="'+esc(g.date||"")+'" oninput="schedField(\''+g.id+'\',\'date\',this.value)" style="'+st+'"></td>'
+      +'<td>'+ha+' '+inp(g.id,"opponent",g.opponent,"Opponent","120px")+'</td>'
+      +'<td>'+inp(g.id,"site",g.site,"Site","110px")+'</td>'
+      +'<td>'+inp(g.id,"time",g.time,"7:00 PM","78px")+'</td>'
+      +'<td>'+inp(g.id,"us",g.us,"Us","42px")+' - '+inp(g.id,"them",g.them,"Opp","42px")+'</td>'
+      +'<td><button class="ghost" style="padding:3px 9px" onclick="schedDel(\''+g.id+'\')">✕</button></td></tr>';
+  }).join("");
+  host.innerHTML=recH+'<table><thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Time</th><th>Us - Opp</th><th></th></tr></thead><tbody>'+body+'</tbody></table>';
+}
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
   if(!GAMES.length){ host.innerHTML='<p class="foot">No games in the library yet. Import a game (with an Opponent + Week label) to start your season.</p>'; return; }
-  const rows=GAMES.map((g,i)=>'<tr class="tagrow"><td>'+esc(g.opponent)+'</td><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+'</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:4px 10px" onclick="deleteGameIdx('+i+')">Delete</button></td></tr>').join("");
-  host.innerHTML='<table><thead><tr><th>Opponent</th><th>Week/Game</th><th>Side</th><th>Plays</th><th>Source</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  const byOpp={};
+  GAMES.forEach((g,i)=>{ (byOpp[g.opponent]=byOpp[g.opponent]||[]).push(Object.assign({_i:i},g)); });
+  const newestOf=list=>list.reduce((mx,g)=>{ const d=((g.rows[0]&&g.rows[0].date)||g.week||""); return d>mx?d:mx; },"");
+  const opps=Object.keys(byOpp).sort((a,b)=>newestOf(byOpp[b]).localeCompare(newestOf(byOpp[a])));
+  let html="";
+  opps.forEach(opp=>{
+    const list=byOpp[opp];
+    const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
+    const nG=dates.length||list.length;
+    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" → "+dates[dates.length-1]):"";
+    const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
+    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
+    const isNext=WEEK&&WEEK.opponent===opp;
+    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">▶ NEXT'+(weekCountdown()?" · "+esc(weekCountdown()):"")+'</span>':"";
+    const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
+    html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
+      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
+      +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ▸</button></div>'
+      +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
+      +'<table><tbody>'+grows+'</tbody></table></div>';
+  });
+  host.innerHTML=html;
 }
 function exportSeason(){
   const blob=new Blob([JSON.stringify(GAMES,null,1)],{type:"application/json"}); const url=URL.createObjectURL(blob);
@@ -1134,6 +1239,7 @@ function setOpponent(v){ sit.opp=v;
   const b=document.getElementById("topOpp"); if(b)b.value=v;
   const tc=document.getElementById("topOppCrest"); if(tc) tc.innerHTML=crest(v!=="ANY"?v:"",30);
   updateModeLabels();
+  SCOPE={mode:"ALL"}; buildScopeSelect();
   refreshView();
 }
 function defaultOpponent(){
@@ -1190,6 +1296,9 @@ const PLAN_KEY="offgrd_plan_v1"; let WB_PANELS=5, USE_WB=true;
    WEEK = active week_plans row {id,opponent,game_date,buckets,...} fed by account.js
    via window.OFFGRD_WEEK.set(plan, canEdit). Buckets carry plays:[{id,name}]. */
 const WEEK_KEY="offgrd_week_v1"; let WEEK=null, WEEK_EDIT=false, PBOOK=[];
+const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false;
+try{ const _s=localStorage.getItem(SCHED_KEY); if(_s){ const _a=JSON.parse(_s); if(Array.isArray(_a)) SCHEDULE=_a; } }catch(e){}
+window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
 function loadWeekCache(){ try{ const x=localStorage.getItem(WEEK_KEY); if(x) WEEK=JSON.parse(x); }catch(e){} }
 function weekPushBuckets(){ if(WEEK && WEEK_EDIT && window.OFFGRD_WEEK_PUSH){ WEEK.buckets=planBuckets(); try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); } }
 function weekSet(k,v){ if(!WEEK||!WEEK_EDIT) return; WEEK[k]=v||null; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(window.OFFGRD_WEEK_PUSH){ const f={}; f[k]=WEEK[k]; window.OFFGRD_WEEK_PUSH(f); } if(k==="opponent"&&v&&GAMES.some(g=>g.opponent===v)) setOpponent(v); else refreshView(); }
@@ -1834,7 +1943,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=29", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=30", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 document.getElementById("fileIn").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
@@ -1852,6 +1961,9 @@ document.getElementById("fileIn").onchange=e=>{
   }
 };
 document.getElementById("manageBtn").onclick=openManager;
+document.getElementById("schedBtn").onclick=openSchedule;
+{ const _c=document.getElementById("closeSched"); if(_c) _c.onclick=()=>document.getElementById("sched").classList.remove("show"); }
+{ const _a=document.getElementById("schedAdd"); if(_a) _a.onclick=schedAdd; }
 document.getElementById("brandBtn").onclick=openBranding;
 document.getElementById("closeMgr").onclick=()=>document.getElementById("mgr").classList.remove("show");
 document.getElementById("mgr").onclick=e=>{ if(e.target.id==="mgr") e.currentTarget.classList.remove("show"); };
@@ -1996,8 +2108,8 @@ render();
 if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=29"></script>
-<script src="OFFGRD-mobile.js?v=29"></script>
+<script type="module" src="OFFGRD-account.js?v=30"></script>
+<script src="OFFGRD-mobile.js?v=30"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

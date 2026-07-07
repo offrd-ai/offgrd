@@ -151,7 +151,7 @@ async function pull(silent){
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
-    try{ if(A.kind==="scout") pullWeek(); }catch(e){}
+    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); } }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
 }
@@ -423,6 +423,15 @@ window.OFFGRD_WEEK_PUSH=function(fields){
   if(!TEAM || !WEEK_ID || !canEdit()) return;
   clearTimeout(_weekT);
   _weekT=setTimeout(()=>{ _weekT=null; Cloud.saveWeekPlan(WEEK_ID, fields).then(()=>syncStamp()).catch(()=>{}); }, 1500);
+};
+/* ---------- season schedule bridge (shared to the OFFRD recruiting page) ---------- */
+let _schedT=null;
+function pushSchedule(){ try{ if(A.kind==="scout" && window.OFFGRD_SCHEDULE && TEAM) window.OFFGRD_SCHEDULE.set(TEAM.schedule||[], canEdit()); }catch(e){} }
+window.OFFGRD_SCHEDULE_PUSH=function(schedule){
+  if(!TEAM || !canEdit()) return;
+  TEAM.schedule = schedule;   /* keep the local team copy fresh so a pull doesn't clobber a fresh edit */
+  clearTimeout(_schedT);
+  _schedT=setTimeout(()=>{ _schedT=null; Cloud.saveSchedule(TEAM.id, schedule).then(()=>syncStamp()).catch(()=>{}); }, 1200);
 };
 window.OFFGRD_WEEK_START=async function(opp, gameDate, buckets){
   if(!TEAM) throw new Error("Sign in and join a program first.");
