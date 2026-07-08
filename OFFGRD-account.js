@@ -433,6 +433,11 @@ window.OFFGRD_SCHEDULE_PUSH=function(schedule){
   clearTimeout(_schedT);
   _schedT=setTimeout(()=>{ _schedT=null; Cloud.saveSchedule(TEAM.id, schedule).then(()=>syncStamp()).catch(()=>{}); }, 1200);
 };
+/* Upload a downscaled logo blob to the public 'logos' Storage bucket; resolves to a URL (or null on failure/not-signed-in). */
+window.OFFGRD_UPLOAD_LOGO=function(key, blob){
+  if(!TEAM || !canEdit() || !Cloud.uploadLogo || !blob) return Promise.resolve(null);
+  return Cloud.uploadLogo(TEAM.id, key, blob).catch(function(){ return null; });
+};
 window.OFFGRD_WEEK_START=async function(opp, gameDate, buckets){
   if(!TEAM) throw new Error("Sign in and join a program first.");
   if(!canEdit()) throw new Error("Only coaches can start a week plan.");

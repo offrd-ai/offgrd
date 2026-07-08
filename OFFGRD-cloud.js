@@ -162,6 +162,13 @@ export const Cloud = {
     const { error } = await sb.from("teams").update({ schedule }).eq("id", teamId);
     if (error) throw error; return true;
   },
+  async uploadLogo(teamId, key, blob) {     // downscaled logo -> public Storage URL (lean, not base64)
+    const path = teamId + "/" + key + ".png";
+    const up = await sb.storage.from("logos").upload(path, blob, { upsert: true, contentType: "image/png", cacheControl: "3600" });
+    if (up.error) throw up.error;
+    const { data } = sb.storage.from("logos").getPublicUrl(path);
+    return (data && data.publicUrl ? data.publicUrl : "") + "?t=" + Date.now();
+  },
   async listWeekPlans(teamId) {
     const { data, error } = await sb.from("week_plans").select("id,opponent,game_date,status,updated_at")
       .eq("team_id", teamId).order("updated_at", { ascending: false });
