@@ -38,6 +38,18 @@ export const Cloud = {
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
     if (error) throw error; return data; // team id
   },
+  /** School-link status from public.offgrd_my_team() — orphan CTA + backfill eligibility. */
+  async myTeamStatus() {
+    const { data, error } = await sb.rpc("offgrd_my_team");
+    if (error) throw error;
+    return data || { linked: false };
+  },
+  /** Link caller-owned orphan team to caller's high_school_coaches.school_id. */
+  async linkTeamToSchool(teamId) {
+    const { data, error } = await sb.rpc("offgrd_link_team_to_school", { p_team_id: teamId });
+    if (error) throw error;
+    return data;
+  },
   // get the user's first team, creating a default one on first login
   async ensureTeam(defaultName) {
     let teams = await this.myTeams();

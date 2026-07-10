@@ -1,14 +1,15 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=32";
-import { openAuthModal } from "./OFFGRD-auth.js?v=32";
+import { Cloud } from "./OFFGRD-cloud.js?v=33";
+import { openAuthModal } from "./OFFGRD-auth.js?v=33";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
 const acct = document.getElementById("acct");
-let TEAM = null, ROLE = null, TEAMS = [];
+let TEAM = null, ROLE = null, TEAMS = [], LINK_STATUS = null;
 const AKEY = "offgrd_team";
+const coachPortalUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.coachPortalUrl) || "https://getoffrd.com/high-school-coach/profile";
 
 const roleLabel = r => ({owner:"Admin", coach_edit:"Coach · Edit", coach_view:"Coach · View", player:"Player", coach:"Coach"}[r] || r);
 const canEdit  = () => ["owner","coach_edit","coach"].includes(ROLE);
@@ -36,7 +37,10 @@ const ALL_ROLES    = [["owner","Admin"],["coach_edit","Coach — Edit"],["coach_
   .ogm-badge{font-size:11px;font-weight:800;color:#13294B;background:#dce7f6;border-radius:999px;padding:3px 9px}
   .ogm-mem{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eef0f3}
   .ogm-mem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
-  .ogm-note{font-size:12px;color:#5b626e;margin:6px 0 0}`;
+  .ogm-note{font-size:12px;color:#5b626e;margin:6px 0 0}
+  .ogm-link{background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:12px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .ogm-link b{color:#13294B}
+  .ogm-link .ogm-row{margin-top:8px}`;
   document.head.appendChild(s);
 })();
 
@@ -73,6 +77,80 @@ function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(
 
 function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
 
+/* ---------- school link (orphan team recovery) ---------- */
+async function refreshLinkStatus(){
+  if(!Cloud.ready){ LINK_STATUS=null; renderLinkBanner(); return; }
+  try{
+    const u = await Cloud.session();
+    if(!u){ LINK_STATUS=null; renderLinkBanner(); return; }
+    LINK_STATUS = await Cloud.myTeamStatus();
+  }catch(e){
+    console.warn("link status", e);
+    LINK_STATUS = null;
+  }
+  renderLinkBanner();
+}
+function orphanLinkInfo(){
+  if(!LINK_STATUS || LINK_STATUS.linked || !LINK_STATUS.orphan_team_id) return null;
+  return LINK_STATUS;
+}
+function renderSchoolLinkSection(compact){
+  const st = orphanLinkInfo();
+  if(!st) return null;
+  const name = esc(st.orphan_team_name || "your program");
+  const sec = el('<div class="ogm-link"></div>');
+  if(st.can_link_to_school){
+    sec.innerHTML = '<p class="ogm-note" style="margin:0;font-size:13px"><b>'+name+'</b> isn’t linked to your school yet. Link it so <b>Gameday</b> and your <b>getOFFRD</b> coach portal see this program.</p>'
+      +'<div class="ogm-row"><button type="button" class="ogm-b go" id="ogLinkGo">Link to my school</button></div>';
+    sec.querySelector("#ogLinkGo").onclick = ()=> linkTeamToSchoolAction(st.orphan_team_id);
+  } else if(st.link_blocked_reason === "no_hs_coach_profile"){
+    sec.innerHTML = '<p class="ogm-note" style="margin:0;font-size:13px"><b>'+name+'</b> was created but isn’t tied to a school. Finish your <b>high school coach profile</b> on getOFFRD first — we’ll link automatically, or you can link here after.</p>'
+      +'<div class="ogm-row"><a class="ogm-b go" href="'+esc(coachPortalUrl())+'" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Open coach profile</a></div>';
+  } else if(st.link_blocked_reason === "school_already_linked"){
+    sec.innerHTML = '<p class="ogm-note" style="margin:0;font-size:13px"><b>'+name+'</b> can’t be linked — your school already has another OFFGRD program. Contact support if you need to merge accounts.</p>';
+  } else {
+    sec.innerHTML = '<p class="ogm-note" style="margin:0;font-size:13px"><b>'+name+'</b> isn’t linked to a school program yet.</p>';
+  }
+  if(compact) sec.style.marginBottom = "0";
+  return sec;
+}
+function renderLinkBanner(){
+  let host = document.getElementById("ogLinkSchool");
+  const st = orphanLinkInfo();
+  if(!st){
+    if(host) host.remove();
+    return;
+  }
+  if(!host){
+    host = document.createElement("div");
+    host.id = "ogLinkSchool";
+    host.className = "no-print";
+    const tb = document.querySelector(".topbar");
+    if(tb && tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling);
+    else document.body.prepend(host);
+  }
+  host.innerHTML = "";
+  const box = renderSchoolLinkSection(false);
+  if(box) host.appendChild(box);
+}
+async function linkTeamToSchoolAction(teamId){
+  if(!teamId) return;
+  const btn = document.querySelector("#ogLinkGo");
+  if(btn) btn.disabled = true;
+  try{
+    await Cloud.linkTeamToSchool(teamId);
+    await refreshLinkStatus();
+    TEAMS = await Cloud.myTeams();
+    await setActiveTeam(teamId, true);
+    alert("Program linked to your school ✓ Gameday and your getOFFRD coach portal can now see this program.");
+    if(modal && modal.classList.contains("show")) renderTeam();
+  }catch(e){
+    alert(e.message || "Could not link program to school.");
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+
 /* ---------- session / active team ---------- */
 /* Different account on the same device? Wipe the previous account's local app data
    (games, plays, identity, logos, logs) so nothing leaks between users on shared
@@ -103,6 +181,7 @@ async function onUser(u){
       TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
       ROLE = await Cloud.myRole(TEAM.id);
     } else { TEAM = null; ROLE = null; }
+    await refreshLinkStatus();
     applyCloudBrand();
     bar(u);
     if(TEAM) await pull(true);
@@ -200,7 +279,7 @@ function renderSetup(body){
   const crow=el('<div class="ogm-row"></div>');
   const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
   const cb=el('<button class="ogm-b go">Create</button>');
-  cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
+  cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
   crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
   body.appendChild(joinSection());
 }
@@ -213,6 +292,9 @@ async function renderTeam(){
   try{ roster = await Cloud.teamRoster(TEAM.id); }catch(e){}
   if(isAdmin()){ try{ invites = await Cloud.listInvites(TEAM.id); }catch(e){} }
   body.innerHTML="";
+
+  const linkSec = renderSchoolLinkSection(true);
+  if(linkSec) body.appendChild(linkSec);
 
   // program name + role + team switcher
   const head = el('<div class="ogm-row" style="justify-content:space-between;margin-top:6px"></div>');
@@ -315,7 +397,7 @@ function obCoach(){
   go.onclick=async()=>{ const n=pn.value.trim()||"My Program"; go.disabled=true;
     try{
       if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
-      const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true); obCoachDone();
+      const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true); await refreshLinkStatus(); obCoachDone();
     }catch(e){ stat.textContent=e.message||"Couldn’t create the program."; go.disabled=false; } };
   r2.appendChild(pn); r2.appendChild(go);
   b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
@@ -323,8 +405,10 @@ function obCoach(){
 }
 function obCoachDone(){
   const b=ensureOB().querySelector("#obBody"); markOB();
+  const linkNote = orphanLinkInfo() ? '<div class="ogm-sec"><p class="ogm-note" style="margin:0">Tip: link this program to your school from the banner at the top (or under <b>Team</b>) so Gameday works in getOFFRD.</p></div>' : '';
   let _logo="";
   b.innerHTML='<p class="ogm-note" style="font-size:14px"><b style="color:#13294B">'+esc(TEAM?TEAM.name:"Your program")+'</b> is live. Do these in any order — the <b>setup checklist</b> at the top of every page tracks your progress until you’re game-ready:</p>'
+   +linkNote
    +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
    +'<p class="ogm-note">They sign up, tap “I’m a player”, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
