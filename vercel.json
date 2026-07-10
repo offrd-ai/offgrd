@@ -1,3 +1,23 @@
-{ "cleanUrls": true, "headers": [
-  { "source": "/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] }
-] }
+{
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/start",
+      "destination": "https://getoffrd.com/start",
+      "permanent": false
+    },
+    {
+      "source": "/start/",
+      "destination": "https://getoffrd.com/start",
+      "permanent": false
+    }
+  ]
+}
