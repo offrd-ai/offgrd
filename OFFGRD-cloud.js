@@ -11,6 +11,9 @@ const cfg = (typeof window !== "undefined" && window.OFFGRD_CONFIG) || {};
 const sb = createClient ? createClient(cfg.url || "", cfg.anonKey || "", {
   auth: { persistSession: true, autoRefreshToken: true }
 }) : null;
+/* Consolidation (Sprint 1 §5): OFFGRD tables now live in the `offgrd` schema of the authority
+   project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
+const OG = sb ? sb.schema("offgrd") : null;
 
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
@@ -28,11 +31,11 @@ export const Cloud = {
 
   /* ---------- teams ---------- */
   async myTeams() {
-    const { data, error } = await sb.from("teams").select("*").order("created_at");
+    const { data, error } = await OG.from("teams").select("*").order("created_at");
     if (error) throw error; return data || [];
   },
   async createTeam(name) {
-    const { data, error } = await sb.rpc("create_team", { team_name: name });
+    const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
     if (error) throw error; return data; // team id
   },
   // get the user's first team, creating a default one on first login
@@ -42,60 +45,60 @@ export const Cloud = {
     return teams[0];
   },
   async addMember(teamId, email, role) {
-    const { error } = await sb.rpc("add_member", { t: teamId, member_email: email, member_role: role || "coach" });
+    const { error } = await sb.rpc("offgrd_add_member", { t: teamId, member_email: email, member_role: role || "coach" });
     if (error) throw error;
   },
   async roster(teamId) {
-    const { data, error } = await sb.from("team_members").select("user_id, role").eq("team_id", teamId);
+    const { data, error } = await OG.from("team_members").select("user_id, role").eq("team_id", teamId);
     if (error) throw error; return data || [];
   },
 
   /* ---------- roster, invites, roles ---------- */
   async teamRoster(teamId) {
-    const { data, error } = await sb.rpc("team_roster", { t: teamId });
+    const { data, error } = await sb.rpc("offgrd_team_roster", { t: teamId });
     if (error) throw error; return data || [];
   },
   async myRole(teamId) {
-    const { data, error } = await sb.rpc("my_role", { t: teamId });
+    const { data, error } = await sb.rpc("offgrd_my_role", { t: teamId });
     if (error) throw error; return data;
   },
   async setMyPosition(teamId, pos) {
-    const { error } = await sb.rpc("set_my_position", { t: teamId, pos });
+    const { error } = await sb.rpc("offgrd_set_my_position", { t: teamId, pos });
     if (error) throw error;
   },
   async setMyName(name) {
     const u = await this.session(); if (!u) return;
-    const { error } = await sb.from("profiles").update({ full_name: name }).eq("id", u.id);
+    const { error } = await OG.from("profiles").update({ full_name: name }).eq("id", u.id);
     if (error) throw error;
   },
   async setTeamBrand(teamId, brand) {
-    const { error } = await sb.rpc("set_team_brand", { t: teamId, b: brand });
+    const { error } = await sb.rpc("offgrd_set_team_brand", { t: teamId, b: brand });
     if (error) throw error;
   },
   async inviteMember(teamId, email, role) {
     // returns 'added' (user existed) or 'pending' (will join on signup)
-    const { data, error } = await sb.rpc("invite_member", { t: teamId, member_email: email, member_role: role });
+    const { data, error } = await sb.rpc("offgrd_invite_member", { t: teamId, member_email: email, member_role: role });
     if (error) throw error; return data;
   },
   async listInvites(teamId) {
-    const { data, error } = await sb.from("invites").select("*").eq("team_id", teamId).order("created_at");
+    const { data, error } = await OG.from("invites").select("*").eq("team_id", teamId).order("created_at");
     if (error) throw error; return data || [];
   },
-  async revokeInvite(id) { const { error } = await sb.from("invites").delete().eq("id", id); if (error) throw error; },
-  async joinByCode(code) { const { data, error } = await sb.rpc("join_by_code", { code }); if (error) throw error; return data; },
+  async revokeInvite(id) { const { error } = await OG.from("invites").delete().eq("id", id); if (error) throw error; },
+  async joinByCode(code) { const { data, error } = await sb.rpc("offgrd_join_by_code", { code }); if (error) throw error; return data; },
   async setMemberRole(teamId, userId, role) {
-    const { error } = await sb.from("team_members").update({ role }).eq("team_id", teamId).eq("user_id", userId);
+    const { error } = await OG.from("team_members").update({ role }).eq("team_id", teamId).eq("user_id", userId);
     if (error) throw error;
   },
   async removeMember(teamId, userId) {
-    const { error } = await sb.from("team_members").delete().eq("team_id", teamId).eq("user_id", userId);
+    const { error } = await OG.from("team_members").delete().eq("team_id", teamId).eq("user_id", userId);
     if (error) throw error;
   },
-  async rotateCode(teamId) { const { data, error } = await sb.rpc("rotate_join_code", { t: teamId }); if (error) throw error; return data; },
+  async rotateCode(teamId) { const { data, error } = await sb.rpc("offgrd_rotate_join_code", { t: teamId }); if (error) throw error; return data; },
 
   /* ---------- plays (playbook) ---------- */
   async listPlays(teamId) {
-    const { data, error } = await sb.from("plays").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
+    const { data, error } = await OG.from("plays").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
     if (error) throw error; return data || [];
   },
   async savePlay(teamId, play) {
@@ -106,60 +109,60 @@ export const Cloud = {
       data: play.data || play
     };
     if (play.id) row.id = play.id;
-    const { data, error } = await sb.from("plays").upsert(row).select().single();
+    const { data, error } = await OG.from("plays").upsert(row).select().single();
     if (error) throw error; return data;
   },
-  async deletePlay(id) { const { error } = await sb.from("plays").delete().eq("id", id); if (error) throw error; },
+  async deletePlay(id) { const { error } = await OG.from("plays").delete().eq("id", id); if (error) throw error; },
   async updatePlayReads(id, qb_reads) {
-    const { data, error } = await sb.from("plays").update({ qb_reads }).eq("id", id).select().single();
+    const { data, error } = await OG.from("plays").update({ qb_reads }).eq("id", id).select().single();
     if (error) throw error; return data;
   },
   async updatePlayOlKeys(id, ol_keys) {
-    const { data, error } = await sb.from("plays").update({ ol_keys }).eq("id", id).select().single();
+    const { data, error } = await OG.from("plays").update({ ol_keys }).eq("id", id).select().single();
     if (error) throw error; return data;
   },
 
   /* ---------- scouting games (season library) ---------- */
   async listGames(teamId) {
-    const { data, error } = await sb.from("scouting_games").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
+    const { data, error } = await OG.from("scouting_games").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
     if (error) throw error; return data || [];
   },
   async saveGame(teamId, game) {
     const row = { team_id: teamId, opponent: game.opponent, week: game.week, side: game.side, source: game.source, rows: game.rows };
     if (game.id) row.id = game.id;
-    const { data, error } = await sb.from("scouting_games").upsert(row).select().single();
+    const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
     if (error) throw error; return data;
   },
-  async deleteGame(id) { const { error } = await sb.from("scouting_games").delete().eq("id", id); if (error) throw error; },
+  async deleteGame(id) { const { error } = await OG.from("scouting_games").delete().eq("id", id); if (error) throw error; },
 
   /* ---------- QB reads trainer results ---------- */
   async saveQuizResult(teamId, r) {
     const row = { team_id: teamId, quiz: r.quiz || "Test", score: r.score|0, total: r.total|0, detail: r.detail || [] };
-    const { data, error } = await sb.from("qb_results").insert(row).select().single();
+    const { data, error } = await OG.from("qb_results").insert(row).select().single();
     if (error) throw error; return data;
   },
   async listQuizResults(teamId) {
-    const { data, error } = await sb.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
+    const { data, error } = await OG.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
     if (error) throw error; return data || [];
   },
 
   /* ---------- week plans (Phase A of the education engine) ---------- */
   async activeWeekPlan(teamId) {
-    const { data, error } = await sb.from("week_plans").select("*")
+    const { data, error } = await OG.from("week_plans").select("*")
       .eq("team_id", teamId).eq("status", "active").maybeSingle();
     if (error) throw error; return data || null;
   },
   async startWeekPlan(teamId, opponent, gameDate, buckets) {
-    const { data, error } = await sb.rpc("start_week_plan",
+    const { data, error } = await sb.rpc("offgrd_start_week_plan",
       { t: teamId, opp: opponent || "", gd: gameDate || null, bks: buckets || [] });
     if (error) throw error; return data;   // new week_plan id
   },
   async saveWeekPlan(id, fields) {          // {opponent?, game_date?, buckets?, notes?}
-    const { data, error } = await sb.from("week_plans").update(fields).eq("id", id).select().single();
+    const { data, error } = await OG.from("week_plans").update(fields).eq("id", id).select().single();
     if (error) throw error; return data;
   },
   async saveSchedule(teamId, schedule) {    // season schedule stored on teams.schedule (jsonb)
-    const { error } = await sb.from("teams").update({ schedule }).eq("id", teamId);
+    const { error } = await OG.from("teams").update({ schedule }).eq("id", teamId);
     if (error) throw error; return true;
   },
   async uploadLogo(teamId, key, blob) {     // downscaled logo -> public Storage URL (lean, not base64)
@@ -170,7 +173,7 @@ export const Cloud = {
     return (data && data.publicUrl ? data.publicUrl : "") + "?t=" + Date.now();
   },
   async listWeekPlans(teamId) {
-    const { data, error } = await sb.from("week_plans").select("id,opponent,game_date,status,updated_at")
+    const { data, error } = await OG.from("week_plans").select("id,opponent,game_date,status,updated_at")
       .eq("team_id", teamId).order("updated_at", { ascending: false });
     if (error) throw error; return data || [];
   },
@@ -192,7 +195,7 @@ export const Cloud = {
 
   /* ---------- plan / billing status ---------- */
   async plan(teamId) {
-    const { data } = await sb.from("teams").select("plan, plan_status").eq("id", teamId).single();
+    const { data } = await OG.from("teams").select("plan, plan_status").eq("id", teamId).single();
     return data || { plan: "free", plan_status: "active" };
   }
 };
