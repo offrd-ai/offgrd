@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=35";
-import { openAuthModal } from "./OFFGRD-auth.js?v=35";
+import { Cloud } from "./OFFGRD-cloud.js?v=36";
+import { openAuthModal } from "./OFFGRD-auth.js?v=36";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -551,7 +551,12 @@ window.OFFGRD_SCHEDULE_PUSH=function(schedule){
   if(!TEAM || !canEdit()) return;
   TEAM.schedule = schedule;   /* keep the local team copy fresh so a pull doesn't clobber a fresh edit */
   clearTimeout(_schedT);
-  _schedT=setTimeout(()=>{ _schedT=null; Cloud.saveSchedule(TEAM.id, schedule).then(()=>syncStamp()).catch(()=>{}); }, 1200);
+  _schedT=setTimeout(()=>{
+    _schedT=null;
+    Cloud.saveSchedule(TEAM.id, schedule)
+      .then(()=>{ syncStamp(); try{ setupState().then(renderChecklist); }catch(e){} })
+      .catch(()=>{});
+  }, 1200);
 };
 /* Upload a downscaled logo blob to the public 'logos' Storage bucket; resolves to a URL (or null on failure/not-signed-in). */
 window.OFFGRD_UPLOAD_LOGO=function(key, blob){
@@ -623,13 +628,21 @@ function obPlayerDone(ps){
 }
 
 /* ---------- setup checklist: lives at the top of every page for coaches until the program is game-ready ---------- */
+function openScheduleFromSetup(){
+  if(typeof window.openSchedule === "function"){ window.openSchedule(); return; }
+  location.href = "OFFGRD.html#schedule";
+}
 async function setupState(){
-  const s={roster:0,plays:0,games:0,identity:false};
+  const s={roster:0,plays:0,games:0,schedule:0,identity:false};
   try{ s.identity=!!localStorage.getItem("offgrd_identity"); }catch(e){}
   if(!TEAM) return s;
   try{ const r=await Cloud.teamRoster(TEAM.id); s.roster=(r||[]).length; }catch(e){}
   try{ const p=await Cloud.listPlays(TEAM.id); s.plays=(p||[]).length; }catch(e){}
   try{ const g=await Cloud.listGames(TEAM.id); s.games=(g||[]).length; }catch(e){}
+  try{
+    const sched = Array.isArray(TEAM.schedule) ? TEAM.schedule : [];
+    s.schedule = sched.length;
+  }catch(e){}
   return s;
 }
 function renderChecklist(s){
@@ -639,9 +652,12 @@ function renderChecklist(s){
     {t:"Invite staff & players", done:s.roster>=2, act:openTeam},
     {t:"Load your playbook", done:s.plays>=1, href:"OFFGRD-Playbook.html"},
     {t:"Set colors & logo", done:s.identity, href:"OFFGRD.html#brand"},
+    {t:"Add your schedule", done:s.schedule>=1, act:openScheduleFromSetup},
     {t:"Import a breakdown", done:s.games>=1, href:"OFFGRD.html#import"}
   ];
   const doneN=items.filter(i=>i.done).length;
+  /* v36: re-show if schedule step incomplete (new step after coaches hid at 4/4) */
+  if(hidden && s.schedule < 1){ try{ localStorage.removeItem("offgrd_setup_done"); }catch(e){} hidden=null; }
   if(hidden || doneN===items.length){
     if(doneN===items.length){ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} }
     if(host) host.remove(); return;
