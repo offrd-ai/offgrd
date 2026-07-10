@@ -1,13 +1,13 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=33";
-import { openAuthModal } from "./OFFGRD-auth.js?v=33";
+import { Cloud } from "./OFFGRD-cloud.js?v=34";
+import { openAuthModal } from "./OFFGRD-auth.js?v=34";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
 const acct = document.getElementById("acct");
-let TEAM = null, ROLE = null, TEAMS = [], LINK_STATUS = null;
+let TEAM = null, ROLE = null, TEAMS = [], LINK_STATUS = null, CAN_CREATE_TEAM = false;
 const AKEY = "offgrd_team";
 const coachPortalUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.coachPortalUrl) || "https://getoffrd.com/high-school-coach/profile";
 
@@ -78,6 +78,31 @@ function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(
 function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
 
 /* ---------- school link (orphan team recovery) ---------- */
+async function refreshCreateEligibility(){
+  if(!Cloud.ready || !(await Cloud.session())){ CAN_CREATE_TEAM = false; return; }
+  try{ CAN_CREATE_TEAM = !!(await Cloud.canCreateTeam()); }
+  catch(e){ CAN_CREATE_TEAM = false; }
+}
+function publishProgramRole(){
+  window.OFFGRD_PROGRAM = {
+    ready: !!(TEAM && ROLE),
+    role: ROLE,
+    teamId: TEAM && TEAM.id,
+    isPlayer: () => ROLE === "player",
+    isCoach: () => !!ROLE && ROLE !== "player",
+    canCreateTeam: () => CAN_CREATE_TEAM,
+  };
+  try{ document.dispatchEvent(new CustomEvent("offgrd-program-ready")); }catch(e){}
+}
+window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
+  if(!TEAM) return null;
+  return Cloud.playerWeekPlan(TEAM.id);
+};
+window.OFFGRD_WEEK_PLAYER_SHARE = async function(share){
+  if(!TEAM || !canEdit() || !Cloud.setWeekPlayerShare) return;
+  await Cloud.setWeekPlayerShare(TEAM.id, share);
+  if(window.WEEK) window.WEEK.player_share = share;
+};
 async function refreshLinkStatus(){
   if(!Cloud.ready){ LINK_STATUS=null; renderLinkBanner(); return; }
   try{
@@ -172,7 +197,7 @@ function switchGuard(u){
   return false;
 }
 async function onUser(u){
-  if(!u){ TEAM=null; ROLE=null; TEAMS=[]; clearInterval(_autoT); bar(null); return; }
+  if(!u){ TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT); publishProgramRole(); bar(null); return; }
   if(switchGuard(u)) return;
   try{
     TEAMS = await Cloud.myTeams();
@@ -181,7 +206,9 @@ async function onUser(u){
       TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
       ROLE = await Cloud.myRole(TEAM.id);
     } else { TEAM = null; ROLE = null; }
+    await refreshCreateEligibility();
     await refreshLinkStatus();
+    publishProgramRole();
     applyCloudBrand();
     bar(u);
     if(TEAM) await pull(true);
@@ -195,6 +222,7 @@ async function setActiveTeam(id, silent){
   TEAM = TEAMS.find(t => t.id === id) || TEAM; if(!TEAM) return;
   try{ localStorage.setItem(AKEY, TEAM.id); }catch(e){}
   ROLE = await Cloud.myRole(TEAM.id);
+  publishProgramRole();
   bar(await Cloud.user());
   await pull(!!silent);
 }
@@ -226,7 +254,7 @@ async function pull(silent){
       if(!silent) alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
-      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device\u2019s data is now backed up to "+TEAM.name+"."); }
+      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
@@ -274,13 +302,17 @@ function joinSection(){
 }
 function renderSetup(body){
   body.innerHTML="";
-  body.appendChild(el('<p class="ogm-note">You’re signed in. Create your program to become its Admin, or join an existing one with a code.</p>'));
-  const cs=el('<div class="ogm-sec"><div class="ogm-lbl">Create a program</div></div>');
-  const crow=el('<div class="ogm-row"></div>');
-  const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
-  const cb=el('<button class="ogm-b go">Create</button>');
-  cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
-  crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
+  if(CAN_CREATE_TEAM){
+    body.appendChild(el('<p class="ogm-note">You’re signed in. Create your program to become its Admin, or join an existing one with a code.</p>'));
+    const cs=el('<div class="ogm-sec"><div class="ogm-lbl">Create a program</div></div>');
+    const crow=el('<div class="ogm-row"></div>');
+    const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
+    const cb=el('<button class="ogm-b go">Create</button>');
+    cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
+    crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
+  } else {
+    body.appendChild(el('<p class="ogm-note">You’re signed in. Enter your team’s join code from your coach — players don’t create programs.</p>'));
+  }
   body.appendChild(joinSection());
 }
 
@@ -374,15 +406,19 @@ function ensureOB(){
   return obEl;
 }
 function markOB(){ try{ localStorage.setItem("offgrd_onboarded","1"); }catch(e){} }
-function openOnboard(){ ensureOB().classList.add("show"); obChoose(); }
+function openOnboard(){ ensureOB().classList.add("show"); if(CAN_CREATE_TEAM) obChoose(); else obPlayer(); }
 function obChoose(){
   const b=ensureOB().querySelector("#obBody");
   b.innerHTML='<p class="ogm-note" style="font-size:14px">Let’s get you set up in about a minute. Which are you?</p>';
   const row=el('<div class="ogm-row" style="margin-top:12px"></div>');
-  const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🏈 I’m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
-  const p=el('<button class="ogm-b" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🎓 I’m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
-  c.onclick=obCoach; p.onclick=obPlayer;
-  row.appendChild(c); row.appendChild(p); b.appendChild(row);
+  if(CAN_CREATE_TEAM){
+    const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🏈 I’m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
+    c.onclick=obCoach;
+    row.appendChild(c);
+  }
+  const p=el('<button class="ogm-b'+(CAN_CREATE_TEAM?'':' go')+'" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">🎓 I’m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
+  p.onclick=obPlayer;
+  row.appendChild(p); b.appendChild(row);
 }
 function obCoach(){
   const b=ensureOB().querySelector("#obBody");

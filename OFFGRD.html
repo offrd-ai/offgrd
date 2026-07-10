@@ -243,7 +243,7 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=33"></script>
+<script src="OFFGRD-config.js?v=34"></script>
 <script src="supabase.js?v=31"></script>
 </head>
 <body>
@@ -1385,6 +1385,25 @@ function weekBarHTML(){
   const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
   return wrap('<b>This week</b>'+crest(WEEK.opponent||"",26)+oppSel+'<span class="foot">gameday</span>'+dateIn+(cd?'<span class="wb" style="min-width:auto;padding:0 9px">'+cd+'</span>':"")+'<span style="flex:1"></span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart">Start new week</button>':""));
 }
+function weekPlayerShareHTML(){
+  if(!WEEK || !WEEK_EDIT || !window.OFFGRD_WEEK_PLAYER_SHARE) return "";
+  const s = Object.assign({briefing:true,plays:true,scout:false,practice:true}, WEEK.player_share||{});
+  const row = (k,label)=>'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;margin-right:12px"><input type="checkbox" class="wkShare" data-k="'+k+'"'+(s[k]?' checked':'')+'> '+label+'</label>';
+  return '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
+    +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
+    +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>';
+}
+function wireWeekPlayerShare(host){
+  if(!host || !WEEK || !WEEK_EDIT) return;
+  [].forEach.call(host.querySelectorAll(".wkShare"), cb=>{
+    cb.onchange=()=>{
+      const share={briefing:false,plays:false,scout:false,practice:false};
+      [].forEach.call(host.querySelectorAll(".wkShare"), x=>{ if(x.checked) share[x.dataset.k]=true; });
+      WEEK.player_share=share;
+      if(window.OFFGRD_WEEK_PLAYER_SHARE) window.OFFGRD_WEEK_PLAYER_SHARE(share);
+    };
+  });
+}
 function weekGenHTML(){
   if(!WEEK) return "";
   const g=WEEK.gen;
@@ -1431,6 +1450,7 @@ function wireWeekUI(host){
   [].forEach.call(host.querySelectorAll("[data-wkadd]"),bt=>{ bt.onclick=()=>planCommit(+bt.dataset.wkadd, bt.dataset.wkplay, null); });
   [].forEach.call(host.querySelectorAll("[data-wkdel]"),bt=>{ bt.onclick=()=>{ const a=bt.dataset.wkdel.split(":"); planUncommit(+a[0],+a[1]); }; });
   [].forEach.call(host.querySelectorAll("[data-wkpick]"),bt=>{ bt.onclick=()=>openWeekPicker(+bt.dataset.wkpick); });
+  wireWeekPlayerShare(host);
 }
 function defaultBuckets(){ return [{name:"1st & 10 (openers)",dn:"1",db:"10+",zone:"ANY"},{name:"2nd & medium",dn:"2",db:"4-6",zone:"ANY"},{name:"2nd & long",dn:"2",db:"10+",zone:"ANY"},{name:"3rd & short",dn:"3",db:"1-3",zone:"ANY"},{name:"3rd & medium",dn:"3",db:"4-6",zone:"ANY"},{name:"3rd & long",dn:"3",db:"10+",zone:"ANY"},{name:"Red zone",dn:"ANY",db:"ANY",zone:"REDZONE"},{name:"Goal line",dn:"ANY",db:"1-3",zone:"REDZONE"}]; }
 function ensurePlan(){ if(!PLAN_BUCKETS) PLAN_BUCKETS=defaultBuckets(); }
@@ -1527,6 +1547,7 @@ function renderPlan(){
   h+=`<div class="seg no-print" style="max-width:480px;margin-bottom:10px;flex-wrap:wrap"><button${PLAN_SIDE!=="def"?' class="on"':''} onclick="setPlanSide('off')">Offensive plan (attack their D)</button><button${PLAN_SIDE==="def"?' class="on"':''} onclick="setPlanSide('def')">Defensive plan (stop their O)</button></div>`;
   h+=weekBarHTML();
   h+=weekGenHTML();
+  h+=weekPlayerShareHTML();
   h+=planEditorHTML();
   if(PLAN_SIDE==="def"){ h+=renderDefPlanBody(oppName); h+=`</div>`; host.innerHTML=h; wireWeekUI(host); return; }
   const def=oppRows("def");
@@ -2144,8 +2165,9 @@ render();
 if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=33"></script>
-<script src="OFFGRD-mobile.js?v=33"></script>
+<script type="module" src="OFFGRD-account.js?v=34"></script>
+<script src="OFFGRD-role-gate.js?v=34"></script>
+<script src="OFFGRD-mobile.js?v=34"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -50,6 +50,20 @@ export const Cloud = {
     if (error) throw error;
     return data;
   },
+  async canCreateTeam() {
+    const { data, error } = await sb.rpc("offgrd_can_create_team");
+    if (error) throw error;
+    return !!data;
+  },
+  async playerWeekPlan(teamId) {
+    const { data, error } = await sb.rpc("offgrd_player_week_plan", { t: teamId });
+    if (error) throw error;
+    return data;
+  },
+  async setWeekPlayerShare(teamId, share) {
+    const { error } = await sb.rpc("offgrd_set_week_player_share", { t: teamId, share });
+    if (error) throw error;
+  },
   // get the user's first team, creating a default one on first login
   async ensureTeam(defaultName) {
     let teams = await this.myTeams();
