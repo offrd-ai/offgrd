@@ -108,6 +108,7 @@
   }
 
   function applyScoutPlayerUI(){
+    if(!isPlayer()) return;
     ensurePlayerViews();
     patchSetView();
     hideIds(["importBtn","manageBtn","schedBtn","brandBtn"]);
@@ -146,7 +147,7 @@
     if(!prog().ready) return;
     var kind = window.OFFGRD_APP && window.OFFGRD_APP.kind;
     if(kind === "playbook") applyPlaybookGate();
-    else if(kind === "scout") applyScoutPlayerUI();
+    else if(kind === "scout"){ if(isPlayer()) applyScoutPlayerUI(); }
     else if(kind === "qb") applyQbPlayerUI();
   }
 
