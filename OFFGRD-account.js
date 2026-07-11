@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=37";
-import { openAuthModal } from "./OFFGRD-auth.js?v=37";
+import { Cloud } from "./OFFGRD-cloud.js?v=38";
+import { openAuthModal } from "./OFFGRD-auth.js?v=38";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -97,6 +97,10 @@ function publishProgramRole(){
 window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
   if(!TEAM) return null;
   return Cloud.playerWeekPlan(TEAM.id);
+};
+window.OFFGRD_LOAD_RECRUITING_SNAPSHOT = async function(){
+  if(!Cloud.recruitingSnapshot) return null;
+  return Cloud.recruitingSnapshot();
 };
 window.OFFGRD_WEEK_PLAYER_SHARE = async function(share){
   if(!TEAM || !canEdit() || !Cloud.setWeekPlayerShare) return;
@@ -597,7 +601,9 @@ function obPlayer(){
   go.onclick=async()=>{ const cd=code.value.trim(); if(!cd){ stat.textContent="Enter the code."; return; } go.disabled=true;
     try{
       if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
-      const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true); obPosition();
+      const tid=await Cloud.joinByCode(cd); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid, true);
+      try{ if(Cloud.seedPlayerFromTeam) await Cloud.seedPlayerFromTeam({ fullName: nm.value.trim()||null }); }catch(e){}
+      obPosition();
     }catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
   r2.appendChild(code); r2.appendChild(go);
   b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
@@ -613,16 +619,45 @@ function obPosition(){
     bt.onclick=async()=>{
       try{ await Cloud.setMyPosition(TEAM.id, ps); }catch(e){}
       try{ localStorage.setItem("offgrd_pos", ps); }catch(e){}
-      obPlayerDone(ps);
+      obGradYear(ps);
     };
     grid.appendChild(bt);
   });
   b.appendChild(grid);
 }
-function obPlayerDone(ps){
+function obGradYear(ps){
+  const b=ensureOB().querySelector("#obBody");
+  const yr=new Date().getFullYear();
+  const years=[]; for(let y=yr; y<=yr+5; y++) years.push(String(y));
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Position: <b style="color:#13294B">'+esc(ps)+'</b></p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">Graduation year</div><p class="ogm-note">Seeds your recruiting profile so you don’t re-type it later.</p></div>';
+  const grid=el('<div class="ogm-row" style="margin-top:8px"></div>');
+  years.forEach(gy=>{
+    const bt=el('<button class="ogm-b" style="min-width:72px;min-height:44px">'+gy+'</button>');
+    bt.onclick=async()=>{
+      try{ localStorage.setItem("offgrd_grad", gy); }catch(e){}
+      try{
+        if(Cloud.seedPlayerFromTeam){
+          await Cloud.seedPlayerFromTeam({ position: ps, gradYear: gy });
+        }
+      }catch(e){ console.warn("seed recruiting", e); }
+      obPlayerDone(ps, gy);
+    };
+    grid.appendChild(bt);
+  });
+  const skip=el('<button class="ogm-b" style="margin-top:8px">Skip for now</button>');
+  skip.onclick=async()=>{
+    try{ if(Cloud.seedPlayerFromTeam) await Cloud.seedPlayerFromTeam({ position: ps }); }catch(e){}
+    obPlayerDone(ps, null);
+  };
+  b.appendChild(grid);
+  b.appendChild(skip);
+}
+function obPlayerDone(ps, gy){
   const b=ensureOB().querySelector("#obBody"); markOB();
-  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b> ✓ — time to get your first reps.</p>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>▶ Snap</b>, watch it develop, make your read. Every test you take saves to the team — your coaches see the work you put in.</p></div>'
+  const gyLine = gy ? ' · Class of <b style="color:#13294B">'+esc(gy)+'</b>' : '';
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b>'+gyLine+' ✓ — recruiting profile seeded.</p>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>▶ Snap</b>, watch it develop, make your read. Or open <b>Recruiting</b> to finish your profile.</p></div>'
    +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html#train" style="text-decoration:none;display:inline-flex;align-items:center">▶ Take your first reps</a><button class="ogm-b" id="obDone2">Later</button></div>';
   b.querySelector("#obDone2").onclick=()=>{ obEl.classList.remove("show"); };
 }

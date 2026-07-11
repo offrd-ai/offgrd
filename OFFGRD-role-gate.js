@@ -72,12 +72,60 @@
   function renderRecruitingShell(){
     var host = document.getElementById("view-recruiting");
     if(!host) return;
-    host.innerHTML = '<div class="panel">'
-      +'<h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
-      +'<p class="foot" style="margin:0">Your recruiting profile will live here and feed <b>getOFFRD</b>. '
-      +'This embed is design-gated (§3) — shell only for now.</p>'
-      +'<p class="foot" style="margin-top:10px"><a href="https://getoffrd.com/myrecruitpath" style="font-weight:800">Open recruiting ↗</a></p>'
-      +'</div>';
+    host.innerHTML = '<div class="panel"><p class="foot">Loading your recruiting profile…</p></div>';
+    var load = window.OFFGRD_LOAD_RECRUITING_SNAPSHOT;
+    if(!load){
+      host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+        +'<p class="foot">Sign in to see your seeded recruiting snapshot.</p>'
+        +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+      return;
+    }
+    load().then(function(snap){
+      if(!snap || snap.ok === false){
+        host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+          +'<p class="foot">Couldn’t load your profile yet. Join a team or finish signup, then refresh.</p>'
+          +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+        return;
+      }
+      if(!snap.has_profile){
+        host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+          +'<p class="foot">Your roster seed isn’t on your recruiting profile yet.</p>'
+          +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+        return;
+      }
+      var missing = Array.isArray(snap.missing) ? snap.missing.slice(0, 2) : [];
+      var missLine = missing.length
+        ? ('Finish next: <b>'+esc(missing.join(', '))+'</b>')
+        : 'Core fields look solid — add film and academics to climb.';
+      var name = [snap.first_name, snap.last_name].filter(Boolean).join(' ') || 'Athlete';
+      var meta = [snap.position, snap.graduation_year ? ('Class of '+snap.graduation_year) : null, snap.high_school]
+        .filter(Boolean).join(' · ');
+      var pct = snap.completeness_pct || 0;
+      var score = snap.offrd_score_teaser || 0;
+      var matchesLine = pct >= 60
+        ? 'College matches unlock from this same profile — open the editor to refine prefs.'
+        : 'Complete your profile to unlock college matches.';
+      var editUrl = snap.complete_url || '/profile/setup?from=offgrd&returnTo=/gameday/';
+      host.innerHTML = '<div class="panel">'
+        +'<h3 style="margin:0 0 4px;color:#13294B">Recruiting · '+esc(name)+'</h3>'
+        +'<p class="foot" style="margin:0 0 12px">'+esc(meta)+'</p>'
+        +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+        +'<div style="flex:1;min-width:120px;background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px">'
+        +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase">Profile strength</div>'
+        +'<div style="font-size:28px;font-weight:900;color:#13294B">'+pct+'%</div></div>'
+        +'<div style="flex:1;min-width:120px;background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px">'
+        +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase">OFFRD Score</div>'
+        +'<div style="font-size:28px;font-weight:900;color:#13294B">'+score+'</div>'
+        +'<div class="foot" style="margin:2px 0 0">profile portion</div></div></div>'
+        +'<p class="foot" style="margin:0 0 6px">'+missLine+'</p>'
+        +'<p class="foot" style="margin:0 0 14px">'+esc(matchesLine)+'</p>'
+        +'<a class="btnp" href="'+esc(editUrl)+'" style="display:inline-flex;text-decoration:none;font-weight:800">Complete my recruiting profile →</a>'
+        +'<p class="foot" style="margin-top:10px">Same account · same <b>players</b> record · no second login.</p>'
+        +'</div>';
+    }).catch(function(e){
+      console.warn('[recruiting]', e);
+      host.innerHTML = '<div class="panel"><p class="foot">Couldn’t load recruiting snapshot.</p></div>';
+    });
   }
 
   function patchSetView(){

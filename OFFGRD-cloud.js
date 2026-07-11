@@ -112,6 +112,21 @@ export const Cloud = {
   },
   async revokeInvite(id) { const { error } = await OG.from("invites").delete().eq("id", id); if (error) throw error; },
   async joinByCode(code) { const { data, error } = await sb.rpc("offgrd_join_by_code", { code }); if (error) throw error; return data; },
+  /** Phase 4: merge roster → public.players (source=team). */
+  async seedPlayerFromTeam(opts) {
+    const { data, error } = await sb.rpc("offgrd_seed_player_from_team", {
+      p_grad_year: (opts && opts.gradYear) || null,
+      p_position: (opts && opts.position) || null,
+      p_full_name: (opts && opts.fullName) || null,
+    });
+    if (error) throw error;
+    return data;
+  },
+  async recruitingSnapshot() {
+    const { data, error } = await sb.rpc("offgrd_recruiting_snapshot");
+    if (error) throw error;
+    return data;
+  },
   async setMemberRole(teamId, userId, role) {
     const { error } = await OG.from("team_members").update({ role }).eq("team_id", teamId).eq("user_id", userId);
     if (error) throw error;
