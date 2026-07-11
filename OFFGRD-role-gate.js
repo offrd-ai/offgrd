@@ -70,6 +70,10 @@
   }
 
   function renderRecruitingShell(){
+    // Recruiting profile lives on getOFFRD — absolute base so offops.app/OFFGRD.html
+    // does not resolve /profile/setup relative to the wrong origin (404).
+    var REC_BASE = 'https://getoffrd.com';
+    var REC_SETUP = REC_BASE + '/profile/setup?from=offgrd&returnTo=/gameday/';
     var host = document.getElementById("view-recruiting");
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading your recruiting profile…</p></div>';
@@ -77,20 +81,20 @@
     if(!load){
       host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
         +'<p class="foot">Sign in to see your seeded recruiting snapshot.</p>'
-        +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+        +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
       return;
     }
     load().then(function(snap){
       if(!snap || snap.ok === false){
         host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
           +'<p class="foot">Couldn’t load your profile yet. Join a team or finish signup, then refresh.</p>'
-          +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
         return;
       }
       if(!snap.has_profile){
         host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
           +'<p class="foot">Your roster seed isn’t on your recruiting profile yet.</p>'
-          +'<p class="foot" style="margin-top:10px"><a href="/profile/setup?from=offgrd&returnTo=/gameday/" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
         return;
       }
       var missing = Array.isArray(snap.missing) ? snap.missing.slice(0, 2) : [];
@@ -105,7 +109,8 @@
       var matchesLine = pct >= 60
         ? 'College matches unlock from this same profile — open the editor to refine prefs.'
         : 'Complete your profile to unlock college matches.';
-      var editUrl = snap.complete_url || '/profile/setup?from=offgrd&returnTo=/gameday/';
+      var editUrl = snap.complete_url || REC_SETUP;
+      if (!/^https?:\/\//i.test(editUrl)) editUrl = REC_BASE + editUrl;
       host.innerHTML = '<div class="panel">'
         +'<h3 style="margin:0 0 4px;color:#13294B">Recruiting · '+esc(name)+'</h3>'
         +'<p class="foot" style="margin:0 0 12px">'+esc(meta)+'</p>'
