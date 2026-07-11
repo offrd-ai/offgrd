@@ -8,7 +8,8 @@
 <meta name="description" content="OFFGRD is the offline-first football program suite: predict opponent calls from real breakdown data, build and animate your playbook, train and test your roster, and call the game from the sideline — with zero bars.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=38"></script>
+<script src="OFFGRD-config.js?v=39"></script>
+<script src="OFFGRD-cache-gate.js?v=39"></script>
 <script src="supabase.js?v=29"></script>
 <style>
   :root{
@@ -335,13 +336,18 @@
 </footer>
 
 <script type="module">
-  import { Cloud } from "./OFFGRD-cloud.js?v=38";
-  import { openAuthModal } from "./OFFGRD-auth.js?v=38";
+  import { Cloud } from "./OFFGRD-cloud.js?v=39";
+  import { openAuthModal } from "./OFFGRD-auth.js?v=39";
   const navAuth = document.getElementById("navAuth");
+  async function doSignOut(){
+    try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
+    try{ await Cloud.signOut(); }catch(e){}
+    try{ location.reload(); }catch(e){}
+  }
   function render(u){
     if(u){
       navAuth.innerHTML = '<span class="who">'+u.email+'</span><a class="nav-btn" href="OFFGRD.html">Open app</a><button class="nav-btn ghost" id="soBtn">Sign out</button>';
-      document.getElementById("soBtn").onclick = ()=>Cloud.signOut();
+      document.getElementById("soBtn").onclick = ()=>doSignOut();
     } else {
       navAuth.innerHTML = '<button class="nav-btn ghost" id="siBtn">Sign in</button><button class="nav-btn" id="suBtn">Start free</button>';
       document.getElementById("siBtn").onclick = ()=>openAuthModal(null,"signin");

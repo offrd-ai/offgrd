@@ -38,8 +38,9 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=38"></script>
+<script src="OFFGRD-config.js?v=39"></script>
 <script src="supabase.js?v=31"></script>
+<script src="OFFGRD-cache-gate.js?v=39"></script>
 </head>
 <body>
   <div class="topbar"><a href="OFFGRD.html" title="OFFGRD — back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>· Playbook — draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">← OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
@@ -688,6 +689,7 @@ window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=
 document.addEventListener("DOMContentLoaded",()=>{
   const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
   loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();offerStarter();
+  try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
   const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
   const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
   const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
@@ -738,9 +740,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=a;saveLib();renderLib();msg("Imported "+a.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=38"></script>
-<script src="OFFGRD-role-gate.js?v=38"></script>
-<script src="OFFGRD-mobile.js?v=38"></script>
+<script type="module" src="OFFGRD-account.js?v=39"></script>
+<script src="OFFGRD-role-gate.js?v=39"></script>
+<script src="OFFGRD-mobile.js?v=39"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

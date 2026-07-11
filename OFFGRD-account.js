@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=38";
-import { openAuthModal } from "./OFFGRD-auth.js?v=38";
+import { Cloud } from "./OFFGRD-cloud.js?v=39";
+import { openAuthModal } from "./OFFGRD-auth.js?v=39";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -56,7 +56,7 @@ function bar(user){
     acct.innerHTML = '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span> <button class="cbtn" id="csetup">Get started</button> <button class="cbtn" id="co">Sign out</button>';
     styleBtns();
     acct.querySelector("#csetup").onclick = openOnboard;
-    acct.querySelector("#co").onclick = () => Cloud.signOut();
+    acct.querySelector("#co").onclick = () => doSignOut();
     return;
   }
   const badge = ROLE ? '<span class="cbtn" style="cursor:default;background:#dce7f6;border-color:#dce7f6;color:#13294B">'+roleLabel(ROLE)+'</span>' : '';
@@ -71,7 +71,12 @@ function bar(user){
   acct.querySelector("#cteam").onclick = openTeam;
   const cs = acct.querySelector("#cs"); if(cs) cs.onclick = ()=>push();
   const cd = acct.querySelector("#cd"); if(cd) cd.onclick = () => pull(false);
-  acct.querySelector("#co").onclick = () => Cloud.signOut();
+  acct.querySelector("#co").onclick = () => doSignOut();
+}
+async function doSignOut(){
+  try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
+  try{ await Cloud.signOut(); }catch(e){}
+  try{ location.reload(); }catch(e){}
 }
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
 
@@ -182,16 +187,22 @@ async function linkTeamToSchoolAction(teamId){
 
 /* ---------- session / active team ---------- */
 /* Different account on the same device? Wipe the previous account's local app data
-   (games, plays, identity, logos, logs) so nothing leaks between users on shared
-   computers. Supabase auth tokens (sb-*) and device prefs (booth mode) are kept. */
+   (games, plays, identity, logos, offrd:* schedule keys) so nothing leaks between
+   users on shared computers. Supabase auth tokens (sb-*) are kept. */
 function switchGuard(u){
   let prev=null; try{ prev=localStorage.getItem("offgrd_uid"); }catch(e){}
   if(prev && u && prev!==u.id){
     try{
-      const keep=["offgrd_uid","offgrd_booth"];
-      const kill=[];
-      for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("offgrd_")===0 && keep.indexOf(k)<0) kill.push(k); }
-      kill.forEach(k=>localStorage.removeItem(k));
+      if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE();
+      else {
+        const kill=[];
+        for(let i=0;i<localStorage.length;i++){
+          const k=localStorage.key(i);
+          if(!k) continue;
+          if(k.indexOf("offgrd_")===0 || k.indexOf("offrd:")===0 || k.indexOf("offrd_")===0) kill.push(k);
+        }
+        kill.forEach(k=>localStorage.removeItem(k));
+      }
       localStorage.setItem("offgrd_uid", u.id);
     }catch(e){}
     location.reload();
@@ -200,8 +211,22 @@ function switchGuard(u){
   try{ if(u) localStorage.setItem("offgrd_uid", u.id); }catch(e){}
   return false;
 }
+let _sessionResolved = false;
 async function onUser(u){
-  if(!u){ TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT); publishProgramRole(); bar(null); return; }
+  if(!u){
+    TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
+    const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
+    /* Don't wipe offline cache during auth bootstrap when a token is still present. */
+    if(!_sessionResolved && likely){
+      publishProgramRole(); bar(null); return;
+    }
+    try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
+    try{ if(window.OFFGRD_RESET_IN_MEMORY_PROGRAM) window.OFFGRD_RESET_IN_MEMORY_PROGRAM(); }catch(e){}
+    try{ if(window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
+    publishProgramRole(); bar(null); return;
+  }
+  try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}
+  try{ window.OFFGRD_SESSION_GATED = false; }catch(e){}
   if(switchGuard(u)) return;
   try{
     TEAMS = await Cloud.myTeams();
@@ -751,5 +776,19 @@ function dbgInfo(extra){
 
 try{ bar(null); }catch(e){}   /* instant paint so the bar is never blank while auth loads */
 dbgInfo("sess:…");
-Cloud.onAuth(u=>{ onUser(u); dbgInfo("auth:"+(u?u.email:"none")); });
-(async()=>{ try{ const u = await Cloud.session(); onUser(u); dbgInfo("sess:"+(u?u.email:"none")); }catch(e){ bar(null); dbgInfo("err:"+((e&&e.message)||e)); } })();
+Cloud.onAuth(u=>{
+  if(!u && !_sessionResolved && window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION()) return;
+  onUser(u); dbgInfo("auth:"+(u?u.email:"none"));
+});
+(async()=>{
+  try{
+    const u = await Cloud.session();
+    _sessionResolved = true;
+    onUser(u);
+    dbgInfo("sess:"+(u?u.email:"none"));
+  }catch(e){
+    _sessionResolved = true;
+    onUser(null);
+    dbgInfo("err:"+((e&&e.message)||e));
+  }
+})();
