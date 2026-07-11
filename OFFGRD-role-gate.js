@@ -76,7 +76,7 @@
       +'<h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
       +'<p class="foot" style="margin:0">Your recruiting profile will live here and feed <b>getOFFRD</b>. '
       +'This embed is design-gated (§3) — shell only for now.</p>'
-      +'<p class="foot" style="margin-top:10px"><a href="https://getoffrd.com" target="_blank" rel="noopener" style="font-weight:800">Open getOFFRD ↗</a></p>'
+      +'<p class="foot" style="margin-top:10px"><a href="https://getoffrd.com/myrecruitpath" style="font-weight:800">Open recruiting ↗</a></p>'
       +'</div>';
   }
 
@@ -139,7 +139,8 @@
     if(!isPlayer()) return;
     var tb = document.querySelector(".topbar");
     if(tb){
-      [].forEach.call(tb.querySelectorAll('a[href="OFFGRD.html"],a[href="OFFGRD-Playbook.html"]'), function(a){ a.style.display = "none"; });
+      /* Keep OFFGRD.html (player home). Hide Playbook only — coach authoring tool. */
+      [].forEach.call(tb.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){ a.style.display = "none"; });
     }
   }
 

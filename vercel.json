@@ -18,6 +18,16 @@
       "source": "/start/",
       "destination": "https://getoffrd.com/start",
       "permanent": false
+    },
+    {
+      "source": "/OFFGRD",
+      "destination": "https://getoffrd.com/gameday/",
+      "permanent": false
+    },
+    {
+      "source": "/OFFGRD/",
+      "destination": "https://getoffrd.com/gameday/",
+      "permanent": false
     }
   ]
 }
