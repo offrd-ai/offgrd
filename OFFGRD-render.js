@@ -4,7 +4,7 @@
    Playbook + Reps Lab. Operates on designer play `data`.
 
    Flag (QB only; default OFF):
-     ?unified=1  |  localStorage.offgrd_unified_render=1  |  OFFGRD_CONFIG.unifiedRender
+     ?unified=1|0  |  localStorage.offgrd_unified_render=1|0  |  OFFGRD_CONFIG.unifiedRender
    ============================================================ */
 (function (root) {
   "use strict";
@@ -71,8 +71,12 @@
 
   function isUnified() {
     try {
-      if (/[?&]unified=1(?:&|$)/.test(location.search || "")) return true;
-      if (localStorage.getItem("offgrd_unified_render") === "1") return true;
+      const q = location.search || "";
+      if (/[?&]unified=0(?:&|$)/.test(q)) return false;
+      if (/[?&]unified=1(?:&|$)/.test(q)) return true;
+      const ls = localStorage.getItem("offgrd_unified_render");
+      if (ls === "0") return false;
+      if (ls === "1") return true;
       if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.unifiedRender) return true;
     } catch (e) {}
     return false;

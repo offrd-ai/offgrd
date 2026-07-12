@@ -4,7 +4,7 @@
    overwrites hand-authored content.
 
    Flag (default OFF):
-     ?autoderive=1  |  localStorage.offgrd_autoderive_reads=1
+     ?autoderive=1|0  |  localStorage.offgrd_autoderive_reads=1|0
      |  OFFGRD_CONFIG.autoderiveReads
    ============================================================ */
 (function (root) {
@@ -20,8 +20,12 @@
 
   function isAutoderive() {
     try {
-      if (/[?&]autoderive=1(?:&|$)/.test(location.search || "")) return true;
-      if (localStorage.getItem("offgrd_autoderive_reads") === "1") return true;
+      const q = location.search || "";
+      if (/[?&]autoderive=0(?:&|$)/.test(q)) return false;
+      if (/[?&]autoderive=1(?:&|$)/.test(q)) return true;
+      const ls = localStorage.getItem("offgrd_autoderive_reads");
+      if (ls === "0") return false;
+      if (ls === "1") return true;
       if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.autoderiveReads) return true;
     } catch (e) {}
     return false;
