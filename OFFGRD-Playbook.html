@@ -58,10 +58,10 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=46"></script>
+<script src="OFFGRD-config.js?v=47"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=46"></script>
-<script src="OFFGRD-render.js?v=46"></script>
+<script src="OFFGRD-cache-gate.js?v=47"></script>
+<script src="OFFGRD-render.js?v=47"></script>
 </head>
 <body>
   <div class="topbar"><a href="OFFGRD.html" title="OFFGRD — back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>· Playbook — draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">← OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
@@ -463,19 +463,24 @@ function persistUndoSession(){ try{ sessionStorage.setItem(UNDO_SS, JSON.stringi
 function restoreUndoSession(forId){ try{ const raw=sessionStorage.getItem(UNDO_SS); if(!raw) return; const o=JSON.parse(raw); if(!o||(forId&&o.id&&o.id!==forId)) return; if(Array.isArray(o.undo)) UNDO=o.undo; if(Array.isArray(o.redo)) REDO=o.redo; syncUndo(); }catch(e){} }
 function draftIsMeaningful(st){
   if(!st) return false;
+  /* Stock formation players alone do NOT count — only real coach work */
   if((st.name||"").trim()) return true;
   if((st.family||"").trim()||(st.series||"").trim()||(st.qbNotes||"").trim()||(st.group||"").trim()) return true;
   if(Array.isArray(st.tags)&&st.tags.length) return true;
   if(st.defs&&st.defs.length) return true;
-  if(st.texts&&st.texts.length) return true;
+  if(st.texts&&st.texts.some(t=>t&&String(t.text||"").trim())) return true;
   if(st.draws&&st.draws.some(d=>d.pts&&d.pts.length>1)) return true;
-  if((st.players||[]).some(p=>(p.route&&p.route.length)||(p.motion&&p.motion.length)||p.rname||p.runblk||(p.asn&&String(p.asn).trim()))) return true;
+  if(st.bg) return true;
+  if((st.players||[]).some(p=>(p.route&&p.route.length)||(p.motion&&p.motion.length)||p.rname||p.runblk||(p.asn&&String(p.asn).trim())||(p.blk&&p.blk!=="set"&&p.ol))) return true;
+  if(st.protection&&st.protection!=="none") return true;
+  if(st.front&&st.front!=="none") return true;
   return false;
 }
 function draftFingerprint(st){
   if(!st) return "";
   try{
-    const lean=JSON.parse(JSON.stringify(Object.assign({},st,{bg:null,thumbSvg:undefined,_ap:undefined})));
+    const lean=JSON.parse(JSON.stringify(Object.assign({},st,{bg:null,thumbSvg:undefined,_ap:undefined,updatedAt:0})));
+    delete lean.id; /* pristine blank compare ignores ephemeral id */
     (lean.players||[]).forEach(p=>{ delete p._ap; delete p.asnAuto; });
     (lean.defs||[]).forEach(d=>{ delete d._ap; });
     return JSON.stringify(lean);
@@ -488,7 +493,7 @@ function draftDiffersFromSaved(st){
   return draftFingerprint(st)!==draftFingerprint(saved);
 }
 function scheduleDraft(force){
-  clearTimeout(_draftT);
+  clearTimeout(_draftT); _draftT=null;
   const go=()=>{
     try{
       if(!STATE) return;
@@ -503,7 +508,10 @@ function scheduleDraft(force){
   };
   if(force) go(); else _draftT=setTimeout(go,700);
 }
-function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+function clearDraft(){
+  clearTimeout(_draftT); _draftT=null;
+  try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
+}
 function offerRestoreDraft(){
   let raw=null; try{ raw=localStorage.getItem(DRAFT_KEY); }catch(e){}
   if(!raw) return;
@@ -519,8 +527,8 @@ function offerRestoreDraft(){
   ov.querySelector("#drRestore").onclick=()=>{
     STATE=d.state; if(!STATE.id) STATE.id=uuid(); if(!Array.isArray(STATE.tags)) STATE.tags=[];
     SEL=null; UNDO=[]; REDO=[]; cancelAnim(); writeMeta(); renderTagChips(); renderAll(); syncUndo();
+    /* Guard 3: clear on Restore — further edits re-stash via snap/scheduleDraft */
     clearDraft();
-    scheduleDraft(true); /* re-stash the restored canvas so a later leave-without-save still offers restore once */
     msg("Restored unsaved play"+(STATE.name?(" — "+STATE.name):"")+".");
     ov.remove();
   };
@@ -963,9 +971,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=46"></script>
-<script src="OFFGRD-role-gate.js?v=46"></script>
-<script src="OFFGRD-mobile.js?v=46"></script>
+<script type="module" src="OFFGRD-account.js?v=47"></script>
+<script src="OFFGRD-role-gate.js?v=47"></script>
+<script src="OFFGRD-mobile.js?v=47"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
