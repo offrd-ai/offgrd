@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=42";
-import { openAuthModal } from "./OFFGRD-auth.js?v=42";
+import { Cloud } from "./OFFGRD-cloud.js?v=43";
+import { openAuthModal } from "./OFFGRD-auth.js?v=43";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -257,6 +257,50 @@ async function setActiveTeam(id, silent){
 }
 
 /* ---------- sync ---------- */
+function playSig(p){
+  if(!p) return "";
+  return [p.cid||"", p.id||"", p.name||"", p.formation||"", p.updatedAt||0, (p.tags&&p.tags.length)||0, (p.thumbSvg&&p.thumbSvg.length)||0, (p.players&&p.players.length)||0].join("\t");
+}
+function libSig(arr){
+  if(!arr||!arr.length) return "0";
+  let s=String(arr.length);
+  for(let i=0;i<arr.length;i++) s+="|"+playSig(arr[i]);
+  return s;
+}
+/** Indexed local↔cloud reconcile — O(n) Maps, no nested scans, no full JSON.stringify. */
+function mergePlaybook(cloudRows, local){
+  const cloud = (cloudRows||[]).map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name||((r.data&&r.data.name)||"")}));
+  const byId=new Map(), byKey=new Map();
+  for(let i=0;i<cloud.length;i++){
+    const c=cloud[i];
+    if(c.id) byId.set(String(c.id), c);
+    const k=(c.key||((c.name||"")+"|"+(c.formation||""))).toLowerCase();
+    if(k && k!=="|") byKey.set(k, c);
+  }
+  const unsynced=[];
+  for(let i=0;i<(local||[]).length;i++){
+    const p=local[i];
+    if(p.cid) continue; /* already tied to a cloud row */
+    if(p.id && byId.has(String(p.id))) continue;
+    const k=(p.key||((p.name||"")+"|"+(p.formation||""))).toLowerCase();
+    if(k && k!=="|" && byKey.has(k)) continue;
+    unsynced.push(p);
+  }
+  /* Prefer cloud thumb when present; else keep a matching local thumb so pull doesn't wipe cache. */
+  const locByCid=new Map(), locById=new Map();
+  for(let i=0;i<(local||[]).length;i++){
+    const p=local[i];
+    if(p.cid) locByCid.set(String(p.cid), p);
+    if(p.id) locById.set(String(p.id), p);
+  }
+  for(let i=0;i<cloud.length;i++){
+    const c=cloud[i];
+    if(c.thumbSvg) continue;
+    const prev=(c.cid&&locByCid.get(String(c.cid)))||(c.id&&locById.get(String(c.id)));
+    if(prev&&prev.thumbSvg) c.thumbSvg=prev.thumbSvg;
+  }
+  return cloud.concat(unsynced);
+}
 async function pull(silent){
   if(!TEAM || !SYNCABLE) return;
   if(_busy) return; _busy=true; _lastPull=Date.now();
@@ -266,27 +310,25 @@ async function pull(silent){
     else rows = await Cloud.listGames(TEAM.id);
     if(rows && rows.length){
       if(A.kind==="playbook"){
-        /* merge: cloud is the source of truth, but never discard local plays that
-           haven't been synced yet (drawn while signed out / before joining the team) */
-        const cloud = rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name}));
         let local=[]; try{ local=A.get()||[]; }catch(e){ local=[]; }
-        const samePlay=(a,b)=>{
-          if(a&&b&&a.id&&b.id&&a.id===b.id) return true;
-          if(a&&b&&a.cid&&b.cid&&a.cid===b.cid) return true;
-          if(a&&b&&a.key&&b.key&&a.key===b.key) return true;
-          return (a.name||"")===(b.name||"") && (a.formation||"")===(b.formation||"");
-        };
-        const unsynced = local.filter(p=>!p.cid && !cloud.some(c=>samePlay(c,p)));
-        const next = cloud.concat(unsynced);
-        if(JSON.stringify(next)!==JSON.stringify(local)) A.set(next);   /* only re-render if something changed */
+        const next = mergePlaybook(rows, local);
+        const unsynced = next.filter(p=>!p.cid);
+        if(libSig(next)!==libSig(local)) A.set(next);   /* light fingerprint — never full JSON.stringify */
         if(unsynced.length && canEdit()) await push(true);
       }
       else{
         const next = rows.map(r=>({key:(r.opponent+"|"+r.week+"|"+r.side).toLowerCase(), opponent:r.opponent, week:r.week, side:r.side, source:r.source, rows:r.rows, cid:r.id}));
         let cur=[]; try{ cur=A.get()||[]; }catch(e){}
-        if(JSON.stringify(next)!==JSON.stringify(cur)) A.set(next);     /* only re-render if something changed */
+        if(libSig(next)!==libSig(cur)) A.set(next);
       }
-      if(!silent) alert("Loaded "+TEAM.name+".");
+      /* Playbook: never native alert() on Load ↓ — it hard-blocks the renderer. */
+      if(!silent){
+        if(A.kind==="playbook"){
+          try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded ✓"; el.style.color="#1d7a45"; } }catch(e){}
+        } else {
+          alert("Loaded "+TEAM.name+".");
+        }
+      }
     } else {
       const local = A.get();
       if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
@@ -302,9 +344,20 @@ async function push(silent){
   if(!canEdit()){ if(!silent) alert("Your role is view-only, so you can’t save to the program."); return; }
   try{
     const items = A.get();
-    if(A.kind==="playbook"){ for(const p of items){ const row = await Cloud.savePlay(TEAM.id, Object.assign({}, p, {id:p.cid, data:p})); p.cid = row.id; } }
-    else { for(const g of items){ const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid})); g.cid = row.id; } }
-    A.set(items);
+    if(A.kind==="playbook"){
+      for(const p of items){
+        /* Persist play JSON but omit nothing critical; cid stays the upsert key */
+        const row = await Cloud.savePlay(TEAM.id, Object.assign({}, p, {id:p.cid, data:p}));
+        p.cid = row.id;
+      }
+      /* Update cids in place — avoid a second full migrate+library rebuild when possible */
+      if(typeof A.touch==="function") A.touch(items);
+      else A.set(items);
+    }
+    else {
+      for(const g of items){ const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid})); g.cid = row.id; }
+      A.set(items);
+    }
     syncStamp();
     if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" ✓");
   }catch(e){ if(!silent) alert(e.message||"Sync failed"); }
