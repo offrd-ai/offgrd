@@ -18,10 +18,11 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=44"></script>
+<script src="OFFGRD-config.js?v=46"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=44"></script>
-<script src="OFFGRD-render.js?v=44"></script>
+<script src="OFFGRD-cache-gate.js?v=46"></script>
+<script src="OFFGRD-render.js?v=46"></script>
+<script src="OFFGRD-autoderive.js?v=46"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -241,6 +242,8 @@ const CONCEPTS=[
      "Tampa 2":{t:"X",why:"Curl in the void at 10-12 under the half, over the squatting corner."} } }
 ];
 const COVERAGES=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
+/* Step 3 harness: OFFGRD_AUTODERIVE.validateBuiltins(CONCEPTS) — targets must match hand-authored reads */
+try{ if(window.OFFGRD_AUTODERIVE){ window.__OFFGRD_VALIDATE_BUILTINS=()=>OFFGRD_AUTODERIVE.validateBuiltins(CONCEPTS); } }catch(e){}
 
 /* ---------- Step 2: unified renderer (flagged; default OFF) ---------- */
 let UNIFIED=false, UNIFIED_DRILL=null, _unifiedFallbackLogged=false;
@@ -573,8 +576,18 @@ async function loadCustom(){
   CUSTOM=[];
   if(!(window.QB&&window.QB.ready)) return;
   try{ const rows=await window.QB.plays();
-    CUSTOM=(rows||[]).filter(r=>r.qb_reads&&Object.keys(r.qb_reads).length)
-      .map(r=>({id:"p_"+r.id, rowId:r.id, name:r.name||"Play", custom:true, play:r.data||r, reads:r.qb_reads}));
+    CUSTOM=(rows||[]).map(r=>{
+      let reads=r.qb_reads&&Object.keys(r.qb_reads).length?r.qb_reads:null;
+      /* Step 3: session-fill empty reads from the drawn play when flag on (never overwrites authored) */
+      if(!reads && window.OFFGRD_AUTODERIVE && OFFGRD_AUTODERIVE.isAutoderive()){
+        try{
+          const d=OFFGRD_AUTODERIVE.deriveReads(r.data||r,{playName:r.name});
+          if(d&&d.reads&&Object.keys(d.reads).length) reads=d.reads;
+        }catch(e){}
+      }
+      if(!reads||!Object.keys(reads).length) return null;
+      return {id:"p_"+r.id, rowId:r.id, name:r.name||"Play", custom:true, play:r.data||r, reads:reads};
+    }).filter(Boolean);
   }catch(e){ CUSTOM=[]; }
 }
 function rebuildPool(){ enabledConcepts.clear(); pool().forEach(c=>enabledConcepts.add(c.id)); buildChips(); }
@@ -686,13 +699,28 @@ function editOlKeys(row){
   const ed=document.getElementById("authEditor");
   const state=(row.data&&row.data.players)?row.data:(row.data||row); const defs=(state&&state.defs)||[];
   if(!defs.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No defense drawn on “'+esc(row.name||"this play")+'” yet — open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a>, load the play, use <b>Place defense</b> (add Blitz / Direct paths for stunts), save it, then come back.</p>'; return; }
-  const cur=(row.ol_keys&&row.ol_keys.keys)?JSON.parse(JSON.stringify(row.ol_keys)):{v:1,front:"",note:"",keys:{}};
-  cur.front=(state.front&&state.front!=="none")?state.front:""; cur.n=defs.length;
+  let cur=(row.ol_keys&&row.ol_keys.keys)?JSON.parse(JSON.stringify(row.ol_keys)):{v:1,front:"",note:"",keys:{}};
+  let autoOlNote="";
+  if(window.OFFGRD_AUTODERIVE&&OFFGRD_AUTODERIVE.isAutoderive()){
+    try{
+      const derived=OFFGRD_AUTODERIVE.deriveOlKeys(state);
+      const merged=OFFGRD_AUTODERIVE.mergeOlKeys(cur.keys&&Object.keys(cur.keys).length?cur:null, derived);
+      if(merged.ol){
+        cur=merged.ol;
+        if(merged.filled){
+          autoOlNote='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto — tap to edit.</b> Pre-filled '+merged.filled+' blocker key'+(merged.filled===1?"":"s")+' from protection'+(state.protection?(' ('+esc(state.protection)+')'):'')+(state.front&&state.front!=="none"?(' vs '+esc(state.front)):'')+'. Coach edits always win.</div>';
+          row.ol_keys=cur;
+          try{ if(window.QB&&window.QB.saveOlKeys) window.QB.saveOlKeys(row.id, cur); }catch(e){}
+        }
+      }
+    }catch(e){}
+  }
+  cur.front=(state.front&&state.front!=="none")?state.front:(cur.front||""); cur.n=defs.length;
   const blockers=olBlockers(state);
   if(!blockers.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No linemen/blockers on this play.</p>'; return; }
   let SELB=blockers[0].lab, PHASE="pre";
   cur.stunt=cur.stunt||{};
-  ed.innerHTML='<div class="lbl" style="margin-top:16px">'+esc(row.name||"Play")+' — vs '+esc(cur.front||"drawn defense")+'</div>'
+  ed.innerHTML=autoOlNote+'<div class="lbl" style="margin-top:16px">'+esc(row.name||"Play")+' — vs '+esc(cur.front||"drawn defense")+(cur.auto?' <span class="tag">auto</span>':'')+'</div>'
     +'<div class="chips" id="olBlk" style="margin:6px 0"></div>'
     +'<div class="lbl" style="margin-top:8px;font-size:11px">This week’s stunt (auto-draws on the front)</div>'
     +'<div class="chips" id="olStunts" style="margin:4px 0"></div>'
@@ -700,9 +728,9 @@ function editOlKeys(row){
     +'<div class="field-wrap"><svg id="olAuthField" viewBox="0 0 1000 640"></svg></div>'
     +'<p class="tag" id="olKeyPrompt" style="margin-top:6px">Tap his man on the field — or pick a rule:</p>'
     +'<div class="chips" id="olRules"></div>'
-    +'<div class="row" style="margin-top:10px"><input id="olNote" class="btn" style="flex:1;min-width:160px" placeholder="note for the room (optional — e.g. Mike A-gap is the alert)" value="'+esc((row.ol_keys&&row.ol_keys.note)||"")+'">'
+    +'<div class="row" style="margin-top:10px"><input id="olNote" class="btn" style="flex:1;min-width:160px" placeholder="note for the room (optional — e.g. Mike A-gap is the alert)" value="'+esc(cur.note||"")+'">'
     +'<button class="btn go" id="olSave">Save OL keys</button><span id="olSaveMsg" class="tag"></span></div>';
-  const keyTxt=l=>{ const e=cur.keys[l]||{}; const bits=[]; if(e.pre) bits.push("pre→"+(e.pre.t==="def"?esc((defs[+e.pre.di]||{}).lab||"?"):esc(olRuleName(e.pre.r)))); if(e.post) bits.push("stunt→"+(e.post.t==="def"?esc((defs[+e.post.di]||{}).lab||"?"):esc(olRuleName(e.post.r)))); return bits.length?(" ✓ "+bits.join(" · ")):""; };
+  const keyTxt=l=>{ const e=cur.keys[l]||{}; const bits=[]; if(e.pre) bits.push("pre→"+(e.pre.t==="def"?esc((defs[+e.pre.di]||{}).lab||"?"):esc(olRuleName(e.pre.r)))); if(e.post) bits.push("stunt→"+(e.post.t==="def"?esc((defs[+e.post.di]||{}).lab||"?"):esc(olRuleName(e.post.r)))); if(e.auto) bits.push("auto"); return bits.length?(" ✓ "+bits.join(" · ")):""; };
   const paint=()=>{
     const host=document.getElementById("olBlk"); host.innerHTML="";
     blockers.forEach(p=>{ const b=document.createElement("button"); b.className="chip"+(SELB===p.lab?" on":""); b.innerHTML=esc(p.lab)+keyTxt(p.lab); b.onclick=()=>{ SELB=p.lab; paint(); }; host.appendChild(b); });
@@ -710,14 +738,14 @@ function editOlKeys(row){
     document.getElementById("olAuthField").innerHTML=olField(state, SELB, (k&&k.t==="def")?+k.di:null, null, true, cur.stunt);
     const pr=document.getElementById("olKeyPrompt"); if(pr) pr.textContent=(PHASE==="post")?("After the stunt develops — tap who "+SELB+" ends up on (or a rule):"):("Pre-snap — tap "+SELB+"'s man on the field (or a rule):");
     const rl=document.getElementById("olRules"); rl.innerHTML="";
-    OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"rule",r:pair[0]}; paint(); }; rl.appendChild(b); });
+    OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"rule",r:pair[0]}; delete cur.keys[SELB].auto; paint(); }; rl.appendChild(b); });
   };
   const preview=()=>{ paint(); animateOlStunts(state, null, "olAuthField", cur.stunt); };
   const stHost=document.getElementById("olStunts");
   OL_STUNTS.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+(pair[0]==="clear"?"":" go"); b.textContent=pair[1]; b.onclick=()=>{ applyStunt(state, cur, pair[0]); if(pair[0]!=="clear"){ PHASE="post"; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x.dataset.ph==="post")); } preview(); }; stHost.appendChild(b); });
   [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),b=>b.onclick=()=>{ PHASE=b.dataset.ph; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x===b)); paint(); });
   document.getElementById("olPreview").onclick=preview;
-  document.getElementById("olAuthField").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g||!SELB) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"def",di:parseInt(L.slice(3),10)}; paint(); } });
+  document.getElementById("olAuthField").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g||!SELB) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"def",di:parseInt(L.slice(3),10)}; delete cur.keys[SELB].auto; paint(); } });
   document.getElementById("olSave").onclick=async()=>{
     cur.note=document.getElementById("olNote").value.trim();
     const msg=document.getElementById("olSaveMsg");
@@ -734,10 +762,24 @@ function editPlay(row){
   const ed=document.getElementById("authEditor");
   const state=row.data||row; const players=state.players||[];
   const labs=[...new Set(players.filter(p=>p.type==="route"||p.type==="rb").map(p=>p.lab))];
-  const reads=row.qb_reads||{};
+  let reads=Object.assign({}, row.qb_reads||{});
+  let autoBanner="";
+  if(window.OFFGRD_AUTODERIVE&&OFFGRD_AUTODERIVE.isAutoderive()){
+    try{
+      const derived=OFFGRD_AUTODERIVE.deriveReads(state,{playName:row.name});
+      const merged=OFFGRD_AUTODERIVE.mergeReads(reads, derived);
+      reads=merged.reads||reads;
+      if(merged.filled){
+        const cLab=merged.concept?(' · concept '+merged.concept):"";
+        autoBanner='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto — tap to edit.</b> Pre-filled '+merged.filled+' coverage'+(merged.filled===1?"":"s")+' from the drawn play'+cLab+'. Existing authored reads were left alone. Coach edits always win.</div>';
+        row.qb_reads=reads;
+        try{ if(window.QB&&window.QB.savePlayReads) window.QB.savePlayReads(row.id, reads); }catch(e){}
+      }
+    }catch(e){}
+  }
   const ALIGN={}; Object.keys(reads).forEach(cv=>{ if(reads[cv]&&reads[cv].align) ALIGN[cv]=JSON.parse(JSON.stringify(reads[cv].align)); });
-  let curCov=Object.keys(reads)[0]||"Cover 3", curReveal=null;
-  ed.innerHTML=`<div class="lbl" style="margin-top:16px">${esc(row.name||"Play")}</div>
+  let curCov=Object.keys(reads).find(cv=>reads[cv]&&reads[cv].t)||"Cover 3", curReveal=null;
+  ed.innerHTML=`${autoBanner}<div class="lbl" style="margin-top:16px">${esc(row.name||"Play")}</div>
     <div class="field-wrap"><svg id="authField" viewBox="0 0 1000 640"></svg></div>
     <div class="row" style="margin-top:6px;justify-content:space-between;align-items:flex-start;gap:8px"><p class="tag" style="margin:0;flex:1">Tap a coverage, then <b>drag any defender</b> to match this week's opponent (press a corner, roll a safety…). The base coverage still plays out — you're only setting the pre-snap look.</p><button class="btn" id="resetLook" title="reset this coverage to its base alignment">↺ Base look</button></div>
     <div id="covRows" style="margin-top:8px"></div>
@@ -745,14 +787,20 @@ function editPlay(row){
   const cr=document.getElementById("covRows");
   COVERAGES.forEach(cv=>{
     const r1=document.createElement("div"); r1.className="row"; r1.style.margin="6px 0"; r1.dataset.cov=cv;
-    const nm=document.createElement("span"); nm.style.cssText="width:78px;font-weight:800;font-size:13px;cursor:pointer"; nm.textContent=cv;
+    const isAuto=!!(reads[cv]&&reads[cv].auto);
+    const nm=document.createElement("span"); nm.style.cssText="width:78px;font-weight:800;font-size:13px;cursor:pointer"; nm.innerHTML=esc(cv)+(isAuto?' <span style="font-size:10px;font-weight:800;color:#4B9CD3">auto</span>':"");
     const sel=document.createElement("select"); sel.className="btn"; sel.innerHTML='<option value="">— skip —</option>'+labs.map(l=>`<option${reads[cv]&&reads[cv].t===l?" selected":""}>${l}</option>`).join("");
     const altV=(reads[cv]&&reads[cv].alt&&reads[cv].alt[0])||"";
     const sel2=document.createElement("select"); sel2.className="btn"; sel2.title="second correct answer (for mirrored routes)"; sel2.innerHTML='<option value="">— or also —</option>'+labs.map(l=>`<option${altV===l?" selected":""}>${l}</option>`).join("");
-    const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder="coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
-    r1._sel=sel; r1._sel2=sel2; r1._note=note; r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(sel2); r1.appendChild(note);
+    const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder=isAuto?"auto why — tap to edit":"coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
+    const prog=(reads[cv]&&reads[cv].prog)||[];
+    r1._sel=sel; r1._sel2=sel2; r1._note=note; r1._auto=isAuto; r1._prog=prog;
+    r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(sel2); r1.appendChild(note);
+    if(prog.length){ const pg=document.createElement("span"); pg.className="tag"; pg.style.cssText="flex-basis:100%;margin:0 0 2px 78px"; pg.textContent="prog: "+prog.join(" → "); r1.appendChild(pg); }
+    const markEdited=()=>{ r1._auto=false; nm.innerHTML=esc(cv); note.placeholder="coaching note (optional)"; };
     nm.onclick=()=>preview(cv, sel.value||null);
-    sel.onchange=()=>preview(cv, sel.value||null);
+    sel.onchange=()=>{ markEdited(); preview(cv, sel.value||null); };
+    sel2.onchange=markEdited; note.oninput=markEdited;
     cr.appendChild(r1);
   });
   const preview=(cv,reveal)=>{ curCov=cv; curReveal=(reveal||null); readsAuthorRender(state, cv, ALIGN[cv], "authField", curReveal); };
@@ -764,7 +812,13 @@ function editPlay(row){
   const rlBtn=document.getElementById("resetLook"); if(rlBtn) rlBtn.onclick=()=>{ delete ALIGN[curCov]; preview(curCov, curReveal); };
   preview(curCov, null);
   document.getElementById("saveReads").onclick=async()=>{
-    const out={}; [].forEach.call(cr.children,r1=>{ const cv=r1.dataset.cov, t=r1._sel.value, a=r1._sel2.value, why=r1._note.value.trim(); let o=null; if(t){ o={t,why}; if(a&&a!==t) o.alt=[a]; } if(ALIGN[cv]&&Object.keys(ALIGN[cv]).length){ o=o||{why:why}; o.align=ALIGN[cv]; } if(o) out[cv]=o; });
+    const out={}; [].forEach.call(cr.children,r1=>{
+      const cv=r1.dataset.cov, t=r1._sel.value, a=r1._sel2.value, why=r1._note.value.trim();
+      let o=null;
+      if(t){ o={t,why}; if(a&&a!==t) o.alt=[a]; if(r1._prog&&r1._prog.length) o.prog=r1._prog; if(r1._auto) o.auto=true; }
+      if(ALIGN[cv]&&Object.keys(ALIGN[cv]).length){ o=o||{why:why}; o.align=ALIGN[cv]; }
+      if(o) out[cv]=o;
+    });
     const msg=document.getElementById("saveReadsMsg"); msg.textContent="Saving…";
     try{ await window.QB.savePlayReads(row.id,out); row.qb_reads=out; msg.textContent="Saved ✓ — now available in Train/Test under “Our plays”."; }
     catch(e){ msg.textContent=e.message||"Save failed"; }
@@ -1517,10 +1571,10 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=44"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=44"></script>
-<script type="module" src="OFFGRD-account.js?v=44"></script>
-<script src="OFFGRD-role-gate.js?v=44"></script>
+<script src="OFFGRD-mobile.js?v=46"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=46"></script>
+<script type="module" src="OFFGRD-account.js?v=46"></script>
+<script src="OFFGRD-role-gate.js?v=46"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

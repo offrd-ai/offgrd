@@ -8,5 +8,7 @@ window.OFFGRD_CONFIG = {
   /* Where to send coaches who need a getOFFRD HS-coach profile before school-link works */
   coachPortalUrl: "https://getoffrd.com/high-school-coach/profile",
   /* Step 2 engine unification — default OFF. Canary: ?unified=1 or localStorage.offgrd_unified_render=1 */
-  unifiedRender: false
+  unifiedRender: false,
+  /* Step 3 auto-derive reads/OL keys — default OFF. Canary: ?autoderive=1 or localStorage.offgrd_autoderive_reads=1 */
+  autoderiveReads: false
 };
