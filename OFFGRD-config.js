@@ -5,5 +5,8 @@ window.OFFGRD_CONFIG = {
      (2) add `offgrd` to Supabase → API → Exposed schemas, (3) serve same-origin under getoffrd.com/<path>. */
   url:     "https://xpcbsnbzdwuubheyystu.supabase.co",
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwY2JzbmJ6ZHd1dWJoZXl5c3R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTYyNTcsImV4cCI6MjA1NzMzMjI1N30.9WMAOkgXp_s1RgMCTKFfcmKquVQELD-bw2S50oldqNM",
-  coachPortalUrl: "https://getoffrd.com/high-school-coach/profile"
+  /* Where to send coaches who need a getOFFRD HS-coach profile before school-link works */
+  coachPortalUrl: "https://getoffrd.com/high-school-coach/profile",
+  /* Step 2 engine unification — default OFF. Canary: ?unified=1 or localStorage.offgrd_unified_render=1 */
+  unifiedRender: false
 };

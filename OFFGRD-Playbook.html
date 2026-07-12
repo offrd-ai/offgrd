@@ -58,9 +58,10 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=43"></script>
+<script src="OFFGRD-config.js?v=44"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=43"></script>
+<script src="OFFGRD-cache-gate.js?v=44"></script>
+<script src="OFFGRD-render.js?v=44"></script>
 </head>
 <body>
   <div class="topbar"><a href="OFFGRD.html" title="OFFGRD — back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>· Playbook — draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">← OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
@@ -269,56 +270,17 @@ const FORMS={
   "I-Form Twins Lt":()=>OL().concat(mir(SK.itwins)),
   "Singleback Ace (12)":()=>OL().concat(SK.ace)
 };
-const DLAND={L3:{x:200,y:150},M3:{x:500,y:140},R3:{x:800,y:150},HL:{x:310,y:165},HR:{x:690,y:165},Q1:{x:170,y:165},Q2:{x:405,y:150},Q3:{x:595,y:150},Q4:{x:830,y:165},FL:{x:155,y:330},FR:{x:845,y:330},CL:{x:280,y:288},CR:{x:720,y:288},HKL:{x:425,y:272},HKR:{x:575,y:272},HKM:{x:500,y:272},MID:{x:500,y:150}};
-const GCOL={DL:"#9aa4b2",LB:"#b8860b",DB:"#13294B"};
-const LAB={DE:"DE",DT:"DT",NT:"NT",WLB:"W",MLB:"M",SLB:"S",ILB:"I",OLB:"O",LCB:"CB",RCB:"CB",FS:"FS",SS:"SS",NB:"N"};
-const DFRONTS={
- "4-3":[{pos:"DE",x:360},{pos:"DT",x:455},{pos:"DT",x:545},{pos:"DE",x:640}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"WLB",x:400,y:316},{pos:"MLB",x:500,y:312},{pos:"SLB",x:600,y:316}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:205},{pos:"SS",x:570,y:205}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "3-4":[{pos:"DE",x:410},{pos:"NT",x:500},{pos:"DE",x:590}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"OLB",x:345,y:330},{pos:"ILB",x:455,y:314},{pos:"ILB",x:545,y:314},{pos:"OLB",x:655,y:330}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:205},{pos:"SS",x:570,y:205}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "Nickel":[{pos:"DE",x:360},{pos:"DT",x:455},{pos:"DT",x:545},{pos:"DE",x:640}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"WLB",x:445,y:316},{pos:"MLB",x:555,y:316}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"NB",x:250,y:332},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:205},{pos:"SS",x:570,y:205}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "4-2-5":[{pos:"DE",x:360},{pos:"DT",x:455},{pos:"DT",x:545},{pos:"DE",x:640}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"ILB",x:455,y:318},{pos:"ILB",x:545,y:318}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"NB",x:270,y:330},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:205},{pos:"SS",x:570,y:205}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "Bear (46)":[{pos:"DE",x:360},{pos:"DT",x:455},{pos:"NT",x:500},{pos:"DT",x:545},{pos:"DE",x:640}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"SLB",x:430,y:316},{pos:"WLB",x:570,y:316}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"RCB",x:880,y:350},{pos:"SS",x:500,y:255},{pos:"FS",x:500,y:172}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "3-3-5 (Tite)":[{pos:"DE",x:430},{pos:"NT",x:500},{pos:"DE",x:570}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"SLB",x:360,y:316},{pos:"MLB",x:500,y:316},{pos:"WLB",x:640,y:316}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"NB",x:250,y:330},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:200},{pos:"SS",x:570,y:200}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"}))),
- "Dime (4-1-6)":[{pos:"DE",x:360},{pos:"DT",x:455},{pos:"DT",x:545},{pos:"DE",x:640}].map(d=>({pos:d.pos,x:d.x,y:358,group:"DL"}))
-   .concat([{pos:"MLB",x:500,y:316}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"LB"})))
-   .concat([{pos:"LCB",x:120,y:350},{pos:"NB",x:250,y:330},{pos:"NB",x:750,y:330},{pos:"RCB",x:880,y:350},{pos:"FS",x:430,y:200},{pos:"SS",x:570,y:200}].map(d=>({pos:d.pos,x:d.x,y:d.y,group:"DB"})))
-};
+const DLAND=OFFGRD_RENDER.DLAND;
+const GCOL=OFFGRD_RENDER.GCOL;
+const LAB=OFFGRD_RENDER.LAB;
+const DFRONTS=OFFGRD_RENDER.DFRONTS;
 function assignCoverage(defs,cov){
-  defs.forEach(d=>{ if(d.group==="DL"){d.role="rush";return;} d.role="zone"; d.manId=null; d.dx=d.x; d.dy=Math.max(150,d.y-110); });
-  const dbs=defs.filter(d=>d.group==="DB");
-  let cbs=dbs.filter(d=>d.y>300).sort((a,b)=>a.x-b.x);
-  const nbs= cbs.length>2? cbs.splice(1,cbs.length-2):[];
-  const safs=dbs.filter(d=>d.y<=300).sort((a,b)=>a.x-b.x);
-  const lbs=defs.filter(d=>d.group==="LB").sort((a,b)=>a.x-b.x);
-  const Z=(d,k)=>{ if(!d)return; d.role="zone"; d.dx=DLAND[k].x; d.dy=DLAND[k].y; };
-  const M=(d)=>{ if(!d)return; d.role="man"; };
-  const under=arr=>{ const u={ "Cover 3":["CL","HKM","HKR","FR","FL"], "Cover 2":["CL","HKM","CR","HKL","HKR"], "Cover 4":["HKL","HKM","HKR","CL","CR"], "Cover 6":["CL","HKM","HKR","HKL","CR"] }[cov]||["HKM","CL","CR","HKL","HKR"]; arr.forEach((d,i)=>Z(d,u[i%u.length])); };
-  if(cov==="Cover 3"){ Z(cbs[0],"L3"); Z(cbs[cbs.length-1],"R3"); Z(safs[0],"M3"); Z(safs[1],"CR"); under(lbs.concat(nbs)); }
-  else if(cov==="Cover 2"){ Z(cbs[0],"FL"); Z(cbs[cbs.length-1],"FR"); Z(safs[0],"HL"); Z(safs[1],"HR"); under(lbs.concat(nbs)); }
-  else if(cov==="Cover 4"){ Z(cbs[0],"Q1"); Z(cbs[cbs.length-1],"Q4"); Z(safs[0],"Q2"); Z(safs[1],"Q3"); under(lbs.concat(nbs)); }
-  else if(cov==="Cover 6"){ Z(cbs[0],"Q1"); Z(safs[0],"Q2"); Z(cbs[cbs.length-1],"FR"); Z(safs[1],"HR"); under(lbs.concat(nbs)); }
-  else if(cov==="Tampa 2"){ Z(cbs[0],"FL"); Z(cbs[cbs.length-1],"FR"); Z(safs[0],"HL"); Z(safs[1],"HR"); const mid=lbs.slice().sort((a,b)=>Math.abs(a.x-500)-Math.abs(b.x-500))[0]; if(mid)Z(mid,"MID"); lbs.filter(d=>d!==mid).concat(nbs).forEach((d,i)=>Z(d,["CL","CR","HKL","HKR"][i%4])); }
-  else if(cov==="Cover 1"){ cbs.forEach(M); nbs.forEach(M); M(safs[1]); lbs.forEach(M); Z(safs[0],"MID"); }
-  else if(cov==="Cover 0"){ cbs.forEach(M); nbs.forEach(M); safs.forEach(M); lbs.forEach(M); }
-  else if(cov==="2-Man"){ cbs.forEach(M); nbs.forEach(M); lbs.forEach(M); Z(safs[0],"HL"); Z(safs[1],"HR"); }
-  if(typeof STATE!=="undefined" && STATE){ const skill=STATE.players.filter(p=>p.type==="route"||p.type==="rb"); defs.filter(d=>d.role==="man").forEach(d=>{ let best=null,bd=1e9; skill.forEach(p=>{const dd=Math.abs(p.x-d.x);if(dd<bd){bd=dd;best=p;}}); d.manId=best?best.id:null; }); }
+  const skill=(STATE&&STATE.players)?STATE.players.filter(p=>p.type==="route"||p.type==="rb"):[];
+  OFFGRD_RENDER.assignCoverage(defs,cov,skill);
 }
 function placeDefense(front,cov){
   if(front==="none"){ STATE.defs=[]; STATE.front="none"; STATE.coverage="none"; return; }
-  STATE.defs=(DFRONTS[front]||[]).map((d,i)=>({idx:i,pos:d.pos,group:d.group,x:d.x,y:d.y,lab:LAB[d.pos]||d.pos,role:"zone",dx:d.x,dy:Math.max(150,d.y-110),manId:null,color:GCOL[d.group],route:[]}));
-  STATE.front=front; STATE.coverage=cov; assignCoverage(STATE.defs,cov);
+  OFFGRD_RENDER.placeDefenseOn(STATE, front, cov);
 }
 function applyProtection(prot){ STATE.protection=prot; const ol=STATE.players.filter(p=>p.ol); const rb=STATE.players.find(p=>p.type==="rb");
   ol.forEach(p=>{p.type="block";p.route=[];p.motion=[];p.rname=null;});
@@ -330,32 +292,13 @@ function applyProtection(prot){ STATE.protection=prot; const ol=STATE.players.fi
   else if(prot==="6-Man (RB)"){ ol.forEach(p=>p.blk="set"); if(rb){rb.type="block";rb.blk="set";rb.route=[];rb.rname=null;} }
   else { ol.forEach(p=>p.blk=null); }
 }
-function zoneShapes(cov){ const T="rgba(36,150,128,.30)",S="rgba(120,230,200,.55)",D=DLAND;
-  const ell=(c,rx,ry,t)=>`<ellipse cx="${c.x}" cy="${c.y}" rx="${rx}" ry="${ry}" fill="${T}" stroke="${S}" stroke-width="2"/><text x="${c.x}" y="${c.y+4}" font-size="13" font-weight="800" fill="#d9fff3" text-anchor="middle">${t}</text>`;
-  const rc=(x,y,w,h,t)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${T}" stroke="${S}" stroke-width="2"/><text x="${x+w/2}" y="${y+h/2+4}" font-size="11" font-weight="800" fill="#d9fff3" text-anchor="middle">${t}</text>`;
-  if(cov==="Cover 3") return ell(D.L3,150,62,"DEEP ⅓")+ell(D.M3,150,62,"DEEP ⅓")+ell(D.R3,150,62,"DEEP ⅓")+rc(120,282,210,60,"FLAT")+rc(360,282,130,60,"HOOK")+rc(510,282,130,60,"HOOK")+rc(670,282,210,60,"FLAT");
-  if(cov==="Cover 2") return ell(D.HL,235,72,"DEEP ½")+ell(D.HR,235,72,"DEEP ½")+rc(120,282,170,60,"FLAT")+rc(300,282,120,60,"HOOK")+rc(430,282,120,60,"HOOK")+rc(560,282,120,60,"HOOK")+rc(710,282,170,60,"FLAT");
-  if(cov==="Cover 4") return ell(D.Q1,118,58,"¼")+ell(D.Q2,118,58,"¼")+ell(D.Q3,118,58,"¼")+ell(D.Q4,118,58,"¼")+rc(220,292,180,52,"HOOK")+rc(410,292,180,52,"HOOK")+rc(600,292,180,52,"HOOK");
-  if(cov==="Cover 6") return ell(D.Q1,118,58,"¼")+ell(D.Q2,118,58,"¼")+ell(D.HR,235,72,"DEEP ½")+rc(120,282,150,60,"CURL")+rc(360,282,200,60,"HOOK")+rc(700,282,180,60,"FLAT");
-  if(cov==="Tampa 2") return ell(D.HL,235,72,"DEEP ½")+ell(D.HR,235,72,"DEEP ½")+ell({x:500,y:235},110,80,"POLE")+rc(120,290,170,55,"FLAT")+rc(310,290,180,55,"CURL")+rc(560,290,170,55,"CURL")+rc(740,290,150,55,"FLAT");
-  if(cov==="Cover 1") return ell(D.MID,160,64,"DEEP MIDDLE");
-  return "";
-}
+function zoneShapes(cov){ return OFFGRD_RENDER.zoneShapes(cov); }
 function hitText(pt){ if(!STATE.texts)return -1; for(let i=STATE.texts.length-1;i>=0;i--){const t=STATE.texts[i];if(Math.abs(pt.x-t.x)< (t.text.length*t.size*0.32+12) && Math.abs(pt.y-t.y)<t.size+6)return i;} return -1; }
 function hitStroke(pt){ if(!STATE.draws)return -1; for(let i=STATE.draws.length-1;i>=0;i--){if(STATE.draws[i].pts.some(p=>(p.x-pt.x)**2+(p.y-pt.y)**2<=196))return i;} return -1; }
-function textNode(t){ return `<text x="${t.x}" y="${t.y}" font-size="${t.size}" font-weight="800" fill="${t.color}" stroke="rgba(255,255,255,.5)" stroke-width="0.6" paint-order="stroke" text-anchor="middle">${esc(t.text)}</text>`; }
-function drawNode(d){ return `<polyline points="${d.pts.map(p=>p.x+","+p.y).join(" ")}" fill="none" stroke="${d.color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`; }
-function blockGlyph(p,x,y){ const t=p.runblk.type,dir=p.runblk.dir||0,ins=(x<500?1:-1),out=(x<500?-1:1);
-  const P=a=>`<polyline points="${a.map(q=>q[0]+","+q[1]).join(" ")}" fill="none" stroke="#fff" stroke-width="3" marker-end="url(#blk)"/>`;
-  const L=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="3" marker-end="url(#blk)"/>`;
-  if(t==="base") return `<line x1="${x}" y1="${y-13}" x2="${x}" y2="${y-31}" stroke="#fff" stroke-width="3"/><line x1="${x-9}" y1="${y-31}" x2="${x+9}" y2="${y-31}" stroke="#fff" stroke-width="3"/>`;
-  if(t==="reach") return P([[x,y-13],[x+dir*9,y-27],[x+dir*30,y-27]]);
-  if(t==="down") return L(x,y-13,x+ins*26,y-27);
-  if(t==="kick") return L(x,y-13,x+out*28,y-22);
-  if(t==="pull") return P([[x,y+12],[x,y+17],[x+dir*74,y+12],[x+dir*98,y-42]]);
-  if(t==="combo") return P([[x,y-13],[x,y-30],[x+dir*16,y-48]]);
-  return ""; }
-function defNode(d,pos){ const x=pos?pos.x:d.x,y=pos?pos.y:d.y; const ar=(d.role==="rush")?`<line x1="${x}" y1="${y+14}" x2="${x}" y2="${y+40}" stroke="#ff6b81" stroke-width="3" marker-end="url(#rush)"/>`:""; return ar+`<circle cx="${x}" cy="${y}" r="14" fill="${d.color||"#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle">${d.lab||"D"}</text>`; }
+function textNode(t){ return OFFGRD_RENDER.textNode(t); }
+function drawNode(d){ return OFFGRD_RENDER.drawNode(d); }
+function blockGlyph(p,x,y){ return OFFGRD_RENDER.blockGlyph(p,x,y); }
+function defNode(d,pos){ return OFFGRD_RENDER.defNode(d,pos); }
 const ROUTES={
  Hitch:[{x:0,y:-58,d:"N"},{x:0,y:-46,d:"N"}],
  Slant:[{x:0,y:-20,d:"N"},{x:95,y:-95,d:"M"}],
@@ -551,39 +494,17 @@ function hitHandle(pt){ if(!SEL) return null; const start={x:SEL.x,y:SEL.y}; let
   return null;
 }
 
-/* ---- render ---- */
-function fieldSVG(){const ft=(STATE&&STATE.field)||"High School";const HX={"High School":[380,620],"College":[420,580],"NFL":[462,538],"Red Zone":[420,580],"Blank":null}[ft];let s="";
-  if(ft==="Red Zone"){ s+=`<rect x="20" y="20" width="960" height="98" fill="rgba(168,17,43,.32)"/>`; for(let gx=40;gx<=960;gx+=38)s+=`<line x1="${gx}" y1="22" x2="${gx}" y2="118" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>`; s+=`<text x="500" y="78" font-size="22" font-weight="800" fill="rgba(255,255,255,.65)" text-anchor="middle" letter-spacing="6">END ZONE</text><line x1="20" y1="120" x2="980" y2="120" stroke="#fff" stroke-width="4"/>`; }
-  const SP=53,ys=[];for(let y=LOS;y>=34;y-=SP)ys.unshift(y);for(let y=LOS+SP;y<=606;y+=SP)ys.push(y);
-  ys.forEach(y=>{s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;});
-  if(HX){ys.forEach(y=>{s+=`<line x1="${HX[0]}" y1="${y-6}" x2="${HX[0]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/><line x1="${HX[1]}" y1="${y-6}" x2="${HX[1]}" y2="${y+6}" stroke="rgba(255,255,255,.5)" stroke-width="2"/>`;});}
-  ys.forEach(y=>{const yd=Math.round((LOS-y)/SP*5);if(yd>0&&yd<=40){s+=`<text x="30" y="${y+4}" font-size="13" font-weight="800" fill="rgba(255,255,255,.55)" text-anchor="middle">${yd}</text><text x="970" y="${y+4}" font-size="13" font-weight="800" fill="rgba(255,255,255,.55)" text-anchor="middle">${yd}</text>`;}});
-  s+=`<line x1="20" y1="${LOS}" x2="980" y2="${LOS}" stroke="#ffd24a" stroke-width="3"/>`;return s;}
-function routeD(p){const start={x:p.x,y:p.y};if(!p.route.length)return"";let d=`M ${start.x} ${start.y}`;let prev=start;p.route.forEach(a=>{ if(a.cx!=null)d+=` Q ${a.cx} ${a.cy} ${a.x} ${a.y}`; else d+=` L ${a.x} ${a.y}`; prev={x:a.x,y:a.y};});return d;}
-function routePath(p){const d=routeD(p);if(!d)return"";const col=p.color||"#bfe3ff";return `<path d="${d}" fill="none" stroke="${col}" stroke-width="3.5" marker-end="url(#arr)"/>`;}
-function motionPath(p){if(!p.motion.length)return"";let d=`M ${p.x} ${p.y}`;p.motion.forEach(m=>d+=` L ${m.x} ${m.y}`);return `<path d="${d}" fill="none" stroke="#ffd24a" stroke-width="2.5" stroke-dasharray="7 5"/>`;}
-function pColor(p){return p.color||(p.type==="block"?"#9aa4b2":p.type==="qb"?"#13294B":p.type==="rb"?"#c8102e":"#4B9CD3");}
-function playerNode(p,pos){const x=pos?pos.x:p.x,y=pos?pos.y:p.y;const ring=(SEL===p)?`<circle cx="${x}" cy="${y}" r="21" fill="none" stroke="#ffd24a" stroke-width="3"/>`:"";if(p.type==="block"){let g="";if(p.runblk)g=blockGlyph(p,x,y);else if(p.blk){const a=(p.blk==="L"?-0.6:p.blk==="R"?0.6:0);g=`<line x1="${x}" y1="${y-13}" x2="${x+18*a}" y2="${y-31}" stroke="#fff" stroke-width="3"/>`;}return ring+g+`<rect x="${x-13}" y="${y-13}" width="26" height="26" rx="5" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${p.lab}</text>`;}return ring+`<circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${p.lab}</text>`;}
-function handles(p){ if(SEL!==p) return ""; let s="",prev={x:p.x,y:p.y};
-  p.route.forEach(a=>{ const m=segMid(prev,a); s+=`<circle cx="${m.x}" cy="${m.y}" r="7" fill="#cbd5e1" stroke="#13294B" stroke-width="1.5"/>`; prev={x:a.x,y:a.y}; });
-  p.route.forEach(a=>{ s+=`<circle cx="${a.x}" cy="${a.y}" r="8" fill="#19c37d" stroke="#fff" stroke-width="2"/>`; });
-  return s;
-}
+/* ---- render (delegates to OFFGRD-render.js — Stage 1 extraction) ---- */
+function fieldSVG(){ return OFFGRD_RENDER.fieldSVG(STATE); }
+function routeD(p){ return OFFGRD_RENDER.routeD(p); }
+function routePath(p){ return OFFGRD_RENDER.routePath(p); }
+function motionPath(p){ return OFFGRD_RENDER.motionPath(p); }
+function pColor(p){ return OFFGRD_RENDER.pColor(p); }
+function playerNode(p,pos){ return OFFGRD_RENDER.playerNode(p,pos,{sel:SEL}); }
+function handles(p){ if(SEL!==p) return ""; return OFFGRD_RENDER.handles(p); }
 function renderAll(anim){
-  const svg=document.getElementById("field");
-  let s=`<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#bfe3ff"/></marker><marker id="rush" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ff6b81"/></marker><marker id="blk" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><rect x="0" y="1" width="7" height="6" fill="#fff"/></marker></defs>`;
-  if(STATE&&STATE.bg)s+=`<image href="${STATE.bg}" x="0" y="0" width="1000" height="640" opacity="${STATE.bgOpacity!=null?STATE.bgOpacity:0.5}" preserveAspectRatio="xMidYMid slice"/>`;
-  s+=fieldSVG();
-  if(!STATE){svg.innerHTML=s;return;}
-  if(STATE.showZones && STATE.coverage && STATE.coverage!=="none") s+=zoneShapes(STATE.coverage);
-  if(STATE.draws)STATE.draws.forEach(d=>{if(d.pts.length>1)s+=drawNode(d);});
-  const op=anim?0.35:1;
-  s+=`<g opacity="${op}">`;STATE.players.forEach(p=>{s+=motionPath(p);s+=routePath(p);});STATE.defs.forEach(d=>{if(d.route&&d.route.length)s+=routePath(d);});s+=`</g>`;
-  STATE.defs.forEach(d=>{ const pos=anim?(d._ap||{x:d.x,y:d.y}):null; s+=defNode(d,pos); });
-  STATE.players.forEach(p=>{ const pos=anim?(p._ap||{x:p.x,y:p.y}):null; s+=playerNode(p,pos); });
-  if(!anim&&SEL)s+=handles(SEL);
-  if(STATE.texts)STATE.texts.forEach(t=>{s+=textNode(t);});
-  svg.innerHTML=s; updateSelPanel(); renderAsn();
+  OFFGRD_RENDER.renderState(STATE,{ anim:!!anim, sel:SEL, showHandles:true, targetId:"field" });
+  updateSelPanel(); renderAsn();
 }
 
 /* ---- selected panel ---- */
@@ -623,17 +544,12 @@ function buildCtxBar(){
 }
 function buildSwatches(){const host=document.getElementById("swatches");host.innerHTML=SWATCH.map(c=>`<button class="sw" style="background:${c}" data-c="${c}"></button>`).join("");host.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{if(SEL){snap();SEL.color=b.dataset.c;renderAll();}});}
 
-/* ---- animation ---- */
-function flatten(p){const pts=[{x:p.x,y:p.y}];let prev=pts[0];p.route.forEach(a=>{if(a.cx!=null){for(let t=0.2;t<1;t+=0.2){const x=(1-t)*(1-t)*prev.x+2*(1-t)*t*a.cx+t*t*a.x,y=(1-t)*(1-t)*prev.y+2*(1-t)*t*a.cy+t*t*a.y;pts.push({x,y});}pts.push({x:a.x,y:a.y});}else pts.push({x:a.x,y:a.y});prev={x:a.x,y:a.y};});return pts;}
-function along(pts,frac){if(pts.length<2)return pts[0];let seg=[],tot=0;for(let i=1;i<pts.length;i++){const L=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);seg.push(L);tot+=L;}if(tot===0)return pts[0];let target=frac*tot,acc=0;for(let i=0;i<seg.length;i++){if(acc+seg[i]>=target){const t=(target-acc)/seg[i];return{x:pts[i].x+(pts[i+1].x-pts[i].x)*t,y:pts[i].y+(pts[i+1].y-pts[i].y)*t};}acc+=seg[i];}return pts[pts.length-1];}
-function ease(t){return t<.5?2*t*t:-1+(4-2*t)*t;}
-function play(){if(!STATE)return;cancelAnim();const hasM=STATE.players.some(p=>p.motion.length);const tMo=hasM?900:0,tSnap=220,tRun=1600,total=tMo+tSnap+tRun;const mp=STATE.players.find(p=>p.motion.length);const qb=STATE.players.find(p=>p.type==="qb");const start=performance.now();
-  function frame(now){const e=now-start,opos={};
-    STATE.players.forEach(p=>{let cur={x:p.x,y:p.y};if(e<tMo){if(p===mp)cur=along([{x:p.x,y:p.y}].concat(p.motion),Math.min(1,e/tMo));}else if(e<tMo+tSnap){if(p===mp)cur=p.motion[p.motion.length-1];}else{const f=Math.min(1,(e-tMo-tSnap)/tRun),ef=ease(f);const base=(p===mp&&p.motion.length)?p.motion[p.motion.length-1]:{x:p.x,y:p.y};if(p.route.length){const fl=flatten(p);if(p===mp&&p.motion.length){fl[0]=base;}cur=along(fl,ef);}else if(p.type==="block"){cur={x:base.x,y:base.y-12*ef};}else cur=base;}p._ap=cur;opos[p.id]=cur;});
-    STATE.defs.forEach(d=>{let cur={x:d.x,y:d.y};if(e>=tMo+tSnap){const f=Math.min(1,(e-tMo-tSnap)/tRun),ef=ease(f);if(d.route&&d.route.length){cur=along(flatten(d),ef);}else if(d.role==="rush"){const tx=qb?qb.x:500,ty=qb?qb.y:470;cur={x:d.x+(tx-d.x)*ef,y:d.y+(ty-d.y)*ef};}else if(d.role==="man"&&d.manId!=null&&opos[d.manId]){const m=opos[d.manId];cur={x:d.x+(m.x-d.x)*ef,y:d.y+(m.y-d.y)*ef};}else{cur={x:d.x+(d.dx-d.x)*ef,y:d.y+(d.dy-d.y)*ef};}}d._ap=cur;});
-    renderAll(true);if(e<total)ANIM=requestAnimationFrame(frame);else ANIM=null;}
-  ANIM=requestAnimationFrame(frame);}
-function cancelAnim(){if(ANIM){cancelAnimationFrame(ANIM);ANIM=null;}}
+/* ---- animation (shared OFFGRD-render.js) ---- */
+function flatten(p){ return OFFGRD_RENDER.flatten(p); }
+function along(pts,frac){ return OFFGRD_RENDER.along(pts,frac); }
+function ease(t){ return OFFGRD_RENDER.ease(t); }
+function play(){ if(!STATE)return; OFFGRD_RENDER.play(STATE,{ targetId:"field", sel:SEL }); ANIM=1; }
+function cancelAnim(){ OFFGRD_RENDER.cancelAnim(); ANIM=null; }
 
 /* ---- interaction ---- */
 function nearestHit(pt){const pl=hitPlayer(pt);const di=hitDef(pt);const d=di>=0?STATE.defs[di]:null;if(pl&&d)return ((pl.x-pt.x)**2+(pl.y-pt.y)**2)<=((d.x-pt.x)**2+(d.y-pt.y)**2)?pl:d;return pl||d;}
@@ -1003,9 +919,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=43"></script>
-<script src="OFFGRD-role-gate.js?v=43"></script>
-<script src="OFFGRD-mobile.js?v=43"></script>
+<script type="module" src="OFFGRD-account.js?v=44"></script>
+<script src="OFFGRD-role-gate.js?v=44"></script>
+<script src="OFFGRD-mobile.js?v=44"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

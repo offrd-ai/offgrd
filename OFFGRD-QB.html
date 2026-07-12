@@ -18,9 +18,10 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=42"></script>
+<script src="OFFGRD-config.js?v=44"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=42"></script>
+<script src="OFFGRD-cache-gate.js?v=44"></script>
+<script src="OFFGRD-render.js?v=44"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -240,6 +241,83 @@ const CONCEPTS=[
      "Tampa 2":{t:"X",why:"Curl in the void at 10-12 under the half, over the squatting corner."} } }
 ];
 const COVERAGES=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
+
+/* ---------- Step 2: unified renderer (flagged; default OFF) ---------- */
+let UNIFIED=false, UNIFIED_DRILL=null, _unifiedFallbackLogged=false;
+function refreshUnifiedFlag(){
+  try{ UNIFIED=!!(window.OFFGRD_RENDER&&OFFGRD_RENDER.isUnified&&OFFGRD_RENDER.isUnified()); }
+  catch(e){ UNIFIED=false; }
+  return UNIFIED;
+}
+/** Attach designer `data` to the 6 built-ins once (yard→data conversion). */
+function ensureBuiltinData(){
+  if(!(window.OFFGRD_RENDER&&OFFGRD_RENDER.yardToData)) return;
+  CONCEPTS.forEach(c=>{
+    if(c._data) return;
+    try{ c._data=OFFGRD_RENDER.yardToData(c); }catch(e){ c._data=null; }
+  });
+}
+function conceptPlayData(c){
+  if(!c) return null;
+  if(c.custom){
+    const st=c.play&&c.play.players?c.play:(c.play&&c.play.data?c.play.data:c.play);
+    return (st&&st.players)?st:null;
+  }
+  if(!c._data) ensureBuiltinData();
+  return c._data||null;
+}
+function logUnifiedFallback(why){
+  if(_unifiedFallbackLogged) return;
+  _unifiedFallbackLogged=true;
+  try{ console.warn("[OFFGRD unified] fallback to legacy render:", why); }catch(e){}
+}
+/**
+ * Build a unified drill scene from designer data. Returns {state, unified:true} or null → caller falls back.
+ */
+function buildUnifiedScene(rep, opts){
+  opts=opts||{};
+  if(!(window.OFFGRD_RENDER&&OFFGRD_RENDER.prepareDrillState)) return null;
+  const raw=conceptPlayData(rep.concept);
+  if(!raw||!raw.players||!raw.players.length){ logUnifiedFallback("missing play data"); return null; }
+  const st=OFFGRD_RENDER.prepareDrillState(raw, rep.coverage, { showZones:!opts.hideCov });
+  if(!st){ logUnifiedFallback("prepareDrillState failed"); return null; }
+  /* Week / per-play alignment overrides (absolute x,y on defs by index) */
+  try{
+    const weekAl=(WEEKMODE&&WEEKDEF&&WEEKDEF[rep.coverage])||null;
+    const playAl=(rep.concept.reads&&rep.concept.reads[rep.coverage]&&rep.concept.reads[rep.coverage].align)||null;
+    const al=Object.assign({}, weekAl||{}, playAl||{});
+    if(st.defs&&Object.keys(al).length){
+      st.defs.forEach((d,i)=>{
+        const o=al[i]; if(!o) return;
+        if(o.x!=null){ d.x=o.x; d.dx=o.x; }
+        if(o.y!=null){ d.y=o.y; d.dy=Math.max(150,o.y-40); }
+        if(o.lab) d.lab=o.lab;
+      });
+    }
+  }catch(e){}
+  OFFGRD_RENDER.renderState(st,{
+    targetId:"field", anim:false, quiz:true, hideCov:!!opts.hideCov,
+    showZones:!opts.hideCov, coverage:rep.coverage, revealLab:opts.revealLab||null
+  });
+  UNIFIED_DRILL=st;
+  return { state:st, unified:true, off:(st.players||[]).filter(p=>p.type==="route"||p.type==="rb").map(p=>({lab:p.lab})) };
+}
+function animateUnified(){
+  if(!UNIFIED_DRILL||!(window.OFFGRD_RENDER&&OFFGRD_RENDER.play)) return false;
+  OFFGRD_RENDER.play(UNIFIED_DRILL,{
+    targetId:"field", quiz:true, hideCov:isCovTest(),
+    showZones:!isCovTest(), coverage:rep&&rep.coverage
+  });
+  return true;
+}
+function revealUnified(lab){
+  if(!UNIFIED_DRILL||!window.OFFGRD_RENDER) return false;
+  OFFGRD_RENDER.renderState(UNIFIED_DRILL,{
+    targetId:"field", anim:false, quiz:true, hideCov:false,
+    showZones:true, coverage:rep&&rep.coverage, revealLab:lab
+  });
+  return true;
+}
 
 /* ---------- defense drawing ---------- */
 function dot(x,y,lab,fill,r){ r=r||13; return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#0b2e17" stroke-width="1.5"/>`+(lab?`<text x="${x}" y="${y+4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${lab}</text>`:""); }
@@ -814,12 +892,13 @@ function positionTokens(scene,t){
   scene.off.forEach((o,i)=>{ const g=document.getElementById("o_"+i); if(g) g.setAttribute("transform",`translate(${offPos[i].x} ${offPos[i].y})`); });
   scene.defs.forEach((d,i)=>{ const p=defPos(d,t,scene.los,offPos); const g=document.getElementById("d_"+i); if(g) g.setAttribute("transform",`translate(${p.x} ${p.y})`); });
 }
-function cancelQB(){ if(QBANIM){ cancelAnimationFrame(QBANIM); QBANIM=null; } if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; } }
+function cancelQB(){ if(QBANIM){ cancelAnimationFrame(QBANIM); QBANIM=null; } if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; } try{ if(window.OFFGRD_RENDER) OFFGRD_RENDER.cancelAnim(); }catch(e){} }
 function animateScene(scene){ cancelQB(); const dur=1700, start=performance.now(); positionTokens(scene,0);
   function frame(now){ let t=(now-start)/dur; if(t>1)t=1; positionTokens(scene,t); if(t<1) QBANIM=requestAnimationFrame(frame); else QBANIM=null; }
   QBANIM=requestAnimationFrame(frame);
 }
 function revealCorrect(scene, lab){
+  if(scene&&scene.unified){ revealUnified(lab); return; }
   cancelQB(); positionTokens(scene,1);
   const idx=scene.off.findIndex(o=>o.lab===lab);
   if(idx>=0){ const ch=document.getElementById("chalk_"+idx); if(ch){ ch.setAttribute("stroke","#19c37d"); ch.setAttribute("stroke-width","5"); ch.setAttribute("opacity","1"); }
@@ -1147,7 +1226,16 @@ function showRep(r){
   document.getElementById("prompt").textContent = isCovTest()
     ? `What's the coverage?  (${r.concept.name}) — read the defense, then snap`
     : `Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
-  SCENE=buildScene(r,{hideCov:isCovTest()}); cancelQB(); positionTokens(SCENE,0);
+  cancelQB();
+  UNIFIED_DRILL=null;
+  if(refreshUnifiedFlag()){
+    ensureBuiltinData();
+    const u=buildUnifiedScene(r,{hideCov:isCovTest()});
+    if(u){ SCENE={unified:true, off:u.off}; }
+    else { SCENE=buildScene(r,{hideCov:isCovTest()}); positionTokens(SCENE,0); }
+  } else {
+    SCENE=buildScene(r,{hideCov:isCovTest()}); positionTokens(SCENE,0);
+  }
   const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("snapBtn").classList.remove("hidden");
@@ -1159,7 +1247,8 @@ function snapPlay(){
   if(!SCENE || SNAPPED) return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
   document.getElementById("replayBtn").classList.remove("hidden");
-  animateScene(SCENE);
+  if(SCENE.unified){ animateUnified(); }
+  else animateScene(SCENE);
   if(isCovTest()) showCovChoices();
 }
 function showCovChoices(){
@@ -1418,7 +1507,7 @@ function init(){
   document.getElementById("snapBtn").onclick=snapPlay;
   [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>selectKind(b.dataset.kind));
   buildPosFilter();
-  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
+  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); return; } if(SCENE&&SCENE.unified){ animateUnified(); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
   document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
   document.getElementById("field").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ if(isOlTest()) answerOl({t:"def",di:parseInt(L.slice(3),10)}); return; } if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
   window.OFFGRD_APP={kind:"qb"};
@@ -1428,10 +1517,10 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=42"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=42"></script>
-<script type="module" src="OFFGRD-account.js?v=42"></script>
-<script src="OFFGRD-role-gate.js?v=42"></script>
+<script src="OFFGRD-mobile.js?v=44"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=44"></script>
+<script type="module" src="OFFGRD-account.js?v=44"></script>
+<script src="OFFGRD-role-gate.js?v=44"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
