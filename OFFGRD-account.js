@@ -322,19 +322,16 @@ async function pull(silent){
         if(libSig(next)!==libSig(cur)) A.set(next);
       }
       /* Playbook: never native alert() on Load ↓ — it hard-blocks the renderer. */
-      if(!silent){
-        if(A.kind==="playbook"){
-          try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded ✓"; el.style.color="#1d7a45"; } }catch(e){}
-        } else {
-          alert("Loaded "+TEAM.name+".");
-        }
-      }
+      if(!silent && A.kind!=="playbook") alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
       if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
+    if(!silent && A.kind==="playbook"){
+      try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded ✓"; el.style.color="#1d7a45"; } }catch(e){}
+    }
     try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); } }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
