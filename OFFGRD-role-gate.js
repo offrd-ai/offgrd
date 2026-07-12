@@ -164,7 +164,7 @@
     if(!isPlayer()) return;
     ensurePlayerViews();
     patchSetView();
-    hideIds(["importBtn","manageBtn","schedBtn","brandBtn"]);
+    hideIds(["importBtn","manageBtn","schedBtn","brandBtn","scoutCardsBtn"]);
     var tools = document.getElementById("tools");
     if(tools){
       [].forEach.call(tools.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){ a.style.display = "none"; });
