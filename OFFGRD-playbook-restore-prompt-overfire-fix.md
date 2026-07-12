@@ -11,7 +11,7 @@
 
 1. **No blank autosave** — `scheduleDraft` only writes when `draftIsMeaningful` (routes / annotations / defense / meta / protection / etc.). Stock formation players alone do **not** count. `newPlay` / `loadPlayId` do not write drafts.
 2. **Prompt only if non-empty + unsaved + dirty** — `offerRestoreDraft` requires meaningful content and `draftDiffersFromSaved`; otherwise `clearDraft` and no modal.
-3. **Clear on Save / Discard / Restore** — `clearDraft` also cancels any pending debounce timer. Restore no longer immediately re-stashes (further edits re-stash via `snap`).
+3. **Clear on Save / Discard / Restore** — `clearDraft` also cancels any pending debounce timer. Restore clears the consumed draft, then re-stashes only if still meaningful (so leave-without-save still offers once).
 
 Fingerprint compare ignores ephemeral `id` / `updatedAt` / `thumbSvg` so an already-saved play doesn’t look “dirty” from metadata alone.
 

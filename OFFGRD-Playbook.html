@@ -527,8 +527,9 @@ function offerRestoreDraft(){
   ov.querySelector("#drRestore").onclick=()=>{
     STATE=d.state; if(!STATE.id) STATE.id=uuid(); if(!Array.isArray(STATE.tags)) STATE.tags=[];
     SEL=null; UNDO=[]; REDO=[]; cancelAnim(); writeMeta(); renderTagChips(); renderAll(); syncUndo();
-    /* Guard 3: clear on Restore — further edits re-stash via snap/scheduleDraft */
+    /* Consume the prompt draft, then re-stash so leave-without-save still restores once */
     clearDraft();
+    scheduleDraft(true);
     msg("Restored unsaved play"+(STATE.name?(" — "+STATE.name):"")+".");
     ov.remove();
   };
