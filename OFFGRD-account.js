@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=39";
-import { openAuthModal } from "./OFFGRD-auth.js?v=39";
+import { Cloud } from "./OFFGRD-cloud.js?v=42";
+import { openAuthModal } from "./OFFGRD-auth.js?v=42";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -270,7 +270,13 @@ async function pull(silent){
            haven't been synced yet (drawn while signed out / before joining the team) */
         const cloud = rows.map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name}));
         let local=[]; try{ local=A.get()||[]; }catch(e){ local=[]; }
-        const unsynced = local.filter(p=>!p.cid && !cloud.some(c=>(c.key&&p.key)?c.key===p.key:((c.name||"")===(p.name||""))));
+        const samePlay=(a,b)=>{
+          if(a&&b&&a.id&&b.id&&a.id===b.id) return true;
+          if(a&&b&&a.cid&&b.cid&&a.cid===b.cid) return true;
+          if(a&&b&&a.key&&b.key&&a.key===b.key) return true;
+          return (a.name||"")===(b.name||"") && (a.formation||"")===(b.formation||"");
+        };
+        const unsynced = local.filter(p=>!p.cid && !cloud.some(c=>samePlay(c,p)));
         const next = cloud.concat(unsynced);
         if(JSON.stringify(next)!==JSON.stringify(local)) A.set(next);   /* only re-render if something changed */
         if(unsynced.length && canEdit()) await push(true);

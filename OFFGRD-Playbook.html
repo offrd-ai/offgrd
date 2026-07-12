@@ -38,9 +38,17 @@
   svg{width:100%;height:auto;display:block;border-radius:12px;touch-action:none;background:#1f7a3d}
   .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
   .meta label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-  .plays{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+  .plays{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
   .playrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13px}
   .playrow .nm{font-weight:800}.playrow .tag{color:var(--muted);font-size:11px}.playrow .sp{flex:1}
+  .playrow .th{width:72px;height:46px;flex:0 0 auto;border-radius:6px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
+  .playrow .th svg{width:100%;height:100%;display:block;border-radius:0}
+  .libtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
+  .libtools input[type="search"],.libtools select{min-width:0;flex:1 1 120px;max-width:220px}
+  .tagchip{display:inline-flex;align-items:center;gap:4px;background:#eef5fc;border:1px solid #cfe0f3;color:var(--navy);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800}
+  .tagchip button{border:0;background:transparent;color:var(--muted);font-weight:900;cursor:pointer;padding:0 2px;line-height:1}
+  .insth{width:56px;height:36px;flex:0 0 auto;border-radius:5px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
+  .insth svg{width:100%;height:100%;display:block;border-radius:0}
   .hint{font-size:12px;color:var(--muted);line-height:1.5}
   .modebar .btn{min-width:64px}
   .sw{width:24px;height:24px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
@@ -50,9 +58,9 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=39"></script>
+<script src="OFFGRD-config.js?v=42"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=39"></script>
+<script src="OFFGRD-cache-gate.js?v=42"></script>
 </head>
 <body>
   <div class="topbar"><a href="OFFGRD.html" title="OFFGRD — back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>· Playbook — draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">← OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">✦ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
@@ -167,6 +175,14 @@
       <label>Personnel<input id="m-pers" placeholder="e.g. 11"></label>
       <label>Formation<input id="m-form" placeholder="e.g. 2x2"></label>
       <label>Protection<input id="m-prot" placeholder="e.g. Slide R"></label>
+      <label style="grid-column:1/-1">Tags
+        <div class="row" style="margin-top:4px;gap:6px">
+          <input id="m-tagIn" placeholder="Add tag + Enter" style="flex:1;text-transform:none;font-weight:600">
+          <button type="button" class="btn" id="m-tagAdd">Add</button>
+        </div>
+        <div class="row" id="tagChips" style="margin-top:6px;gap:6px"></div>
+      </label>
+      <label>Group / folder<input id="m-group" placeholder="optional folder"></label>
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn go" id="saveBtn">Save play</button>
@@ -184,6 +200,15 @@
 
   <div class="panel">
     <div class="lbl" style="margin-bottom:6px">Your playbook (<span id="playCount">0</span>)</div>
+    <div class="libtools">
+      <input type="search" id="libSearch" placeholder="Search name, tags, formation…" autocomplete="off">
+      <select id="libForm"><option value="">All formations</option></select>
+      <select id="libFam"><option value="">All families</option></select>
+      <select id="libSer"><option value="">All series</option></select>
+      <select id="libPers"><option value="">All personnel</option></select>
+      <select id="libTag"><option value="">All tags</option></select>
+      <select id="libSort"><option value="updated">Recently updated</option><option value="name">Name A–Z</option></select>
+    </div>
     <div class="plays" id="playList"></div>
   </div>
 
@@ -208,7 +233,13 @@ const LOS=380,W=1000,H=640;
 let MODE="route",SEL=null,STATE=null,DRAG=null,ANIM=null,LIB=[];
 let UNDO=[],REDO=[];
 const STORE="offgrd_playbook_v1";
+const DRAFT_KEY="offgrd_pb_draft";
+const UNDO_SS="offgrd_pb_undo";
+const UNDO_CAP=120;
+let _draftT=null,_libFilt={q:"",form:"",fam:"",ser:"",pers:"",tag:"",sort:"updated"};
 const SWATCH=["#4B9CD3","#13294B","#c8102e","#1d7a45","#b8860b","#9aa4b2","#222222"];
+function uuid(){ try{ if(crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return "p-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10); }
+function nfKey(p){ return String(p.name||"").toLowerCase()+"|"+String(p.formation||"").toLowerCase(); }
 
 function OL(){return[{lab:"LT",x:380,y:LOS,type:"block",ol:1},{lab:"LG",x:440,y:LOS,type:"block",ol:1},{lab:"C",x:500,y:LOS,type:"block",ol:1},{lab:"RG",x:560,y:LOS,type:"block",ol:1},{lab:"RT",x:620,y:LOS,type:"block",ol:1}];}
 function mir(a){return a.map(function(p){return Object.assign({},p,{x:W-p.x});});}
@@ -415,7 +446,7 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
   STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
   STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo();scheduleDraft(true);}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
   (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
   (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
@@ -481,10 +512,32 @@ function wizFinish(){
 }
 
 /* ---- undo ---- */
-function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>40)UNDO.shift();REDO=[];syncUndo();}
-function undo(){if(!UNDO.length)return;REDO.push(JSON.stringify(STATE));STATE=JSON.parse(UNDO.pop());SEL=null;renderAll();syncUndo();}
-function redo(){if(!REDO.length)return;UNDO.push(JSON.stringify(STATE));STATE=JSON.parse(REDO.pop());SEL=null;renderAll();syncUndo();}
+function snap(){UNDO.push(JSON.stringify(STATE));if(UNDO.length>UNDO_CAP)UNDO.shift();REDO=[];syncUndo();persistUndoSession();scheduleDraft();}
+function undo(){if(!UNDO.length)return;REDO.push(JSON.stringify(STATE));STATE=JSON.parse(UNDO.pop());SEL=null;renderAll();syncUndo();persistUndoSession();scheduleDraft();}
+function redo(){if(!REDO.length)return;UNDO.push(JSON.stringify(STATE));STATE=JSON.parse(REDO.pop());SEL=null;renderAll();syncUndo();persistUndoSession();scheduleDraft();}
 function syncUndo(){["undoBtn","undoBtn2"].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!UNDO.length;});["redoBtn","redoBtn2"].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!REDO.length;});}
+function persistUndoSession(){ try{ sessionStorage.setItem(UNDO_SS, JSON.stringify({id:STATE&&STATE.id, undo:UNDO.slice(-UNDO_CAP), redo:REDO.slice(-40)})); }catch(e){} }
+function restoreUndoSession(forId){ try{ const raw=sessionStorage.getItem(UNDO_SS); if(!raw) return; const o=JSON.parse(raw); if(!o||(forId&&o.id&&o.id!==forId)) return; if(Array.isArray(o.undo)) UNDO=o.undo; if(Array.isArray(o.redo)) REDO=o.redo; syncUndo(); }catch(e){} }
+function scheduleDraft(force){ clearTimeout(_draftT); const go=()=>{ try{ if(!STATE) return; readMeta(); const payload={ts:Date.now(), saved:false, state:JSON.parse(JSON.stringify(Object.assign({},STATE,{bg:null})))}; localStorage.setItem(DRAFT_KEY, JSON.stringify(payload)); }catch(e){} }; if(force) go(); else _draftT=setTimeout(go,700); }
+function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+function offerRestoreDraft(){
+  let raw=null; try{ raw=localStorage.getItem(DRAFT_KEY); }catch(e){}
+  if(!raw) return;
+  let d; try{ d=JSON.parse(raw); }catch(e){ return; }
+  if(!d||!d.state||d.saved) return;
+  const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9999;
+  ov.innerHTML='<div class="ovbox" style="max-width:460px"><b style="font-size:18px;color:var(--navy)">Restore unsaved play?</b>'
+    +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' — <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
+    +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="drDiscard">Discard</button><button class="btn go" id="drRestore">Restore</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector("#drDiscard").onclick=()=>{ clearDraft(); ov.remove(); };
+  ov.querySelector("#drRestore").onclick=()=>{
+    STATE=d.state; if(!STATE.id) STATE.id=uuid(); if(!Array.isArray(STATE.tags)) STATE.tags=[];
+    SEL=null; UNDO=[]; REDO=[]; cancelAnim(); writeMeta(); renderTagChips(); renderAll(); syncUndo();
+    msg("Restored unsaved play"+(STATE.name?(" — "+STATE.name):"")+".");
+    ov.remove();
+  };
+}
 
 /* ---- coords ---- */
 function toSvg(e){const svg=document.getElementById("field"),r=svg.getBoundingClientRect();const cx=e.clientX,cy=e.clientY;return{x:(cx-r.left)/r.width*W,y:(cy-r.top)/r.height*H};}
@@ -607,23 +660,180 @@ function onMove(e){if(!DRAG)return;e.preventDefault();const pt=toSvg(e);
 function onUp(){DRAG=null;}
 
 /* ---- library ---- */
-function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a))LIB=a;}}catch(e){}}
+function migrateLib(arr){
+  if(!Array.isArray(arr)) return [];
+  const norm=raw=>{
+    const p=Object.assign({}, raw);
+    if(!p.id) p.id=uuid();
+    if(!Array.isArray(p.tags)) p.tags=p.tags?[].concat(p.tags):[];
+    if(p.group==null) p.group="";
+    if(!p.updatedAt) p.updatedAt=Date.now();
+    p.key=nfKey(p);
+    return p;
+  };
+  const prefer=(a,b)=>{
+    const keep=((a.updatedAt||0)>=(b.updatedAt||0))?a:b;
+    const drop=keep===a?b:a;
+    if(drop.cid&&!keep.cid) keep.cid=drop.cid;
+    keep.tags=Array.from(new Set([].concat(keep.tags||[],drop.tags||[])));
+    if(!keep.thumbSvg&&drop.thumbSvg) keep.thumbSvg=drop.thumbSvg;
+    if(!keep.group&&drop.group) keep.group=drop.group;
+    return keep;
+  };
+  let list=arr.map(norm);
+  /* same cloud row → one local row */
+  const byCid=new Map(), noCid=[];
+  list.forEach(p=>{
+    if(p.cid){ if(byCid.has(p.cid)) byCid.set(p.cid, prefer(byCid.get(p.cid), p)); else byCid.set(p.cid, p); }
+    else noCid.push(p);
+  });
+  list=Array.from(byCid.values()).concat(noCid);
+  /* legacy local dups (no cid): collapse identical name|formation */
+  const byNf=new Map(), withCid=[];
+  list.forEach(p=>{
+    if(p.cid){ withCid.push(p); return; }
+    const k=nfKey(p);
+    if(byNf.has(k)) byNf.set(k, prefer(byNf.get(k), p));
+    else byNf.set(k, p);
+  });
+  const out=withCid.concat(Array.from(byNf.values()));
+  const seen=new Set();
+  return out.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
+}
+function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a)){LIB=migrateLib(a); try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}}}}catch(e){}}
 function saveLib(){try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){} try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(e){}}
-function val(id){return document.getElementById(id).value.trim();}
-function set(id,v){document.getElementById(id).value=v||"";}
-function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");}
-function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);}
-function savePlay(){readMeta();if(!STATE.name){msg("Give the play a name first.");return;}const copy=JSON.parse(JSON.stringify(STATE));copy.bg=null;copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});copy.key=STATE.name.toLowerCase()+"|"+(STATE.formation||"").toLowerCase();const i=LIB.findIndex(p=>p.key===copy.key);if(i>=0)LIB[i]=copy;else LIB.push(copy);saveLib();renderLib();msg((i>=0?"Updated ":"Saved ")+STATE.name+".");}
-function loadPlay(i){STATE=JSON.parse(JSON.stringify(LIB[i]));SEL=null;UNDO=[];REDO=[];syncUndo();cancelAnim();writeMeta();renderAll();msg("Loaded "+STATE.name+".");}
-function dupPlay(i){const c=JSON.parse(JSON.stringify(LIB[i]));c.name=c.name+" (copy)";c.key=c.name.toLowerCase()+"|"+(c.formation||"").toLowerCase();LIB.push(c);saveLib();renderLib();msg("Duplicated "+LIB[i].name+".");}
-function delPlay(i){const n=LIB[i].name;LIB.splice(i,1);saveLib();renderLib();msg("Deleted "+n+".");}
-function renderLib(){document.getElementById("playCount").textContent=LIB.length;const host=document.getElementById("playList");if(!LIB.length){host.innerHTML='<p class="hint">No plays saved yet. Draw one, name it, and Save.</p>';return;}host.innerHTML=LIB.map((p,i)=>`<div class="playrow"><span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" · ")}</span><span class="sp"></span><button class="btn" onclick="loadPlay(${i})">Open</button><button class="btn" onclick="dupPlay(${i})">Duplicate</button><button class="btn dz" onclick="delPlay(${i})">✕</button></div>`).join("");}
+function val(id){const el=document.getElementById(id);return el?el.value.trim():"";}
+function set(id,v){const el=document.getElementById(id);if(el)el.value=v||"";}
+function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
+function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();}
+function renderTagChips(){
+  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
+  const tags=Array.isArray(STATE.tags)?STATE.tags:[];
+  host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">×</button></span>`).join("");
+  host.querySelectorAll("button[data-i]").forEach(b=>{ b.onclick=()=>{ STATE.tags.splice(+b.dataset.i,1); renderTagChips(); scheduleDraft(); }; });
+}
+function addTagFromInput(){
+  if(!STATE) return; const inp=document.getElementById("m-tagIn"); if(!inp) return;
+  const t=inp.value.trim().replace(/\s+/g," "); if(!t) return;
+  if(!Array.isArray(STATE.tags)) STATE.tags=[];
+  if(STATE.tags.map(x=>x.toLowerCase()).indexOf(t.toLowerCase())<0) STATE.tags.push(t);
+  inp.value=""; renderTagChips(); scheduleDraft();
+}
+function leanThumb(st){
+  if(!st||!st.players) return "";
+  const players=st.players||[], defs=st.defs||[];
+  let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640"><rect width="1000" height="640" fill="#1f7a3d"/>';
+  for(let y=380;y>=80;y-=106) s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;
+  s+=`<line x1="20" y1="380" x2="980" y2="380" stroke="#ffd24a" stroke-width="3"/>`;
+  players.forEach(p=>{
+    if(p.route&&p.route.length){ let d=`M ${p.x} ${p.y}`; p.route.forEach(a=>{ d+=(a.cx!=null?` Q ${a.cx} ${a.cy} ${a.x} ${a.y}`:` L ${a.x} ${a.y}`); }); s+=`<path d="${d}" fill="none" stroke="#bfe3ff" stroke-width="5"/>`; }
+  });
+  players.forEach(p=>{
+    if(p.type==="block"||p.ol) s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2"/>`;
+    else { const fill=p.type==="qb"?"#13294B":"#c8102e"; s+=`<circle cx="${p.x}" cy="${p.y}" r="13" fill="${fill}"/><text x="${p.x}" y="${p.y+4}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab||"")}</text>`; }
+  });
+  defs.forEach(d=>{ s+=`<circle cx="${d.x}" cy="${d.y}" r="10" fill="#13294B"/>`; });
+  s+="</svg>";
+  return s.length>12000?"":s;
+}
+function savePlay(){
+  readMeta();
+  if(!STATE.name){msg("Give the play a name first.");return;}
+  if(!STATE.id) STATE.id=uuid();
+  const copy=JSON.parse(JSON.stringify(STATE));
+  copy.bg=null; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
+  copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
+  try{ copy.thumbSvg=leanThumb(copy); }catch(e){ copy.thumbSvg=""; }
+  const i=LIB.findIndex(p=>p.id===copy.id);
+  if(i>=0){ copy.cid=LIB[i].cid||copy.cid; LIB[i]=copy; }
+  else LIB.push(copy);
+  STATE.updatedAt=copy.updatedAt; STATE.thumbSvg=copy.thumbSvg;
+  saveLib(); refreshLibUI(); clearDraft();
+  msg((i>=0?"Updated ":"Saved ")+STATE.name+".");
+}
+function loadPlayId(id){
+  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+  STATE=JSON.parse(JSON.stringify(LIB[i]));
+  if(!STATE.id) STATE.id=uuid();
+  if(!Array.isArray(STATE.tags)) STATE.tags=[];
+  SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim(); writeMeta(); renderAll();
+  restoreUndoSession(STATE.id); clearDraft(); scheduleDraft(true);
+  msg("Loaded "+STATE.name+".");
+}
+function loadPlay(i){ if(LIB[i]) loadPlayId(LIB[i].id); }
+function dupPlayId(id){
+  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+  const c=JSON.parse(JSON.stringify(LIB[i]));
+  c.id=uuid(); delete c.cid; c.name=(c.name||"Play")+" (copy)"; c.key=nfKey(c); c.updatedAt=Date.now();
+  try{ c.thumbSvg=leanThumb(c); }catch(e){}
+  LIB.push(c); saveLib(); refreshLibUI(); msg("Duplicated "+LIB[i].name+".");
+}
+function dupPlay(i){ if(LIB[i]) dupPlayId(LIB[i].id); }
+function delPlayId(id){
+  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+  const n=LIB[i].name;
+  LIB.splice(i,1); saveLib(); refreshLibUI(); msg("Deleted "+n+".");
+}
+function delPlay(i){ if(LIB[i]) delPlayId(LIB[i].id); }
+function uniqOpts(field){
+  const s=new Set(); LIB.forEach(p=>{ const v=(p[field]||"").trim(); if(v) s.add(v); });
+  return Array.from(s).sort((a,b)=>a.localeCompare(b));
+}
+function fillLibFilters(){
+  const fill=(id,vals,allLbl)=>{
+    const el=document.getElementById(id); if(!el) return;
+    const cur=el.value; el.innerHTML=`<option value="">${allLbl}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+    if(vals.indexOf(cur)>=0) el.value=cur;
+  };
+  fill("libForm",uniqOpts("formation"),"All formations");
+  fill("libFam",uniqOpts("family"),"All families");
+  fill("libSer",uniqOpts("series"),"All series");
+  fill("libPers",uniqOpts("personnel"),"All personnel");
+  const tags=new Set(); LIB.forEach(p=>((p.tags)||[]).forEach(t=>tags.add(t)));
+  fill("libTag",Array.from(tags).sort((a,b)=>a.localeCompare(b)),"All tags");
+}
+function filteredLib(){
+  const q=(_libFilt.q||"").toLowerCase().trim();
+  let list=LIB.slice();
+  list=list.filter(p=>{
+    if(_libFilt.form && (p.formation||"")!==_libFilt.form) return false;
+    if(_libFilt.fam && (p.family||"")!==_libFilt.fam) return false;
+    if(_libFilt.ser && (p.series||"")!==_libFilt.ser) return false;
+    if(_libFilt.pers && (p.personnel||"")!==_libFilt.pers) return false;
+    if(_libFilt.tag && !(p.tags||[]).includes(_libFilt.tag)) return false;
+    if(!q) return true;
+    const hay=[p.name,p.formation,p.family,p.series,p.personnel,p.group,(p.tags||[]).join(" ")].join(" ").toLowerCase();
+    return hay.indexOf(q)>=0;
+  });
+  if(_libFilt.sort==="name") list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+  else list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  return list;
+}
+function renderLib(){
+  document.getElementById("playCount").textContent=LIB.length;
+  const host=document.getElementById("playList");
+  if(!LIB.length){host.innerHTML='<p class="hint">No plays saved yet. Draw one, name it, and Save.</p>';return;}
+  const list=filteredLib();
+  if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
+  host.innerHTML=list.map(p=>{
+    const th=p.thumbSvg?`<span class="th">${p.thumbSvg}</span>`:`<span class="th"></span>`;
+    const tags=(p.tags&&p.tags.length)?` · ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
+    const grp=p.group?` · ${esc(p.group)}`:"";
+    return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" · ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">✕</button></div>`;
+  }).join("");
+  host.querySelectorAll("button[data-act]").forEach(b=>{
+    b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
+  });
+}
+function refreshLibUI(){ fillLibFilters(); renderLib(); }
 function buildInstall(){ if(!LIB.length){msg("Save some plays first to build an install.");return;}
   const groups={}; LIB.forEach(p=>{const k=(p.series||p.family||"Unsorted");(groups[k]=groups[k]||[]).push(p);});
   const order=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
   let html="",day=1,count=0;const perDay=6;
   order.forEach(g=>{ html+=`<div class="lbl" style="margin-top:12px">${esc(g)} <span style="color:var(--muted)">(${groups[g].length})</span></div>`;
-    groups[g].forEach(p=>{ if(count>0&&count%perDay===0)day++; count++; html+=`<div class="playrow"><span class="nm" style="min-width:54px">Day ${day}</span><span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.personnel,p.protection].filter(Boolean).map(esc).join(" \u00b7 ")}</span></div>`; }); });
+    groups[g].forEach(p=>{ if(count>0&&count%perDay===0)day++; count++;
+      const th=p.thumbSvg?`<span class="insth">${p.thumbSvg}</span>`:"";
+      html+=`<div class="playrow">${th}<span class="nm" style="min-width:54px">Day ${day}</span><span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.personnel,p.protection].filter(Boolean).map(esc).join(" \u00b7 ")}</span></div>`; }); });
   document.getElementById("installBody").innerHTML=html; document.getElementById("installModal").classList.add("show"); }
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));}
 function msg(t){document.getElementById("saveMsg").textContent=t;}
@@ -652,7 +862,9 @@ function starterLib(){
     try{ if(build) build(); }catch(e){}
     const copy=JSON.parse(JSON.stringify(STATE)); copy.bg=null;
     copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
-    copy.key=name.toLowerCase()+"|"+form.toLowerCase();
+    if(!copy.id) copy.id=uuid();
+    copy.tags=copy.tags||[]; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
+    try{ copy.thumbSvg=leanThumb(copy); }catch(e){}
     out.push(copy);
   };
   /* quick game */
@@ -685,7 +897,7 @@ function offerStarter(){
   ov.querySelector("#stSkip").onclick=close;
   ov.querySelector("#stGo").onclick=()=>{
     if(LIB && LIB.length){ close(); msg("Your team playbook already loaded from the cloud."); return; }
-    LIB=starterLib(); saveLib(); renderLib();
+    LIB=starterLib(); saveLib(); refreshLibUI();
     newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
     msg("Starter playbook loaded — 12 plays. Open any play, rename it, make it yours.");
     close();
@@ -693,15 +905,38 @@ function offerStarter(){
 }
 
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
+window.loadPlayId=loadPlayId;window.delPlayId=delPlayId;window.dupPlayId=dupPlayId;
 /* Expose the sync bridge IMMEDIATELY — OFFGRD-account.js (a deferred module) reads
    window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
    DOMContentLoaded handler meant the Playbook page never synced plays at all. */
-window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=a;saveLib();renderLib();}}};
+window.OFFGRD_APP={kind:"playbook",get:()=>LIB,set:a=>{if(Array.isArray(a)){LIB=migrateLib(a);try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}refreshLibUI();}}};
 
 document.addEventListener("DOMContentLoaded",()=>{
   const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
-  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();renderLib();setMode("route");syncUndo();offerStarter();
+  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();refreshLibUI();setMode("route");syncUndo();offerStarter();offerRestoreDraft();
   try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
+  const wireLib=()=>{
+    const sync=()=>{
+      _libFilt.q=(document.getElementById("libSearch").value||"");
+      _libFilt.form=document.getElementById("libForm").value||"";
+      _libFilt.fam=document.getElementById("libFam").value||"";
+      _libFilt.ser=document.getElementById("libSer").value||"";
+      _libFilt.pers=document.getElementById("libPers").value||"";
+      _libFilt.tag=document.getElementById("libTag").value||"";
+      _libFilt.sort=document.getElementById("libSort").value||"updated";
+      renderLib();
+    };
+    ["libSearch","libForm","libFam","libSer","libPers","libTag","libSort"].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      el.addEventListener(id==="libSearch"?"input":"change", sync);
+    });
+  };
+  wireLib();
+  const tagAdd=document.getElementById("m-tagAdd"); if(tagAdd) tagAdd.onclick=addTagFromInput;
+  const tagIn=document.getElementById("m-tagIn"); if(tagIn) tagIn.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addTagFromInput(); } });
+  ["m-name","m-family","m-series","m-pers","m-form","m-prot","m-group"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.addEventListener("input",()=>scheduleDraft());
+  });
   const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
   const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
   const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
@@ -711,7 +946,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
   document.getElementById("addWR").onclick=()=>{snap();const id=Math.max(0,...STATE.players.map(p=>p.id))+1;STATE.players.push({id,lab:"A",x:500,y:545,type:"route",color:null,ol:0,blk:null,route:[],motion:[]});renderAll();};
   document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
-  document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();};
+  document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();scheduleDraft();};
   document.getElementById("imgBtn").onclick=()=>document.getElementById("imgFile").click();
   document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded — trace it, then Clear when done.");};rd.readAsDataURL(f);};
   document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
@@ -721,13 +956,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ▴":"Show ▾"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
   asnT.onclick=()=>asnSet(asnB.style.display==="none");
   let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
-  document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); } };
+  document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); scheduleDraft(); } };
   document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
   const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
   document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value)));};
   dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
   dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
-  sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();};
+  sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();scheduleDraft();};
   document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
   const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
   document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
@@ -749,12 +984,12 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("wizModal").onclick=e=>{if(e.target.id==="wizModal")wizClose();};
   document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
   document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
-  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=a;saveLib();renderLib();msg("Imported "+a.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
+  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=39"></script>
-<script src="OFFGRD-role-gate.js?v=41"></script>
-<script src="OFFGRD-mobile.js?v=39"></script>
+<script type="module" src="OFFGRD-account.js?v=42"></script>
+<script src="OFFGRD-role-gate.js?v=42"></script>
+<script src="OFFGRD-mobile.js?v=42"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

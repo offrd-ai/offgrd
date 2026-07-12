@@ -18,9 +18,9 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=39"></script>
+<script src="OFFGRD-config.js?v=42"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=39"></script>
+<script src="OFFGRD-cache-gate.js?v=42"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -85,6 +85,7 @@
 
   <div class="panel" id="setupPanel">
     <div id="weekBar" style="display:none;gap:10px;align-items:center;flex-wrap:wrap;background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:9px 12px;margin-bottom:14px"></div>
+    <div id="guideBox" class="hidden" style="background:#f7f8fa;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px"></div>
     <div class="lbl">Source</div>
     <div class="seg" id="srcSeg" style="margin-bottom:4px">
       <button class="on" data-src="builtin">Built-in</button>
@@ -299,6 +300,24 @@ function normCov(c){ c=String(c||"").toLowerCase(); if(!c) return null;
   return null;
 }
 function weekDue(){ if(!WEEKPLAN||!WEEKPLAN.game_date) return ""; const d=Math.ceil((new Date(WEEKPLAN.game_date+"T12:00:00")-Date.now())/86400000); if(isNaN(d)) return ""; if(d<0) return "played"; if(d===0) return "GAMEDAY"; return "due in "+d+" day"+(d===1?"":"s"); }
+function showGuide(title, body, actions){
+  const el=document.getElementById("guideBox"); if(!el) return;
+  el.classList.remove("hidden");
+  el.innerHTML='<b style="color:var(--navy);font-size:15px">'+esc(title)+'</b><p class="tag" style="margin:8px 0 0;line-height:1.5">'+body+'</p>'+(actions?('<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">'+actions+'</div>'):'');
+}
+function hideGuide(){ const el=document.getElementById("guideBox"); if(!el) return; el.classList.add("hidden"); el.innerHTML=""; }
+function posPickerHtml(idPrefix){
+  return POSLIST.map(p=>'<button type="button" class="btn" data-setpos="'+p+'" id="'+(idPrefix||"gp")+'-'+p+'">'+p+'</button>').join("");
+}
+function wirePosPicker(onPick){
+  [].forEach.call(document.querySelectorAll("[data-setpos]"), b=>{
+    b.onclick=()=>{
+      const pos=b.getAttribute("data-setpos");
+      try{ localStorage.setItem("offgrd_pos", pos); }catch(e){}
+      if(typeof onPick==="function") onPick(pos);
+    };
+  });
+}
 function renderWeekBar(){
   const el=document.getElementById("weekBar"); if(!el) return;
   if(!WEEKPLAN){ el.style.display="none"; return; }
@@ -309,12 +328,16 @@ function renderWeekBar(){
   el.innerHTML='<b style="color:var(--navy)">This week vs '+esc(WEEKPLAN.opponent||"—")+'</b>'
     +'<span class="tag">'+(gd?("gameday "+esc(gd)):"no game date set")+(cd?(" · "+esc(cd)):"")+(WEEKCOVS.length?(' · they show: '+WEEKCOVS.slice(0,3).map(esc).join(", ")):"")+'</span>'
     +'<span style="flex:1"></span>'
-    +(canRoute[myPos]?'<button class="btn go" id="myWeekTestBtn">🎯 My week test ('+esc(myPos)+')</button>':'')
+    +(canRoute[myPos]?'<button class="btn go" id="myWeekTestBtn">🎯 My week test ('+esc(myPos)+')</button>':'<button class="btn go" id="pickPosWeekBtn">Pick position for week test</button>')
     +(WEEKPLAN.gen?'<button class="btn" id="weekBriefBtn">📖 Briefing</button>':'')
     +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"✓ Week mode ON":"🎯 Week mode — this week's plays & looks")+'</button>';
   document.getElementById("weekModeBtn").onclick=()=>setWeekMode(!WEEKMODE);
   const bb=document.getElementById("weekBriefBtn"); if(bb) bb.onclick=openBriefing;
   const mb=document.getElementById("myWeekTestBtn"); if(mb) mb.onclick=myWeekTest;
+  const pb=document.getElementById("pickPosWeekBtn"); if(pb) pb.onclick=()=>{
+    showGuide("Pick your position","Choose your position so we can build your week test.", posPickerHtml("wk"));
+    wirePosPicker(pos=>{ hideGuide(); renderWeekBar(); myWeekTest(); });
+  };
 }
 let _briefEl=null;
 async function openBriefing(){
@@ -372,7 +395,15 @@ function setWeekMode(on){
 async function myWeekTest(){
   let pos=""; try{ pos=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
   const kinds=POSKINDS[pos];
-  if(!kinds){ alert("Set your position first so I can pick your test — open the Team panel / onboarding and choose your position."); return; }
+  if(!kinds){
+    swap("setup");
+    showGuide("Pick your position to get your week test",
+      "Your week test is built from your position (reads, routes, or protection). Choose one below — we\u2019ll save it on this device.",
+      posPickerHtml("mw"));
+    wirePosPicker(p=>{ hideGuide(); renderWeekBar(); myWeekTest(); });
+    return;
+  }
+  hideGuide();
   const kind=kinds[0];
   setMode("test");
   applyPosFilter(pos);
@@ -475,13 +506,25 @@ async function setSource(v){
   if(v!=="builtin"){ await loadCustom(); }
   rebuildPool();
   const note=document.getElementById("srcNote");
-  if(note) note.textContent=(v!=="builtin" && !CUSTOM.length) ? "No authored plays yet — use Author mode (coaches) to add reads to your plays." : "";
+  if(note) note.textContent=(v!=="builtin" && !CUSTOM.length)
+    ? (WEEKMODE
+      ? "Your coach hasn\u2019t shared this week\u2019s install yet — check back after they publish the week plan / authored reads."
+      : "No authored plays yet — once your coach adds reads in Author mode, they show up here.")
+    : "";
+  if(v!=="builtin" && !CUSTOM.length){
+    showGuide(WEEKMODE?"This week\u2019s install isn\u2019t ready":"No program plays authored yet",
+      WEEKMODE
+        ?"Your coach hasn\u2019t shared this week\u2019s install (or plays don\u2019t have reads yet). You can still train on built-in concepts."
+        :"Coaches author reads on Playbook plays in Author mode. Until then, use Built-in concepts to train.",
+      '<button type="button" class="btn" id="guideBuiltin">Use built-in concepts</button>');
+    const gb=document.getElementById("guideBuiltin"); if(gb) gb.onclick=()=>{ hideGuide(); setSource("builtin"); };
+  } else hideGuide();
 }
 
 /* ---------- authoring ---------- */
 async function loadAuthor(){
   const ap=document.getElementById("authorPanel"); ap.innerHTML='<p class="tag">Loading…</p>';
-  if(!(window.QB&&window.QB.ready)){ ap.innerHTML='<p class="tag">Cloud not configured.</p>'; return; }
+  if(!(window.QB&&window.QB.ready)){ ap.innerHTML='<div style="padding:8px 0"><b style="color:var(--navy)">Sign in to author</b><p class="tag" style="margin:8px 0 0;line-height:1.5">Cloud sync isn\u2019t available on this device yet. Use the sign-in control (top-right) when you\u2019re online — then coaches can author reads for the program.</p></div>'; return; }
   let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
   if(!ctx||!ctx.user){ ap.innerHTML='<p class="tag">Sign in (top-right) to author.</p>'; return; }
   if(!ctx.team){ ap.innerHTML='<p class="tag">Create or join a program first (Team button).</p>'; return; }
@@ -1163,23 +1206,45 @@ function updateProgress(){
 
 /* ---------- test lifecycle ---------- */
 async function startTest(){
+  hideGuide();
   const n=parseInt(document.getElementById("testLen").value,10)||10;
   test={queue:[],i:0,results:[],kind:TESTKIND,week:(WEEKMODE&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||""}:null};
+  const empty=(title,body)=>{
+    test=null; swap("setup");
+    showGuide(title, body, WEEKMODE?'<button type="button" class="btn" id="guideOffWeek">Turn off week mode</button><button type="button" class="btn" id="guideBuiltin2">Use built-in train</button>':'<button type="button" class="btn" id="guideBuiltin2">Back to setup</button>');
+    const ow=document.getElementById("guideOffWeek"); if(ow) ow.onclick=()=>{ hideGuide(); setWeekMode(false); };
+    const gb=document.getElementById("guideBuiltin2"); if(gb) gb.onclick=()=>{ hideGuide(); setMode("train"); setSource("builtin"); };
+  };
   if(TESTKIND==="protect"){
     await loadOlPlays();
     for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickOlRep(); if(r) test.queue.push(r); }
-    if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have OL keys yet — a coach places the front on the play (Playbook) and keys it under Author → OL keys.":"No plays with OL keys yet — a coach places the opponent's front on a play in the Playbook, then keys who blocks whom under Author → OL keys."); test=null; return; }
+    if(!test.queue.length){
+      empty(WEEKMODE?"This week\u2019s protection install isn\u2019t ready":"No protection keys yet",
+        WEEKMODE?"None of this week\u2019s plan plays have OL keys yet. Your coach places the front on the play (Playbook) and keys blockers under Author \u2192 OL keys."
+          :"No plays with OL keys yet. A coach places the opponent\u2019s front on a play in the Playbook, then keys who blocks whom under Author \u2192 OL keys.");
+      return;
+    }
     swap("play"); showRep(test.queue[0]); updateProgress(); return;
   }
   if(TESTKIND==="routes"){
     await loadRoutePlays();
     if(!RQLABS.size) rqAllLabs().forEach(l=>RQLABS.add(l));
     for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickRouteRep(); if(r) test.queue.push(r); }
-    if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have drawn routes yet — draw them in the Playbook, or add plays to the week plan.":"No saved plays with routes yet — draw and save plays in the Playbook, then try again."); test=null; return; }
+    if(!test.queue.length){
+      empty(WEEKMODE?"This week\u2019s route install isn\u2019t ready":"No routed plays yet",
+        WEEKMODE?"None of this week\u2019s plan plays have drawn routes yet — your coach draws them in the Playbook, or adds plays to the week plan."
+          :"No saved plays with routes yet. Draw and save plays in the Playbook, then try again.");
+      return;
+    }
     swap("play"); showRep(test.queue[0]); updateProgress(); return;
   }
   for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
-  if(!test.queue.length){ alert(WEEKMODE?"None of this week's plan plays have authored reads for the selected coverages yet — a coach can add them in Author mode.":"No reps match your filters — enable at least one concept and coverage."); test=null; return; }
+  if(!test.queue.length){
+    empty(WEEKMODE?"This week\u2019s reads aren\u2019t ready":"No reps match your filters",
+      WEEKMODE?"None of this week\u2019s plan plays have authored reads for the selected coverages yet — a coach can add them in Author mode."
+        :"Enable at least one concept and coverage, or ask your coach to author reads on program plays.");
+    return;
+  }
   swap("play"); showRep(test.queue[0]); updateProgress();
 }
 async function finishTest(){
@@ -1269,7 +1334,7 @@ function myReadinessHTML(rows,uid){
 async function showResults(){
   const rp=document.getElementById("resultPanel");
   rp.innerHTML='<p class="tag">Loading results…</p>';
-  if(!(window.QB && window.QB.ready)){ rp.innerHTML='<p class="tag">Cloud not configured.</p>'; return; }
+  if(!(window.QB && window.QB.ready)){ rp.innerHTML='<div style="padding:8px 0"><b style="color:var(--navy)">Sign in to see results</b><p class="tag" style="margin:8px 0 0;line-height:1.5">Scores sync when you\u2019re signed in to your program. Use the account control (top-right) — then Results will show your tests.</p></div>'; return; }
   let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
   if(!ctx || !ctx.user){ rp.innerHTML='<p class="tag">Sign in (top-right) to see saved results.</p>'; return; }
   if(!ctx.team){ rp.innerHTML='<p class="tag">Join or create a program to track results.</p>'; return; }
@@ -1348,7 +1413,7 @@ function init(){
   buildChips();
   [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.onclick=()=>setMode(b.dataset.mode));
   [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.onclick=()=>setSource(b.dataset.src));
-  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ alert("No reps match your filters — enable a concept and coverage."); return; } swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; };
+  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ swap("setup"); showGuide("No reps match your filters","Enable at least one concept and coverage, or switch Source to Built-in if your program plays aren\u2019t authored yet.",'<button type="button" class="btn" id="guideEnableAll">Enable all concepts</button>'); const ea=document.getElementById("guideEnableAll"); if(ea) ea.onclick=()=>{ hideGuide(); rebuildPool(); enabledCoverages.clear(); COVERAGES.forEach(c=>enabledCoverages.add(c)); buildChips(); }; return; } hideGuide(); swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; };
   document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
   document.getElementById("snapBtn").onclick=snapPlay;
   [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>selectKind(b.dataset.kind));
@@ -1363,10 +1428,10 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=39"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=39"></script>
-<script type="module" src="OFFGRD-account.js?v=39"></script>
-<script src="OFFGRD-role-gate.js?v=41"></script>
+<script src="OFFGRD-mobile.js?v=42"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=42"></script>
+<script type="module" src="OFFGRD-account.js?v=42"></script>
+<script src="OFFGRD-role-gate.js?v=42"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
