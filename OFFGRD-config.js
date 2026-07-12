@@ -12,5 +12,7 @@ window.OFFGRD_CONFIG = {
   /* Step 3 auto-derive reads/OL keys — ON in prod. Rollback: ?autoderive=0 or localStorage.offgrd_autoderive_reads=0 */
   autoderiveReads: true,
   /* Steal A scout cards — ON. Rollback: ?scoutcards=0 or localStorage.offgrd_scoutcards=0 */
-  scoutCards: true
+  scoutCards: true,
+  /* Steal B tendency reports — ON. Rollback: ?tendency=0 or localStorage.offgrd_tendency_reports=0 */
+  tendencyReports: true
 };
