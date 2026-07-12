@@ -255,12 +255,13 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=49"></script>
+<script src="OFFGRD-config.js?v=50"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=49"></script>
-<script src="OFFGRD-render.js?v=49"></script>
-<script src="OFFGRD-scoutcards.js?v=49"></script>
-<script src="OFFGRD-tendencies.js?v=49"></script>
+<script src="OFFGRD-cache-gate.js?v=50"></script>
+<script src="OFFGRD-render.js?v=50"></script>
+<script src="OFFGRD-scoutcards.js?v=50"></script>
+<script src="OFFGRD-tendencies.js?v=50"></script>
+<script src="OFFGRD-weeklypackage.js?v=50"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -285,6 +286,7 @@
   <div class="navbar no-print" id="navbar">
     <button class="on" data-view="scout" onclick="setView('scout')">Scout</button>
     <button data-view="plan" onclick="setView('plan')">Game Plan</button>
+    <button data-view="package" id="navPackage" onclick="setView('package')" style="display:none">Package</button>
     <button data-view="practice" onclick="setView('practice')">Practice</button>
     <button data-view="caller" onclick="setView('caller')">Caller</button>
     <button data-view="report" onclick="setView('report')">Report</button>
@@ -363,6 +365,7 @@
   </div><!-- /view-scout -->
 
   <div id="view-plan" style="display:none"></div>
+  <div id="view-package" style="display:none"></div>
   <div id="view-caller" style="display:none"></div>
   <div id="view-report" style="display:none"></div>
   <div id="view-practice" style="display:none"></div>
@@ -1311,10 +1314,10 @@ let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY"};
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
 function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return rows.length?r.length/rows.length:0; }
-function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
+function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="package")renderPackage(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
 function setView(v){
   CURRENT_VIEW=v;
-  ["scout","plan","caller","report","practice"].forEach(id=>{ const el=document.getElementById("view-"+id); if(el) el.style.display=(id===v)?"":"none"; });
+  ["scout","plan","package","caller","report","practice"].forEach(id=>{ const el=document.getElementById("view-"+id); if(el) el.style.display=(id===v)?"":"none"; });
   const nv=document.getElementById("navbar"); if(nv) [].forEach.call(nv.querySelectorAll("button"),b=>{ if(b.dataset.view===v)b.classList.add("on"); else b.classList.remove("on"); });
   refreshView();
 }
@@ -1405,6 +1408,12 @@ function weekBarHTML(){
 }
 function weekPlayerShareHTML(){
   if(!WEEK || !WEEK_EDIT || !window.OFFGRD_WEEK_PLAYER_SHARE) return "";
+  const pkgOn=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage();
+  const hasDraft=pkgOn&&WEEK.gen&&WEEK.gen.game_plan_draft;
+  const approved=pkgOn&&OFFGRD_WEEKLY_PACKAGE.packageApproved(WEEK);
+  if(hasDraft&&!approved){
+    return '<div class="no-print" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>';
+  }
   const s = Object.assign({briefing:true,plays:true,scout:false,practice:true}, WEEK.player_share||{});
   const row = (k,label)=>'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;margin-right:12px"><input type="checkbox" class="wkShare" data-k="'+k+'"'+(s[k]?' checked':'')+'> '+label+'</label>';
   return '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
@@ -1469,6 +1478,44 @@ function wireWeekUI(host){
   [].forEach.call(host.querySelectorAll("[data-wkdel]"),bt=>{ bt.onclick=()=>{ const a=bt.dataset.wkdel.split(":"); planUncommit(+a[0],+a[1]); }; });
   [].forEach.call(host.querySelectorAll("[data-wkpick]"),bt=>{ bt.onclick=()=>openWeekPicker(+bt.dataset.wkpick); });
   wireWeekPlayerShare(host);
+  const pb=host.querySelector("#wkPkgBtn");
+  if(pb) pb.onclick=async()=>{
+    const hasDraft=WEEK&&WEEK.gen&&WEEK.gen.game_plan_draft;
+    if(hasDraft){ setView("package"); return; }
+    if(!window.OFFGRD_WEEKLY_PACKAGE_GEN){ alert("Sign in as a coach to generate the weekly package."); return; }
+    pb.disabled=true; const old=pb.textContent; pb.textContent="📦 Generating… (15-30s)";
+    try{
+      const payload=window.OFFGRD_WEEKLY_PACKAGE?OFFGRD_WEEKLY_PACKAGE.collectPayload({week:WEEK,playbook:PBOOK}):{};
+      await window.OFFGRD_WEEKLY_PACKAGE_GEN(!!hasDraft, payload);
+      setView("package");
+    }catch(e){ alert((e&&e.message)||"Package generation failed."); renderPlan(); }
+    finally{ pb.disabled=false; if(pb.textContent.indexOf("Generating")>=0) pb.textContent=old; }
+  };
+}
+function renderPackage(){
+  const host=document.getElementById("view-package"); if(!host) return;
+  if(!window.OFFGRD_WEEKLY_PACKAGE||!OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage()){
+    host.innerHTML='<div class="panel"><p class="foot">Weekly package is off (?weeklypackage=0).</p></div>';
+    return;
+  }
+  if(!WEEK){
+    host.innerHTML='<div class="panel"><p class="foot">Start a week plan in <b>Game Plan</b>, then generate the weekly package.</p></div>';
+    return;
+  }
+  try{ if(!document.getElementById("wkpkgCss")){ const s=document.createElement("style"); s.id="wkpkgCss"; s.textContent=(OFFGRD_WEEKLY_PACKAGE.css()||"").replace(/^<style>|<\/style>$/g,""); document.head.appendChild(s); } }catch(e){}
+  const off=oppRows("off"), def=oppRows("def");
+  const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, onRegenerate:null };
+  if(WEEK_EDIT&&window.OFFGRD_WEEKLY_PACKAGE_GEN){
+    ctx.onRegenerate=async()=>{
+      if(!confirm("Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.")) return;
+      try{
+        const payload=OFFGRD_WEEKLY_PACKAGE.collectPayload({week:WEEK,playbook:PBOOK});
+        await window.OFFGRD_WEEKLY_PACKAGE_GEN(true, payload);
+        renderPackage();
+      }catch(e){ alert((e&&e.message)||"Regeneration failed."); }
+    };
+  }
+  OFFGRD_WEEKLY_PACKAGE.injectPackage(host, ctx);
 }
 function defaultBuckets(){ return [{name:"1st & 10 (openers)",dn:"1",db:"10+",zone:"ANY"},{name:"2nd & medium",dn:"2",db:"4-6",zone:"ANY"},{name:"2nd & long",dn:"2",db:"10+",zone:"ANY"},{name:"3rd & short",dn:"3",db:"1-3",zone:"ANY"},{name:"3rd & medium",dn:"3",db:"4-6",zone:"ANY"},{name:"3rd & long",dn:"3",db:"10+",zone:"ANY"},{name:"Red zone",dn:"ANY",db:"ANY",zone:"REDZONE"},{name:"Goal line",dn:"ANY",db:"1-3",zone:"REDZONE"}]; }
 function ensurePlan(){ if(!PLAN_BUCKETS) PLAN_BUCKETS=defaultBuckets(); }
@@ -1595,6 +1642,7 @@ function renderPlan(){
   let h=`<div class="panel"><div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(opp!=="ANY"?opp:"",34)}<span class="pl" style="font-size:18px"><b>${esc(oppName)}</b> &mdash; game plan</span><button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button></div>`;
   h+=`<div class="seg no-print" style="max-width:480px;margin-bottom:10px;flex-wrap:wrap"><button${PLAN_SIDE!=="def"?' class="on"':''} onclick="setPlanSide('off')">Offensive plan (attack their D)</button><button${PLAN_SIDE==="def"?' class="on"':''} onclick="setPlanSide('def')">Defensive plan (stop their O)</button></div>`;
   h+=weekBarHTML();
+  h+=(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.packageBarHTML?OFFGRD_WEEKLY_PACKAGE.packageBarHTML():"");
   h+=weekGenHTML();
   h+=weekPlayerShareHTML();
   h+=planEditorHTML();
@@ -2087,6 +2135,15 @@ document.getElementById("manageBtn").onclick=openManager;
   b.style.display=show?"":"none";
   b.onclick=()=>{ if(typeof setView==="function") setView("report"); };
 })();
+(function(){
+  const nav=document.getElementById("navPackage");
+  const show=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage();
+  if(nav) nav.style.display=show?"":"none";
+  try{
+    const handoff=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff();
+    if(handoff&&handoff.opponent){ setTimeout(function(){ if(typeof setView==="function") setView("package"); }, 800); }
+  }catch(e){}
+})();
 document.getElementById("schedBtn").onclick=openSchedule;
 { const _c=document.getElementById("closeSched"); if(_c) _c.onclick=()=>document.getElementById("sched").classList.remove("show"); }
 { const _a=document.getElementById("schedAdd"); if(_a) _a.onclick=schedAdd; }
@@ -2216,6 +2273,7 @@ window.OFFGRD_WEEK={set:function(wp,ce){
     if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); }).catch(function(){});
   }
   if(CURRENT_VIEW==="plan") renderPlan();
+  else if(CURRENT_VIEW==="package" && typeof renderPackage==="function") renderPackage();
 }};
 /* live-apply hook for the onboarding brand editor (account.js) */
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
@@ -2239,9 +2297,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=49"></script>
-<script src="OFFGRD-role-gate.js?v=49"></script>
-<script src="OFFGRD-mobile.js?v=49"></script>
+<script type="module" src="OFFGRD-account.js?v=50"></script>
+<script src="OFFGRD-role-gate.js?v=50"></script>
+<script src="OFFGRD-mobile.js?v=50"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

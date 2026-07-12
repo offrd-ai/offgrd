@@ -14,5 +14,7 @@ window.OFFGRD_CONFIG = {
   /* Steal A scout cards — ON. Rollback: ?scoutcards=0 or localStorage.offgrd_scoutcards=0 */
   scoutCards: true,
   /* Steal B tendency reports — ON. Rollback: ?tendency=0 or localStorage.offgrd_tendency_reports=0 */
-  tendencyReports: true
+  tendencyReports: true,
+  /* AI-GM weekly package — ON. Rollback: ?weeklypackage=0 or localStorage.offgrd_weekly_package=0 */
+  weeklyPackage: true
 };
