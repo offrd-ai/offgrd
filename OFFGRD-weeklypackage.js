@@ -428,7 +428,7 @@
     h += '<div class="persp" style="border:none;padding:0;margin-bottom:8px">';
     h += '<span class="pl" style="font-size:18px"><b>' + esc(oppName) + "</b> — weekly package</span>";
     h += '<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button>';
-    if (canEdit && ctx.onRegenerate) {
+    if (canEdit && root.OFFGRD_WEEKLY_PACKAGE_GEN) {
       h += ' <button type="button" class="ghost no-print" id="wkpkgRegen">Regenerate</button>';
     }
     h += "</div>";
@@ -553,7 +553,39 @@
     root.WEEK.gen = (res && res.gen) || root.WEEK.gen || {};
     if (res && res.game_plan_draft) root.WEEK.gen.game_plan_draft = res.game_plan_draft;
     if (res && res.draft_error != null) root.WEEK.gen.draft_error = res.draft_error;
-    try { localStorage.setItem("offgrd_week_v1", JSON.stringify(root.WEEK)); } catch (e) {}
+    /* Defer localStorage — never block the assemble paint path on stringify. */
+    const snap = root.WEEK;
+    setTimeout(function () {
+      try { localStorage.setItem("offgrd_week_v1", JSON.stringify(snap)); } catch (e) {}
+    }, 0);
+  }
+
+  function schedulePullWeek() {
+    setTimeout(function () {
+      try {
+        if (typeof root.OFFGRD_WEEK_PULL === "function") root.OFFGRD_WEEK_PULL();
+        else if (typeof root.pullWeek === "function") root.pullWeek();
+      } catch (e) {}
+    }, 50);
+  }
+
+  /**
+   * Fire-and-forget entry for Regenerate / Generate clicks.
+   * MUST return void immediately so the click stack never awaits the network or fill.
+   */
+  function scheduleGenerate(ctx, force, opts) {
+    opts = opts || {};
+    setTimeout(function () {
+      if (opts.confirm !== false) {
+        const msg = opts.confirmMsg || "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.";
+        if (!confirm(msg)) return;
+      }
+      setTimeout(function () {
+        runGenerate(ctx, force).catch(function (e) {
+          try { alert((e && e.message) || "Package generation failed."); } catch (e2) {}
+        });
+      }, 0);
+    }, 0);
   }
 
   async function runGenerate(ctx, force) {
@@ -561,28 +593,45 @@
       throw new Error("A package assemble is already running — wait a moment or reload if it is stuck.");
     }
     if (!root.OFFGRD_WEEKLY_PACKAGE_GEN) throw new Error("Sign in as a coach to generate the weekly package.");
+
+    /* Yield BEFORE beginBusy side-effects so the click/macrotask that scheduled us can finish. */
+    await yieldPaint();
+
     beginBusy();
     const host = document.getElementById("view-package");
     const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
     _genAbort = ctrl;
+
     try {
+      await yieldPaint();
       if (host) {
         setStatus(host, "Generating weekly package… briefing + game-plan draft (usually 20–45s). Tab stays usable.");
         const plan = host.querySelector("#wkpkgPlan");
-        if (plan) plan.innerHTML = renderGamePlanSection(null, root.WEEK, !!ctx.canEdit, { loading: "Drafting game plan vs their tendencies…" });
+        if (plan) {
+          plan.innerHTML = renderGamePlanSection(null, root.WEEK, !!ctx.canEdit, {
+            loading: "Drafting game plan vs their tendencies…"
+          });
+        }
         const regen = host.querySelector("#wkpkgRegen");
         if (regen) { regen.disabled = true; regen.textContent = "Generating…"; }
       }
       await yieldPaint();
+
       const payload = collectPayload(ctx);
+      await yieldPaint();
+
       const res = await root.OFFGRD_WEEKLY_PACKAGE_GEN(!!force, payload, ctrl ? ctrl.signal : undefined);
       if (ctrl && ctrl.signal.aborted) throw new Error("Assemble aborted.");
+
       mergeGenFromResult(res);
+      await yieldPaint();
+
       if (host) {
         setStatus(host, "");
+        /* Same progressive fill as cold open. Keep snapshot DOM (already reconciled); refresh plan/install/brief. */
         await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), {
-          skipTend: false,
-          planStatus: res && res.draft_error ? { error: res.draft_error } : null
+          skipTend: true,
+          planStatus: (res && res.draft_error) ? { error: res.draft_error } : null
         });
       }
       return res;
@@ -595,11 +644,13 @@
             error: (e && e.message) || "Package generation failed"
           });
         }
-        /* Keep other sections populated — don't wipe the package. */
         try {
           const install = host.querySelector("#wkpkgInstall");
           if (install && /Preparing|Resolving/.test(install.textContent || "")) {
-            await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), { skipPlan: true });
+            await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), {
+              skipPlan: true,
+              skipTend: true
+            });
           }
         } catch (e2) {}
         wirePackageUI(host, ctx);
@@ -609,6 +660,8 @@
       endBusy();
       const regen = host && host.querySelector("#wkpkgRegen");
       if (regen) { regen.disabled = false; regen.textContent = "Regenerate"; }
+      /* pullWeek only AFTER busy clears + UI filled — never race the paint path. */
+      schedulePullWeek();
     }
   }
 
@@ -658,7 +711,23 @@
     }
 
     const regen = host.querySelector("#wkpkgRegen");
-    if (regen && ctx.onRegenerate) regen.onclick = () => ctx.onRegenerate();
+    if (regen && ctx.canEdit && root.OFFGRD_WEEKLY_PACKAGE_GEN) {
+      /* Click must return immediately — never await runGenerate on the event stack. */
+      regen.onclick = function (ev) {
+        try { if (ev) { ev.preventDefault(); ev.stopPropagation(); } } catch (e) {}
+        if (isBusy()) {
+          try { alert("A package assemble is already running — wait a moment."); } catch (e) {}
+          return;
+        }
+        scheduleGenerate(ctx, true, {
+          confirm: true,
+          confirmMsg: "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing."
+        });
+      };
+    } else if (regen && ctx.onRegenerate) {
+      /* Legacy callback — still defer so click never blocks. */
+      regen.onclick = function () { scheduleGenerate(ctx, true, { confirm: true }); };
+    }
   }
 
   function packageBarHTML() {
@@ -707,6 +776,7 @@
     approvePackage,
     consumeGmHandoff,
     runGenerate,
+    scheduleGenerate,
     mergeGenFromResult,
     isBusy,
     resetBusy,
