@@ -255,13 +255,13 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=54"></script>
+<script src="OFFGRD-config.js?v=55"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=54"></script>
-<script src="OFFGRD-render.js?v=54"></script>
-<script src="OFFGRD-scoutcards.js?v=54"></script>
-<script src="OFFGRD-tendencies.js?v=54"></script>
-<script src="OFFGRD-weeklypackage.js?v=54"></script>
+<script src="OFFGRD-cache-gate.js?v=55"></script>
+<script src="OFFGRD-render.js?v=55"></script>
+<script src="OFFGRD-scoutcards.js?v=55"></script>
+<script src="OFFGRD-tendencies.js?v=55"></script>
+<script src="OFFGRD-weeklypackage.js?v=55"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1503,17 +1503,19 @@ function wireWeekUI(host){
   wireWeekPlayerShare(host);
   const pb=host.querySelector("#wkPkgBtn");
   if(pb) pb.onclick=async()=>{
-    const hasDraft=WEEK&&WEEK.gen&&WEEK.gen.game_plan_draft;
+    const hasDraft=WEEK&&WEEK.gen&&WEEK.gen.game_plan_draft&&WEEK.gen.game_plan_draft.sections&&WEEK.gen.game_plan_draft.sections.length;
     if(hasDraft){ setView("package"); return; }
-    if(!window.OFFGRD_WEEKLY_PACKAGE_GEN){ alert("Sign in as a coach to generate the weekly package."); return; }
-    pb.disabled=true; const old=pb.textContent; pb.textContent="📦 Generating… (15-30s)";
+    if(!window.OFFGRD_WEEKLY_PACKAGE||!OFFGRD_WEEKLY_PACKAGE.runGenerate){ alert("Sign in as a coach to generate the weekly package."); return; }
+    pb.disabled=true; const old=pb.textContent; pb.textContent="Opening…";
     try{
-      const payload=window.OFFGRD_WEEKLY_PACKAGE?OFFGRD_WEEKLY_PACKAGE.collectPayload({week:WEEK,playbook:PBOOK}):{};
-      await window.OFFGRD_WEEKLY_PACKAGE_GEN(!!hasDraft, payload);
       setView("package");
-    }catch(e){ alert((e&&e.message)||"Package generation failed."); renderPlan(); }
-    finally{ pb.disabled=false; if(pb.textContent.indexOf("Generating")>=0) pb.textContent=old; }
+      const off=scopedOppRows("off"), def=scopedOppRows("def");
+      const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, scopeLabel:(typeof scopeLabelText==="function"?scopeLabelText():"") };
+      await OFFGRD_WEEKLY_PACKAGE.runGenerate(ctx, false);
+    }catch(e){ alert((e&&e.message)||"Package generation failed."); }
+    finally{ pb.disabled=false; pb.textContent=old; }
   };
+}
 }
 function renderPackage(){
   const host=document.getElementById("view-package"); if(!host) return;
@@ -1525,18 +1527,16 @@ function renderPackage(){
     host.innerHTML='<div class="panel"><p class="foot">Start a week plan in <b>Game Plan</b>, then generate the weekly package.</p></div>';
     return;
   }
-  try{ if(!document.getElementById("wkpkgCss")){ const s=document.createElement("style"); s.id="wkpkgCss"; s.textContent=(OFFGRD_WEEKLY_PACKAGE.css()||"").replace(/^<style>|<\/style>$/g,""); document.head.appendChild(s); } }catch(e){}
-  /* Same scoped pool as Tendencies report (opponent + Games scope + this season) */
+  /* Skip full rebuild while async generate is in flight — keeps the tab responsive. */
+  if(OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy()) return;
+  try{ if(!document.getElementById("wkpkgCss")){ const st=document.createElement("style"); st.id="wkpkgCss"; st.textContent=OFFGRD_WEEKLY_PACKAGE.css()||""; document.head.appendChild(st); } }catch(e){}
   const off=scopedOppRows("off"), def=scopedOppRows("def");
   const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, scopeLabel:(typeof scopeLabelText==="function"?scopeLabelText():""), onRegenerate:null };
   if(WEEK_EDIT&&window.OFFGRD_WEEKLY_PACKAGE_GEN){
     ctx.onRegenerate=async()=>{
       if(!confirm("Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.")) return;
-      try{
-        const payload=OFFGRD_WEEKLY_PACKAGE.collectPayload({week:WEEK,playbook:PBOOK});
-        await window.OFFGRD_WEEKLY_PACKAGE_GEN(true, payload);
-        renderPackage();
-      }catch(e){ alert((e&&e.message)||"Regeneration failed."); }
+      try{ await OFFGRD_WEEKLY_PACKAGE.runGenerate(ctx, true); }
+      catch(e){ alert((e&&e.message)||"Regeneration failed."); }
     };
   }
   OFFGRD_WEEKLY_PACKAGE.injectPackage(host, ctx);
@@ -2289,7 +2289,9 @@ window.OFFGRD_WEEK={set:function(wp,ce){
     if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); }).catch(function(){});
   }
   if(CURRENT_VIEW==="plan") renderPlan();
-  else if(CURRENT_VIEW==="package" && typeof renderPackage==="function") renderPackage();
+  else if(CURRENT_VIEW==="package" && typeof renderPackage==="function"){
+    if(!(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy())) renderPackage();
+  }
 }};
 /* live-apply hook for the onboarding brand editor (account.js) */
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
@@ -2313,9 +2315,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=54"></script>
-<script src="OFFGRD-role-gate.js?v=54"></script>
-<script src="OFFGRD-mobile.js?v=54"></script>
+<script type="module" src="OFFGRD-account.js?v=55"></script>
+<script src="OFFGRD-role-gate.js?v=55"></script>
+<script src="OFFGRD-mobile.js?v=55"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -7,7 +7,8 @@
 (function (root) {
   "use strict";
 
-  /* URL / localStorage override the config default (same pattern as unified/autoderive/scoutcards). */
+  let _busy = false;
+
   function flagParam(name) {
     try {
       const blob = String((location && (location.search || "") + "&" + ((location.hash || "").replace(/^#/, ""))) || "");
@@ -31,7 +32,6 @@
     return true;
   }
 
-  /** Apply effective flag to UI + reflect on OFFGRD_CONFIG so console/cfg checks match the gate. */
   function applyWeeklyPackageGate() {
     const on = isWeeklyPackage();
     try { if (root.OFFGRD_CONFIG) root.OFFGRD_CONFIG.weeklyPackage = on; } catch (e) {}
@@ -52,6 +52,14 @@
     return String(s == null ? "" : s).replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[m]));
   }
 
+  function yieldPaint() {
+    return new Promise(function (resolve) {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(function () { setTimeout(resolve, 0); });
+      } else setTimeout(resolve, 0);
+    });
+  }
+
   function loadTendenciesSnap() {
     try {
       if (root.OFFGRD_LAST_TENDENCIES) return root.OFFGRD_LAST_TENDENCIES;
@@ -66,16 +74,23 @@
     const snap = loadTendenciesSnap();
     const pb = ctx.playbook || root.PBOOK || [];
     const week = ctx.week || root.WEEK;
-    const past = ctx.pastOpponents || [];
+    const names = {};
+    (pb || []).forEach(p => { if (p && p.name) names[p.name] = p; });
+    ((week && week.buckets) || []).forEach(b => (b.plays || []).forEach(p => {
+      if (p && p.name && !names[p.name]) names[p.name] = { name: p.name };
+    }));
     return {
       tendencies: snap,
-      playbook_plays: (pb || []).map(p => ({
-        name: p.name || "",
-        formation: p.formation || "",
-        family: p.family || "",
-        has_reads: !!(p.qb_reads && Object.keys(p.qb_reads).length)
-      })).filter(p => p.name),
-      past_opponents: past
+      playbook_plays: Object.keys(names).map(n => {
+        const p = names[n];
+        return {
+          name: n,
+          formation: p.formation || "",
+          family: p.family || "",
+          has_reads: !!(p.qb_reads && Object.keys(p.qb_reads).length)
+        };
+      }),
+      past_opponents: ctx.pastOpponents || []
     };
   }
 
@@ -89,22 +104,42 @@
     return !!(g && (g.package_status === "approved" || g.package_approved));
   }
 
+  function isBusy() { return !!_busy; }
+
+  /* Lightweight snapshot — summary tile only (full heat tables live on Report). Avoids main-thread freeze. */
   function renderTendencySection(defRows, offRows, opponent, oppName, scopeLabel) {
-    if (!root.OFFGRD_TENDENCIES || !root.OFFGRD_TENDENCIES.isTendency()) {
-      return '<p class="foot">Tendency reports flag off — enable tendencyReports or open Report tab first.</p>';
-    }
-    const host = document.createElement("div");
     const lab = scopeLabel || "season library scope";
-    root.OFFGRD_TENDENCIES.injectInto(host, defRows || [], offRows || [], {
-      opponent: opponent,
-      title: (oppName || "Opponent") + " — snapshot",
-      subtitle: "Scope: " + lab + " · same filters as Tendencies report (offline-capable). Self-scout excluded.",
-      scopeLabel: lab
-    });
-    return host.innerHTML;
+    if (!root.OFFGRD_TENDENCIES || !root.OFFGRD_TENDENCIES.isTendency()) {
+      return '<p class="foot">Tendency reports flag off. Snapshot unavailable.</p>';
+    }
+    try {
+      const sum = root.OFFGRD_TENDENCIES.summaryTile(defRows || [], offRows || []);
+      root.OFFGRD_TENDENCIES.publishSnapshot(opponent, sum, (defRows || []).length, (offRows || []).length, { scopeLabel: lab });
+      let h = '<p class="foot" style="margin:0 0 8px">Scope: ' + esc(lab) + ' · self-scout excluded. Full heat tables: <button type="button" class="ghost" id="wkpkgOpenReport" style="padding:2px 8px">Tendencies report</button></p>';
+      h += '<div class="tn-tile" style="display:flex;flex-wrap:wrap;gap:10px">';
+      h += '<div class="tn-stat"><b>' + (sum.defN || 0) + " defensive · " + (sum.offN || 0) + ' offensive</b><span>In scope</span></div>';
+      if (sum.topCoverage) h += '<div class="tn-stat"><b>' + esc(sum.topCoverage) + (sum.topCoveragePct != null ? " " + Math.round(sum.topCoveragePct * 100) + "%" : "") + '</b><span>Top coverage</span></div>';
+      if (sum.topFront) h += '<div class="tn-stat"><b>' + esc(sum.topFront) + (sum.topFrontPct != null ? " " + Math.round(sum.topFrontPct * 100) + "%" : "") + '</b><span>Top front</span></div>';
+      if (sum.runPct != null) h += '<div class="tn-stat"><b>' + Math.round(sum.runPct * 100) + "% / " + Math.round(sum.passPct * 100) + '%</b><span>Run / Pass</span></div>';
+      h += "</div>";
+      return h;
+    } catch (e) {
+      return '<p class="foot">Could not build snapshot — open the Tendencies report.</p>';
+    }
   }
 
-  function renderGamePlanSection(draft, week, canEdit) {
+  function renderGamePlanSection(draft, week, canEdit, status) {
+    status = status || {};
+    if (status.loading) {
+      return '<p class="foot" id="wkpkgPlanStatus" style="background:#eef6ff;border:1px solid #b8d4f0;border-radius:8px;padding:10px">✦ ' + esc(status.loading) + "</p>";
+    }
+    if (status.error) {
+      return '<p class="foot" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:8px;padding:10px"><b>Draft error:</b> ' + esc(status.error) + " — tap Regenerate to retry. Briefing below may still be current.</p>";
+    }
+    const err = week && week.gen && week.gen.draft_error;
+    if ((!draft || !draft.sections || !draft.sections.length) && err) {
+      return '<p class="foot" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:8px;padding:10px"><b>Draft error:</b> ' + esc(err) + " — tap Regenerate to retry.</p>";
+    }
     if (!draft || !draft.sections || !draft.sections.length) {
       return '<p class="foot">No game-plan draft yet — generate the weekly package while online (requires plays on the week plan).</p>';
     }
@@ -113,12 +148,12 @@
     if (approved) h += '<p class="foot" style="color:#1d7a45;font-weight:800">✓ Approved for sharing — player share checkboxes unlocked below.</p>';
     draft.sections.forEach((sec, si) => {
       h += '<div class="wkpkg-sec" data-sec="' + si + '">';
-      h += '<h3>' + esc(sec.title || sec.id || "Situation") + "</h3>";
+      h += "<h3>" + esc(sec.title || sec.id || "Situation") + "</h3>";
       if (sec.notes) h += '<p class="foot">' + esc(sec.notes) + "</p>";
       if (Array.isArray(sec.calls) && sec.calls.length) {
         h += "<ul>";
         sec.calls.forEach((c, ci) => {
-          h += '<li><b>' + esc(c.play || "") + "</b>";
+          h += "<li><b>" + esc(c.play || "") + "</b>";
           if (canEdit) {
             h += ' <textarea class="wkpkg-why no-print" data-si="' + si + '" data-ci="' + ci + '" rows="2" style="width:100%;margin-top:4px;font-size:13px">' + esc(c.why || "") + "</textarea>";
           } else if (c.why) h += " — " + esc(c.why);
@@ -139,7 +174,7 @@
 
   function renderInstallSection(week, playbook) {
     const names = [];
-    (week && week.buckets || []).forEach(b => (b.plays || []).forEach(p => { if (p && p.name) names.push(p.name); }));
+    ((week && week.buckets) || []).forEach(b => (b.plays || []).forEach(p => { if (p && p.name) names.push(p.name); }));
     if (!names.length) return '<p class="foot">Commit plays to the week plan first — Step 3 auto-reads flow to Reps when shared.</p>';
     const byName = {};
     (playbook || []).forEach(p => { if (p && p.name) byName[String(p.name).toLowerCase()] = p; });
@@ -166,7 +201,7 @@
     return h;
   }
 
-  function renderScoutActions(opponent) {
+  function renderScoutActions() {
     if (!root.OFFGRD_SCOUTCARDS || !root.OFFGRD_SCOUTCARDS.isScoutcards()) {
       return '<p class="foot">Scout cards flag off.</p>';
     }
@@ -176,43 +211,66 @@
       + '<span class="foot">Print/PDF via scout-card sheet (Steal A).</span></div>';
   }
 
-  function buildPackageHtml(ctx) {
+  function setStatus(host, msg) {
+    const el = host && host.querySelector("#wkpkgStatus");
+    if (el) el.innerHTML = msg ? ('<p class="foot" style="background:#eef6ff;border:1px solid #b8d4f0;border-radius:8px;padding:8px 10px;margin:0 0 10px">' + esc(msg) + "</p>") : "";
+  }
+
+  function buildPackageShell(ctx) {
     ctx = ctx || {};
     const week = ctx.week || root.WEEK;
-    const opp = ctx.opponent || (week && week.opponent) || (root.sit && root.sit.opp !== "ANY" ? root.sit.opp : "");
+    const opp = ctx.opponent || (week && week.opponent) || "";
     const oppName = opp || "This week";
-    const draft = gamePlanDraft(week);
     const canEdit = !!ctx.canEdit;
-
     let h = '<div class="panel wkpkg-root" id="wkpkgRoot">';
     h += '<div class="persp" style="border:none;padding:0;margin-bottom:8px">';
-    h += '<span class="pl" style="font-size:18px"><b>' + esc(oppName) + '</b> — weekly package</span>';
+    h += '<span class="pl" style="font-size:18px"><b>' + esc(oppName) + "</b> — weekly package</span>";
     h += '<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button>';
     if (canEdit && ctx.onRegenerate) {
       h += ' <button type="button" class="ghost no-print" id="wkpkgRegen">Regenerate</button>';
     }
     h += "</div>";
-
-    if (canEdit && root.navigator && root.navigator.onLine === false) {
-      h += '<p class="foot" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:8px;padding:8px">Offline — tendencies, scout cards, and install render from local data. AI game-plan draft + briefing need a connection.</p>';
-    }
-
-    h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div>';
-    h += '<div id="wkpkgTend">' + renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName, ctx.scopeLabel) + "</div></section>";
-
-    h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div>';
-    h += '<div id="wkpkgPlan">' + renderGamePlanSection(draft, week, canEdit) + "</div></section>";
-
-    h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div>' + renderScoutActions(opp) + "</section>";
-
-    h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div>';
-    h += renderInstallSection(week, ctx.playbook || root.PBOOK) + "</section>";
-
-    h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div>';
-    h += renderBriefingSection(week) + "</section>";
-
+    h += '<div id="wkpkgStatus"></div>';
+    h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div><div id="wkpkgTend"><p class="foot">Loading snapshot…</p></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div><div id="wkpkgPlan"></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div><div id="wkpkgScout"></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div><div id="wkpkgInstall"></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div><div id="wkpkgBrief"></div></section>';
     h += "</div>";
     return h;
+  }
+
+  function fillSections(host, ctx, opts) {
+    opts = opts || {};
+    const week = ctx.week || root.WEEK;
+    const opp = ctx.opponent || (week && week.opponent) || "";
+    const oppName = opp || "This week";
+    const draft = gamePlanDraft(week);
+    const tend = host.querySelector("#wkpkgTend");
+    const plan = host.querySelector("#wkpkgPlan");
+    const scout = host.querySelector("#wkpkgScout");
+    const install = host.querySelector("#wkpkgInstall");
+    const brief = host.querySelector("#wkpkgBrief");
+    if (tend && !opts.skipTend) {
+      tend.innerHTML = renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName, ctx.scopeLabel);
+    }
+    if (plan) {
+      plan.innerHTML = renderGamePlanSection(draft, week, !!ctx.canEdit, opts.planStatus);
+    }
+    if (scout) scout.innerHTML = renderScoutActions();
+    if (install) install.innerHTML = renderInstallSection(week, ctx.playbook || root.PBOOK);
+    if (brief) brief.innerHTML = renderBriefingSection(week);
+  }
+
+  async function injectPackage(host, ctx) {
+    if (!host) return;
+    ctx = ctx || {};
+    host.innerHTML = buildPackageShell(ctx);
+    wirePackageUI(host, ctx);
+    await yieldPaint();
+    fillSections(host, ctx, {});
+    wirePackageUI(host, ctx);
+    return host;
   }
 
   function saveDraftEdits(week, draft) {
@@ -240,6 +298,56 @@
     if (root.OFFGRD_WEEK_PUSH) root.OFFGRD_WEEK_PUSH({ gen: week.gen });
   }
 
+  function mergeGenFromResult(res) {
+    if (!root.WEEK) return;
+    root.WEEK.gen = (res && res.gen) || root.WEEK.gen || {};
+    if (res && res.game_plan_draft) root.WEEK.gen.game_plan_draft = res.game_plan_draft;
+    if (res && res.draft_error != null) root.WEEK.gen.draft_error = res.draft_error;
+    try { localStorage.setItem("offgrd_week_v1", JSON.stringify(root.WEEK)); } catch (e) {}
+  }
+
+  async function runGenerate(ctx, force) {
+    if (_busy) return null;
+    if (!root.OFFGRD_WEEKLY_PACKAGE_GEN) throw new Error("Sign in as a coach to generate the weekly package.");
+    _busy = true;
+    const host = document.getElementById("view-package");
+    try {
+      if (host) {
+        setStatus(host, "Generating weekly package… briefing + game-plan draft (usually 20–45s). Tab stays usable.");
+        const plan = host.querySelector("#wkpkgPlan");
+        if (plan) plan.innerHTML = renderGamePlanSection(null, root.WEEK, !!ctx.canEdit, { loading: "Drafting game plan vs their tendencies…" });
+        const regen = host.querySelector("#wkpkgRegen");
+        if (regen) { regen.disabled = true; regen.textContent = "Generating…"; }
+      }
+      await yieldPaint();
+      const payload = collectPayload(ctx);
+      const res = await root.OFFGRD_WEEKLY_PACKAGE_GEN(!!force, payload);
+      mergeGenFromResult(res);
+      if (host) {
+        setStatus(host, "");
+        fillSections(host, Object.assign({}, ctx, { week: root.WEEK }), { skipTend: true });
+        wirePackageUI(host, ctx);
+      }
+      return res;
+    } catch (e) {
+      if (host) {
+        setStatus(host, "");
+        const plan = host.querySelector("#wkpkgPlan");
+        if (plan) {
+          plan.innerHTML = renderGamePlanSection(gamePlanDraft(root.WEEK), root.WEEK, !!ctx.canEdit, {
+            error: (e && e.message) || "Package generation failed"
+          });
+        }
+        wirePackageUI(host, ctx);
+      }
+      throw e;
+    } finally {
+      _busy = false;
+      const regen = host && host.querySelector("#wkpkgRegen");
+      if (regen) { regen.disabled = false; regen.textContent = "Regenerate"; }
+    }
+  }
+
   function wirePackageUI(host, ctx) {
     if (!host) return;
     ctx = ctx || {};
@@ -251,12 +359,12 @@
     };
 
     const appr = host.querySelector("#wkpkgApprove");
-    if (appr) appr.onclick = () => {
+    if (appr) appr.onclick = async () => {
       const draft = gamePlanDraft(root.WEEK);
-      if (!draft) return;
+      if (!draft || !draft.sections || !draft.sections.length) return;
       if (!confirm("Approve this game-plan draft for sharing with players? You can still edit afterward.")) return;
       approvePackage(root.WEEK, draft);
-      injectPackage(host, ctx);
+      await injectPackage(host, ctx);
       if (typeof root.refreshView === "function") root.refreshView();
     };
 
@@ -280,20 +388,18 @@
       });
     };
 
+    const reportBtn = host.querySelector("#wkpkgOpenReport");
+    if (reportBtn && typeof root.setView === "function") {
+      reportBtn.onclick = () => root.setView("report");
+    }
+
     const regen = host.querySelector("#wkpkgRegen");
     if (regen && ctx.onRegenerate) regen.onclick = () => ctx.onRegenerate();
   }
 
-  function injectPackage(host, ctx) {
-    if (!host) return;
-    host.innerHTML = buildPackageHtml(ctx);
-    wirePackageUI(host, ctx);
-    return host;
-  }
-
   function packageBarHTML() {
     if (!isWeeklyPackage() || !root.WEEK) return "";
-    const hasDraft = !!(root.WEEK.gen && root.WEEK.gen.game_plan_draft);
+    const hasDraft = !!(root.WEEK.gen && root.WEEK.gen.game_plan_draft && root.WEEK.gen.game_plan_draft.sections && root.WEEK.gen.game_plan_draft.sections.length);
     const btn = root.WEEK_EDIT && root.OFFGRD_WEEKLY_PACKAGE
       ? ('<button class="ghost no-print" id="wkPkgBtn" style="font-weight:800">📦 ' + (hasDraft ? "Open weekly package" : "Generate weekly package") + "</button>")
       : (hasDraft ? '<button class="ghost no-print" id="wkPkgBtn">📦 Weekly package</button>' : "");
@@ -313,24 +419,9 @@
   }
 
   function css() {
-    return "<style>.wkpkg-block{margin:14px 0;padding-top:8px;border-top:1px solid var(--line)}.wkpkg-trust{background:#fff8e8;border:1px solid #e8c96a;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;margin-bottom:8px}.wkpkg-sec{margin:10px 0}.wkpkg-sec h3{font-size:15px;margin:0 0 6px;color:var(--ink)}.wkpkg-sec ul{margin:4px 0 0 18px;padding:0;font-size:14px}@media print{.wkpkg-why{display:none!important}.no-print{display:none!important}}</style>";
+    return ".wkpkg-block{margin:14px 0;padding-top:8px;border-top:1px solid var(--line)}.wkpkg-trust{background:#fff8e8;border:1px solid #e8c96a;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;margin-bottom:8px}.wkpkg-sec{margin:10px 0}.wkpkg-sec h3{font-size:15px;margin:0 0 6px;color:var(--ink)}.wkpkg-sec ul{margin:4px 0 0 18px;padding:0;font-size:14px}.tn-tile .tn-stat{background:#f4f6f9;border-radius:8px;padding:8px 10px;min-width:120px}.tn-tile .tn-stat b{display:block;font-size:14px}.tn-tile .tn-stat span{font-size:11px;color:#5b626e}@media print{.wkpkg-why{display:none!important}.no-print{display:none!important}}";
   }
 
-  root.OFFGRD_WEEKLY_PACKAGE = {
-    isWeeklyPackage,
-    applyWeeklyPackageGate,
-    collectPayload,
-    gamePlanDraft,
-    packageApproved,
-    buildPackageHtml,
-    injectPackage,
-    packageBarHTML,
-    wirePackageUI,
-    saveDraftEdits,
-    approvePackage,
-    consumeGmHandoff,
-    css
-  };
   try {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", function () { applyWeeklyPackageGate(); });
@@ -338,4 +429,22 @@
       applyWeeklyPackageGate();
     }
   } catch (e) {}
+
+  root.OFFGRD_WEEKLY_PACKAGE = {
+    isWeeklyPackage,
+    applyWeeklyPackageGate,
+    collectPayload,
+    gamePlanDraft,
+    packageApproved,
+    injectPackage,
+    packageBarHTML,
+    wirePackageUI,
+    saveDraftEdits,
+    approvePackage,
+    consumeGmHandoff,
+    runGenerate,
+    mergeGenFromResult,
+    isBusy,
+    css
+  };
 })(typeof window !== "undefined" ? window : globalThis);

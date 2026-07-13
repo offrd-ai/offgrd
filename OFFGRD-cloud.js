@@ -240,11 +240,22 @@ export const Cloud = {
     const tok = sess && sess.session && sess.session.access_token;
     if (!tok) throw new Error("Sign in first.");
     const body = Object.assign({ team_id: teamId, force: !!force }, payload || {});
-    const r = await fetch(String(cfg.url || "").replace(/\/$/, "") + "/functions/v1/weekly-package", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok, "apikey": cfg.anonKey },
-      body: JSON.stringify(body)
-    });
+    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 120000) : null;
+    let r;
+    try {
+      r = await fetch(String(cfg.url || "").replace(/\/$/, "") + "/functions/v1/weekly-package", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok, "apikey": cfg.anonKey },
+        body: JSON.stringify(body),
+        signal: ctrl ? ctrl.signal : undefined
+      });
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      if (e && e.name === "AbortError") throw new Error("Weekly package timed out (120s). Try Regenerate — briefing may already be saved.");
+      throw e;
+    }
+    if (timer) clearTimeout(timer);
     const out = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(out.error || ("Weekly package failed (" + r.status + ")"));
     return out;

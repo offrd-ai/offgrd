@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=54";
-import { openAuthModal } from "./OFFGRD-auth.js?v=54";
+import { Cloud } from "./OFFGRD-cloud.js?v=55";
+import { openAuthModal } from "./OFFGRD-auth.js?v=55";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -667,6 +667,10 @@ window.OFFGRD_WEEKLY_PACKAGE_GEN=async function(force, payload){
   if(!canEdit()) throw new Error("Only coaches can generate the weekly package.");
   if(typeof navigator!=="undefined" && navigator.onLine===false) throw new Error("AI game-plan draft requires a connection. Tendencies and scout cards still work offline.");
   const res=await Cloud.assembleWeeklyPackage(TEAM.id, payload||{}, force);
+  /* Merge draft into the in-memory week immediately so Section 2 can paint before pull finishes. */
+  try{
+    if(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.mergeGenFromResult) OFFGRD_WEEKLY_PACKAGE.mergeGenFromResult(res);
+  }catch(e){}
   await pullWeek();
   return res;
 };
