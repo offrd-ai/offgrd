@@ -235,12 +235,17 @@ export const Cloud = {
   },
 
   /* Weekly package: generate-week + AI GM situational game-plan draft (server-keyed). */
-  async assembleWeeklyPackage(teamId, payload, force) {
+  async assembleWeeklyPackage(teamId, payload, force, signal) {
     const { data: sess } = await sb.auth.getSession();
     const tok = sess && sess.session && sess.session.access_token;
     if (!tok) throw new Error("Sign in first.");
     const body = Object.assign({ team_id: teamId, force: !!force }, payload || {});
     const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    const external = signal;
+    if (external && ctrl) {
+      if (external.aborted) { try { ctrl.abort(); } catch (e) {} }
+      else external.addEventListener("abort", function () { try { ctrl.abort(); } catch (e) {} });
+    }
     const timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 120000) : null;
     let r;
     try {
@@ -248,11 +253,11 @@ export const Cloud = {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok, "apikey": cfg.anonKey },
         body: JSON.stringify(body),
-        signal: ctrl ? ctrl.signal : undefined
+        signal: ctrl ? ctrl.signal : (external || undefined)
       });
     } catch (e) {
       if (timer) clearTimeout(timer);
-      if (e && e.name === "AbortError") throw new Error("Weekly package timed out (120s). Try Regenerate — briefing may already be saved.");
+      if (e && e.name === "AbortError") throw new Error("Weekly package timed out or was aborted. Try Regenerate — briefing may already be saved.");
       throw e;
     }
     if (timer) clearTimeout(timer);

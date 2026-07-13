@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=58";
-import { openAuthModal } from "./OFFGRD-auth.js?v=58";
+import { Cloud } from "./OFFGRD-cloud.js?v=59";
+import { openAuthModal } from "./OFFGRD-auth.js?v=59";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -662,16 +662,17 @@ window.OFFGRD_WEEK_GEN=async function(force){
   await pullWeek();
   return res && res.gen;
 };
-window.OFFGRD_WEEKLY_PACKAGE_GEN=async function(force, payload){
+window.OFFGRD_WEEKLY_PACKAGE_GEN=async function(force, payload, signal){
   if(!TEAM) throw new Error("Sign in and join a program first.");
   if(!canEdit()) throw new Error("Only coaches can generate the weekly package.");
   if(typeof navigator!=="undefined" && navigator.onLine===false) throw new Error("AI game-plan draft requires a connection. Tendencies and scout cards still work offline.");
-  const res=await Cloud.assembleWeeklyPackage(TEAM.id, payload||{}, force);
+  const res=await Cloud.assembleWeeklyPackage(TEAM.id, payload||{}, force, signal);
   /* Merge draft into the in-memory week immediately so Section 2 can paint before pull finishes. */
   try{
     if(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.mergeGenFromResult) OFFGRD_WEEKLY_PACKAGE.mergeGenFromResult(res);
   }catch(e){}
-  await pullWeek();
+  /* Do not block the UI on pullWeek — refresh in background after assemble returns. */
+  Promise.resolve().then(function(){ return pullWeek(); }).catch(function(){});
   return res;
 };
 window.OFFGRD_WEEK_PLAYS=async function(){

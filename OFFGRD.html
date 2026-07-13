@@ -255,15 +255,15 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=58"></script>
+<script src="OFFGRD-config.js?v=59"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=58"></script>
-<script src="OFFGRD-render.js?v=58"></script>
-<script src="OFFGRD-autoderive.js?v=58"></script>
-<script src="OFFGRD-scoutcards.js?v=58"></script>
-<script src="OFFGRD-tendencies.js?v=58"></script>
-<script src="OFFGRD-weeklypackage.js?v=58"></script>
-<script src="OFFGRD-telestrate.js?v=58"></script>
+<script src="OFFGRD-cache-gate.js?v=59"></script>
+<script src="OFFGRD-render.js?v=59"></script>
+<script src="OFFGRD-autoderive.js?v=59"></script>
+<script src="OFFGRD-scoutcards.js?v=59"></script>
+<script src="OFFGRD-tendencies.js?v=59"></script>
+<script src="OFFGRD-weeklypackage.js?v=59"></script>
+<script src="OFFGRD-telestrate.js?v=59"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1529,8 +1529,11 @@ function renderPackage(){
     host.innerHTML='<div class="panel"><p class="foot">Start a week plan in <b>Game Plan</b>, then generate the weekly package.</p></div>';
     return;
   }
-  /* Skip full rebuild while async generate is in flight — keeps the tab responsive. */
-  if(OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy()) return;
+  /* Skip full rebuild only while a *fresh* generate is in flight. Stale busy → force clear so Package can recover. */
+  if(OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy()){
+    if(host.querySelector("#wkpkgRoot")) return;
+    try{ if(OFFGRD_WEEKLY_PACKAGE.resetBusy) OFFGRD_WEEKLY_PACKAGE.resetBusy("renderPackage no shell"); }catch(e){}
+  }
   try{ if(!document.getElementById("wkpkgCss")){ const st=document.createElement("style"); st.id="wkpkgCss"; st.textContent=OFFGRD_WEEKLY_PACKAGE.css()||""; document.head.appendChild(st); } }catch(e){}
   const off=scopedOppRows("off"), def=scopedOppRows("def");
   const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, scopeLabel:(typeof scopeLabelText==="function"?scopeLabelText():""), onRegenerate:null };
@@ -2327,9 +2330,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=58"></script>
-<script src="OFFGRD-role-gate.js?v=58"></script>
-<script src="OFFGRD-mobile.js?v=58"></script>
+<script type="module" src="OFFGRD-account.js?v=59"></script>
+<script src="OFFGRD-role-gate.js?v=59"></script>
+<script src="OFFGRD-mobile.js?v=59"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

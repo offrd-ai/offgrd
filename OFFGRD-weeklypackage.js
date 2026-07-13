@@ -3,11 +3,22 @@
    Assembly + orchestration: tendencies + game-plan draft + scout cards
    + install + briefing on one screen. No new engines.
    Flag: ?weeklypackage=0|1 | localStorage.offgrd_weekly_package | OFFGRD_CONFIG.weeklyPackage
+
+   Assemble reliability (v59+): progressive section fill, busy watchdog,
+   snapshot self-computes with timeout, install derives chunked+yielded.
    ============================================================ */
 (function (root) {
   "use strict";
 
+  const BUSY_TTL_MS = 90000;
+  const SNAP_BUDGET_MS = 2500;
+  const SECTION_YIELD_MS = 0;
+
   let _busy = false;
+  let _busyAt = 0;
+  let _busyTimer = null;
+  let _genAbort = null;
+  let _fillToken = 0;
 
   function flagParam(name) {
     try {
@@ -55,9 +66,54 @@
   function yieldPaint() {
     return new Promise(function (resolve) {
       if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(function () { setTimeout(resolve, 0); });
-      } else setTimeout(resolve, 0);
+        requestAnimationFrame(function () { setTimeout(resolve, SECTION_YIELD_MS); });
+      } else setTimeout(resolve, SECTION_YIELD_MS);
     });
+  }
+
+  function clearBusyWatch() {
+    if (_busyTimer) {
+      try { clearTimeout(_busyTimer); } catch (e) {}
+      _busyTimer = null;
+    }
+  }
+
+  function endBusy() {
+    _busy = false;
+    _busyAt = 0;
+    clearBusyWatch();
+    _genAbort = null;
+  }
+
+  function resetBusy(reason) {
+    if (_busy) {
+      try { console.warn("[weekly-package] force-clear busy", reason || ""); } catch (e) {}
+    }
+    try { if (_genAbort) _genAbort.abort(); } catch (e) {}
+    endBusy();
+  }
+
+  function beginBusy() {
+    _busy = true;
+    _busyAt = Date.now();
+    clearBusyWatch();
+    _busyTimer = setTimeout(function () {
+      resetBusy("watchdog " + BUSY_TTL_MS + "ms");
+      try {
+        const host = document.getElementById("view-package");
+        const regen = host && host.querySelector("#wkpkgRegen");
+        if (regen) { regen.disabled = false; regen.textContent = "Regenerate"; }
+        setStatus(host, "Assemble timed out — tap Regenerate to retry. Sections below may still show prior content.");
+      } catch (e) {}
+    }, BUSY_TTL_MS);
+  }
+
+  function isBusy() {
+    if (_busy && _busyAt && (Date.now() - _busyAt) > BUSY_TTL_MS) {
+      resetBusy("stale isBusy()");
+      return false;
+    }
+    return !!_busy;
   }
 
   function loadTendenciesSnap() {
@@ -104,17 +160,40 @@
     return !!(g && (g.package_status === "approved" || g.package_approved));
   }
 
-  function isBusy() { return !!_busy; }
+  function errBox(msg) {
+    return '<p class="foot" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:8px;padding:10px">' + esc(msg) + "</p>";
+  }
 
-  /* Lightweight snapshot — summary tile only (full heat tables live on Report). Avoids main-thread freeze. */
+  /* Snapshot: always self-computes from scoped rows; never perpetual loading. */
   function renderTendencySection(defRows, offRows, opponent, oppName, scopeLabel) {
     const lab = scopeLabel || "season library scope";
     if (!root.OFFGRD_TENDENCIES || !root.OFFGRD_TENDENCIES.isTendency()) {
       return '<p class="foot">Tendency reports flag off. Snapshot unavailable.</p>';
     }
+    const def = defRows || [];
+    const off = offRows || [];
     try {
-      const sum = root.OFFGRD_TENDENCIES.summaryTile(defRows || [], offRows || []);
-      root.OFFGRD_TENDENCIES.publishSnapshot(opponent, sum, (defRows || []).length, (offRows || []).length, { scopeLabel: lab });
+      const t0 = Date.now();
+      const sum = root.OFFGRD_TENDENCIES.summaryTile(def, off);
+      if (Date.now() - t0 > SNAP_BUDGET_MS) {
+        return errBox("Snapshot took too long — open Tendencies report for full tables. (" + def.length + " D / " + off.length + " O rows)");
+      }
+      try {
+        root.OFFGRD_TENDENCIES.publishSnapshot(opponent, sum, def.length, off.length, { scopeLabel: lab });
+      } catch (e) {}
+      if (!def.length && !off.length) {
+        const cached = loadTendenciesSnap();
+        if (cached && cached.summary) {
+          const s = cached.summary;
+          let h = '<p class="foot" style="margin:0 0 8px">Scope: ' + esc(lab) + ' · using last published snapshot (no rows in current scope). <button type="button" class="ghost" id="wkpkgOpenReport" style="padding:2px 8px">Tendencies report</button></p>';
+          h += '<div class="tn-tile" style="display:flex;flex-wrap:wrap;gap:10px">';
+          h += '<div class="tn-stat"><b>' + (s.defN || 0) + " defensive · " + (s.offN || 0) + ' offensive</b><span>Last snapshot</span></div>';
+          if (s.topCoverage) h += '<div class="tn-stat"><b>' + esc(s.topCoverage) + '</b><span>Top coverage</span></div>';
+          h += "</div>";
+          return h;
+        }
+        return '<p class="foot">No charted plays in scope for this opponent. Import scout data or widen Games(scope). <button type="button" class="ghost" id="wkpkgOpenReport" style="padding:2px 8px">Tendencies report</button></p>';
+      }
       let h = '<p class="foot" style="margin:0 0 8px">Scope: ' + esc(lab) + ' · self-scout excluded. Full heat tables: <button type="button" class="ghost" id="wkpkgOpenReport" style="padding:2px 8px">Tendencies report</button></p>';
       h += '<div class="tn-tile" style="display:flex;flex-wrap:wrap;gap:10px">';
       h += '<div class="tn-stat"><b>' + (sum.defN || 0) + " defensive · " + (sum.offN || 0) + ' offensive</b><span>In scope</span></div>';
@@ -124,7 +203,7 @@
       h += "</div>";
       return h;
     } catch (e) {
-      return '<p class="foot">Could not build snapshot — open the Tendencies report.</p>';
+      return errBox("Snapshot error: " + ((e && e.message) || e) + " — open Tendencies report.");
     }
   }
 
@@ -141,7 +220,7 @@
       return '<p class="foot" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:8px;padding:10px"><b>Draft error:</b> ' + esc(err) + " — tap Regenerate to retry.</p>";
     }
     if (!draft || !draft.sections || !draft.sections.length) {
-      return '<p class="foot">No game-plan draft yet — generate the weekly package while online (requires plays on the week plan).</p>';
+      return '<p class="foot">No game-plan draft yet — tap <b>Regenerate</b> while online (requires plays on the week plan).</p>';
     }
     const approved = packageApproved(week);
     let h = '<div class="wkpkg-trust">' + esc(draft.trust_note || "AI draft — coach approves before sharing.") + "</div>";
@@ -237,7 +316,7 @@
     const n = Object.keys(resolved.ol.keys).length;
     if (!n) return '<span class="foot">—</span>';
     const tag = resolved.source === "auto" ? "auto" : "keyed";
-    return '<b style="color:#1d7a45">✓ ' + tag + "</b> <span class=\"foot\">" + n + " blockers</span>";
+    return '<b style="color:#1d7a45">✓ ' + tag + '</b> <span class="foot">' + n + " blockers</span>";
   }
 
   function collectUniqueInstallPlays(week) {
@@ -258,33 +337,59 @@
     return order.map(k => byKey[k]);
   }
 
-  function renderInstallSection(week, playbook) {
+  /* Fast first paint: names + situations only (no deriveReads). */
+  function renderInstallSkeleton(week) {
     const unique = collectUniqueInstallPlays(week);
     if (!unique.length) return '<p class="foot">Commit plays to the week plan first — Step 3 auto-reads flow to Reps when shared.</p>';
-    let h = '<table class="plan-tbl"><tr><th>Play</th><th>Auto-reads</th><th>OL keys</th></tr>';
-    unique.forEach(call => {
-      const row = matchPlaybookPlay(call, playbook);
-      const drawn = playHasDiagram(row);
-      let readsHtml, olHtml;
-      if (!row || !drawn) {
-        readsHtml = '<span class="foot">Not drawn yet — draw to enable reads.</span>';
-        olHtml = '<span class="foot">—</span>';
-      } else {
-        const rr = resolveInstallReads(row);
-        const oo = resolveInstallOl(row);
-        readsHtml = formatReadsCell(rr) || '<span class="foot">Drawn — open Reps Lab to author reads.</span>';
-        olHtml = formatOlCell(oo);
-      }
+    let h = '<table class="plan-tbl" id="wkpkgInstallTbl"><tr><th>Play</th><th>Auto-reads</th><th>OL keys</th></tr>';
+    unique.forEach((call, i) => {
       const sit = (call.situations && call.situations.length)
         ? (' <span class="foot">· used in ' + call.situations.length + " situation" + (call.situations.length === 1 ? "" : "s")
           + ' (' + esc(call.situations.slice(0, 3).join(", ")) + (call.situations.length > 3 ? "…" : "") + ")</span>")
         : "";
-      h += "<tr><td><b>" + esc(call.name) + "</b>" + sit + "</td><td>" + readsHtml + "</td><td>" + olHtml + "</td></tr>";
+      h += '<tr data-inst="' + i + '"><td><b>' + esc(call.name) + "</b>" + sit
+        + '</td><td class="wkpkg-reads"><span class="foot">Resolving…</span></td><td class="wkpkg-ol"><span class="foot">…</span></td></tr>';
     });
     h += "</table>";
-    h += '<p class="foot">' + unique.length + " unique play" + (unique.length === 1 ? "" : "s")
-      + " on this week’s install. Drill-ready when you share to players (This Week → Reps).</p>";
+    h += '<p class="foot" id="wkpkgInstallFoot">' + unique.length + " unique play" + (unique.length === 1 ? "" : "s")
+      + " on this week’s install.</p>";
     return h;
+  }
+
+  async function enrichInstallRows(host, week, playbook, token) {
+    const unique = collectUniqueInstallPlays(week);
+    const tbl = host && host.querySelector("#wkpkgInstallTbl");
+    if (!tbl || !unique.length) return;
+    for (let i = 0; i < unique.length; i++) {
+      if (token !== _fillToken) return;
+      const call = unique[i];
+      const tr = tbl.querySelector('tr[data-inst="' + i + '"]');
+      if (!tr) continue;
+      const readsTd = tr.querySelector(".wkpkg-reads");
+      const olTd = tr.querySelector(".wkpkg-ol");
+      try {
+        const row = matchPlaybookPlay(call, playbook);
+        const drawn = playHasDiagram(row);
+        if (!row || !drawn) {
+          if (readsTd) readsTd.innerHTML = '<span class="foot">Not drawn yet — draw to enable reads.</span>';
+          if (olTd) olTd.innerHTML = '<span class="foot">—</span>';
+        } else {
+          const rr = resolveInstallReads(row);
+          const oo = resolveInstallOl(row);
+          if (readsTd) readsTd.innerHTML = formatReadsCell(rr) || '<span class="foot">Drawn — open Reps Lab to author reads.</span>';
+          if (olTd) olTd.innerHTML = formatOlCell(oo);
+        }
+      } catch (e) {
+        if (readsTd) readsTd.innerHTML = errBox("Reads error");
+        if (olTd) olTd.innerHTML = '<span class="foot">—</span>';
+      }
+      if (i % 2 === 1) await yieldPaint();
+    }
+    const foot = host.querySelector("#wkpkgInstallFoot");
+    if (foot) {
+      foot.textContent = unique.length + " unique play" + (unique.length === 1 ? "" : "s")
+        + " on this week’s install. Drill-ready when you share to players (This Week → Reps).";
+    }
   }
 
   function renderBriefingSection(week) {
@@ -328,45 +433,93 @@
     }
     h += "</div>";
     h += '<div id="wkpkgStatus"></div>';
-    h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div><div id="wkpkgTend"><p class="foot">Loading snapshot…</p></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div><div id="wkpkgPlan"></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div><div id="wkpkgScout"></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div><div id="wkpkgInstall"></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div><div id="wkpkgBrief"></div></section>';
+    /* Empty placeholders — progressive fill replaces within one frame budget; never leave "Loading…" forever. */
+    h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div><div id="wkpkgTend"><p class="foot">Preparing snapshot…</p></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div><div id="wkpkgPlan"><p class="foot">Preparing…</p></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div><div id="wkpkgScout"><p class="foot">Preparing…</p></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div><div id="wkpkgInstall"><p class="foot">Preparing…</p></div></section>';
+    h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div><div id="wkpkgBrief"><p class="foot">Preparing…</p></div></section>';
     h += "</div>";
     return h;
   }
 
-  function fillSections(host, ctx, opts) {
+  async function fillSectionsProgressive(host, ctx, opts) {
     opts = opts || {};
+    const token = ++_fillToken;
     const week = ctx.week || root.WEEK;
     const opp = ctx.opponent || (week && week.opponent) || "";
     const oppName = opp || "This week";
     const draft = gamePlanDraft(week);
+    const playbook = ctx.playbook || root.PBOOK;
+
     const tend = host.querySelector("#wkpkgTend");
     const plan = host.querySelector("#wkpkgPlan");
     const scout = host.querySelector("#wkpkgScout");
     const install = host.querySelector("#wkpkgInstall");
     const brief = host.querySelector("#wkpkgBrief");
+
+    /* Section 1 — snapshot (must resolve quickly) */
     if (tend && !opts.skipTend) {
-      tend.innerHTML = renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName, ctx.scopeLabel);
+      try {
+        tend.innerHTML = renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName, ctx.scopeLabel);
+      } catch (e) {
+        tend.innerHTML = errBox("Snapshot failed: " + ((e && e.message) || e));
+      }
     }
-    if (plan) {
-      plan.innerHTML = renderGamePlanSection(draft, week, !!ctx.canEdit, opts.planStatus);
+    await yieldPaint();
+    if (token !== _fillToken) return;
+
+    /* Section 2 — draft */
+    if (plan && !opts.skipPlan) {
+      try {
+        plan.innerHTML = renderGamePlanSection(draft, week, !!ctx.canEdit, opts.planStatus);
+      } catch (e) {
+        plan.innerHTML = errBox("Draft section failed: " + ((e && e.message) || e));
+      }
     }
-    if (scout) scout.innerHTML = renderScoutActions();
-    if (install) install.innerHTML = renderInstallSection(week, ctx.playbook || root.PBOOK);
-    if (brief) brief.innerHTML = renderBriefingSection(week);
+    await yieldPaint();
+    if (token !== _fillToken) return;
+
+    /* Section 3 — scout */
+    if (scout) {
+      try { scout.innerHTML = renderScoutActions(); }
+      catch (e) { scout.innerHTML = errBox("Scout cards failed."); }
+    }
+    await yieldPaint();
+    if (token !== _fillToken) return;
+
+    /* Section 4 — install skeleton then enrich */
+    if (install && !opts.skipInstall) {
+      try {
+        install.innerHTML = renderInstallSkeleton(week);
+        wirePackageUI(host, ctx);
+        await enrichInstallRows(host, week, playbook, token);
+      } catch (e) {
+        install.innerHTML = errBox("Install list failed: " + ((e && e.message) || e));
+      }
+    }
+    await yieldPaint();
+    if (token !== _fillToken) return;
+
+    /* Section 5 — briefing */
+    if (brief) {
+      try { brief.innerHTML = renderBriefingSection(week); }
+      catch (e) { brief.innerHTML = errBox("Briefing failed: " + ((e && e.message) || e)); }
+    }
+    wirePackageUI(host, ctx);
   }
 
   async function injectPackage(host, ctx) {
     if (!host) return;
     ctx = ctx || {};
+    /* Recover from a stuck prior assemble before painting. */
+    if (isBusy() && _busyAt && (Date.now() - _busyAt) > 2000 && !_genAbort) {
+      resetBusy("injectPackage recover");
+    }
     host.innerHTML = buildPackageShell(ctx);
     wirePackageUI(host, ctx);
     await yieldPaint();
-    fillSections(host, ctx, {});
-    wirePackageUI(host, ctx);
+    await fillSectionsProgressive(host, ctx, {});
     return host;
   }
 
@@ -404,10 +557,14 @@
   }
 
   async function runGenerate(ctx, force) {
-    if (_busy) return null;
+    if (isBusy()) {
+      throw new Error("A package assemble is already running — wait a moment or reload if it is stuck.");
+    }
     if (!root.OFFGRD_WEEKLY_PACKAGE_GEN) throw new Error("Sign in as a coach to generate the weekly package.");
-    _busy = true;
+    beginBusy();
     const host = document.getElementById("view-package");
+    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    _genAbort = ctrl;
     try {
       if (host) {
         setStatus(host, "Generating weekly package… briefing + game-plan draft (usually 20–45s). Tab stays usable.");
@@ -418,12 +575,15 @@
       }
       await yieldPaint();
       const payload = collectPayload(ctx);
-      const res = await root.OFFGRD_WEEKLY_PACKAGE_GEN(!!force, payload);
+      const res = await root.OFFGRD_WEEKLY_PACKAGE_GEN(!!force, payload, ctrl ? ctrl.signal : undefined);
+      if (ctrl && ctrl.signal.aborted) throw new Error("Assemble aborted.");
       mergeGenFromResult(res);
       if (host) {
         setStatus(host, "");
-        fillSections(host, Object.assign({}, ctx, { week: root.WEEK }), { skipTend: true });
-        wirePackageUI(host, ctx);
+        await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), {
+          skipTend: false,
+          planStatus: res && res.draft_error ? { error: res.draft_error } : null
+        });
       }
       return res;
     } catch (e) {
@@ -435,11 +595,18 @@
             error: (e && e.message) || "Package generation failed"
           });
         }
+        /* Keep other sections populated — don't wipe the package. */
+        try {
+          const install = host.querySelector("#wkpkgInstall");
+          if (install && /Preparing|Resolving/.test(install.textContent || "")) {
+            await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), { skipPlan: true });
+          }
+        } catch (e2) {}
         wirePackageUI(host, ctx);
       }
       throw e;
     } finally {
-      _busy = false;
+      endBusy();
       const regen = host && host.querySelector("#wkpkgRegen");
       if (regen) { regen.disabled = false; regen.textContent = "Regenerate"; }
     }
@@ -542,6 +709,7 @@
     runGenerate,
     mergeGenFromResult,
     isBusy,
+    resetBusy,
     css
   };
 })(typeof window !== "undefined" ? window : globalThis);
