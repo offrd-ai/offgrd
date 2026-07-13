@@ -1,5 +1,5 @@
-/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=51";
+/* Bridge for Reps Lab â€” exposes window.QB for saving/reading results. */
+import { Cloud } from "./OFFGRD-cloud.js?v=52";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -52,7 +52,7 @@ window.QB = {
       const games = await Cloud.listGames(t.id);
       const counts = {};
       (games||[]).filter(g => g.side==="def" && g.opponent===wp.opponent).forEach(g => {
-        (g.rows||[]).forEach(r => { const c = r && r.coverage; if(c && c!=="—"){ counts[c]=(counts[c]||0)+1; } });
+        (g.rows||[]).forEach(r => { const c = r && r.coverage; if(c && c!=="â€”"){ counts[c]=(counts[c]||0)+1; } });
       });
       coverages = Object.keys(counts).map(k=>({k, n:counts[k]})).sort((a,b)=>b.n-a.n);
     }catch(e){}
