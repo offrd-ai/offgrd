@@ -172,21 +172,118 @@
     return h;
   }
 
+  function playHasDiagram(play) {
+    if (!play) return false;
+    if (root.OFFGRD_SCOUTCARDS && OFFGRD_SCOUTCARDS.hasDiagram) return !!OFFGRD_SCOUTCARDS.hasDiagram(play);
+    if (play.thumbSvg) return true;
+    const st = play.players ? play : (play.data && play.data.players ? play.data : null);
+    return !!(st && st.players && st.players.length);
+  }
+
+  function matchPlaybookPlay(call, playbook) {
+    const pb = playbook || [];
+    const cid = call && call.id != null ? String(call.id) : "";
+    if (cid) {
+      const byId = pb.find(p => p && String(p.id) === cid);
+      if (byId) return byId;
+    }
+    const nm = String((call && call.name) || "").trim().toLowerCase();
+    if (!nm) return null;
+    return pb.find(p => p && String(p.name || "").trim().toLowerCase() === nm) || null;
+  }
+
+  function resolveInstallReads(play) {
+    let reads = (play && play.qb_reads && typeof play.qb_reads === "object") ? play.qb_reads : null;
+    if (reads && Object.keys(reads).length) return { reads: reads, source: "authored" };
+    if (root.OFFGRD_AUTODERIVE && OFFGRD_AUTODERIVE.isAutoderive && OFFGRD_AUTODERIVE.isAutoderive()
+        && OFFGRD_AUTODERIVE.deriveReads && playHasDiagram(play)) {
+      try {
+        const d = OFFGRD_AUTODERIVE.deriveReads(play.data || play, { playName: play.name });
+        if (d && d.reads && Object.keys(d.reads).length) return { reads: d.reads, source: "auto" };
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function resolveInstallOl(play) {
+    let ol = (play && play.ol_keys && play.ol_keys.keys) ? play.ol_keys : null;
+    if (ol && Object.keys(ol.keys || {}).length) return { ol: ol, source: "authored" };
+    if (root.OFFGRD_AUTODERIVE && OFFGRD_AUTODERIVE.isAutoderive && OFFGRD_AUTODERIVE.isAutoderive()
+        && OFFGRD_AUTODERIVE.deriveOlKeys && playHasDiagram(play)) {
+      try {
+        const d = OFFGRD_AUTODERIVE.deriveOlKeys(play.data || play);
+        if (d && d.keys && Object.keys(d.keys).length) return { ol: d, source: "auto" };
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function formatReadsCell(resolved) {
+    if (!resolved || !resolved.reads) return "";
+    const parts = [];
+    Object.keys(resolved.reads).forEach(cov => {
+      const r = resolved.reads[cov];
+      const t = r && (r.t || r.target);
+      if (t) parts.push(cov + "→" + t);
+    });
+    if (!parts.length) return "";
+    const tag = resolved.source === "auto" ? "auto" : "taught";
+    return '<span title="' + esc(parts.join(" · ")) + '"><b style="color:#1d7a45">✓ ' + tag + "</b> "
+      + '<span class="foot">' + esc(parts.slice(0, 4).join(" · ")) + (parts.length > 4 ? "…" : "") + "</span></span>";
+  }
+
+  function formatOlCell(resolved) {
+    if (!resolved || !resolved.ol || !resolved.ol.keys) return '<span class="foot">—</span>';
+    const n = Object.keys(resolved.ol.keys).length;
+    if (!n) return '<span class="foot">—</span>';
+    const tag = resolved.source === "auto" ? "auto" : "keyed";
+    return '<b style="color:#1d7a45">✓ ' + tag + "</b> <span class=\"foot\">" + n + " blockers</span>";
+  }
+
+  function collectUniqueInstallPlays(week) {
+    const order = [];
+    const byKey = {};
+    ((week && week.buckets) || []).forEach(b => {
+      const bucketLabel = String((b && b.name) || "").trim() || "situation";
+      (b.plays || []).forEach(p => {
+        if (!p || !p.name) return;
+        const key = (p.id != null && String(p.id)) ? ("id:" + p.id) : ("nm:" + String(p.name).trim().toLowerCase());
+        if (!byKey[key]) {
+          byKey[key] = { name: p.name, id: p.id || null, situations: [] };
+          order.push(key);
+        }
+        if (byKey[key].situations.indexOf(bucketLabel) < 0) byKey[key].situations.push(bucketLabel);
+      });
+    });
+    return order.map(k => byKey[k]);
+  }
+
   function renderInstallSection(week, playbook) {
-    const names = [];
-    ((week && week.buckets) || []).forEach(b => (b.plays || []).forEach(p => { if (p && p.name) names.push(p.name); }));
-    if (!names.length) return '<p class="foot">Commit plays to the week plan first — Step 3 auto-reads flow to Reps when shared.</p>';
-    const byName = {};
-    (playbook || []).forEach(p => { if (p && p.name) byName[String(p.name).toLowerCase()] = p; });
+    const unique = collectUniqueInstallPlays(week);
+    if (!unique.length) return '<p class="foot">Commit plays to the week plan first — Step 3 auto-reads flow to Reps when shared.</p>';
     let h = '<table class="plan-tbl"><tr><th>Play</th><th>Auto-reads</th><th>OL keys</th></tr>';
-    names.forEach(nm => {
-      const row = byName[String(nm).toLowerCase()] || {};
-      const reads = row.qb_reads && Object.keys(row.qb_reads).length ? "✓ taught" : '<span class="foot">draw in Playbook</span>';
-      const ol = row.ol_keys && row.ol_keys.keys && Object.keys(row.ol_keys.keys).length ? "✓ keyed" : '<span class="foot">—</span>';
-      h += "<tr><td><b>" + esc(nm) + "</b></td><td>" + reads + "</td><td>" + ol + "</td></tr>";
+    unique.forEach(call => {
+      const row = matchPlaybookPlay(call, playbook);
+      const drawn = playHasDiagram(row);
+      let readsHtml, olHtml;
+      if (!row || !drawn) {
+        readsHtml = '<span class="foot">Not drawn yet — draw to enable reads.</span>';
+        olHtml = '<span class="foot">—</span>';
+      } else {
+        const rr = resolveInstallReads(row);
+        const oo = resolveInstallOl(row);
+        readsHtml = formatReadsCell(rr) || '<span class="foot">Drawn — open Reps Lab to author reads.</span>';
+        olHtml = formatOlCell(oo);
+      }
+      const sit = (call.situations && call.situations.length)
+        ? (' <span class="foot">· used in ' + call.situations.length + " situation" + (call.situations.length === 1 ? "" : "s")
+          + ' (' + esc(call.situations.slice(0, 3).join(", ")) + (call.situations.length > 3 ? "…" : "") + ")</span>")
+        : "";
+      h += "<tr><td><b>" + esc(call.name) + "</b>" + sit + "</td><td>" + readsHtml + "</td><td>" + olHtml + "</td></tr>";
     });
     h += "</table>";
-    h += '<p class="foot">Drill-ready when you share plays to players (This Week → Reps).</p>';
+    h += '<p class="foot">' + unique.length + " unique play" + (unique.length === 1 ? "" : "s")
+      + " on this week’s install. Drill-ready when you share to players (This Week → Reps).</p>";
     return h;
   }
 

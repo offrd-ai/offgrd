@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=56";
-import { openAuthModal } from "./OFFGRD-auth.js?v=56";
+import { Cloud } from "./OFFGRD-cloud.js?v=57";
+import { openAuthModal } from "./OFFGRD-auth.js?v=57";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -677,7 +677,13 @@ window.OFFGRD_WEEKLY_PACKAGE_GEN=async function(force, payload){
 window.OFFGRD_WEEK_PLAYS=async function(){
   if(!TEAM) return [];
   try{ const rows=await Cloud.listPlays(TEAM.id);
-    return (rows||[]).map(r=>({id:r.id, name:r.name||"Play", formation:r.formation||"", family:r.family||""}));
+    /* Keep diagram + Step-3 fields so Package Install can match calls and derive reads. */
+    return (rows||[]).map(r=>({
+      id:r.id, name:r.name||"Play", formation:r.formation||"", family:r.family||"",
+      personnel:r.personnel||"", protection:r.protection||"",
+      data:r.data||null, qb_reads:r.qb_reads||null, ol_keys:r.ol_keys||null,
+      thumbSvg:r.thumbSvg||r.thumb_svg||null
+    }));
   }catch(e){ return []; }
 };
 

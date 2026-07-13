@@ -255,13 +255,14 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=56"></script>
+<script src="OFFGRD-config.js?v=57"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=56"></script>
-<script src="OFFGRD-render.js?v=56"></script>
-<script src="OFFGRD-scoutcards.js?v=56"></script>
-<script src="OFFGRD-tendencies.js?v=56"></script>
-<script src="OFFGRD-weeklypackage.js?v=56"></script>
+<script src="OFFGRD-cache-gate.js?v=57"></script>
+<script src="OFFGRD-render.js?v=57"></script>
+<script src="OFFGRD-autoderive.js?v=57"></script>
+<script src="OFFGRD-scoutcards.js?v=57"></script>
+<script src="OFFGRD-tendencies.js?v=57"></script>
+<script src="OFFGRD-weeklypackage.js?v=57"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2285,7 +2286,7 @@ window.OFFGRD_WEEK={set:function(wp,ce){
       try{ localStorage.setItem(PLAN_KEY, JSON.stringify({buckets:PLAN_BUCKETS,wb:WB_PANELS,use:USE_WB})); }catch(e){}
     } else { ensurePlan(); WEEK.buckets=planBuckets(); if(WEEK_EDIT&&window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); }
     if(WEEK.opponent && sit.opp!==WEEK.opponent && GAMES.some(g=>g.opponent===WEEK.opponent)) setOpponent(WEEK.opponent);
-    if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); }).catch(function(){});
+    if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); else if(CURRENT_VIEW==="package" && typeof renderPackage==="function") renderPackage(); }).catch(function(){});
   }
   if(CURRENT_VIEW==="plan") renderPlan();
   else if(CURRENT_VIEW==="package" && typeof renderPackage==="function"){
@@ -2314,9 +2315,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=56"></script>
-<script src="OFFGRD-role-gate.js?v=56"></script>
-<script src="OFFGRD-mobile.js?v=56"></script>
+<script type="module" src="OFFGRD-account.js?v=57"></script>
+<script src="OFFGRD-role-gate.js?v=57"></script>
+<script src="OFFGRD-mobile.js?v=57"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
