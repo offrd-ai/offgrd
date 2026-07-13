@@ -1,0 +1,9 @@
+{
+  "name": "offgrd",
+  "private": true,
+  "description": "OFFGRD coaching suite (static bundle)",
+  "scripts": {
+    "check": "node scripts/check-parse.js",
+    "prepublishOnly": "npm run check"
+  }
+}
