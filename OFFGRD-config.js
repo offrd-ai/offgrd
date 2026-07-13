@@ -16,5 +16,7 @@ window.OFFGRD_CONFIG = {
   /* Steal B tendency reports — ON. Rollback: ?tendency=0 or localStorage.offgrd_tendency_reports=0 */
   tendencyReports: true,
   /* AI-GM weekly package — ON. Rollback: ?weeklypackage=0 or localStorage.offgrd_weekly_package=0 */
-  weeklyPackage: true
+  weeklyPackage: true,
+  /* Film telestration (still-frame Phase 1) — ON. Rollback: ?telestrate=0 or localStorage.offgrd_film_telestrate=0 */
+  filmTelestrate: true
 };

@@ -255,14 +255,15 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=57"></script>
+<script src="OFFGRD-config.js?v=58"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=57"></script>
-<script src="OFFGRD-render.js?v=57"></script>
-<script src="OFFGRD-autoderive.js?v=57"></script>
-<script src="OFFGRD-scoutcards.js?v=57"></script>
-<script src="OFFGRD-tendencies.js?v=57"></script>
-<script src="OFFGRD-weeklypackage.js?v=57"></script>
+<script src="OFFGRD-cache-gate.js?v=58"></script>
+<script src="OFFGRD-render.js?v=58"></script>
+<script src="OFFGRD-autoderive.js?v=58"></script>
+<script src="OFFGRD-scoutcards.js?v=58"></script>
+<script src="OFFGRD-tendencies.js?v=58"></script>
+<script src="OFFGRD-weeklypackage.js?v=58"></script>
+<script src="OFFGRD-telestrate.js?v=58"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -275,6 +276,7 @@
       <button class="ghost" id="manageBtn">Manage</button>
       <button class="ghost" id="scoutCardsBtn" title="Printable scout cards">Scout cards</button>
       <button class="ghost" id="tendencyBtn" title="Auto tendency reports from scout data">Tendencies</button>
+      <button class="ghost" id="telestrateBtn" title="Draw on film — still-frame telestration">Film</button>
       <button class="ghost" id="schedBtn">Schedule</button>
       <button class="ghost" id="brandBtn">Team &amp; logos</button>
       <button class="ghost" id="darkBtn">Booth mode</button>
@@ -2152,6 +2154,16 @@ document.getElementById("manageBtn").onclick=openManager;
   b.onclick=()=>{ if(typeof setView==="function") setView("report"); };
 })();
 (function(){
+  const b=document.getElementById("telestrateBtn"); if(!b) return;
+  const show=!(window.OFFGRD_TELESTRATE)||OFFGRD_TELESTRATE.isTelestrate();
+  b.style.display=show?"":"none";
+  b.onclick=()=>{
+    if(!(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.isTelestrate())) return;
+    OFFGRD_TELESTRATE.openModal({});
+  };
+  try{ if(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.applyGate) OFFGRD_TELESTRATE.applyGate(); }catch(e){}
+})();
+(function(){
   const on=window.OFFGRD_WEEKLY_PACKAGE
     ?(OFFGRD_WEEKLY_PACKAGE.applyWeeklyPackageGate?OFFGRD_WEEKLY_PACKAGE.applyWeeklyPackageGate():OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage())
     :false;
@@ -2315,9 +2327,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=57"></script>
-<script src="OFFGRD-role-gate.js?v=57"></script>
-<script src="OFFGRD-mobile.js?v=57"></script>
+<script type="module" src="OFFGRD-account.js?v=58"></script>
+<script src="OFFGRD-role-gate.js?v=58"></script>
+<script src="OFFGRD-mobile.js?v=58"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

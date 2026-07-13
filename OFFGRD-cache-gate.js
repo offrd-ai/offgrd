@@ -10,7 +10,8 @@
     "offgrd_unified_render": 1,
     "offgrd_autoderive_reads": 1,
     "offgrd_scoutcards": 1,
-    "offgrd_tendency_reports": 1
+    "offgrd_tendency_reports": 1,
+    "offgrd_film_telestrate": 1
   };
 
   function isProgramCacheKey(k) {
