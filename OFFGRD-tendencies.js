@@ -457,10 +457,13 @@
     return h;
   }
 
-  function renderSummary(sum) {
+  function renderSummary(sum, opts) {
+    opts = opts || {};
     const cell = (v, lab) => '<div class="tn-stat"><b>' + esc(v) + "</b><span>" + esc(lab) + "</span></div>";
     let h = '<div class="tn-tile">';
-    h += cell(String(sum.plays), "Plays in scope");
+    /* Split def/off — never a single union count that no table uses */
+    h += cell((sum.defN || 0) + " defensive · " + (sum.offN || 0) + " offensive", "In scope");
+    if (opts.scopeLabel) h += cell(opts.scopeLabel, "Games scope");
     if (sum.runPct != null) h += cell(pct(sum.runPct) + " / " + pct(sum.passPct), "Run / Pass");
     if (sum.explosivePct != null) h += cell(pct(sum.explosivePct), "Explosive");
     if (sum.successPct != null) h += cell(pct(sum.successPct), "Success");
@@ -490,7 +493,7 @@
     h += '<span class="tn-no-print"><button type="button" class="btn ghost" id="tnPrintBtn">Print / PDF</button></span>';
     h += "</div>";
     if (opts.subtitle) h += '<p class="tn-note">' + esc(opts.subtitle) + "</p>";
-    h += renderSummary(sum);
+    h += renderSummary(sum, opts);
 
     if (defRows.length) {
       h += renderDdHeatTable(covM, "Coverage by down & distance", "top");
@@ -519,14 +522,15 @@
     return { html: h, summary: sum, deferred: ["MFC/MFO as native chart fields (hash MOF/Boundary used as stand-in)"] };
   }
 
-  function publishSnapshot(opponent, summary, defN, offN) {
+  function publishSnapshot(opponent, summary, defN, offN, meta) {
     const snap = {
-      v: 1,
+      v: 2,
       generatedAt: new Date().toISOString(),
       opponent: opponent || null,
       summary: summary,
       defSnaps: defN,
-      offSnaps: offN
+      offSnaps: offN,
+      scopeLabel: (meta && meta.scopeLabel) || null
     };
     try { root.OFFGRD_LAST_TENDENCIES = snap; } catch (e) {}
     try { localStorage.setItem("offgrd_last_tendencies", JSON.stringify(snap)); } catch (e) {}
@@ -546,7 +550,9 @@
     host.innerHTML = built.html;
     const btn = host.querySelector("#tnPrintBtn");
     if (btn) btn.onclick = () => printReport(host);
-    publishSnapshot(opts && opts.opponent, built.summary, (defRows || []).length, (offRows || []).length);
+    publishSnapshot(opts && opts.opponent, built.summary, (defRows || []).length, (offRows || []).length, {
+      scopeLabel: opts && opts.scopeLabel
+    });
     return built;
   }
 

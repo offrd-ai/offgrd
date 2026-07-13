@@ -255,13 +255,13 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=50"></script>
+<script src="OFFGRD-config.js?v=51"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=50"></script>
-<script src="OFFGRD-render.js?v=50"></script>
-<script src="OFFGRD-scoutcards.js?v=50"></script>
-<script src="OFFGRD-tendencies.js?v=50"></script>
-<script src="OFFGRD-weeklypackage.js?v=50"></script>
+<script src="OFFGRD-cache-gate.js?v=51"></script>
+<script src="OFFGRD-render.js?v=51"></script>
+<script src="OFFGRD-scoutcards.js?v=51"></script>
+<script src="OFFGRD-tendencies.js?v=51"></script>
+<script src="OFFGRD-weeklypackage.js?v=51"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -713,8 +713,7 @@ function confLevel(effN, lead){
 }
 function render(){
   if(SCOUT_MODE==="offense"){ return renderOffense(); }
-  document.getElementById("datbadge").textContent =
-    DATA.length+" snaps · "+GAMES.filter(g=>g.side==="def").length+" games · "+DATASOURCE;
+  updateDatBadge();
   const useRec=document.getElementById("tg-recency").checked;
   const g=gather(); const rows=g.rows, relaxed=g.relaxed;
   const res=document.getElementById("result");
@@ -1055,7 +1054,7 @@ function parseScout(text,forceKeep){
   return out;
 }
 function renderOffense(){
-  document.getElementById("datbadge").textContent = SCOUT_DATA.length+" plays · "+GAMES.filter(g=>g.side==="off").length+" games · "+(SCOUT_SOURCE||"sample");
+  updateDatBadge();
   const useRec=document.getElementById("tg-recency").checked;
   const g=gather(); const rows=g.rows, relaxed=g.relaxed;
   const res=document.getElementById("result");
@@ -1313,6 +1312,31 @@ let CALLER_LOG=[];
 let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY"};
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
+/* Opponent + Games(scope) + This-season — same pool Scout grids / Report / Package use. */
+function yearOnlyOn(){ try{ return !!(document.getElementById("tg-thisyear")&&document.getElementById("tg-thisyear").checked); }catch(e){ return false; } }
+function scopedOppRows(side){
+  return oppRows(side).filter(rw=>{
+    if(yearOnlyOn() && (+(rw.date||"").slice(0,4))!==SEASON_NOW) return false;
+    if(typeof scopeAllows==="function" && !scopeAllows(rw)) return false;
+    return true;
+  });
+}
+function scopeLabelText(){
+  const dates=uniq(scopedOppRows("def").concat(scopedOppRows("off")).map(r=>r.date)).filter(Boolean);
+  if(!SCOPE||SCOPE.mode==="ALL") return "all charted games ("+dates.length+")";
+  if(SCOPE.mode==="GAME") return "game "+(SCOPE.date||"");
+  if(SCOPE.mode==="LASTN") return "last "+(SCOPE.n||"")+" games";
+  return "season library scope";
+}
+function updateDatBadge(){
+  const el=document.getElementById("datbadge"); if(!el) return;
+  const side=SCOUT_MODE==="offense"?"off":"def";
+  const rows=scopedOppRows(side);
+  const nGames=uniq(rows.map(r=>r.date)).filter(Boolean).length;
+  const unit=SCOUT_MODE==="offense"?"plays":"snaps";
+  const src=(SCOUT_MODE==="offense"?SCOUT_SOURCE:DATASOURCE)||"library";
+  el.textContent=rows.length+" "+unit+" · "+nGames+" games · "+src+(sit.opp&&sit.opp!=="ANY"?" · "+sit.opp:"");
+}
 function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return rows.length?r.length/rows.length:0; }
 function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="package")renderPackage(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
 function setView(v){
@@ -1503,8 +1527,9 @@ function renderPackage(){
     return;
   }
   try{ if(!document.getElementById("wkpkgCss")){ const s=document.createElement("style"); s.id="wkpkgCss"; s.textContent=(OFFGRD_WEEKLY_PACKAGE.css()||"").replace(/^<style>|<\/style>$/g,""); document.head.appendChild(s); } }catch(e){}
-  const off=oppRows("off"), def=oppRows("def");
-  const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, onRegenerate:null };
+  /* Same scoped pool as Tendencies report (opponent + Games scope + this season) */
+  const off=scopedOppRows("off"), def=scopedOppRows("def");
+  const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, scopeLabel:(typeof scopeLabelText==="function"?scopeLabelText():""), onRegenerate:null };
   if(WEEK_EDIT&&window.OFFGRD_WEEKLY_PACKAGE_GEN){
     ctx.onRegenerate=async()=>{
       if(!confirm("Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.")) return;
@@ -1562,25 +1587,17 @@ function mineTells(off,def){
 function renderReport(){
   const host=document.getElementById("view-report"); if(!host)return;
   const opp=sit.opp, oppName=opp!=="ANY"?opp:"All opponents";
-  let off=oppRows("off"), def=oppRows("def");
-  /* Honor season-library scope + this-year toggle (same pool as Scout grids) */
-  const yearOnly=(()=>{ try{ return !!(document.getElementById("tg-thisyear")&&document.getElementById("tg-thisyear").checked); }catch(e){ return false; } })();
-  const scopeFilt=rows=>(rows||[]).filter(rw=>{
-    if(yearOnly && (+(rw.date||"").slice(0,4))!==SEASON_NOW) return false;
-    if(typeof scopeAllows==="function" && !scopeAllows(rw)) return false;
-    return true;
-  });
-  off=scopeFilt(off); def=scopeFilt(def);
+  /* Same opponent + Games(scope) + This-season pool as Scout grids / Package */
+  const off=scopedOppRows("off"), def=scopedOppRows("def");
 
   /* Steal B — full heat-mapped tendency report when flag on */
   if(window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.isTendency()){
-    const scopeLab=(typeof SCOPE!=="undefined" && SCOPE && SCOPE.mode && SCOPE.mode!=="ALL")
-      ? (" · scope "+(SCOPE.mode==="GAME"?("game "+(SCOPE.date||"")):("last "+(SCOPE.n||""))))
-      : "";
+    const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
       opponent: opp,
       title: oppName+" — tendency report",
-      subtitle: "From charted scout rows"+scopeLab+". Filters: opponent + season library scope. Terminology from your imports."
+      subtitle: "Scope: "+scopeLab+" · opponent filter · self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
+      scopeLabel: scopeLab
     });
     /* Keep classic top-tells strip above for coaches who skim */
     const T=mineTells(off,def);
@@ -2297,9 +2314,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=50"></script>
-<script src="OFFGRD-role-gate.js?v=50"></script>
-<script src="OFFGRD-mobile.js?v=50"></script>
+<script type="module" src="OFFGRD-account.js?v=51"></script>
+<script src="OFFGRD-role-gate.js?v=51"></script>
+<script src="OFFGRD-mobile.js?v=51"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

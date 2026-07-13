@@ -62,15 +62,17 @@
     return !!(g && (g.package_status === "approved" || g.package_approved));
   }
 
-  function renderTendencySection(defRows, offRows, opponent, oppName) {
+  function renderTendencySection(defRows, offRows, opponent, oppName, scopeLabel) {
     if (!root.OFFGRD_TENDENCIES || !root.OFFGRD_TENDENCIES.isTendency()) {
       return '<p class="foot">Tendency reports flag off — enable tendencyReports or open Report tab first.</p>';
     }
     const host = document.createElement("div");
+    const lab = scopeLabel || "season library scope";
     root.OFFGRD_TENDENCIES.injectInto(host, defRows || [], offRows || [], {
       opponent: opponent,
       title: (oppName || "Opponent") + " — snapshot",
-      subtitle: "Steal B heat tables from charted scout rows (offline-capable)."
+      subtitle: "Scope: " + lab + " · same filters as Tendencies report (offline-capable). Self-scout excluded.",
+      scopeLabel: lab
     });
     return host.innerHTML;
   }
@@ -169,7 +171,7 @@
     }
 
     h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div>';
-    h += '<div id="wkpkgTend">' + renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName) + "</div></section>";
+    h += '<div id="wkpkgTend">' + renderTendencySection(ctx.defRows, ctx.offRows, opp, oppName, ctx.scopeLabel) + "</div></section>";
 
     h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div>';
     h += '<div id="wkpkgPlan">' + renderGamePlanSection(draft, week, canEdit) + "</div></section>";
