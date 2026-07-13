@@ -4,6 +4,7 @@
    Default OFF — old UI intact until cutover.
    Phase 1 only: CSS vars (Night Turf / Chalk) + accent-tuning +
    context bar + four-phase nav. No full screen restyle yet.
+   v63: retune accent from raw team hex on every base change; fold acct chrome.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -92,7 +93,8 @@
     base = base === "chalk" ? "chalk" : "night";
     try { localStorage.setItem(LS_BASE, base); } catch (e) {}
     document.documentElement.dataset.base = base;
-    applyTokens();
+    /* Always pass base explicitly so retune cannot race getBase()/LS */
+    applyTokens(base);
     return base;
   }
 
@@ -159,35 +161,84 @@
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
+  function contrastRatio(a, b) {
+    const L1 = relativeLuminance(a), L2 = relativeLuminance(b);
+    const hi = Math.max(L1, L2), lo = Math.min(L1, L2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  function normalizeHex(hex) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    function to(x) { return (x < 16 ? "0" : "") + x.toString(16); }
+    return "#" + to(rgb.r) + to(rgb.g) + to(rgb.b);
+  }
+
+  /* Module cache of RAW team hex only — never store a tuned accent here. */
+  let _rawTeamHex = null;
+
+  function noteRawTeamHex(hex) {
+    const n = normalizeHex(hex);
+    if (!n) return null;
+    _rawTeamHex = n;
+    try { document.documentElement.setAttribute("data-team-hex", n); } catch (e) {}
+    return n;
+  }
+
   function adjustAccent(teamHex, base) {
+    base = base === "chalk" ? "chalk" : "night";
     const fb = base === "chalk" ? "#0A63FF" : "#C6FF3A";
     const rgb = hexToRgb(teamHex);
     if (!rgb) {
       return { accent: fb, accentText: relativeLuminance(fb) > 0.45 ? "#0E1116" : "#FFFFFF" };
     }
-    let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    let s = Math.max(hsl.s, 0.55);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const s = Math.max(hsl.s, 0.55);
     let l = hsl.l;
+    /* Spec bands: Night lightens dark colors; Chalk deepens light colors. */
     if (base === "night") l = clamp(l, 0.54, 0.70);
     else l = clamp(l, 0.36, 0.48);
-    const accent = hslToHex(hsl.h, s, l);
+
+    let accent = hslToHex(hsl.h, s, l);
+
+    /* AA guardrail after the clamp: walk L so accent-as-text hits ≥4.5:1 vs
+       the base surface. Prefer staying in-band; extend slightly for worst
+       hues (e.g. gold on Chalk) so acceptance cases stay legible. */
+    const surface = base === "chalk" ? "#FFFFFF" : "#0E1116";
+    const step = base === "chalk" ? -0.02 : 0.02;
+    const minL = base === "chalk" ? 0.24 : 0.54;
+    const maxL = base === "chalk" ? 0.48 : 0.78;
+    for (let i = 0; i < 24 && contrastRatio(accent, surface) < 4.5; i++) {
+      const next = clamp(l + step, minL, maxL);
+      if (next === l) break;
+      l = next;
+      accent = hslToHex(hsl.h, s, l);
+    }
+
     const accentText = relativeLuminance(accent) > 0.45 ? "#0E1116" : "#FFFFFF";
     return { accent: accent, accentText: accentText };
   }
 
-  function teamHex() {
+  /* Always the program's stored team color — never --accent / --rd-accent. */
+  function rawTeamHex() {
     try {
       const stash = document.documentElement.getAttribute("data-team-hex");
-      if (stash) return stash;
+      const fromStash = normalizeHex(stash);
+      if (fromStash) { _rawTeamHex = fromStash; return fromStash; }
+    } catch (e) {}
+    if (_rawTeamHex && hexToRgb(_rawTeamHex)) return _rawTeamHex;
+    try {
       const id = localStorage.getItem("offgrd_identity") || "";
       const brands = JSON.parse(localStorage.getItem("offgrd_brands") || "{}");
-      if (id && brands[id] && brands[id].bg) return brands[id].bg;
+      if (id && brands[id] && brands[id].bg) return noteRawTeamHex(brands[id].bg);
       const name = root.OUR_TEAM;
       const winBrands = root.USER_BRANDS || brands;
-      if (name && winBrands[name] && winBrands[name].bg) return winBrands[name].bg;
+      if (name && winBrands[name] && winBrands[name].bg) return noteRawTeamHex(winBrands[name].bg);
     } catch (e) {}
     return null;
   }
+
+  function teamHex() { return rawTeamHex(); }
 
   function currentView() {
     try {
@@ -241,7 +292,14 @@
       '.rd-iconbtn{background:var(--rd-surface-2);border:1px solid var(--rd-border);color:var(--rd-text);',
       'border-radius:var(--radius-ctl);padding:7px 10px;font-size:13px;font-weight:500;cursor:pointer;}',
       '.rd-iconbtn:hover{border-color:var(--rd-accent);}',
-      '#rdAcctHost{display:inline-flex;align-items:center;gap:6px;}',
+      '#rdAcctHost{display:inline-flex;align-items:center;gap:6px;max-width:160px;}',
+      /* Fold Team/Sync/Load/Sign out into Setup gear — keep Sign in + short identity */
+      'html.rd-on #rdAcctHost #cteam,html.rd-on #rdAcctHost #cs,html.rd-on #rdAcctHost #cd,',
+      'html.rd-on #rdAcctHost #co,html.rd-on #rdAcctHost #csetup,html.rd-on #rdAcctHost #syncstat',
+      '{display:none!important;}',
+      'html.rd-on #rdAcctHost .cbtn:not(#ci){display:none!important;}',
+      'html.rd-on #rdAcctHost > span{font-size:11px;color:var(--rd-muted);max-width:110px;',
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
       '#rdNavBody{display:flex;align-items:flex-start;gap:0;min-height:0;}',
       '#rdPhases{display:flex;flex-direction:column;gap:4px;padding:10px 8px 12px;',
       'width:132px;flex:0 0 132px;border-right:1px solid var(--rd-border);align-self:stretch;}',
@@ -285,16 +343,30 @@
     st.textContent = cssTokens();
   }
 
-  function applyTokens() {
-    const base = getBase();
+  function applyTokens(baseOverride) {
+    const base = (baseOverride === "chalk" || baseOverride === "night")
+      ? baseOverride
+      : (document.documentElement.dataset.base === "chalk" || document.documentElement.dataset.base === "night"
+        ? document.documentElement.dataset.base
+        : getBase());
     document.documentElement.dataset.base = base;
-    const tuned = adjustAccent(teamHex(), base);
+    /* Re-tune from RAW stored team hex every time — never feed a prior --accent. */
+    const raw = rawTeamHex();
+    const tuned = adjustAccent(raw, base);
     const rootEl = document.documentElement;
     rootEl.style.setProperty("--rd-accent", tuned.accent);
     rootEl.style.setProperty("--rd-accent-text", tuned.accentText);
+    rootEl.style.setProperty("--accent", tuned.accent);
+    rootEl.style.setProperty("--accent-text", tuned.accentText);
     try {
-      document.body.style.setProperty("--accent", tuned.accent);
-      document.body.style.setProperty("--accent-ink", tuned.accentText);
+      if (document.body) {
+        document.body.style.setProperty("--accent", tuned.accent);
+        document.body.style.setProperty("--accent-ink", tuned.accentText);
+      }
+    } catch (e) {}
+    try {
+      rootEl.setAttribute("data-rd-accent", tuned.accent);
+      rootEl.setAttribute("data-rd-base", base);
     } catch (e) {}
   }
 
@@ -453,12 +525,33 @@
     if (host && src) host.innerHTML = src.innerHTML;
   }
 
+  function compactAcctChrome() {
+    const acct = document.getElementById("acct");
+    if (!acct || !isRedesign()) return;
+    /* Hide chrome that now lives in Setup; keep #ci (Sign in). */
+    [].forEach.call(acct.querySelectorAll("#cteam,#cs,#cd,#co,#csetup,#syncstat"), function (el) {
+      el.style.display = "none";
+    });
+    [].forEach.call(acct.querySelectorAll(".cbtn"), function (el) {
+      if (el.id === "ci") return;
+      el.style.display = "none";
+    });
+  }
+
   function adoptAcct() {
     const host = document.getElementById("rdAcctHost");
     const acct = document.getElementById("acct");
     if (host && acct && acct.parentElement !== host) {
       host.appendChild(acct);
       acct.style.marginLeft = "0";
+    }
+    compactAcctChrome();
+    if (acct && !acct._rdAcctObs) {
+      acct._rdAcctObs = true;
+      try {
+        const mo = new MutationObserver(function () { compactAcctChrome(); syncScopeBadge(); });
+        mo.observe(acct, { childList: true, subtree: true });
+      } catch (e) {}
     }
   }
 
@@ -533,10 +626,43 @@
 
   let _patchedColors = false;
   function patchApplyTeamColors() {
-    if (_patchedColors || typeof root.applyTeamColors !== "function") return;
-    /* applyTeamColors is not always on window — it's a local function in OFFGRD.html.
-       Hook via wrapping after load if exposed; otherwise call applyTokens from shell apply. */
+    if (_patchedColors) return;
+    if (typeof root.applyTeamColors !== "function") return;
+    const orig = root.applyTeamColors;
+    if (orig._rdPatched) { _patchedColors = true; return; }
+    root.applyTeamColors = function () {
+      orig.apply(this, arguments);
+      if (!isRedesign()) return;
+      try {
+        /* data-team-hex is the RAW brand written by applyTeamColors — never read --accent
+           (applyTokens may already have overwritten body --accent with a tuned value). */
+        const stash = document.documentElement.getAttribute("data-team-hex");
+        if (stash) noteRawTeamHex(stash);
+        applyTokens(getBase());
+      } catch (e) {}
+    };
+    root.applyTeamColors._rdPatched = true;
     _patchedColors = true;
+  }
+
+  let _baseObs = false;
+  function watchBaseAttr() {
+    if (_baseObs) return;
+    _baseObs = true;
+    try {
+      const mo = new MutationObserver(function (muts) {
+        for (let i = 0; i < muts.length; i++) {
+          if (muts[i].attributeName === "data-base" && isRedesign()) {
+            const b = document.documentElement.dataset.base;
+            if (b === "chalk" || b === "night") {
+              try { localStorage.setItem(LS_BASE, b); } catch (e) {}
+              applyTokens(b);
+            }
+          }
+        }
+      });
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-base"] });
+    } catch (e) {}
   }
 
   function applyRedesignShell() {
@@ -550,8 +676,9 @@
     }
 
     ensureCss();
-    setBase(getBase()); /* also applies tokens */
-    applyTokens();
+    patchApplyTeamColors();
+    watchBaseAttr();
+    setBase(getBase()); /* retunes accents for active base from raw team hex */
 
     let shell = document.getElementById("rdShell");
     if (!shell) {
@@ -571,6 +698,7 @@
     syncPhaseUI();
     patchSetView();
     refreshSetupBaseLabel();
+    applyTokens(getBase());
 
     /* Keep scope badge in sync when datbadge updates */
     try {
@@ -591,15 +719,24 @@
       return;
     }
     applyRedesignShell();
-    /* Account chip + setView may land slightly after first paint */
+    /* Account chip + setView / applyTeamColors may land slightly after first paint */
     setTimeout(function () {
       if (!isRedesign()) return;
+      patchApplyTeamColors();
       applyRedesignShell();
+      applyTokens(getBase());
       patchSetView();
       syncCrest();
       syncScopeBadge();
       syncPhaseUI();
+      compactAcctChrome();
     }, 250);
+    setTimeout(function () {
+      if (!isRedesign()) return;
+      patchApplyTeamColors();
+      applyTokens(getBase());
+      compactAcctChrome();
+    }, 1200);
   }
 
   if (document.readyState === "loading") {
@@ -614,7 +751,7 @@
     if (typeof prevBrand === "function") {
       try { prevBrand.apply(this, arguments); } catch (e) {}
     }
-    if (isRedesign()) applyTokens();
+    if (isRedesign()) applyTokens(getBase());
   };
 
   root.OFFGRD_REDESIGN = {
@@ -622,6 +759,7 @@
     applyRedesignShell: applyRedesignShell,
     applyTokens: applyTokens,
     adjustAccent: adjustAccent,
+    rawTeamHex: rawTeamHex,
     getBase: getBase,
     setBase: setBase,
     toggleBase: toggleBase,
