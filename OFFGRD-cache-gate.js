@@ -4,9 +4,18 @@
    Offline-first is preserved when a Supabase auth token is present. */
 (function () {
   var KEEP_PREFIXES = ["sb-"]; // never wipe Supabase auth tokens here
+  /* Feature-flag rollbacks — must survive clearProgramCache. */
+  var FLAG_KEYS = {
+    "offgrd_weekly_package": 1,
+    "offgrd_unified_render": 1,
+    "offgrd_autoderive_reads": 1,
+    "offgrd_scoutcards": 1,
+    "offgrd_tendency_reports": 1
+  };
 
   function isProgramCacheKey(k) {
     if (!k) return false;
+    if (FLAG_KEYS[k]) return false;
     if (k.indexOf("offgrd_") === 0) return true;
     if (k.indexOf("offrd:") === 0) return true;
     if (k.indexOf("offrd_") === 0) return true;

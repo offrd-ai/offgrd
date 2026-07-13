@@ -7,11 +7,21 @@
 (function (root) {
   "use strict";
 
+  /* URL / localStorage override the config default (same pattern as unified/autoderive/scoutcards). */
+  function flagParam(name) {
+    try {
+      const blob = String((location && (location.search || "") + "&" + ((location.hash || "").replace(/^#/, ""))) || "");
+      if (new RegExp("[?&#]" + name + "=0(?:&|#|$)").test(blob)) return "0";
+      if (new RegExp("[?&#]" + name + "=1(?:&|#|$)").test(blob)) return "1";
+    } catch (e) {}
+    return null;
+  }
+
   function isWeeklyPackage() {
     try {
-      const q = location.search || "";
-      if (/[?&]weeklypackage=0(?:&|$)/.test(q)) return false;
-      if (/[?&]weeklypackage=1(?:&|$)/.test(q)) return true;
+      const url = flagParam("weeklypackage");
+      if (url === "0") return false;
+      if (url === "1") return true;
       const ls = localStorage.getItem("offgrd_weekly_package");
       if (ls === "0") return false;
       if (ls === "1") return true;
@@ -19,6 +29,23 @@
       if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.weeklyPackage) return true;
     } catch (e) {}
     return true;
+  }
+
+  /** Apply effective flag to UI + reflect on OFFGRD_CONFIG so console/cfg checks match the gate. */
+  function applyWeeklyPackageGate() {
+    const on = isWeeklyPackage();
+    try { if (root.OFFGRD_CONFIG) root.OFFGRD_CONFIG.weeklyPackage = on; } catch (e) {}
+    try {
+      const nav = document.getElementById("navPackage");
+      if (nav) nav.style.display = on ? "" : "none";
+    } catch (e) {}
+    try {
+      if (!on && typeof root.setView === "function") {
+        const pkg = document.getElementById("view-package");
+        if (pkg && pkg.style.display !== "none") root.setView("plan");
+      }
+    } catch (e) {}
+    return on;
   }
 
   function esc(s) {
@@ -291,6 +318,7 @@
 
   root.OFFGRD_WEEKLY_PACKAGE = {
     isWeeklyPackage,
+    applyWeeklyPackageGate,
     collectPayload,
     gamePlanDraft,
     packageApproved,
@@ -303,4 +331,11 @@
     consumeGmHandoff,
     css
   };
+  try {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function () { applyWeeklyPackageGate(); });
+    } else {
+      applyWeeklyPackageGate();
+    }
+  } catch (e) {}
 })(typeof window !== "undefined" ? window : globalThis);

@@ -255,13 +255,13 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=53"></script>
+<script src="OFFGRD-config.js?v=54"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=53"></script>
-<script src="OFFGRD-render.js?v=53"></script>
-<script src="OFFGRD-scoutcards.js?v=53"></script>
-<script src="OFFGRD-tendencies.js?v=53"></script>
-<script src="OFFGRD-weeklypackage.js?v=53"></script>
+<script src="OFFGRD-cache-gate.js?v=54"></script>
+<script src="OFFGRD-render.js?v=54"></script>
+<script src="OFFGRD-scoutcards.js?v=54"></script>
+<script src="OFFGRD-tendencies.js?v=54"></script>
+<script src="OFFGRD-weeklypackage.js?v=54"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2152,11 +2152,11 @@ document.getElementById("manageBtn").onclick=openManager;
   b.onclick=()=>{ if(typeof setView==="function") setView("report"); };
 })();
 (function(){
-  const nav=document.getElementById("navPackage");
-  const show=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage();
-  if(nav) nav.style.display=show?"":"none";
+  const on=window.OFFGRD_WEEKLY_PACKAGE
+    ?(OFFGRD_WEEKLY_PACKAGE.applyWeeklyPackageGate?OFFGRD_WEEKLY_PACKAGE.applyWeeklyPackageGate():OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage())
+    :false;
   try{
-    const handoff=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff();
+    const handoff=on&&window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff&&OFFGRD_WEEKLY_PACKAGE.consumeGmHandoff();
     if(handoff&&handoff.opponent){ setTimeout(function(){ if(typeof setView==="function") setView("package"); }, 800); }
   }catch(e){}
 })();
@@ -2313,9 +2313,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=53"></script>
-<script src="OFFGRD-role-gate.js?v=53"></script>
-<script src="OFFGRD-mobile.js?v=53"></script>
+<script type="module" src="OFFGRD-account.js?v=54"></script>
+<script src="OFFGRD-role-gate.js?v=54"></script>
+<script src="OFFGRD-mobile.js?v=54"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
