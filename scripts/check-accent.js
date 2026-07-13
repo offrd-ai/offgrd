@@ -90,7 +90,7 @@ const samples = [
 const t0 = Date.now();
 let n = 0;
 for (let i = 0; i < samples.length; i++) {
-  for (const base of ["night", "chalk"]) {
+  for (const base of ["night", "day"]) {
     const out = api.adjustAccent(samples[i], base);
     n += 1;
     if (!out || !hexOk(out.accent) || !hexOk(out.accentText)) {
@@ -104,7 +104,7 @@ const hueSamples = [
   "#00FFFF", "#0080FF", "#0000FF", "#8000FF", "#FF00FF", "#FF0080"
 ];
 for (let i = 0; i < hueSamples.length; i++) {
-  for (const base of ["night", "chalk"]) {
+  for (const base of ["night", "day"]) {
     const out = api.adjustAccent(hueSamples[i], base);
     n += 1;
     if (!hexOk(out.accent)) {
@@ -120,10 +120,10 @@ if (ms > 500) {
 }
 
 const night = api.adjustAccent("#4B9CD3", "night").accent.toLowerCase();
-const chalk = api.adjustAccent("#4B9CD3", "chalk").accent.toLowerCase();
-if (night === chalk) {
-  console.error("ACCENT FAIL: #4B9CD3 Night and Chalk accents identical:", night);
+const day = api.adjustAccent("#4B9CD3", "day").accent.toLowerCase();
+if (night === day) {
+  console.error("ACCENT FAIL: #4B9CD3 Night and Day accents identical:", night);
   process.exit(1);
 }
 
-console.log("accent ok:", n, "calls in", ms + "ms; night", night, "chalk", chalk);
+console.log("accent ok:", n, "calls in", ms + "ms; night", night, "day", day);

@@ -2,9 +2,9 @@
    OFFGRD-redesign.js — Design system Phase 1: tokens + nav shell
    Flag: ?redesign=0|1 | localStorage.offgrd_redesign | OFFGRD_CONFIG.redesign
    Default OFF — old UI intact until cutover.
-   Phase 1 only: CSS vars (Night Turf / Chalk) + accent-tuning +
+   Phase 1 only: CSS vars (Night Turf / Day) + accent-tuning +
    context bar + four-phase nav. No full screen restyle yet.
-   v64: kill-switch first; one-pass accent (no contrast loops); no data-base MO.
+   v65: sub-app shell + Day rename; one-pass accent; kill-switch.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -88,7 +88,7 @@
     { id: "sync", label: "Sync ↑", action: "sync" },
     { id: "load", label: "Load ↓", action: "load" },
     { id: "signout", label: "Sign out", action: "signout" },
-    { id: "base", label: "Theme: Night / Chalk", action: "toggleBase" }
+    { id: "base", label: "Theme: Night / Day", action: "toggleBase" }
   ];
 
   function isRedesign() {
@@ -108,13 +108,15 @@
   function getBase() {
     try {
       const ls = localStorage.getItem(LS_BASE);
-      if (ls === "chalk" || ls === "night") return ls;
+      if (ls === "chalk") { try { localStorage.setItem("offgrd_redesign_base", "day"); } catch (e) {} return "day"; }
+      if (ls === "day" || ls === "night") return ls;
     } catch (e) {}
     return "night";
   }
 
   function setBase(base) {
-    base = base === "chalk" ? "chalk" : "night";
+    if (base === "chalk") base = "day";
+    base = base === "day" ? "day" : "night";
     try { localStorage.setItem(LS_BASE, base); } catch (e) {}
     try {
       if (document.documentElement.dataset.base !== base) {
@@ -126,7 +128,61 @@
   }
 
   function toggleBase() {
-    return setBase(getBase() === "night" ? "chalk" : "night");
+    return setBase(getBase() === "night" ? "day" : "night");
+  }
+
+  /* ---- page / cache-bust helpers (sub-app shell) ---- */
+  const ASSET_V = "65";
+
+  function appKind() {
+    try {
+      const p = (location.pathname || "").split("/").pop() || "";
+      if (/OFFGRD-QB\.html/i.test(p)) return "qb";
+      if (/OFFGRD-Playbook\.html/i.test(p)) return "playbook";
+    } catch (e) {}
+    return "scout";
+  }
+
+  function assetV() {
+    try {
+      const m = (location.search || "").match(/[?&]v=(\d+)/);
+      if (m) return m[1];
+      const s = document.querySelector('script[src*="OFFGRD-redesign.js"]');
+      if (s) {
+        const sm = String(s.getAttribute("src") || "").match(/[?&]v=(\d+)/);
+        if (sm) return sm[1];
+      }
+    } catch (e) {}
+    return ASSET_V;
+  }
+
+  function withV(href) {
+    if (!href || /^https?:/i.test(href) || href.charAt(0) === "#") return href;
+    const hashIdx = href.indexOf("#");
+    let base = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+    const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
+    if (/[?&]v=/.test(base)) return href;
+    const v = assetV();
+    base += (base.indexOf("?") >= 0 ? "&" : "?") + "v=" + v;
+    return base + hash;
+  }
+
+  function goMain(view) {
+    try {
+      if (view) sessionStorage.setItem("offgrd_rd_view", view);
+    } catch (e) {}
+    location.href = withV("OFFGRD.html");
+  }
+
+  function stampVersionedLinks() {
+    try {
+      [].forEach.call(document.querySelectorAll("a[href]"), function (a) {
+        const h = a.getAttribute("href") || "";
+        if (/^OFFGRD(-QB|-Playbook)?\.html/i.test(h) || h === "index.html") {
+          a.setAttribute("href", withV(h));
+        }
+      });
+    } catch (e) {}
   }
 
   /* ---- color math (accent tuning) ---- */
@@ -213,8 +269,9 @@
   }
 
   function adjustAccent(teamHex, base) {
-    base = base === "chalk" ? "chalk" : "night";
-    const fb = base === "chalk" ? "#0A63FF" : "#C6FF3A";
+    if (base === "chalk") base = "day";
+    base = base === "day" ? "day" : "night";
+    const fb = base === "day" ? "#0A63FF" : "#C6FF3A";
     const rgb = hexToRgb(teamHex);
     if (!rgb) {
       return { accent: fb, accentText: relativeLuminance(fb) > 0.45 ? "#0E1116" : "#FFFFFF" };
@@ -227,11 +284,11 @@
     else l = clamp(l, 0.36, 0.48);
 
     let accent = hslToHex(hsl.h, s, l);
-    const surface = base === "chalk" ? "#FFFFFF" : "#0E1116";
+    const surface = base === "day" ? "#FFFFFF" : "#0E1116";
 
     /* At most one direct hop + one fallback — bounded, always terminates. */
     if (contrastRatio(accent, surface) < 4.5) {
-      l = base === "chalk" ? 0.28 : 0.62;
+      l = base === "day" ? 0.28 : 0.62;
       accent = hslToHex(hsl.h, s, l);
       if (contrastRatio(accent, surface) < 4.5) accent = fb;
     }
@@ -262,6 +319,9 @@
   function teamHex() { return rawTeamHex(); }
 
   function currentView() {
+    const kind = appKind();
+    if (kind === "qb") return "reps";
+    if (kind === "playbook") return "playbook";
     try {
       if (typeof root.CURRENT_VIEW === "string" && root.CURRENT_VIEW) return root.CURRENT_VIEW;
     } catch (e) {}
@@ -279,7 +339,7 @@
       '--rd-bg:#0E1116;--rd-surface:#1A1F27;--rd-surface-2:#232A34;--rd-border:#2C333D;',
       '--rd-text:#F5F7FA;--rd-muted:#9AA5B4;--rd-warn-bg:#3A2E12;--rd-warn-text:#F5C451;',
       '}',
-      'html[data-base="chalk"]{',
+      'html[data-base="day"]{',
       '--rd-bg:#EDF0F4;--rd-surface:#FFFFFF;--rd-surface-2:#F4F6F9;--rd-border:#D8DEE7;',
       '--rd-text:#111722;--rd-muted:#5C6673;--rd-warn-bg:#FBEBCB;--rd-warn-text:#8A5A05;',
       '}',
@@ -370,8 +430,8 @@
     if (!isRedesign()) return;
     _applyingTokens = true;
     try {
-      const base = (baseOverride === "chalk" || baseOverride === "night")
-        ? baseOverride
+      const base = (baseOverride === "day" || baseOverride === "chalk" || baseOverride === "night")
+        ? (baseOverride === "chalk" ? "day" : baseOverride)
         : getBase();
       try {
         if (document.documentElement.dataset.base !== base) {
@@ -408,6 +468,8 @@
   }
 
   function phaseForView(v) {
+    if (v === "reps" || v === "author") return "teach";
+    if (v === "playbook") return "plan";
     for (let i = 0; i < PHASES.length; i++) {
       if (PHASES[i].views.indexOf(v) >= 0) return PHASES[i].id;
     }
@@ -470,7 +532,7 @@
 
   function refreshSetupBaseLabel() {
     const b = document.getElementById("rdSetupBase");
-    if (b) b.textContent = "Theme: " + (getBase() === "chalk" ? "Chalk (tap→Night)" : "Night (tap→Chalk)");
+    if (b) b.textContent = "Theme: " + (getBase() === "day" ? "Day (tap→Night)" : "Night (tap→Day)");
   }
 
   function buildShellHtml() {
@@ -490,7 +552,7 @@
           'hidden'
         ].filter(Boolean).join(" ");
         if (t.href) {
-          tools += '<a ' + attrs + ' href="' + esc(t.href) + '">' + esc(t.label) + "</a>";
+          tools += '<a ' + attrs + ' href="' + esc(withV(t.href)) + '">' + esc(t.label) + "</a>";
         } else {
           tools += "<button type=\"button\" " + attrs + ">" + esc(t.label) + "</button>";
         }
@@ -504,7 +566,7 @@
 
     return ''
       + '<div id="rdContext">'
-      + '<a id="rdMark" href="index.html" title="OFFGRD home"><img src="icon.svg" alt=""><span>OFF<span style="opacity:.85">GRD</span></span></a>'
+      + '<a id="rdMark" href="' + esc(withV("OFFGRD.html")) + '" title="OFFGRD home"><img src="icon.svg" alt=""><span>OFF<span style="opacity:.85">GRD</span></span></a>'
       + '<span id="rdCrest"></span>'
       + '<button type="button" id="rdScope" title="Opponent / scope">Scope</button>'
       + '<span id="rdSync">SYNC</span>'
@@ -522,6 +584,7 @@
   function syncPhaseUI() {
     const view = currentView();
     const phase = phaseForView(view);
+    const kind = appKind();
     [].forEach.call(document.querySelectorAll("#rdPhases .rd-phase"), function (b) {
       b.classList.toggle("on", b.getAttribute("data-phase") === phase);
     });
@@ -534,14 +597,25 @@
       }
       p.hidden = !forPhase || gatedOff;
       const v = p.getAttribute("data-view");
-      p.classList.toggle("on", !!(v && v === view));
+      const href = p.getAttribute("href") || "";
+      const onPill =
+        (!!(v && v === view)) ||
+        (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
+        (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
+      p.classList.toggle("on", onPill);
     });
   }
 
   function syncScopeBadge() {
     const btn = document.getElementById("rdScope");
     const src = document.getElementById("datbadge");
-    if (btn && src) btn.textContent = src.textContent || "Scope";
+    if (btn) {
+      if (src && (src.textContent || "").trim()) btn.textContent = src.textContent;
+      else {
+        const kind = appKind();
+        btn.textContent = kind === "qb" ? "Reps Lab" : kind === "playbook" ? "Playbook" : "Scope";
+      }
+    }
     const sync = document.getElementById("rdSync");
     const stat = document.getElementById("syncstat");
     if (sync) {
@@ -593,16 +667,18 @@
         const ph = PHASES.filter(function (p) { return p.id === id; })[0];
         if (!ph || !ph.views || !ph.views.length) return;
         if (typeof root.setView === "function") root.setView(ph.views[0]);
+        else goMain(ph.views[0]);
         syncPhaseUI();
       };
     });
     [].forEach.call(shell.querySelectorAll(".rd-pill"), function (p) {
-      if (p.tagName === "A") return;
+      if (p.tagName === "A") return; /* href already versioned */
       p.onclick = function () {
         const action = p.getAttribute("data-action");
         const view = p.getAttribute("data-view");
         if (action) runAction(action);
         else if (view && typeof root.setView === "function") root.setView(view);
+        else if (view) goMain(view);
         syncPhaseUI();
       };
     });
@@ -627,7 +703,7 @@
     const scope = shell.querySelector("#rdScope");
     if (scope) {
       scope.onclick = function () {
-        /* Prefer opening schedule / opponent context; fall back to scout */
+        if (appKind() !== "scout") { goMain("scout"); return; }
         if (!clickExisting("schedBtn") && typeof root.setView === "function") root.setView("scout");
       };
     }
@@ -692,6 +768,7 @@
     }
     shell.style.display = "flex";
     adoptAcct();
+    stampVersionedLinks();
     syncCrest();
     syncScopeBadge();
     syncPhaseUI();
