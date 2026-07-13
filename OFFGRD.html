@@ -16,7 +16,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
-<title>OFFGRD â€” Never off guard</title>
+<title>OFFGRD — Never off guard</title>
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -268,7 +268,7 @@
     <div class="brand"><span id="brandCrest"></span><a href="index.html" title="OFFGRD home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span class="tag" id="dcname">Never off guard</span></div>
     <div class="spacer"></div>
     <span class="datbadge" id="datbadge"></span>
-    <button class="ghost" id="menuBtn" aria-label="Menu">â˜° Menu</button>
+    <button class="ghost" id="menuBtn" aria-label="Menu">☰ Menu</button>
     <div id="tools">
       <button class="ghost" id="importBtn">Import data</button>
       <button class="ghost" id="manageBtn">Manage</button>
@@ -298,8 +298,8 @@
     <div style="flex:1 1 300px">
       <div class="lbl" style="margin-bottom:7px">Scout mode</div>
       <div class="seg" id="seg-scoutmode" style="flex-wrap:wrap">
-        <button class="on" data-sm="defense">Defense Â· predict their coverage</button>
-        <button data-sm="offense">Offense Â· predict their run/pass</button>
+        <button class="on" data-sm="defense">Defense · predict their coverage</button>
+        <button data-sm="offense">Offense · predict their run/pass</button>
       </div>
     </div>
     <div style="flex:0 1 320px">
@@ -312,11 +312,11 @@
   <div class="panel">
     <div class="presetrow">
       <span class="lbl" style="margin:0 6px 0 0">Quick situations</span>
-      <button class="preset" data-preset="3rd6">3RD &amp; 6 Â· trips</button>
+      <button class="preset" data-preset="3rd6">3RD &amp; 6 · trips</button>
       <button class="preset" data-preset="3rdlong">3RD &amp; LONG</button>
       <button class="preset" data-preset="2ndmed">2ND &amp; MEDIUM</button>
       <button class="preset" data-preset="1st10">1ST &amp; 10</button>
-      <button class="preset" data-preset="rz">RED ZONE Â· 1ST</button>
+      <button class="preset" data-preset="rz">RED ZONE · 1ST</button>
       <button class="preset" data-preset="4thshort">4TH &amp; SHORT</button>
     </div>
 
@@ -353,13 +353,13 @@
   <!-- TENDENCY GRID (self-scout) -->
   <div class="panel">
     <details id="gridDetails">
-      <summary>Full tendency grid â€” Down Ã— Distance (self-scout)</summary>
+      <summary>Full tendency grid — Down × Distance (self-scout)</summary>
       <div id="grid"></div>
     </details>
   </div>
 
   <div class="foot panel" style="box-shadow:none;background:transparent;border:none;padding:0 4px">
-    Coverage % is the share of matching snaps â€” a probability from this DC's history, not a guarantee. Confidence reflects how many snaps it's based on and how clear the top call is. Small-sample situations are widened automatically and flagged. Everything runs locally; no internet required during a game.
+    Coverage % is the share of matching snaps — a probability from this DC's history, not a guarantee. Confidence reflects how many snaps it's based on and how clear the top call is. Small-sample situations are widened automatically and flagged. Everything runs locally; no internet required during a game.
   </div>
 
   </div><!-- /view-scout -->
@@ -386,7 +386,7 @@
         <div class="field"><div class="lbl">Week / game label</div><input id="imp-week" placeholder="e.g. Wk 3 or 2024" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
       </div>
       <div class="field" style="margin-bottom:10px">
-        <div class="lbl">Other team in this film <span class="foot" style="font-weight:400">(optional â€” fill in to scout BOTH teams from one file)</span></div>
+        <div class="lbl">Other team in this film <span class="foot" style="font-weight:400">(optional — fill in to scout BOTH teams from one file)</span></div>
         <input id="imp-opp2" placeholder="e.g. Lafayette" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
       </div>
       <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
@@ -406,13 +406,13 @@
         </div>
       </div>
       <p class="foot" id="imp-persp-hint" style="margin:0 0 10px"></p>
-      <p><b>Works directly with Hudl.</b> In Hudl Classic â†’ Reports / Breakdown, hit <b>Export to Excel</b> â€” upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODKâ€¦). One row per snap; header row required.</p>
+      <p><b>Works directly with Hudl.</b> In Hudl Classic → Reports / Breakdown, hit <b>Export to Excel</b> — upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK…). One row per snap; header row required.</p>
       <p style="color:var(--muted)">Only <code>coverage</code> is required. Everything else is optional and auto-mapped:</p>
       <ul style="margin:6px 0 0 0;padding-left:18px;color:var(--muted)">
-        <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> â†’ Cover 3 / Cover 4 / 2-man, etc.</li>
+        <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> → Cover 3 / Cover 4 / 2-man, etc.</li>
         <li><b>Pressure</b> is inferred when a <code>BLITZ</code>/stunt column has a value (or use an explicit <code>pressure</code> 1/0).</li>
         <li><b>Field zone</b> reads from a zone column or is derived from <code>YARD LN</code>; an <code>ODK</code> column auto-filters to defensive snaps only.</li>
-        <li>After loading, the box below lists exactly which columns it mapped â€” check it once for a new Hudl export.</li>
+        <li>After loading, the box below lists exactly which columns it mapped — check it once for a new Hudl export.</li>
       </ul>
       <div style="margin-top:12px"><input type="file" id="fileIn" accept=".csv,.xlsx,.xls,text/csv"></div>
       <textarea id="csvText" placeholder="date,opponent,qtr,scoreMargin,down,distance,fieldZone,hash,personnel,formation,front,coverage,pressure,blitz,result&#10;2025-09-06,State,1,0,1,10,OWN,M,11,Trips,42 OVER-G,Cover 3,0,,inc"></textarea>
@@ -462,16 +462,16 @@
 
 <script>
 /* ============================================================
-   DC TENDENCY PREDICTOR  â€” single-file, offline
+   DC TENDENCY PREDICTOR  — single-file, offline
    ============================================================ */
 
 /* ---------- Coverage "how to attack" knowledge ---------- */
 const BEATERS = {
-  "Cover 0":   {type:"MAN â€” no deep help", attack:"Zero blitz. Get the ball out hot. Beat man with rubs/mesh, isolate your best WR, RB on a wheel or angle vs a LB.", tags:["mesh","slant-flat hot","RB wheel","iso fade","pick/rub"]},
+  "Cover 0":   {type:"MAN — no deep help", attack:"Zero blitz. Get the ball out hot. Beat man with rubs/mesh, isolate your best WR, RB on a wheel or angle vs a LB.", tags:["mesh","slant-flat hot","RB wheel","iso fade","pick/rub"]},
   "Cover 1":   {type:"MAN-free", attack:"Single-high man. Crossers and mesh to create natural picks, attack the post-safety with a deep dig or post, build in a scramble drill.", tags:["mesh/crossers","deep dig","post on FS","under routes","scramble drill"]},
   "Cover 2":   {type:"2-high ZONE", attack:"Two deep, five under. Hit the hole between the safeties (seam/sail), high-low the corner with smash, flood a flat defender three levels.", tags:["seam between safeties","smash (hi-lo corner)","sail/flood","4 verts vs 2 safS","deep middle"]},
   "2-man":     {type:"MAN-under, 2 deep", attack:"Man under, two deep zone. Pick concepts and shallow crossers destroy trail technique; back-shoulder vs outside leverage; RB free release.", tags:["pick/rub","shallow cross","back-shoulder","mesh","RB check-release"]},
-  "Cover 3":   {type:"single-high ZONE", attack:"Beat the rotation, not the boundary. Attack the FIELD third â€” curl-flat, flood, and seam behind the buzz/curl defender.", tags:["curl-flat","flood (field)","seam vs buzz","smash","4 verts bender"]},
+  "Cover 3":   {type:"single-high ZONE", attack:"Beat the rotation, not the boundary. Attack the FIELD third — curl-flat, flood, and seam behind the buzz/curl defender.", tags:["curl-flat","flood (field)","seam vs buzz","smash","4 verts bender"]},
   "Cover 4":   {type:"QUARTERS", attack:"Safeties carry verticals, so the flat is soft. Hit curl-flat and out routes, dig/over the middle, RB swing; vertical to occupy the safety then break.", tags:["curl-flat","out routes","dig/over","RB swing","double move off vert"]},
   "Cover 6":   {type:"quarter-quarter-half", attack:"Split-field. Attack the Cover-2 side seam/flag and the quarters side with a dig; formation into the boundary to find the soft rotation.", tags:["C2-side seam","flag/corner","dig vs quarters","boundary flood","motion to ID"]},
   "Man":       {type:"MAN (Assist)", attack:"Man coverage. Beat it with rubs/mesh/picks, isolate your best matchup, option/choice routes, and a built-in scramble drill. Tag the specific shell (Cover 0/1/2-man) to sharpen this.", tags:["mesh/picks","iso matchup","crossers","option routes","scramble drill"]},
@@ -582,7 +582,7 @@ function buildControls(){
   fillSelect("sel-pers","pers",pers, pers.map(p=>p==="ANY"?"Any personnel":p+" personnel"));
   const forms=["ANY",...uniq(activeData().map(d=>d.formation))];
   fillSelect("sel-form","form",forms, forms.map(f=>f==="ANY"?"Any formation":f));
-  fillSelect("sel-score","score",["ANY","lead","tied","trail","trail2"],["Any score","Defense leading","Tied (Â±3)","Defense trailing","Trailing 10+"]);
+  fillSelect("sel-score","score",["ANY","lead","tied","trail","trail2"],["Any score","Defense leading","Tied (±3)","Defense trailing","Trailing 10+"]);
   fillSelect("sel-qtr","qtr",["ANY",1,2,3,4],["Any quarter","1st Q","2nd Q","3rd Q","4th Q"]);
   const opps=["ANY",...uniq(GAMES.map(g=>g.opponent))];
   fillSelect("sel-opp","opp",opps, opps.map(o=>o==="ANY"?"All opponents":"vs "+o));
@@ -678,8 +678,8 @@ function weightOf(row, useRecency, gi){
 }
 function weightedDist(rows, field, useRecency){
   const gi=gameOrderIndex(); const tally={}; let tot=0;
-  rows.forEach(rw=>{ const w=weightOf(rw,useRecency,gi); const k=rw[field]||"â€”"; tally[k]=(tally[k]||0)+w; tot+=w; });
-  const arr=Object.entries(tally).map(([k,v])=>({k, w:v, pct: tot? v/tot:0, raw: rows.filter(rw=>(rw[field]||"â€”")===k).length}));
+  rows.forEach(rw=>{ const w=weightOf(rw,useRecency,gi); const k=rw[field]||"—"; tally[k]=(tally[k]||0)+w; tot+=w; });
+  const arr=Object.entries(tally).map(([k,v])=>({k, w:v, pct: tot? v/tot:0, raw: rows.filter(rw=>(rw[field]||"—")===k).length}));
   arr.sort((a,b)=>b.w-a.w);
   return {arr,tot};
 }
@@ -725,7 +725,7 @@ function render(){
       '<div class="reslead">Coverage predictor</div>'+
       '<div class="callline"><div class="callname" style="font-size:30px">No coverage data yet</div></div>'+
       (noDef
-        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button onclick="showGetStarted()" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Get started â†’</button></div>'
+        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button onclick="showGetStarted()" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Get started →</button></div>'
         : '<p class="foot">No charted snaps fit this exact situation. Loosen a filter or pick a different look.</p>');
     renderGrid(useRec); return;
   }
@@ -740,13 +740,13 @@ function render(){
   const pressedRows=rows.filter(rw=>+rw.pressure===1);
   const blitz=weightedDist(pressedRows,"blitz",useRec);
   const pr=pressureRate(rows,useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" Â· "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const noPrW=1-pr;
   const untagged=rows.length-covRows.length;
 
   let headK, headPct, headTot, headLead, leadName, showPct=true;
   if(useCoverage){ headK=covS.arr[0].k; headPct=covS.arr[0].pct; headTot=cov.tot; headLead=covS.arr[1]?covS.arr[0].pct-covS.arr[1].pct:covS.arr[0].pct; leadName="Most likely coverage"; }
-  else if(front.arr[0] && front.arr[0].k!=="â€”"){ headK=front.arr[0].k; headPct=front.arr[0].pct; headTot=front.tot; headLead=front.arr[1]?front.arr[0].pct-front.arr[1].pct:front.arr[0].pct; leadName="Most likely front"; }
+  else if(front.arr[0] && front.arr[0].k!=="—"){ headK=front.arr[0].k; headPct=front.arr[0].pct; headTot=front.tot; headLead=front.arr[1]?front.arr[0].pct-front.arr[1].pct:front.arr[0].pct; leadName="Most likely front"; }
   else { headK="Pressure"; headPct=pr; headTot=rows.length; headLead=0.2; leadName="Pressure rate"; }
   const cl=confLevel(headTot, headLead);
   const behind = (useCoverage && pressedRows.length)? weightedDist(pressedRows.filter(r=>r.coverage&&r.coverage!=="\u2014"),"coverage",useRec).arr[0] : null;
@@ -754,24 +754,24 @@ function render(){
 
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">'+leadName+' Â· '+sitTxt+(sit.opp!=="ANY"?" Â· vs "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">'+leadName+' · '+sitTxt+(sit.opp!=="ANY"?" · vs "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(headK)+'</div>'+(showPct?'<div class="callpct">'+pctTxt(headPct)+'</div>':'')+((useCoverage&&covS.arr[1])?'<div class="sub" style="align-self:flex-end;padding-bottom:9px">then '+esc(covS.arr[1].k)+' '+pctTxt(covS.arr[1].pct)+'</div>':'')+'</div>'+
     '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span>'+
-      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" Â· recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">âš  Thin sample â€” widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
-    (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet â€” showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
+      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">⚠ Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+    (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet — showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' Â· top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
-      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"â€”")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" Â· then "+esc(front.arr[1].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' · top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
+      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"—")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" · then "+esc(front.arr[1].k):"")+'</div></div>'+
       (useCoverage
-        ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(behind.k):"â€”")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
-        : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"â€”")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
+        ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(behind.k):"—")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
+        : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"—")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
     '</div>'+
     (bt
-      ? '<div class="attack"><div class="h">Attack â€” '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" Â· ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
-      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here Â· pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
+      ? '<div class="attack"><div class="h">Attack — '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
+      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here · pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
     (useCoverage? '<div class="dist"><div class="lbl">Coverage distribution (observed)'+(untagged>0?' <span style="color:var(--muted);font-weight:600">('+untagged+' untagged)</span>':'')+'</div>'+cov.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join("")+'</div>' : '')+
-    '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="â€”"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
+    '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="—"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
     '<div class="dist"><div class="lbl">Pressure distribution</div>'+
       bar("No pressure", noPrW, rows.filter(rw=>+rw.pressure!==1).length, "prs")+
       (blitz.arr.length? blitz.arr.map(d=>bar(d.k||"Blitz", d.pct*pr, d.raw, "prs")).join("") : bar("Pressure", pr, pressedRows.length, "prs"))+'</div>'+
@@ -781,7 +781,7 @@ function render(){
         '<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td>'+
         '<td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td>'+
         '<td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td>'+esc(rw.front||"")+'</td>'+
-        '<td><b>'+esc(rw.coverage||"")+'</b></td><td>'+(+rw.pressure===1?"âœ“":"")+'</td><td>'+esc(rw.blitz||"")+'</td><td>'+esc(rw.result||"")+'</td></tr>'
+        '<td><b>'+esc(rw.coverage||"")+'</b></td><td>'+(+rw.pressure===1?"✓":"")+'</td><td>'+esc(rw.blitz||"")+'</td><td>'+esc(rw.result||"")+'</td></tr>'
       ).join("")+
       '</tbody></table></details>';
 
@@ -796,7 +796,7 @@ function bar(name,pct,count,cls){
 function fieldBoundaryNote(rows){
   const top=weightedDist(rows,"coverage",false).arr[0];
   if(!top || !/Cover 3/i.test(top.k)) return "";
-  return '<div class="beat" style="color:var(--muted)">Vs '+esc(top.k)+': attack the field rotation, not the boundary â€” flood the wide side and work the seam behind the buzz defender.</div>';
+  return '<div class="beat" style="color:var(--muted)">Vs '+esc(top.k)+': attack the field rotation, not the boundary — flood the wide side and work the seam behind the buzz defender.</div>';
 }
 function renderGrid(useRec){
   const host=document.getElementById("grid"); if(!host) return;
@@ -813,13 +813,13 @@ function renderGrid(useRec){
     html+='<tr><td class="rowh">'+ordinal(dn)+'</td>';
     dists.forEach(ds=>{
       const cell=base.filter(rw=>rw.down===dn && distBucket(rw.distance)===ds);
-      if(cell.length<2){ html+='<td class="gcell empty"><div class="gc">â€”</div><div class="gp">'+cell.length+' snap'+(cell.length===1?"":"s")+'</div></td>'; return; }
+      if(cell.length<2){ html+='<td class="gcell empty"><div class="gc">—</div><div class="gp">'+cell.length+' snap'+(cell.length===1?"":"s")+'</div></td>'; return; }
       const cc=cell.filter(r=>r.coverage&&r.coverage!=="\u2014");
       const head=cc.length?weightedDist(cc,"coverage",useRec).arr[0]:weightedDist(cell.filter(r=>r.front),"front",useRec).arr[0];
       const pr=pressureRate(cell,useRec);
       const prc = pr>0.45?"var(--bad)":pr>0.3?"var(--warn)":"var(--muted)";
-      html+='<td class="gcell" style="'+heat(pr)+'"><div class="gc">'+esc(head?head.k:"â€”")+'</div>'+
-        '<div class="gp">'+(head?Math.round(head.pct*100)+'% Â· ':'')+'n='+cell.length+'</div>'+
+      html+='<td class="gcell" style="'+heat(pr)+'"><div class="gc">'+esc(head?head.k:"—")+'</div>'+
+        '<div class="gp">'+(head?Math.round(head.pct*100)+'% · ':'')+'n='+cell.length+'</div>'+
         '<div class="gpr" style="color:'+prc+'">'+Math.round(pr*100)+'% press</div></td>';
     });
     html+='</tr>';
@@ -882,10 +882,10 @@ function parseOffense(text){
     gain:find(ALIASES.gnls), ptype:find(ALIASES.playtype), odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent) };
   const at=(c,i)=> (i>=0&&c[i]!=null)?String(c[i]).trim():"";
   const out=[]; const mapped=[]; let skipped=0;
-  if(ci.play>=0) mapped.push('playâ†’"'+head[ci.play]+'"');
-  if(ci.cov>=0)  mapped.push('coverageâ†’"'+head[ci.cov]+'"');
-  if(ci.gain>=0) mapped.push('gainâ†’"'+head[ci.gain]+'"');
-  if(ci.down>=0) mapped.push('downâ†’"'+head[ci.down]+'"');
+  if(ci.play>=0) mapped.push('play→"'+head[ci.play]+'"');
+  if(ci.cov>=0)  mapped.push('coverage→"'+head[ci.cov]+'"');
+  if(ci.gain>=0) mapped.push('gain→"'+head[ci.gain]+'"');
+  if(ci.down>=0) mapped.push('down→"'+head[ci.down]+'"');
   for(let li=1;li<lines.length;li++){
     const c=splitCSVLine(lines[li]); if(!c.length || c.join("").trim()==="") continue;
     if(ci.odk>=0){ const ph=at(c,ci.odk).toUpperCase(); if(ph && !/^O|OFF/.test(ph)){ skipped++; continue; } }
@@ -897,8 +897,8 @@ function parseOffense(text){
   }
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+
     (skipped?"Skipped "+skipped+" non-offensive plays. ":"")+
-    (ci.play<0?"âš  No play/concept column found â€” required. ":"")+
-    (ci.gain<0?"âš  No GN/LS yards column â€” success canâ€™t be scored. ":"");
+    (ci.play<0?"⚠ No play/concept column found — required. ":"")+
+    (ci.gain<0?"⚠ No GN/LS yards column — success can’t be scored. ":"");
   return out;
 }
 function offPool(level,target){
@@ -929,13 +929,13 @@ function playStatsVsCoverage(play,target){
 }
 function setCallMode(m){ CALL_MODE=m; render(); }
 function callSheetHTML(cov, useRec){
-  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls â€” '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
+  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls — '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
   if(!OFF_DATA.length){
     return head+'<div class="callsempty">Import your offensive self-scout (play/concept, the coverage faced, DN, DIST, and GN/LS yards) to turn this prediction into a ranked call sheet. <br><button class="btnp" onclick="openImport(\'offense\')">Import offense</button></div></div>';
   }
   const toggle='<div class="seg" style="max-width:360px;margin:2px 0 9px">'+
-    '<button'+(CALL_MODE!=="robust"?' class="on"':'')+' onclick="setCallMode(\'exact\')">Exact Â· this D&amp;D</button>'+
-    '<button'+(CALL_MODE==="robust"?' class="on"':'')+' onclick="setCallMode(\'robust\')">Robust Â· EV vs mix</button>'+
+    '<button'+(CALL_MODE!=="robust"?' class="on"':'')+' onclick="setCallMode(\'exact\')">Exact · this D&amp;D</button>'+
+    '<button'+(CALL_MODE==="robust"?' class="on"':'')+' onclick="setCallMode(\'robust\')">Robust · EV vs mix</button>'+
     '</div>';
   const plays=Array.from(new Set(OFF_DATA.map(r=>r.play)));
   let ranked=[], note='';
@@ -948,18 +948,18 @@ function callSheetHTML(cov, useRec){
     });
     rankCalls(ranked);
     const mixStr=mix.map(m=>m.k.replace("Cover ","C")+" "+Math.round(m.pct*100)).join(" / ");
-    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' Â· plays with more reps rank higher</div>';
+    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' · plays with more reps rank higher</div>';
   } else {
     const target=cov.arr[0].k; let widened=false;
     plays.forEach(pl=>{ const st=playStatsVsCoverage(pl,target); if(st){ if(st.level>0)widened=true; ranked.push({play:pl, sr:st.sr, xr:st.xr, n:st.n}); } });
     rankCalls(ranked);
-    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% Â· best plays first, more reps rank higher'+(widened?' Â· <span style="color:var(--warn)">widened â€” few reps here</span>':'')+'</div>';
+    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% · best plays first, more reps rank higher'+(widened?' · <span style="color:var(--warn)">widened — few reps here</span>':'')+'</div>';
   }
   if(!ranked.length){
-    return head+toggle+'<div class="callsempty">Not enough offensive reps tagged for this look yet â€” import more self-scout (with GN/LS yards) and your best calls will appear.</div></div>';
+    return head+toggle+'<div class="callsempty">Not enough offensive reps tagged for this look yet — import more self-scout (with GN/LS yards) and your best calls will appear.</div></div>';
   }
-  const item=(p,i)=>'<div class="callitem"><div class="cn">'+esc(p.play)+'</div><div class="track" style="flex:1"><div class="fill cov'+(i?" alt":"")+'" style="width:'+Math.max(3,Math.round(p.sr*100))+'%">'+Math.round(p.sr*100)+'%</div></div><div class="xchip">'+Math.round(p.xr*100)+'% expl</div><div class="cnn">'+p.n+' rep'+(p.n===1?'':'s')+(p.n<4?' <span style="color:var(--warn)">Â· few</span>':'')+'</div></div>';
-  const grp=(label,arr)=>'<div class="foot" style="color:var(--accent);font-weight:800;margin-top:8px">'+label+'</div>'+(arr.length?arr.map(item).join(""):'<div class="foot">â€” no reps vs this look</div>');
+  const item=(p,i)=>'<div class="callitem"><div class="cn">'+esc(p.play)+'</div><div class="track" style="flex:1"><div class="fill cov'+(i?" alt":"")+'" style="width:'+Math.max(3,Math.round(p.sr*100))+'%">'+Math.round(p.sr*100)+'%</div></div><div class="xchip">'+Math.round(p.xr*100)+'% expl</div><div class="cnn">'+p.n+' rep'+(p.n===1?'':'s')+(p.n<4?' <span style="color:var(--warn)">· few</span>':'')+'</div></div>';
+  const grp=(label,arr)=>'<div class="foot" style="color:var(--accent);font-weight:800;margin-top:8px">'+label+'</div>'+(arr.length?arr.map(item).join(""):'<div class="foot">— no reps vs this look</div>');
   const runs=rankCalls(ranked.filter(p=>playKind(p.play)==="Run")).slice(0,4);
   const passes=rankCalls(ranked.filter(p=>playKind(p.play)==="Pass")).slice(0,4);
   const body=grp("RUN game",runs)+grp("PASS game",passes);
@@ -972,7 +972,7 @@ function openImport(mode){
   document.querySelectorAll("#seg-importmode button").forEach(x=>{ if(x.dataset.mode===IMPORT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
   const note=document.getElementById("importModeNote");
   if(note) note.textContent = IMPORT_MODE==="full"
-    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense (D rows), their defense (O rows w/ coverage/front/blitz), and your call sheet (O rows w/ OFF PLAY) â€” all tagged to the Opponent + Week you enter below."
+    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense (D rows), their defense (O rows w/ coverage/front/blitz), and your call sheet (O rows w/ OFF PLAY) — all tagged to the Opponent + Week you enter below."
     : IMPORT_MODE==="offense"
     ? "Our-offense mode (call sheet): needs PLAY/CONCEPT, the COVERAGE faced, DN, DIST, and GN/LS. ODK filters to offensive snaps."
     : IMPORT_MODE==="scout"
@@ -1011,7 +1011,7 @@ function buildScoutSample(){ return SCOUT_SAMPLE.map(o=>Object.assign({},o)); }
 function activeData(){ return SCOUT_MODE==="offense"?SCOUT_DATA:DATA; }
 function weightedShare(rows,fn,useRec){ const gi=gameOrderIndex(); let p=0,t=0; rows.forEach(r=>{const w=weightOf(r,useRec,gi); t+=w; if(fn(r))p+=w;}); return t?p/t:0; }
 function normPlayType(v){ const l=(v||"").toLowerCase(); if(l.indexOf("pass")>=0||l==="p") return "Pass"; if(l.indexOf("run")>=0||l==="rush"||l==="r") return "Run"; return v?v:""; }
-function dirLabel(d){ return ({R:"Right",L:"Left",M:"Middle"})[d]||d||"â€”"; }
+function dirLabel(d){ return ({R:"Right",L:"Left",M:"Middle"})[d]||d||"—"; }
 function parseScout(text,forceKeep){
   const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.trim().length);
   if(!lines.length){ LAST_MAPPING=""; return []; }
@@ -1031,10 +1031,10 @@ function parseScout(text,forceKeep){
   let keep=null;
   if(ci.odk>=0){ if(forceKeep){ keep=forceKeep; } else { const nd=cand.filter(x=>x.odk==="D").length, no=cand.filter(x=>x.odk==="O").length; keep = nd>0?"D":(no>0?"O":null); } }
   const out=[]; const mapped=[];
-  if(ci.ptype>=0)mapped.push('play typeâ†’"'+head[ci.ptype]+'"');
-  if(ci.dir>=0)mapped.push('directionâ†’"'+head[ci.dir]+'"');
-  if(ci.motion>=0)mapped.push('motionâ†’"'+head[ci.motion]+'"');
-  if(ci.form>=0)mapped.push('formationâ†’"'+head[ci.form]+'"');
+  if(ci.ptype>=0)mapped.push('play type→"'+head[ci.ptype]+'"');
+  if(ci.dir>=0)mapped.push('direction→"'+head[ci.dir]+'"');
+  if(ci.motion>=0)mapped.push('motion→"'+head[ci.motion]+'"');
+  if(ci.form>=0)mapped.push('formation→"'+head[ci.form]+'"');
   cand.forEach(x=>{
     if(keep && x.odk!==keep) return;
     const c=x.c;
@@ -1050,7 +1050,7 @@ function parseScout(text,forceKeep){
       direction:(at(c,ci.dir).toUpperCase().slice(0,1).match(/[RLM]/)||[""])[0], motion:motion,
       gain:(gs===""?null:+gs), result:at(c,find(ALIASES.result||["result"]))});
   });
-  LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"âš  No PLAY TYPE (run/pass) column found â€” required. ":"");
+  LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"⚠ No PLAY TYPE (run/pass) column found — required. ":"");
   return out;
 }
 function renderOffense(){
@@ -1069,28 +1069,28 @@ function renderOffense(){
   const motionRate=weightedShare(rows,r=>+r.motion===1,useRec);
   const form=weightedDist(rows.filter(r=>r.formation),"formation",useRec);
   const pers=weightedDist(rows.filter(r=>r.personnel),"personnel",useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" Â· "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const isRun=/run/i.test(top.k);
   const note = isRun
     ? "Run-leaning here ("+pctTxt(top.pct)+(dir.arr[0]?", most often to the "+dirLabel(dir.arr[0].k):"")+"). Set the front/strength that way, fit your gaps; expect "+esc(form.arr[0]?form.arr[0].k:"their base")+(pers.arr[0]?" / "+esc(pers.arr[0].k):"")+"."
-    : "Pass-leaning here ("+pctTxt(top.pct)+"). Motion on "+pctTxt(motionRate)+" of snaps â€” ID coverage/pressure pre-snap; watch "+esc(form.arr[0]?form.arr[0].k:"their spread")+".";
+    : "Pass-leaning here ("+pctTxt(top.pct)+"). Motion on "+pctTxt(motionRate)+" of snaps — ID coverage/pressure pre-snap; watch "+esc(form.arr[0]?form.arr[0].k:"their spread")+".";
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">Most likely Â· '+sitTxt+(sit.opp!=="ANY"?" Â· "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">Most likely · '+sitTxt+(sit.opp!=="ANY"?" · "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(top.k.toUpperCase())+'</div><div class="callpct">'+pctTxt(top.pct)+'</div></div>'+
-    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" Â· recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">âš  Thin sample â€” widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">⚠ Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?dirLabel(dir.arr[0].k):"â€”")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
+      '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?dirLabel(dir.arr[0].k):"—")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
       '<div class="card"><div class="k">Motion rate</div><div class="v gold">'+pctTxt(motionRate)+'</div><div class="s">'+(motionRate>0.2?"motion-heavy":"low motion")+'</div></div>'+
-      '<div class="card"><div class="k">Most likely look</div><div class="v" style="font-size:20px">'+esc(form.arr[0]?form.arr[0].k:"â€”")+'</div><div class="s">'+(pers.arr[0]?esc(pers.arr[0].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Most likely look</div><div class="v" style="font-size:20px">'+esc(form.arr[0]?form.arr[0].k:"—")+'</div><div class="s">'+(pers.arr[0]?esc(pers.arr[0].k):"")+'</div></div>'+
     '</div>'+
     '<div class="attack"><div class="h">Defensive read</div><p>'+note+'</p></div>'+
     '<div class="dist"><div class="lbl">Run / Pass</div>'+rp.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i?" alt":""))).join("")+'</div>'+
     '<div class="dist"><div class="lbl">Run direction</div>'+(dir.arr.length?dir.arr.map(d=>bar(dirLabel(d.k),d.pct,d.raw,"prs")).join(""):'<p class="foot">No direction tagged.</p>')+'</div>'+
     '<div class="dist"><div class="lbl">Formation</div>'+(form.arr.length?form.arr.slice(0,6).map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No formation tagged.</p>')+'</div>'+
     '<details><summary>Matching plays</summary><table><thead><tr><th>Date</th><th>Opp</th><th>D&amp;D</th><th>Zone</th><th>Hash</th><th>Backfield</th><th>Form</th><th>Play</th><th>Dir</th><th>Mot</th><th>Gn</th></tr></thead><tbody>'+
-      rows.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(rw=>'<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td><td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td><td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td><b>'+esc(rw.playType||"")+'</b></td><td>'+esc(rw.direction||"")+'</td><td>'+(+rw.motion===1?"âœ“":"")+'</td><td>'+(rw.gain==null?"":rw.gain)+'</td></tr>').join("")+
+      rows.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(rw=>'<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td><td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td><td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td><b>'+esc(rw.playType||"")+'</b></td><td>'+esc(rw.direction||"")+'</td><td>'+(+rw.motion===1?"✓":"")+'</td><td>'+(rw.gain==null?"":rw.gain)+'</td></tr>').join("")+
       '</tbody></table></details>';
   renderOffenseGrid(useRec);
 }
@@ -1109,10 +1109,10 @@ function renderOffenseGrid(useRec){
     html+='<tr><td class="rowh">'+ordinal(dn)+'</td>';
     dists.forEach(ds=>{
       const cell=base.filter(rw=>rw.down===dn && distBucket(rw.distance)===ds);
-      if(cell.length<2){ html+='<td class="gcell empty"><div class="gc">â€”</div><div class="gp">'+cell.length+' snap'+(cell.length===1?"":"s")+'</div></td>'; return; }
+      if(cell.length<2){ html+='<td class="gcell empty"><div class="gc">—</div><div class="gp">'+cell.length+' snap'+(cell.length===1?"":"s")+'</div></td>'; return; }
       const runRate=weightedShare(cell,r=>/run/i.test(r.playType),useRec);
       const lead=runRate>=0.5?"RUN":"PASS"; const pc=Math.round((runRate>=0.5?runRate:1-runRate)*100);
-      html+='<td class="gcell" style="'+heat(Math.abs(runRate-0.5)*2)+'"><div class="gc">'+lead+'</div><div class="gp">'+pc+'% Â· n='+cell.length+'</div><div class="gpr" style="color:var(--muted)">'+Math.round(runRate*100)+'% run</div></td>';
+      html+='<td class="gcell" style="'+heat(Math.abs(runRate-0.5)*2)+'"><div class="gc">'+lead+'</div><div class="gp">'+pc+'% · n='+cell.length+'</div><div class="gpr" style="color:var(--muted)">'+Math.round(runRate*100)+'% run</div></td>';
     });
     html+='</tr>';
   });
@@ -1146,12 +1146,12 @@ function upsertGame(opp,week,side,source,rows){
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
   saveGames(); rebuildActive(); return existed;
 }
-function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" Â· "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
+function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
 /* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
 function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); const p=document.getElementById("schedPid"); if(p){ p.innerHTML = SCHED_TEAM_ID ? ('Program ID for your OFFRD link: <code>'+esc(SCHED_TEAM_ID)+'</code> <button class="ghost" style="padding:2px 8px" onclick="schedCopyId()">Copy</button>') : '<span class="foot">Sign in to your program to see your OFFRD link ID.</span>'; } renderSchedule(); } }
-function schedCopyId(){ try{ navigator.clipboard.writeText(SCHED_TEAM_ID); const p=document.getElementById("schedPid"); if(p){ const b=p.querySelector("button"); if(b){ b.textContent="Copied âœ“"; setTimeout(function(){ b.textContent="Copy"; },1200); } } }catch(e){} }
-function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only â€” a coach can edit."; }
+function schedCopyId(){ try{ navigator.clipboard.writeText(SCHED_TEAM_ID); const p=document.getElementById("schedPid"); if(p){ const b=p.querySelector("button"); if(b){ b.textContent="Copied ✓"; setTimeout(function(){ b.textContent="Copy"; },1200); } } }catch(e){} }
+function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only — a coach can edit."; }
 function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) return; g[field]=(field==="opponent")?String(val==null?"":val).trim():val; scheduleSave(); }
 function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
 function schedAdd(){ SCHEDULE.push({id:schedUID(),date:"",opponent:"",ha:"H",site:"",time:"",us:"",them:""}); renderSchedule(); scheduleSave(); }
@@ -1162,22 +1162,22 @@ function schedScoutCounts(opp){ let off=0,def=0; if(opp) GAMES.forEach(g=>{ if(g
 function schedStatusLine(g){
   const opp=(g.opponent||"").trim(); if(!opp) return '';
   const sc=schedScoutCounts(opp);
-  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">âœ“ scouting</span> <span class="foot">off '+sc.off+' Â· def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
+  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">✓ scouting</span> <span class="foot">off '+sc.off+' · def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
   const isPlan=WEEK&&WEEK.opponent===opp;
-  const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">â— this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">â–¶ Plan this week</button>':'');
+  const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">● this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">▶ Plan this week</button>':'');
   return '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px">'+scout+' '+planChip+'</div>';
 }
 async function schedPlanWeek(id){
   const g=SCHEDULE.find(x=>x.id===id); if(!g) return;
   const opp=(g.opponent||"").trim(); if(!opp){ alert("Add an opponent for this game first."); return; }
   if(!window.OFFGRD_WEEK_START){ alert("Sign in to your program (top right) to start a week plan."); return; }
-  if(WEEK && WEEK.opponent && WEEK.opponent!==opp && !confirm("Start a new week plan vs "+opp+"? The current plan vs "+(WEEK.opponent||"â€”")+" will be archived.")) return;
+  if(WEEK && WEEK.opponent && WEEK.opponent!==opp && !confirm("Start a new week plan vs "+opp+"? The current plan vs "+(WEEK.opponent||"—")+" will be archived.")) return;
   try{ if(typeof ensurePlan==="function") ensurePlan(); const bks=(typeof planBuckets==="function"?planBuckets():[]).map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:[]})); await window.OFFGRD_WEEK_START(opp,(g.date||"").trim()||null,bks); const m=document.getElementById("sched"); if(m)m.classList.remove("show"); if(typeof setView==="function") setView("plan"); }
   catch(e){ alert((e&&e.message)||"Couldn't start the week."); }
 }
 let _schedPendingOpp="";
 function schedUploadLogo(id){ const g=SCHEDULE.find(x=>x.id===id); const opp=((g&&g.opponent)||"").trim(); if(!opp){ alert("Type the opponent's name first, then tap the crest to add their logo."); return; } _schedPendingOpp=opp; const f=document.getElementById("schedOppFile"); if(f){ f.value=""; f.click(); } }
-function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof logoFromFile!=="function") return; logoFromFile(file,"opp-"+logoKey(_schedPendingOpp),function(url){ if(!url) return; const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"â€¢"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); let _ch=false; SCHEDULE.forEach(function(g){ if((g.opponent||"").trim()===o){ g.logo=url; _ch=true; } }); if(_ch) scheduleSave(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
+function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof logoFromFile!=="function") return; logoFromFile(file,"opp-"+logoKey(_schedPendingOpp),function(url){ if(!url) return; const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); let _ch=false; SCHEDULE.forEach(function(g){ if((g.opponent||"").trim()===o){ g.logo=url; _ch=true; } }); if(_ch) scheduleSave(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
 function renderSchedule(){
   const host=document.getElementById("schedBody"); if(!host) return;
   const ed=SCHED_EDIT;
@@ -1205,11 +1205,11 @@ function renderSchedule(){
       +inp(g.id,"site",g.site,"Site","flex:1 1 90px")
       +inp(g.id,"time",g.time,"Time","width:78px")
       +'<span style="display:inline-flex;align-items:center;gap:4px">'+inp(g.id,"us",g.us,"Us","width:44px")+'<span style="color:var(--muted)">-</span>'+inp(g.id,"them",g.them,"Opp","width:44px")+'</span>'
-      +'<button class="ghost" title="Remove game" style="margin-left:auto;padding:4px 9px" onclick="schedDel(\''+g.id+'\')">âœ•</button>'
+      +'<button class="ghost" title="Remove game" style="margin-left:auto;padding:4px 9px" onclick="schedDel(\''+g.id+'\')">✕</button>'
       +schedStatusLine(g)
       +'</div>';
   }).join("");
-  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date Â· Home/Away Â· opponent Â· site Â· time Â· your score â€“ opp score &nbsp;Â·&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
+  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score – opp score &nbsp;·&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
 }
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
@@ -1223,16 +1223,16 @@ function renderManager(){
     const list=byOpp[opp];
     const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
     const nG=dates.length||list.length;
-    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" â†’ "+dates[dates.length-1]):"";
+    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" → "+dates[dates.length-1]):"";
     const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
-    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" Â· ")||"no snaps";
+    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
     const isNext=WEEK&&WEEK.opponent===opp;
-    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">â–¶ NEXT'+(weekCountdown()?" Â· "+esc(weekCountdown()):"")+'</span>':"";
+    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">▶ NEXT'+(weekCountdown()?" · "+esc(weekCountdown()):"")+'</span>':"";
     const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
     html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
-      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' Â· '+esc(range):"")+'</span>'+nextBadge
-      +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout â–¸</button></div>'
+      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
+      +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ▸</button></div>'
       +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
       +'<table><tbody>'+grows+'</tbody></table></div>';
   });
@@ -1250,7 +1250,7 @@ function importSeason(text){
   }catch(e){ document.getElementById("mgrMsg").textContent="That does not look like a valid OFFGRD season file."; }
 }
 function clearSeason(){ if(typeof confirm==="function" && !confirm("Clear ALL games from the library? Export first if you want a backup.")) return; GAMES=[]; saveGames(); rebuildActive(); buildControls(); render(); renderManager(); document.getElementById("mgrMsg").textContent="Library cleared."; }
-function openManager(){ document.getElementById("mgr").classList.add("show"); renderManager(); const st=document.getElementById("mgrStore"); if(st){ let ok=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok=true; }catch(e){} st.textContent= ok?"Auto-save: ON for this browser. Use Export to back up or share with staff.":"Auto-save unavailable in this browser â€” use Export/Import season file to keep your data."; } }
+function openManager(){ document.getElementById("mgr").classList.add("show"); renderManager(); const st=document.getElementById("mgrStore"); if(st){ let ok=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok=true; }catch(e){} st.textContent= ok?"Auto-save: ON for this browser. Use Export to back up or share with staff.":"Auto-save unavailable in this browser — use Export/Import season file to keep your data."; } }
 
 /* ---------- TEAM BRANDING / CRESTS ---------- */
 let OUR_TEAM="Your Team"; let USER_BRANDS={};
@@ -1261,7 +1261,7 @@ const TEAMS={
 function teamBrand(name){
   if(USER_BRANDS[name]) return USER_BRANDS[name];
   if(TEAMS[name]) return TEAMS[name];
-  const ab=(name||"").replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"â€¢";
+  const ab=(name||"").replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•";
   return {abbr:ab, fg:"#ffffff", bg:"#5b626e", logo:""};
 }
 function crest(name,size){
@@ -1312,7 +1312,7 @@ let CALLER_LOG=[];
 let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY"};
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
-/* Opponent + Games(scope) + This-season â€” same pool Scout grids / Report / Package use. */
+/* Opponent + Games(scope) + This-season — same pool Scout grids / Report / Package use. */
 function yearOnlyOn(){ try{ return !!(document.getElementById("tg-thisyear")&&document.getElementById("tg-thisyear").checked); }catch(e){ return false; } }
 function scopedOppRows(side){
   return oppRows(side).filter(rw=>{
@@ -1330,11 +1330,11 @@ function scopeLabelText(){
 }
 function updateDatBadge(){
   const el=document.getElementById("datbadge"); if(!el) return;
-  /* Same scoped pool as Tendencies report + Package snapshot â€” never mode-side-only */
+  /* Same scoped pool as Tendencies report + Package snapshot — never mode-side-only */
   const def=scopedOppRows("def"), off=scopedOppRows("off");
   const nGames=uniq(def.concat(off).map(r=>r.date)).filter(Boolean).length;
-  const oppBit=(sit.opp&&sit.opp!=="ANY")?(" Â· "+sit.opp):"";
-  el.textContent=def.length+" D Â· "+off.length+" O Â· "+nGames+" games"+oppBit;
+  const oppBit=(sit.opp&&sit.opp!=="ANY")?(" · "+sit.opp):"";
+  el.textContent=def.length+" D · "+off.length+" O · "+nGames+" games"+oppBit;
 }
 function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return rows.length?r.length/rows.length:0; }
 function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="package")renderPackage(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
@@ -1383,7 +1383,7 @@ function weekCountdown(){ if(!WEEK||!WEEK.game_date) return ""; const d=Math.cei
 function nextFridayISO(){ const d=new Date(); const add=((5-d.getDay())+7)%7||7; d.setDate(d.getDate()+add); return d.toISOString().slice(0,10); }
 async function weekStartUI(){
   if(!window.OFFGRD_WEEK_START){ alert("Sign in (top right) to start a week plan."); return; }
-  if(WEEK && !confirm("Start a new week? The current plan vs "+(WEEK.opponent||"â€”")+" will be archived.")) return;
+  if(WEEK && !confirm("Start a new week? The current plan vs "+(WEEK.opponent||"—")+" will be archived.")) return;
   let opp = sit.opp!=="ANY" ? sit.opp : (uniq(GAMES.map(g=>g.opponent))[0]||"");
   opp = prompt("This week's opponent:", opp); if(opp===null) return;
   const gd = prompt("Game date (YYYY-MM-DD):", nextFridayISO()); if(gd===null) return;
@@ -1405,16 +1405,16 @@ function openWeekPicker(i){
   const box=document.createElement("div"); box.style.cssText="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.35)";
   _wkPick.innerHTML=""; _wkPick.appendChild(box);
   const b=planBuckets()[i];
-  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:16px">Add to â€œ'+esc(b?b.name:"bucket")+'â€</b><button class="ghost" id="wkpX">Close</button></div>'
-    +'<input id="wkpQ" placeholder="Search your playbookâ€¦" style="width:100%;margin:10px 0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;box-sizing:border-box;background:var(--bg);color:var(--ink);font-weight:700">'
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:16px">Add to “'+esc(b?b.name:"bucket")+'”</b><button class="ghost" id="wkpX">Close</button></div>'
+    +'<input id="wkpQ" placeholder="Search your playbook…" style="width:100%;margin:10px 0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;box-sizing:border-box;background:var(--bg);color:var(--ink);font-weight:700">'
     +'<div id="wkpList" style="max-height:340px;overflow:auto"></div>'
-    +'<p class="foot" style="margin:8px 0 0">From your program playbook. Type a name and press Enter to add a call that isnâ€™t drawn yet.</p>';
+    +'<p class="foot" style="margin:8px 0 0">From your program playbook. Type a name and press Enter to add a call that isn’t drawn yet.</p>';
   box.querySelector("#wkpX").onclick=()=>{ _wkPick.style.display="none"; };
   const list=box.querySelector("#wkpList"), q=box.querySelector("#wkpQ");
   const rf=()=>{ const s=q.value.trim().toLowerCase();
     const items=(PBOOK||[]).filter(p=>!s||((p.name||"")+" "+(p.family||"")+" "+(p.formation||"")).toLowerCase().indexOf(s)>=0).slice(0,40);
-    list.innerHTML=items.length?items.map(p=>'<div class="wkpRow" data-nm="'+esc(p.name)+'" data-id="'+esc(p.id)+'" style="display:flex;justify-content:space-between;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer"><b>'+esc(p.name)+'</b><span class="foot">'+esc([p.formation,p.family].filter(Boolean).join(" Â· "))+'</span></div>').join("")
-      :'<p class="foot">'+((PBOOK&&PBOOK.length)?"No matches.":"No playbook loaded â€” sign in, or draw plays in the Playbook.")+'</p>';
+    list.innerHTML=items.length?items.map(p=>'<div class="wkpRow" data-nm="'+esc(p.name)+'" data-id="'+esc(p.id)+'" style="display:flex;justify-content:space-between;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer"><b>'+esc(p.name)+'</b><span class="foot">'+esc([p.formation,p.family].filter(Boolean).join(" · "))+'</span></div>').join("")
+      :'<p class="foot">'+((PBOOK&&PBOOK.length)?"No matches.":"No playbook loaded — sign in, or draw plays in the Playbook.")+'</p>';
     [].forEach.call(list.querySelectorAll(".wkpRow"),r=>{ r.onclick=()=>{ planCommit(i, r.dataset.nm, r.dataset.id); _wkPick.style.display="none"; }; });
   };
   q.oninput=rf; q.onkeydown=e=>{ if(e.key==="Enter"&&q.value.trim()){ planCommit(i, q.value.trim(), null); _wkPick.style.display="none"; } };
@@ -1422,11 +1422,11 @@ function openWeekPicker(i){
 }
 function weekBarHTML(){
   const wrap=inner=>'<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
-  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" â€” a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">â–¶ Start new week</button>':""));
+  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" — a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">▶ Start new week</button>':""));
   const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
   const cd=weekCountdown();
-  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"â€”")+'</b>');
-  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">â€”</span>');
+  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
+  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
   return wrap('<b>This week</b>'+crest(WEEK.opponent||"",26)+oppSel+'<span class="foot">gameday</span>'+dateIn+(cd?'<span class="wb" style="min-width:auto;padding:0 9px">'+cd+'</span>':"")+'<span style="flex:1"></span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart">Start new week</button>':""));
 }
 function weekPlayerShareHTML(){
@@ -1441,7 +1441,7 @@ function weekPlayerShareHTML(){
   const row = (k,label)=>'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;margin-right:12px"><input type="checkbox" class="wkShare" data-k="'+k+'"'+(s[k]?' checked':'')+'> '+label+'</label>';
   return '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
     +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
-    +'<p class="foot" style="margin:6px 0 0">Players see only what you check â€” in their <b>This Week</b> tab.</p></div>';
+    +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>';
 }
 function wireWeekPlayerShare(host){
   if(!host || !WEEK || !WEEK_EDIT) return;
@@ -1457,29 +1457,29 @@ function wireWeekPlayerShare(host){
 function weekGenHTML(){
   if(!WEEK) return "";
   const g=WEEK.gen;
-  const genBtn=(WEEK_EDIT&&window.OFFGRD_WEEK_GEN)?('<button class="ghost no-print" id="wkGenBtn" style="font-weight:800">âœ¦ '+(g?"Regenerate briefing":"Generate AI week briefing")+'</button>'):"";
+  const genBtn=(WEEK_EDIT&&window.OFFGRD_WEEK_GEN)?('<button class="ghost no-print" id="wkGenBtn" style="font-weight:800">✦ '+(g?"Regenerate briefing":"Generate AI week briefing")+'</button>'):"";
   if(!g){
     if(!WEEK_EDIT) return "";
     return '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
-      +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation â€” generated once, saved for the whole program.</span></div>';
+      +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>';
   }
   const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
   let h='<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px">'
-    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">âœ¦ Week briefing â€” '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
   if(defSide){
     if(!d||!d.narrative){
-      h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed â€” hit Regenerate below to add our defense vs their offense.</p>';
+      h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
     } else {
       h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(d.narrative||"")+'</div>';
       if(Array.isArray(d.keys)&&d.keys.length){ h+='<div class="lbl" style="margin-top:10px">Defensive keys</div>'; d.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
-      if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> â€” '+esc(d.situations[nm])+'</div>'; }); }
+      if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(d.situations[nm])+'</div>'; }); }
       if(d.positions&&Object.keys(d.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(d.positions).forEach(ps=>{ if(d.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(d.positions[ps])+'</div>'; }); }
     }
   } else {
     h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
     if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
-    if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> â€” '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
-    if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection â€” why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> â€” '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection — why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> — '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
     if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
   }
   h+=(genBtn?('<div class="no-print" style="margin-top:10px">'+genBtn+'</div>'):'')+'</details>';
@@ -1490,7 +1490,7 @@ function wireWeekUI(host){
   const ws=host.querySelector("#wkStart"); if(ws) ws.onclick=weekStartUI;
   const wg=host.querySelector("#wkGenBtn"); if(wg) wg.onclick=async()=>{
     if(WEEK&&WEEK.gen&&!confirm("Regenerate this week's briefing? The current one is replaced for the whole program.")) return;
-    wg.disabled=true; wg.textContent="âœ¦ Generatingâ€¦ (10-20s)";
+    wg.disabled=true; wg.textContent="✦ Generating… (10-20s)";
     try{ await window.OFFGRD_WEEK_GEN(!!(WEEK&&WEEK.gen)); }
     catch(e){ alert((e&&e.message)||"Generation failed."); }
     renderPlan();
@@ -1506,7 +1506,7 @@ function wireWeekUI(host){
     const hasDraft=WEEK&&WEEK.gen&&WEEK.gen.game_plan_draft;
     if(hasDraft){ setView("package"); return; }
     if(!window.OFFGRD_WEEKLY_PACKAGE_GEN){ alert("Sign in as a coach to generate the weekly package."); return; }
-    pb.disabled=true; const old=pb.textContent; pb.textContent="ðŸ“¦ Generatingâ€¦ (15-30s)";
+    pb.disabled=true; const old=pb.textContent; pb.textContent="📦 Generating… (15-30s)";
     try{
       const payload=window.OFFGRD_WEEKLY_PACKAGE?OFFGRD_WEEKLY_PACKAGE.collectPayload({week:WEEK,playbook:PBOOK}):{};
       await window.OFFGRD_WEEKLY_PACKAGE_GEN(!!hasDraft, payload);
@@ -1568,7 +1568,7 @@ function planEditorHTML(){
 function matchupMatrix(def,by){
   const groups=uniq(def.map(r=>r[by]).filter(Boolean));
   return groups.map(gk=>{ const rows=def.filter(r=>r[by]===gk);
-    const cov=weightedDist(rows.filter(r=>r.coverage&&r.coverage!=="â€”"),"coverage",false).arr.slice(0,3);
+    const cov=weightedDist(rows.filter(r=>r.coverage&&r.coverage!=="—"),"coverage",false).arr.slice(0,3);
     const fr=weightedDist(rows.filter(r=>r.front),"front",false).arr.slice(0,2);
     const pr=rows.length?rows.filter(r=>+r.pressure===1).length/rows.length:0;
     return {g:gk,n:rows.length,cov:cov,fr:fr,pr:pr};
@@ -1578,9 +1578,9 @@ function matchupMatrix(def,by){
 /* ----- REPORT ----- */
 function mineTells(off,def){
   const T=[];
-  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" â†’ "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" â†’ "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" â†’ "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" â†’ "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="â€”"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" â†’ "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
+  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" → "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" → "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" → "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" → "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="—"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" → "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
   T.sort((a,b)=>b.w-a.w); const seen={}, out=[]; T.forEach(t=>{ if(!seen[t.txt]){seen[t.txt]=1;out.push(t);} }); return out.slice(0,8);
 }
 function renderReport(){
@@ -1589,13 +1589,13 @@ function renderReport(){
   /* Same opponent + Games(scope) + This-season pool as Scout grids / Package */
   const off=scopedOppRows("off"), def=scopedOppRows("def");
 
-  /* Steal B â€” full heat-mapped tendency report when flag on */
+  /* Steal B — full heat-mapped tendency report when flag on */
   if(window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.isTendency()){
     const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
       opponent: opp,
-      title: oppName+" â€” tendency report",
-      subtitle: "Scope: "+scopeLab+" Â· opponent filter Â· self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
+      title: oppName+" — tendency report",
+      subtitle: "Scope: "+scopeLab+" · opponent filter · self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
       scopeLabel: scopeLab
     });
     /* Keep classic top-tells strip above for coaches who skim */
@@ -1627,25 +1627,25 @@ function renderReport(){
   h+=`</div>`;
   h+=`<div><div class="lbl">Their defense${def.length?" ("+def.length+" snaps)":""}</div>`;
   if(def.length){
-    const cv=weightedDist(def.filter(r=>r.coverage&&r.coverage!=="â€”"),"coverage",false).arr.slice(0,4);
+    const cv=weightedDist(def.filter(r=>r.coverage&&r.coverage!=="—"),"coverage",false).arr.slice(0,4);
     const fr=weightedDist(def.filter(r=>r.front),"front",false).arr.slice(0,3);
     const prAll=def.filter(r=>+r.pressure===1).length/def.length;
     if(cv.length) h+=`<p style="font-size:14px;margin:4px 0">Coverage: ${cv.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")}</p>`;
     if(fr.length) h+=`<p style="font-size:14px;margin:4px 0">Front: ${fr.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")} &middot; pressure ${fmtPct(prAll)}</p>`;
     h+=`<table class="plan-tbl"><tr><th>Situation</th><th>Top coverage</th><th>Press%</th><th>Snaps</th></tr>`;
-    [[1,"10+"],[3,"1-3"],[3,"4-6"],[3,"10+"]].forEach(p=>{ const g=def.filter(r=>r.down===p[0]&&distBucket(r.distance)===p[1]); if(g.length){ const gc=g.filter(r=>r.coverage&&r.coverage!=="â€”"); const top=gc.length?weightedDist(gc,"coverage",false).arr[0]:null; h+=`<tr><td>${ordinal(p[0])} & ${p[1]}</td><td>${top?esc(top.k)+" "+fmtPct(top.pct):"â€”"}</td><td>${fmtPct(g.filter(r=>+r.pressure===1).length/g.length)}</td><td>${g.length}</td></tr>`; } });
+    [[1,"10+"],[3,"1-3"],[3,"4-6"],[3,"10+"]].forEach(p=>{ const g=def.filter(r=>r.down===p[0]&&distBucket(r.distance)===p[1]); if(g.length){ const gc=g.filter(r=>r.coverage&&r.coverage!=="—"); const top=gc.length?weightedDist(gc,"coverage",false).arr[0]:null; h+=`<tr><td>${ordinal(p[0])} & ${p[1]}</td><td>${top?esc(top.k)+" "+fmtPct(top.pct):"—"}</td><td>${fmtPct(g.filter(r=>+r.pressure===1).length/g.length)}</td><td>${g.length}</td></tr>`; } });
     h+=`</table>`;
     const bz=weightedDist(def.filter(r=>+r.pressure===1&&r.blitz),"blitz",false).arr.slice(0,3);
     if(bz.length) h+=`<p class="foot">Pressures: ${bz.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")}</p>`;
-  } else h+=`<p class="foot">No defense data yet â€” tag fronts/blitzes/coverages and import as Defense.</p>`;
+  } else h+=`<p class="foot">No defense data yet — tag fronts/blitzes/coverages and import as Defense.</p>`;
   h+=`</div></div></div>`;
   if(def.length){
     const by=def.some(r=>r.personnel)?"personnel":"formation";
     const M=matchupMatrix(def,by);
     if(M.length){
       h+=`<div class="panel"><div class="lbl">How they line up vs your ${by==="personnel"?"personnel groupings":"formations"}</div><table class="plan-tbl"><tr><th>${by==="personnel"?"Personnel":"Formation"}</th><th>Front</th><th>Coverage</th><th>Press%</th><th>Snaps</th></tr>`;
-      M.forEach(m=>{ h+=`<tr><td><b>${esc(m.g)}</b></td><td>${m.fr.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"â€”"}</td><td>${m.cov.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"â€”"}</td><td>${fmtPct(m.pr)}</td><td>${m.n}${m.n<4?' <span class="foot">(low)</span>':''}</td></tr>`; });
-      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} â€” use it to predict their look. Under 4 snaps = low sample.</p></div>`;
+      M.forEach(m=>{ h+=`<tr><td><b>${esc(m.g)}</b></td><td>${m.fr.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"—"}</td><td>${m.cov.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"—"}</td><td>${fmtPct(m.pr)}</td><td>${m.n}${m.n<4?' <span class="foot">(low)</span>':''}</td></tr>`; });
+      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} — use it to predict their look. Under 4 snaps = low sample.</p></div>`;
     }
   }
   host.innerHTML=h;
@@ -1670,20 +1670,20 @@ function renderPlan(){
   h+=`<table class="plan-tbl${planCol?" wkplan":""}"><tr><th>Situation</th><th>They show</th>${planCol?`<th>This week's calls</th>`:""}<th>${planCol?"Suggestions":"Best calls"} (success vs that look)</th></tr>`;
   buckets.forEach((b,bi)=>{
     const ds=defSituation(def,b.dn,b.db,b.zone||"ANY"); const g=ds.rows;
-    const gc=g.filter(r=>r.coverage&&r.coverage!=="â€”");
+    const gc=g.filter(r=>r.coverage&&r.coverage!=="—");
     const cov=gc.length?weightedDist(gc,"coverage",false).arr[0]:null;
     const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
     const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
     const target=cov?cov.k:null;
     const runs=target?bestCallsFor(target,b.dn,b.db,"Run"):[]; const passes=target?bestCallsFor(target,b.dn,b.db,"Pass"):[];
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
-    const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"â€”"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
+    const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
     const mine=Array.isArray(b.plays)?b.plays:[];
-    const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">Ã—</button>`:""}</div>`;
+    const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</div>`;
     const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="display:block;padding:2px 9px;margin:5px 0 0;white-space:nowrap">+ Add</button>`:"");
     const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
     const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
-    h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">â€”</span>'}</td>`:""}<td>${callStr}</td></tr>`;
+    h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
   h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;
   host.innerHTML=h;
@@ -1693,7 +1693,7 @@ function renderPlan(){
 function setPlanSide(sde){ PLAN_SIDE=sde; renderPlan(); }
 /* ---------- Practice script (auto-drafted from the week plan; printable; live rep-marking) ---------- */
 function practiceSave(){ if(!WEEK) return; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(WEEK_EDIT && window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({practice:WEEK.practice}); }
-function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team â€” "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
+function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team — "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
 function practiceRedraft(){ if(!confirm("Re-draft the script from the current game plan? Replaces the periods (rep counts and marks reset).")) return; WEEK.practice=draftPractice(); practiceSave(); renderPractice(); }
 function practiceAddPeriod(){ WEEK.practice=WEEK.practice||draftPractice(); WEEK.practice.periods.push({name:"New period",plays:[]}); practiceSave(); renderPractice(); }
 function renderPractice(){
@@ -1722,7 +1722,7 @@ function renderPractice(){
       });
       h+=`</table>`;
     } else h+=`<p class="foot" style="margin:5px 0">No plays in this period yet.</p>`;
-    if(edit && PBOOK && PBOOK.length){ h+=`<select class="no-print paddsel" data-pi="${pi}" style="margin-top:6px;max-width:220px"><option value="">+ add a playâ€¦</option>${PBOOK.map(p=>`<option value="${esc(String(p.id||p.name))}">${esc(p.name)}</option>`).join("")}</select>`; }
+    if(edit && PBOOK && PBOOK.length){ h+=`<select class="no-print paddsel" data-pi="${pi}" style="margin-top:6px;max-width:220px"><option value="">+ add a play…</option>${PBOOK.map(p=>`<option value="${esc(String(p.id||p.name))}">${esc(p.name)}</option>`).join("")}</select>`; }
     h+=`</div>`;
   });
   h+='</div>';
@@ -1746,22 +1746,22 @@ function suggestDef(off,dn,db){
   const form=weightedDist(off.filter(r=>r.formation),"formation",false).arr[0];
   const motion=off.length?off.filter(r=>+r.motion===1).length/off.length:0;
   let front,cover,press,note;
-  if(run>=0.65){ front="Base / heavy â€” load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" â€” set strength to the run, stay gap-sound."; }
-  else if(run<=0.35){ front="Nickel / lighter box"; cover="Two-high: Cover 2 / Quarters, mix man"; press="Rush 4 + sim pressure; DB blitz vs empty"; note="Pass-heavy ("+fmtPct(1-run)+") â€” 2-high, disguise, get hands on routes."; }
-  else { front="Multiple â€” even/odd mix"; cover="Cover 3 base, mix Cover 1"; press="Situational pressure"; note="Balanced ("+fmtPct(run)+" run) â€” stay multiple, play your keys, disguise."; }
-  if(+dn===3 && db==="10+"){ cover="Two-high zone (Cover 2/4) â€” keep it underneath"; press="Zone/sim pressure, don't get gashed"; }
-  if(db==="1-3"){ front="Heavy front â€” short yardage"; cover="Cover 0 / Cover 1 man"; press="Run blitz / squeeze gaps"; }
+  if(run>=0.65){ front="Base / heavy — load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" — set strength to the run, stay gap-sound."; }
+  else if(run<=0.35){ front="Nickel / lighter box"; cover="Two-high: Cover 2 / Quarters, mix man"; press="Rush 4 + sim pressure; DB blitz vs empty"; note="Pass-heavy ("+fmtPct(1-run)+") — 2-high, disguise, get hands on routes."; }
+  else { front="Multiple — even/odd mix"; cover="Cover 3 base, mix Cover 1"; press="Situational pressure"; note="Balanced ("+fmtPct(run)+" run) — stay multiple, play your keys, disguise."; }
+  if(+dn===3 && db==="10+"){ cover="Two-high zone (Cover 2/4) — keep it underneath"; press="Zone/sim pressure, don't get gashed"; }
+  if(db==="1-3"){ front="Heavy front — short yardage"; cover="Cover 0 / Cover 1 man"; press="Run blitz / squeeze gaps"; }
   return {front:front,cover:cover,press:press,note:note,run:run,motion:motion,form:form,dir:dir};
 }
 function renderDefPlanBody(oppName){
   const off=oppRows("off");
-  if(!off.length) return `<p class="foot">No offense data for ${esc(oppName)} yet â€” import their offense (or a full game) to build the defensive plan.</p>`;
+  if(!off.length) return `<p class="foot">No offense data for ${esc(oppName)} yet — import their offense (or a full game) to build the defensive plan.</p>`;
   let h=`<table class="plan-tbl"><tr><th>Situation</th><th>They do</th><th>Suggested defense</th></tr>`;
   planBuckets().forEach(b=>{
     const m=r=>(b.dn==="ANY"||r.down===+b.dn)&&(b.db==="ANY"||distBucket(r.distance)===b.db)&&((b.zone||"ANY")==="ANY"||r.fieldZone===b.zone);
     let g=off.filter(m), predicted=false, from="";
     if(g.length<3 && b.dn!=="ANY"){ const g2=off.filter(r=>r.down===+b.dn); if(g2.length>=3){ g=g2; predicted=true; from=ordinal(+b.dn)+" down"; } }
-    if(g.length<2){ h+=`<tr><td><b>${esc(b.name)}</b></td><td class="foot">no reps</td><td class="foot">â€”</td></tr>`; return; }
+    if(g.length<2){ h+=`<tr><td><b>${esc(b.name)}</b></td><td class="foot">no reps</td><td class="foot">—</td></tr>`; return; }
     const sg=suggestDef(g,b.dn,b.db);
     const dir=sg.dir?dirLabel(sg.dir.k):"";
     const badge=predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
@@ -1769,7 +1769,7 @@ function renderDefPlanBody(oppName){
     const defStr=`<b>${esc(sg.front)}</b><br>${esc(sg.cover)}<br><span class="foot">${esc(sg.press)}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}</td><td>${doStr}</td><td>${defStr}</td></tr>`;
   });
-  h+=`</table><p class="foot" style="margin-top:8px">Defensive suggestions come from the opponent's run/pass, direction &amp; formation tendencies â€” adapt to your scheme &amp; personnel.</p>`;
+  h+=`</table><p class="foot" style="margin-top:8px">Defensive suggestions come from the opponent's run/pass, direction &amp; formation tendencies — adapt to your scheme &amp; personnel.</p>`;
   return h;
 }
 function loadLive(){ try{ const x=localStorage.getItem(LIVE_KEY); if(x){ const a=JSON.parse(x); if(Array.isArray(a)) LIVE_SNAPS=a; } }catch(e){} }
@@ -1794,7 +1794,7 @@ function rawCleanup(txt){
   return {Coverage:fmt("Coverage"),Front:fmt("Front"),Blitz:fmt("Blitz"),Hash:fmt("Hash")};
 }
 function stripJunkRows(txt){
-  /* Hudl/QwikCut exports sometimes have title/blank rows above the real header â€”
+  /* Hudl/QwikCut exports sometimes have title/blank rows above the real header —
      find the first line that matches >=2 known columns and start there. */
   const lines=(txt||"").replace(/\r/g,"").split("\n");
   const nonEmpty=lines.map((l,i)=>({l,i})).filter(o=>o.l.trim().length);
@@ -1846,23 +1846,23 @@ function previewImport(){
     let odkDist={}, offByODK={}, defByODK={};
     const oi=cols.odk?cols.odk.idx:-1, pti=cols.playtype?cols.playtype.idx:-1, cvi=cols.coverage?cols.coverage.idx:-1, fri=cols.front?cols.front.idx:-1;
     lines.slice(1).forEach(l=>{ const c=splitCSVLine(l); if(!c.length||c.join("").trim()==="")return;
-      const k=(oi>=0?(((c[oi]||"").trim().toUpperCase()[0])||"â€”"):"â€”"); odkDist[k]=(odkDist[k]||0)+1;
+      const k=(oi>=0?(((c[oi]||"").trim().toUpperCase()[0])||"—"):"—"); odkDist[k]=(odkDist[k]||0)+1;
       const pt=(pti>=0?(c[pti]||""):"").toLowerCase(); if(pt.indexOf("run")>=0||pt.indexOf("pass")>=0) offByODK[k]=(offByODK[k]||0)+1;
       const hd=(cvi>=0&&(c[cvi]||"").trim())||(fri>=0&&(c[fri]||"").trim()); if(hd) defByODK[k]=(defByODK[k]||0)+1;
     });
     if(oi>=0) H2+='<p style="font-size:13px;margin:2px 0">ODK column: '+Object.keys(odkDist).sort().map(k=>'<b>'+esc(k)+'</b> '+odkDist[k]).join(" &middot; ")+'</p>';
-    else H2+='<p style="font-size:13px;margin:2px 0">No ODK column â€” every row treated as one side.</p>';
+    else H2+='<p style="font-size:13px;margin:2px 0">No ODK column — every row treated as one side.</p>';
     let warns=[];
     const hasO=(odkDist.O||0)>0, hasD=(odkDist.D||0)>0;
-    if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected (O and D snaps). If this is "+esc(nameA)+"â€™s own film, set ODK â€œOâ€ = their offense so O/D arenâ€™t swapped.");
+    if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected (O and D snaps). If this is "+esc(nameA)+"’s own film, set ODK “O” = their offense so O/D aren’t swapped.");
     teams.forEach(T=>{
       const ok=keepFor(T,"off"), dk=keepFor(T,"def");
       const oN=offByODK[ok]||0, dN=defByODK[dk]||0, oOpp=offByODK[ok==="O"?"D":"O"]||0;
-      if((IMPORT_MODE==="full"||IMPORT_MODE==="scout") && oN===0 && oOpp>0) warns.push(esc(T)+": 0 offense snaps on ODK="+ok+", but "+oOpp+" on the other side â€” perspective may be flipped.");
-      if((IMPORT_MODE==="full"||IMPORT_MODE==="defense") && dN===0 && (odkDist[dk]||0)>0) warns.push(esc(T)+": "+(odkDist[dk]||0)+" ODK="+dk+" snaps but none tagged with coverage/front â€” no defense captured (untagged rows, or perspective flipped).");
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="scout") && oN===0 && oOpp>0) warns.push(esc(T)+": 0 offense snaps on ODK="+ok+", but "+oOpp+" on the other side — perspective may be flipped.");
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="defense") && dN===0 && (odkDist[dk]||0)>0) warns.push(esc(T)+": "+(odkDist[dk]||0)+" ODK="+dk+" snaps but none tagged with coverage/front — no defense captured (untagged rows, or perspective flipped).");
     });
-    if(warns.length) H2+='<div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">'+warns.map(w=>"âš  "+w).join("<br>")+'</div>';
-    else H2+='<p class="foot" style="margin:2px 0">Looks consistent â€” no inversion or blank-tag flags.</p>';
+    if(warns.length) H2+='<div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">'+warns.map(w=>"⚠ "+w).join("<br>")+'</div>';
+    else H2+='<p class="foot" style="margin:2px 0">Looks consistent — no inversion or blank-tag flags.</p>';
     H+=H2;
   })();
   const cl=rawCleanup(txt);
@@ -1896,12 +1896,12 @@ function renderCaller(){
   h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
   const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
   const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
-  const gc=g.filter(r=>r.coverage&&r.coverage!=="â€”");
+  const gc=g.filter(r=>r.coverage&&r.coverage!=="—");
   const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
   const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
   const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
   h+=`<div class="panel" data-acc-skip><div class="lbl">${ordinal(+cs.dn)} & ${cs.db}${cs.zone!=="ANY"?" &middot; "+(cs.zone==="REDZONE"?"RZ":cs.zone):""}${cs.hash!=="ANY"?" &middot; "+cs.hash+" hash":""} &mdash; they show</div>`;
-  if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"â€”"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
+  if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
   else h+=`<p class="foot">No reps for this exact look (try widening hash/field).</p>`;
   const target=cov?cov.k:null;
   const cRuns=target?bestCallsFor(target,+cs.dn,cs.db,"Run").slice(0,2):[];
@@ -1954,7 +1954,7 @@ function splitCSVLine(line){
   }
   out.push(cur); return out;
 }
-/* Field aliases â€” covers our own headers AND Hudl Classic breakdown column names.
+/* Field aliases — covers our own headers AND Hudl Classic breakdown column names.
    Hudl exports are team-customized, so we match generously and case-insensitively. */
 const ALIASES={
   date:["date","game","game date","gamedate"],
@@ -2004,7 +2004,7 @@ function zoneFromYardLine(raw){
   const num=parseInt(s.replace(/[^0-9]/g,""),10);
   if(opp){ return (!isNaN(num)&&num<=20)?"REDZONE":"PLUS"; }
   if(own) return "OWN";
-  return ""; // ambiguous â€” leave unset so red-zone filter isn't polluted
+  return ""; // ambiguous — leave unset so red-zone filter isn't polluted
 }
 function parseCSV(text,forceKeep){
   const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.trim().length);
@@ -2069,7 +2069,7 @@ function parseCSV(text,forceKeep){
 function loadData(rows,source){
   if(!rows.length){ document.getElementById("importMsg").textContent="No valid rows found. "+(LAST_MAPPING||"Need a header row plus at least one row with a coverage value."); return false; }
   DATA=rows; DATASOURCE=source;
-  document.getElementById("dcname").textContent = "â€” "+rows.length+" snaps loaded";
+  document.getElementById("dcname").textContent = "— "+rows.length+" snaps loaded";
   Object.assign(sit,{down:1,dist:"10+",zone:"ANY",hash:"ANY",pers:"ANY",form:"ANY",score:"ANY",qtr:"ANY",opp:"ANY"});
   buildControls(); render();
   return true;
@@ -2084,7 +2084,7 @@ const TEMPLATE='date,opponent,qtr,scoreMargin,down,distance,fieldZone,hash,perso
 '2025-09-06,State,3,-4,3,3,REDZONE,M,11,Bunch,BEAR,Cover 0,1,Double A,TD';
 
 /* ---------- wiring ---------- */
-function setBooth(on){ document.body.classList.toggle("dark",on); try{ localStorage.setItem("offgrd_booth",on?"1":"0"); }catch(e){} const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode âœ“":"Booth mode"; try{ document.querySelector('meta[name="theme-color"]').setAttribute("content",on?"#0b1017":"#13294B"); }catch(e){} }
+function setBooth(on){ document.body.classList.toggle("dark",on); try{ localStorage.setItem("offgrd_booth",on?"1":"0"); }catch(e){} const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode ✓":"Booth mode"; try{ document.querySelector('meta[name="theme-color"]').setAttribute("content",on?"#0b1017":"#13294B"); }catch(e){} }
 document.getElementById("darkBtn").onclick=()=>setBooth(!document.body.classList.contains("dark"));
 try{ if(localStorage.getItem("offgrd_booth")==="1") setBooth(true); }catch(e){}
 /* mobile menu sheet */
@@ -2223,17 +2223,17 @@ function wireBranding(){
     const bg=brEl.querySelector("#brBg").value, fg=brEl.querySelector("#brFg").value;
     const prev=USER_BRANDS[name]||teamBrand(name);
     let logo=prev.logo||""; if(_pendingLogo==="__clear__") logo=""; else if(_pendingLogo) logo=_pendingLogo;
-    const ab=name.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"â€¢";
+    const ab=name.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•";
     USER_BRANDS[name]={abbr:ab,fg:fg,bg:bg,logo:logo};
     OUR_TEAM=name; saveBrands(); saveIdentity(name); _pendingLogo=null; applyTeamColors();
     try{ if(window.OFFGRD_PUSH_BRAND) window.OFFGRD_PUSH_BRAND(name, USER_BRANDS[name]); }catch(e){}
     const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34);
-    render(); brEl.innerHTML=brandingHTML(); wireBranding(); brEl.querySelector("#brMsg").textContent="Saved âœ“";
+    render(); brEl.innerHTML=brandingHTML(); wireBranding(); brEl.querySelector("#brMsg").textContent="Saved ✓";
   };
   const oppFile=brEl.querySelector("#brOppFile");
   [].forEach.call(brEl.querySelectorAll(".oppLogoBtn"),b=>b.onclick=()=>{ _pendingOpp=b.dataset.opp; oppFile.click(); });
   oppFile.onchange=e=>{ const f=e.target.files[0]; if(!f||!_pendingOpp)return; logoFromFile(f,"opp-"+logoKey(_pendingOpp),url=>{ if(!url) return;
-    const o=_pendingOpp, prev=USER_BRANDS[o]||teamBrand(o), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"â€¢";
+    const o=_pendingOpp, prev=USER_BRANDS[o]||teamBrand(o), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"•";
     USER_BRANDS[o]={abbr:ab,fg:prev.fg||"#ffffff",bg:prev.bg||"#5b626e",logo:url};
     saveBrands(); _pendingOpp=null; if(typeof setOpponent==="function") setOpponent(sit.opp); render();
     brEl.innerHTML=brandingHTML(); wireBranding(); }); };
@@ -2272,8 +2272,8 @@ OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
 window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;saveGames();rebuildActive();buildControls();render();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}}};
-/* week plan hook â€” account.js feeds the active week_plans row here on every pull.
-   Registered at TOP LEVEL, synchronously (the Playbook sync lesson â€” never move into DOMContentLoaded). */
+/* week plan hook — account.js feeds the active week_plans row here on every pull.
+   Registered at TOP LEVEL, synchronously (the Playbook sync lesson — never move into DOMContentLoaded). */
 window.OFFGRD_WEEK={set:function(wp,ce){
   const changed = JSON.stringify(wp||null)!==JSON.stringify(WEEK) || WEEK_EDIT!==!!ce;
   WEEK_EDIT=!!ce;
