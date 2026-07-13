@@ -255,15 +255,16 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=61"></script>
+<script src="OFFGRD-config.js?v=62"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=61"></script>
-<script src="OFFGRD-render.js?v=61"></script>
-<script src="OFFGRD-autoderive.js?v=61"></script>
-<script src="OFFGRD-scoutcards.js?v=61"></script>
-<script src="OFFGRD-tendencies.js?v=61"></script>
-<script src="OFFGRD-weeklypackage.js?v=61"></script>
-<script src="OFFGRD-telestrate.js?v=61"></script>
+<script src="OFFGRD-cache-gate.js?v=62"></script>
+<script src="OFFGRD-render.js?v=62"></script>
+<script src="OFFGRD-autoderive.js?v=62"></script>
+<script src="OFFGRD-scoutcards.js?v=62"></script>
+<script src="OFFGRD-tendencies.js?v=62"></script>
+<script src="OFFGRD-weeklypackage.js?v=62"></script>
+<script src="OFFGRD-telestrate.js?v=62"></script>
+<script src="OFFGRD-redesign.js?v=62"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1343,9 +1344,11 @@ function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return
 function refreshView(){ if(CURRENT_VIEW==="plan")renderPlan(); else if(CURRENT_VIEW==="package")renderPackage(); else if(CURRENT_VIEW==="caller")renderCaller(); else if(CURRENT_VIEW==="report")renderReport(); else if(CURRENT_VIEW==="practice")renderPractice(); else render(); }
 function setView(v){
   CURRENT_VIEW=v;
+  try{ window.CURRENT_VIEW=v; }catch(e){}
   ["scout","plan","package","caller","report","practice"].forEach(id=>{ const el=document.getElementById("view-"+id); if(el) el.style.display=(id===v)?"":"none"; });
   const nv=document.getElementById("navbar"); if(nv) [].forEach.call(nv.querySelectorAll("button"),b=>{ if(b.dataset.view===v)b.classList.add("on"); else b.classList.remove("on"); });
   refreshView();
+  try{ if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI(); }catch(e){}
 }
 function printActive(){ window.print(); }
 
@@ -2189,7 +2192,7 @@ function saveBrands(){ try{ localStorage.setItem("offgrd_brands", JSON.stringify
 function loadIdentity(){ try{ return localStorage.getItem("offgrd_identity")||""; }catch(e){ return ""; } }
 function saveIdentity(name){ try{ localStorage.setItem("offgrd_identity", name||""); }catch(e){} }
 function idealInk(hex){ hex=(hex||"").replace("#",""); if(hex.length===3) hex=hex.split("").map(c=>c+c).join(""); if(hex.length<6) return "#ffffff"; const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255; const f=c=>c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4); const L=0.2126*f(r)+0.7152*f(g)+0.0722*f(b); return L>0.55?"#08111d":"#ffffff"; }
-function applyTeamColors(){ try{ const known=USER_BRANDS[OUR_TEAM]||TEAMS[OUR_TEAM]; const root=document.body; if(known&&known.bg){ root.style.setProperty("--accent",known.bg); root.style.setProperty("--accent-ink", idealInk(known.bg)); } else { root.style.removeProperty("--accent"); root.style.removeProperty("--accent-ink"); } }catch(e){} }
+function applyTeamColors(){ try{ const known=USER_BRANDS[OUR_TEAM]||TEAMS[OUR_TEAM]; const root=document.body; if(known&&known.bg){ root.style.setProperty("--accent",known.bg); root.style.setProperty("--accent-ink", idealInk(known.bg)); try{ document.documentElement.setAttribute("data-team-hex",known.bg); }catch(e2){} } else { root.style.removeProperty("--accent"); root.style.removeProperty("--accent-ink"); try{ document.documentElement.removeAttribute("data-team-hex"); }catch(e2){} } /* Redesign accent is tuned for legibility on Night/Chalk — overrides chrome accent when flag on. */ if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()&&OFFGRD_REDESIGN.applyTokens) OFFGRD_REDESIGN.applyTokens(); }catch(e){} }
 function fileToDataURL(file,cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
 function logoKey(name){ const s=String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-+|-+$)/g,"").slice(0,40); return s||"logo"; }
 function logoFromFile(file,key,cb){ if(typeof key==="function"){ cb=key; key=null; } if(!file){ cb(null); return; } const fr=new FileReader(); fr.onload=function(){ const src=fr.result; const img=new Image(); img.onload=function(){ try{ const max=160; let w=img.width||max, h=img.height||max; if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } } const c=document.createElement("canvas"); c.width=w; c.height=h; const cx=c.getContext("2d"); cx.clearRect(0,0,w,h); cx.drawImage(img,0,0,w,h); const dataUrl=c.toDataURL("image/png"); if(key && window.OFFGRD_UPLOAD_LOGO && c.toBlob){ c.toBlob(function(blob){ if(!blob){ cb(dataUrl); return; } window.OFFGRD_UPLOAD_LOGO(key, blob).then(function(url){ cb(url||dataUrl); }).catch(function(){ cb(dataUrl); }); }, "image/png"); } else { cb(dataUrl); } }catch(e){ cb(src); } }; img.onerror=function(){ cb(src); }; img.src=src; }; fr.onerror=function(){ cb(null); }; fr.readAsDataURL(file); }
@@ -2325,9 +2328,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=61"></script>
-<script src="OFFGRD-role-gate.js?v=61"></script>
-<script src="OFFGRD-mobile.js?v=61"></script>
+<script type="module" src="OFFGRD-account.js?v=62"></script>
+<script src="OFFGRD-role-gate.js?v=62"></script>
+<script src="OFFGRD-mobile.js?v=62"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -11,7 +11,9 @@
     "offgrd_autoderive_reads": 1,
     "offgrd_scoutcards": 1,
     "offgrd_tendency_reports": 1,
-    "offgrd_film_telestrate": 1
+    "offgrd_film_telestrate": 1,
+    "offgrd_redesign": 1,
+    "offgrd_redesign_base": 1
   };
 
   function isProgramCacheKey(k) {
