@@ -4,13 +4,37 @@
    Default OFF — old UI intact until cutover.
    Phase 1 only: CSS vars (Night Turf / Chalk) + accent-tuning +
    context bar + four-phase nav. No full screen restyle yet.
-   v63: retune accent from raw team hex on every base change; fold acct chrome.
+   v64: kill-switch first; one-pass accent (no contrast loops); no data-base MO.
    ============================================================ */
 (function (root) {
   "use strict";
 
   const LS_FLAG = "offgrd_redesign";
   const LS_BASE = "offgrd_redesign_base";
+
+  /* ---- Unconditional kill switch — runs BEFORE any init/observers/tokens ---- */
+  function queryFlag() {
+    try {
+      const q = location.search || "";
+      if (/[?&]redesign=0(?:&|$)/.test(q)) return 0;
+      if (/[?&]redesign=1(?:&|$)/.test(q)) return 1;
+    } catch (e) {}
+    return null;
+  }
+
+  (function applyKillSwitch() {
+    if (queryFlag() !== 0) return;
+    try { localStorage.setItem(LS_FLAG, "0"); } catch (e) {}
+    try { localStorage.removeItem(LS_BASE); } catch (e) {}
+    try {
+      document.documentElement.classList.remove("rd-on");
+      document.documentElement.removeAttribute("data-base");
+      document.documentElement.removeAttribute("data-rd-accent");
+      document.documentElement.removeAttribute("data-rd-base");
+      const shell = document.getElementById("rdShell");
+      if (shell && shell.parentNode) shell.parentNode.removeChild(shell);
+    } catch (e) {}
+  })();
 
   const PHASES = [
     {
@@ -69,9 +93,9 @@
 
   function isRedesign() {
     try {
-      const q = location.search || "";
-      if (/[?&]redesign=0(?:&|$)/.test(q)) return false;
-      if (/[?&]redesign=1(?:&|$)/.test(q)) return true;
+      const qf = queryFlag();
+      if (qf === 0) return false;
+      if (qf === 1) return true;
       const ls = localStorage.getItem(LS_FLAG);
       if (ls === "0") return false;
       if (ls === "1") return true;
@@ -92,8 +116,11 @@
   function setBase(base) {
     base = base === "chalk" ? "chalk" : "night";
     try { localStorage.setItem(LS_BASE, base); } catch (e) {}
-    document.documentElement.dataset.base = base;
-    /* Always pass base explicitly so retune cannot race getBase()/LS */
+    try {
+      if (document.documentElement.dataset.base !== base) {
+        document.documentElement.dataset.base = base;
+      }
+    } catch (e) {}
     applyTokens(base);
     return base;
   }
@@ -195,24 +222,18 @@
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     const s = Math.max(hsl.s, 0.55);
     let l = hsl.l;
-    /* Spec bands: Night lightens dark colors; Chalk deepens light colors. */
+    /* Spec bands — ONE PASS. Never iterate lightness. */
     if (base === "night") l = clamp(l, 0.54, 0.70);
     else l = clamp(l, 0.36, 0.48);
 
     let accent = hslToHex(hsl.h, s, l);
-
-    /* AA guardrail after the clamp: walk L so accent-as-text hits ≥4.5:1 vs
-       the base surface. Prefer staying in-band; extend slightly for worst
-       hues (e.g. gold on Chalk) so acceptance cases stay legible. */
     const surface = base === "chalk" ? "#FFFFFF" : "#0E1116";
-    const step = base === "chalk" ? -0.02 : 0.02;
-    const minL = base === "chalk" ? 0.24 : 0.54;
-    const maxL = base === "chalk" ? 0.48 : 0.78;
-    for (let i = 0; i < 24 && contrastRatio(accent, surface) < 4.5; i++) {
-      const next = clamp(l + step, minL, maxL);
-      if (next === l) break;
-      l = next;
+
+    /* At most one direct hop + one fallback — bounded, always terminates. */
+    if (contrastRatio(accent, surface) < 4.5) {
+      l = base === "chalk" ? 0.28 : 0.62;
       accent = hslToHex(hsl.h, s, l);
+      if (contrastRatio(accent, surface) < 4.5) accent = fb;
     }
 
     const accentText = relativeLuminance(accent) > 0.45 ? "#0E1116" : "#FFFFFF";
@@ -343,31 +364,41 @@
     st.textContent = cssTokens();
   }
 
+  let _applyingTokens = false;
   function applyTokens(baseOverride) {
-    const base = (baseOverride === "chalk" || baseOverride === "night")
-      ? baseOverride
-      : (document.documentElement.dataset.base === "chalk" || document.documentElement.dataset.base === "night"
-        ? document.documentElement.dataset.base
-        : getBase());
-    document.documentElement.dataset.base = base;
-    /* Re-tune from RAW stored team hex every time — never feed a prior --accent. */
-    const raw = rawTeamHex();
-    const tuned = adjustAccent(raw, base);
-    const rootEl = document.documentElement;
-    rootEl.style.setProperty("--rd-accent", tuned.accent);
-    rootEl.style.setProperty("--rd-accent-text", tuned.accentText);
-    rootEl.style.setProperty("--accent", tuned.accent);
-    rootEl.style.setProperty("--accent-text", tuned.accentText);
+    if (_applyingTokens) return;
+    if (!isRedesign()) return;
+    _applyingTokens = true;
     try {
-      if (document.body) {
-        document.body.style.setProperty("--accent", tuned.accent);
-        document.body.style.setProperty("--accent-ink", tuned.accentText);
-      }
-    } catch (e) {}
-    try {
-      rootEl.setAttribute("data-rd-accent", tuned.accent);
-      rootEl.setAttribute("data-rd-base", base);
-    } catch (e) {}
+      const base = (baseOverride === "chalk" || baseOverride === "night")
+        ? baseOverride
+        : getBase();
+      try {
+        if (document.documentElement.dataset.base !== base) {
+          document.documentElement.dataset.base = base;
+        }
+      } catch (e) {}
+      /* Re-tune from RAW stored team hex every time — never feed a prior --accent. */
+      const raw = rawTeamHex();
+      const tuned = adjustAccent(raw, base);
+      const rootEl = document.documentElement;
+      rootEl.style.setProperty("--rd-accent", tuned.accent);
+      rootEl.style.setProperty("--rd-accent-text", tuned.accentText);
+      rootEl.style.setProperty("--accent", tuned.accent);
+      rootEl.style.setProperty("--accent-text", tuned.accentText);
+      try {
+        if (document.body) {
+          document.body.style.setProperty("--accent", tuned.accent);
+          document.body.style.setProperty("--accent-ink", tuned.accentText);
+        }
+      } catch (e) {}
+      try {
+        rootEl.setAttribute("data-rd-accent", tuned.accent);
+        rootEl.setAttribute("data-rd-base", base);
+      } catch (e) {}
+    } finally {
+      _applyingTokens = false;
+    }
   }
 
   function esc(s) {
@@ -525,19 +556,6 @@
     if (host && src) host.innerHTML = src.innerHTML;
   }
 
-  function compactAcctChrome() {
-    const acct = document.getElementById("acct");
-    if (!acct || !isRedesign()) return;
-    /* Hide chrome that now lives in Setup; keep #ci (Sign in). */
-    [].forEach.call(acct.querySelectorAll("#cteam,#cs,#cd,#co,#csetup,#syncstat"), function (el) {
-      el.style.display = "none";
-    });
-    [].forEach.call(acct.querySelectorAll(".cbtn"), function (el) {
-      if (el.id === "ci") return;
-      el.style.display = "none";
-    });
-  }
-
   function adoptAcct() {
     const host = document.getElementById("rdAcctHost");
     const acct = document.getElementById("acct");
@@ -545,11 +563,15 @@
       host.appendChild(acct);
       acct.style.marginLeft = "0";
     }
-    compactAcctChrome();
+    /* CSS under html.rd-on hides Team/Sync/Load/Sign out — no MutationObserver
+       that mutates #acct (that feedback can freeze the main thread). */
     if (acct && !acct._rdAcctObs) {
       acct._rdAcctObs = true;
       try {
-        const mo = new MutationObserver(function () { compactAcctChrome(); syncScopeBadge(); });
+        const mo = new MutationObserver(function () {
+          /* Read-only: refresh scope/sync label. Never write into #acct. */
+          try { syncScopeBadge(); } catch (e) {}
+        });
         mo.observe(acct, { childList: true, subtree: true });
       } catch (e) {}
     }
@@ -634,8 +656,6 @@
       orig.apply(this, arguments);
       if (!isRedesign()) return;
       try {
-        /* data-team-hex is the RAW brand written by applyTeamColors — never read --accent
-           (applyTokens may already have overwritten body --accent with a tuned value). */
         const stash = document.documentElement.getAttribute("data-team-hex");
         if (stash) noteRawTeamHex(stash);
         applyTokens(getBase());
@@ -645,40 +665,19 @@
     _patchedColors = true;
   }
 
-  let _baseObs = false;
-  function watchBaseAttr() {
-    if (_baseObs) return;
-    _baseObs = true;
-    try {
-      const mo = new MutationObserver(function (muts) {
-        for (let i = 0; i < muts.length; i++) {
-          if (muts[i].attributeName === "data-base" && isRedesign()) {
-            const b = document.documentElement.dataset.base;
-            if (b === "chalk" || b === "night") {
-              try { localStorage.setItem(LS_BASE, b); } catch (e) {}
-              applyTokens(b);
-            }
-          }
-        }
-      });
-      mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-base"] });
-    } catch (e) {}
-  }
-
   function applyRedesignShell() {
-    const on = isRedesign();
-    document.documentElement.classList.toggle("rd-on", on);
-    if (!on) {
-      const shell = document.getElementById("rdShell");
-      if (shell) shell.style.display = "none";
+    if (queryFlag() === 0 || !isRedesign()) {
+      document.documentElement.classList.remove("rd-on");
+      const shellOff = document.getElementById("rdShell");
+      if (shellOff) shellOff.style.display = "none";
       restoreAcct();
       return false;
     }
 
+    document.documentElement.classList.add("rd-on");
     ensureCss();
     patchApplyTeamColors();
-    watchBaseAttr();
-    setBase(getBase()); /* retunes accents for active base from raw team hex */
+    setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
 
     let shell = document.getElementById("rdShell");
     if (!shell) {
@@ -698,9 +697,7 @@
     syncPhaseUI();
     patchSetView();
     refreshSetupBaseLabel();
-    applyTokens(getBase());
 
-    /* Keep scope badge in sync when datbadge updates */
     try {
       const badge = document.getElementById("datbadge");
       if (badge && !badge._rdObs) {
@@ -714,29 +711,46 @@
   }
 
   function boot() {
-    if (!isRedesign()) {
+    /* Kill switch again at boot — covers late-ready + persisted bad state. */
+    if (queryFlag() === 0 || !isRedesign()) {
       document.documentElement.classList.remove("rd-on");
+      try {
+        const shell = document.getElementById("rdShell");
+        if (shell) shell.style.display = "none";
+      } catch (e) {}
+      restoreAcct();
       return;
     }
+    try { localStorage.setItem(LS_FLAG, "1"); } catch (e) {}
     applyRedesignShell();
-    /* Account chip + setView / applyTeamColors may land slightly after first paint */
+    /* applyTeamColors / #acct may land after first paint — light touch only */
     setTimeout(function () {
-      if (!isRedesign()) return;
+      if (queryFlag() === 0 || !isRedesign()) return;
       patchApplyTeamColors();
-      applyRedesignShell();
-      applyTokens(getBase());
       patchSetView();
+      adoptAcct();
+      applyTokens(getBase());
       syncCrest();
       syncScopeBadge();
       syncPhaseUI();
-      compactAcctChrome();
     }, 250);
-    setTimeout(function () {
-      if (!isRedesign()) return;
-      patchApplyTeamColors();
-      applyTokens(getBase());
-      compactAcctChrome();
-    }, 1200);
+  }
+
+  /* If kill-switched, expose stubs only — no observers, no boot work. */
+  if (queryFlag() === 0) {
+    root.OFFGRD_REDESIGN = {
+      isRedesign: function () { return false; },
+      applyRedesignShell: function () { return false; },
+      applyTokens: function () {},
+      adjustAccent: adjustAccent,
+      rawTeamHex: function () { return null; },
+      getBase: function () { return "night"; },
+      setBase: function () { return "night"; },
+      toggleBase: function () { return "night"; },
+      syncPhaseUI: function () {},
+      PHASES: PHASES
+    };
+    return;
   }
 
   if (document.readyState === "loading") {
@@ -745,7 +759,7 @@
     setTimeout(boot, 0);
   }
 
-  /* Re-apply accent when cloud brand lands */
+  /* Re-apply accent when cloud brand lands (may overwrite earlier wrap) */
   const prevBrand = root.OFFGRD_BRAND;
   root.OFFGRD_BRAND = function () {
     if (typeof prevBrand === "function") {

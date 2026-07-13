@@ -3,7 +3,7 @@
   "private": true,
   "description": "OFFGRD coaching suite (static bundle)",
   "scripts": {
-    "check": "node scripts/check-parse.js",
+    "check": "node scripts/check-parse.js && node scripts/check-accent.js",
     "prepublishOnly": "npm run check"
   }
 }
