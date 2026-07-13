@@ -261,7 +261,11 @@ export const Cloud = {
       throw e;
     }
     if (timer) clearTimeout(timer);
-    const out = await r.json().catch(() => ({}));
+    /* text then parse — paint frame between network end and JSON.parse of a large gen payload */
+    const raw = await r.text().catch(() => "");
+    await new Promise(function (resolve) { setTimeout(resolve, 0); });
+    let out = {};
+    try { out = raw ? JSON.parse(raw) : {}; } catch (e) { out = {}; }
     if (!r.ok) throw new Error(out.error || ("Weekly package failed (" + r.status + ")"));
     return out;
   },

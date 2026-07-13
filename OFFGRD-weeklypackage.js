@@ -19,6 +19,7 @@
   let _busyTimer = null;
   let _genAbort = null;
   let _fillToken = 0;
+  let _suppressInjectUntil = 0;
 
   function flagParam(name) {
     try {
@@ -106,6 +107,10 @@
         setStatus(host, "Assemble timed out — tap Regenerate to retry. Sections below may still show prior content.");
       } catch (e) {}
     }, BUSY_TTL_MS);
+  }
+
+  function shouldSuppressInject() {
+    return Date.now() < (_suppressInjectUntil || 0);
   }
 
   function isBusy() {
@@ -383,7 +388,7 @@
         if (readsTd) readsTd.innerHTML = errBox("Reads error");
         if (olTd) olTd.innerHTML = '<span class="foot">—</span>';
       }
-      if (i % 2 === 1) await yieldPaint();
+      await yieldPaint();
     }
     const foot = host.querySelector("#wkpkgInstallFoot");
     if (foot) {
@@ -573,18 +578,73 @@
    * Fire-and-forget entry for Regenerate / Generate clicks.
    * MUST return void immediately so the click stack never awaits the network or fill.
    */
+  function askConfirm(message) {
+    /* Non-blocking confirm — window.confirm freezes the main thread (breaks automation + watchdog). */
+    return new Promise(function (resolve) {
+      try {
+        let ov = document.getElementById("wkpkgConfirmOv");
+        if (!ov) {
+          ov = document.createElement("div");
+          ov.id = "wkpkgConfirmOv";
+          ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px";
+          document.body.appendChild(ov);
+        }
+        ov.innerHTML = '<div style="background:var(--panel,#fff);color:var(--ink,#13294B);border-radius:12px;padding:16px 18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)">'
+          + '<p style="margin:0 0 14px;font-weight:700;line-height:1.4">' + esc(message) + "</p>"
+          + '<div style="display:flex;gap:8px;justify-content:flex-end">'
+          + '<button type="button" class="ghost" id="wkpkgConfirmNo" style="padding:8px 12px">Cancel</button>'
+          + '<button type="button" class="go" id="wkpkgConfirmYes" style="padding:8px 12px;font-weight:800">Regenerate</button>'
+          + "</div></div>";
+        ov.style.display = "flex";
+        const done = function (val) {
+          ov.style.display = "none";
+          ov.innerHTML = "";
+          resolve(!!val);
+        };
+        ov.querySelector("#wkpkgConfirmYes").onclick = function () { done(true); };
+        ov.querySelector("#wkpkgConfirmNo").onclick = function () { done(false); };
+        ov.onclick = function (e) { if (e.target === ov) done(false); };
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  function showGenError(msg) {
+    const host = document.getElementById("view-package");
+    if (host) {
+      setStatus(host, "Error: " + msg);
+      const plan = host.querySelector("#wkpkgPlan");
+      if (plan) {
+        plan.innerHTML = '<p class="foot" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:8px;padding:10px"><b>Draft error:</b> '
+          + esc(msg) + " — tap Regenerate to retry.</p>";
+      }
+    } else {
+      try { console.warn("[weekly-package]", msg); } catch (e) {}
+    }
+  }
+
+  /**
+   * Fire-and-forget entry for Regenerate / Generate clicks.
+   * MUST return void immediately — never window.confirm / alert on this path.
+   */
   function scheduleGenerate(ctx, force, opts) {
     opts = opts || {};
     setTimeout(function () {
-      if (opts.confirm !== false) {
-        const msg = opts.confirmMsg || "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.";
-        if (!confirm(msg)) return;
+      const go = function () {
+        setTimeout(function () {
+          runGenerate(ctx, force).catch(function (e) {
+            showGenError((e && e.message) || "Package generation failed.");
+          });
+        }, 0);
+      };
+      if (opts.confirm === false) {
+        go();
+        return;
       }
-      setTimeout(function () {
-        runGenerate(ctx, force).catch(function (e) {
-          try { alert((e && e.message) || "Package generation failed."); } catch (e2) {}
-        });
-      }, 0);
+      askConfirm(opts.confirmMsg || "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.")
+        .then(function (ok) { if (ok) go(); })
+        .catch(function () {});
     }, 0);
   }
 
@@ -594,10 +654,10 @@
     }
     if (!root.OFFGRD_WEEKLY_PACKAGE_GEN) throw new Error("Sign in as a coach to generate the weekly package.");
 
-    /* Yield BEFORE beginBusy side-effects so the click/macrotask that scheduled us can finish. */
     await yieldPaint();
 
     beginBusy();
+    _suppressInjectUntil = Date.now() + 8000;
     const host = document.getElementById("view-package");
     const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
     _genAbort = ctrl;
@@ -628,12 +688,14 @@
 
       if (host) {
         setStatus(host, "");
-        /* Same progressive fill as cold open. Keep snapshot DOM (already reconciled); refresh plan/install/brief. */
+        /* Update draft + briefing only — do NOT re-run install deriveReads (cold open already did). */
         await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), {
           skipTend: true,
+          skipInstall: true,
           planStatus: (res && res.draft_error) ? { error: res.draft_error } : null
         });
       }
+      _suppressInjectUntil = Date.now() + 5000;
       return res;
     } catch (e) {
       if (host) {
@@ -644,15 +706,6 @@
             error: (e && e.message) || "Package generation failed"
           });
         }
-        try {
-          const install = host.querySelector("#wkpkgInstall");
-          if (install && /Preparing|Resolving/.test(install.textContent || "")) {
-            await fillSectionsProgressive(host, Object.assign({}, ctx, { week: root.WEEK }), {
-              skipPlan: true,
-              skipTend: true
-            });
-          }
-        } catch (e2) {}
         wirePackageUI(host, ctx);
       }
       throw e;
@@ -660,7 +713,6 @@
       endBusy();
       const regen = host && host.querySelector("#wkpkgRegen");
       if (regen) { regen.disabled = false; regen.textContent = "Regenerate"; }
-      /* pullWeek only AFTER busy clears + UI filled — never race the paint path. */
       schedulePullWeek();
     }
   }

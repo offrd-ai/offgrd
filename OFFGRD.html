@@ -255,15 +255,15 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=60"></script>
+<script src="OFFGRD-config.js?v=61"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=60"></script>
-<script src="OFFGRD-render.js?v=60"></script>
-<script src="OFFGRD-autoderive.js?v=60"></script>
-<script src="OFFGRD-scoutcards.js?v=60"></script>
-<script src="OFFGRD-tendencies.js?v=60"></script>
-<script src="OFFGRD-weeklypackage.js?v=60"></script>
-<script src="OFFGRD-telestrate.js?v=60"></script>
+<script src="OFFGRD-cache-gate.js?v=61"></script>
+<script src="OFFGRD-render.js?v=61"></script>
+<script src="OFFGRD-autoderive.js?v=61"></script>
+<script src="OFFGRD-scoutcards.js?v=61"></script>
+<script src="OFFGRD-tendencies.js?v=61"></script>
+<script src="OFFGRD-weeklypackage.js?v=61"></script>
+<script src="OFFGRD-telestrate.js?v=61"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2282,21 +2282,24 @@ window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES
 /* week plan hook — account.js feeds the active week_plans row here on every pull.
    Registered at TOP LEVEL, synchronously (the Playbook sync lesson — never move into DOMContentLoaded). */
 window.OFFGRD_WEEK={set:function(wp,ce){
-  const changed = JSON.stringify(wp||null)!==JSON.stringify(WEEK) || WEEK_EDIT!==!!ce;
+  /* Light signature — never JSON.stringify the full week (gen can be huge; freezes Regenerate). */
+  function weekSig(w){ if(!w) return ""; return [w.id||"",w.updated_at||"",w.opponent||"",w.game_date||"",(w.gen&&w.gen.package_generated_at)||"",(w.gen&&w.gen.inputs_hash)||"",(w.gen&&w.gen.package_status)||"",(Array.isArray(w.buckets)?w.buckets.length:0)].join("|"); }
+  const changed = weekSig(wp)!==weekSig(WEEK) || WEEK_EDIT!==!!ce;
   WEEK_EDIT=!!ce;
   if(!changed) return;
   WEEK=wp||null;
-  try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){}
+  setTimeout(function(){ try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} }, 0);
   if(WEEK){
     if(Array.isArray(WEEK.buckets)&&WEEK.buckets.length){
       PLAN_BUCKETS=WEEK.buckets.map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:Array.isArray(b.plays)?b.plays:[]}));
       try{ localStorage.setItem(PLAN_KEY, JSON.stringify({buckets:PLAN_BUCKETS,wb:WB_PANELS,use:USE_WB})); }catch(e){}
     } else { ensurePlan(); WEEK.buckets=planBuckets(); if(WEEK_EDIT&&window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); }
     if(WEEK.opponent && sit.opp!==WEEK.opponent && GAMES.some(g=>g.opponent===WEEK.opponent)) setOpponent(WEEK.opponent);
-    if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); else if(CURRENT_VIEW==="package" && typeof renderPackage==="function") renderPackage(); }).catch(function(){});
+    if(window.OFFGRD_WEEK_PLAYS) window.OFFGRD_WEEK_PLAYS().then(function(a){ PBOOK=a||[]; if(CURRENT_VIEW==="plan") renderPlan(); else if(CURRENT_VIEW==="package" && typeof renderPackage==="function"){ if(!(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.shouldSuppressInject&&OFFGRD_WEEKLY_PACKAGE.shouldSuppressInject())) renderPackage(); } }).catch(function(){});
   }
   if(CURRENT_VIEW==="plan") renderPlan();
   else if(CURRENT_VIEW==="package" && typeof renderPackage==="function"){
+    if(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.shouldSuppressInject&&OFFGRD_WEEKLY_PACKAGE.shouldSuppressInject()) return;
     if(!(window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy())) renderPackage();
   }
 }};
@@ -2322,9 +2325,9 @@ if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
 </script>
-<script type="module" src="OFFGRD-account.js?v=60"></script>
-<script src="OFFGRD-role-gate.js?v=60"></script>
-<script src="OFFGRD-mobile.js?v=60"></script>
+<script type="module" src="OFFGRD-account.js?v=61"></script>
+<script src="OFFGRD-role-gate.js?v=61"></script>
+<script src="OFFGRD-mobile.js?v=61"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
