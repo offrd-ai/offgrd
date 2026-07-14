@@ -229,7 +229,7 @@
     }
     const approved = packageApproved(week);
     let h = '<div class="wkpkg-trust">' + esc(draft.trust_note || "AI draft — coach approves before sharing.") + "</div>";
-    if (approved) h += '<p class="foot" style="color:#1d7a45;font-weight:800">✓ Approved for sharing — player share checkboxes unlocked below.</p>';
+    if (approved) h += '<p class="foot wkpkg-approved-msg" style="color:#1d7a45;font-weight:800">✓ Approved for sharing — player share checkboxes unlocked below.</p>';
     draft.sections.forEach((sec, si) => {
       h += '<div class="wkpkg-sec" data-sec="' + si + '">';
       h += "<h3>" + esc(sec.title || sec.id || "Situation") + "</h3>";
@@ -250,7 +250,9 @@
     if (canEdit) {
       h += '<div class="no-print" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">';
       h += '<button type="button" class="ghost" id="wkpkgSaveEdits">Save edits</button>';
-      if (!approved) h += '<button type="button" class="go" id="wkpkgApprove" style="font-weight:800">Approve for sharing</button>';
+      if (!approved) h += '<button type="button" class="go" id="wkpkgApprove" style="font-weight:800">'
+        + ((root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign()) ? "Approve &amp; share" : "Approve for sharing")
+        + "</button>";
       h += "</div>";
     }
     return h;
@@ -312,7 +314,7 @@
     });
     if (!parts.length) return "";
     const tag = resolved.source === "auto" ? "auto" : "taught";
-    return '<span title="' + esc(parts.join(" · ")) + '"><b style="color:#1d7a45">✓ ' + tag + "</b> "
+    return '<span title="' + esc(parts.join(" · ")) + '"><b class="wkpkg-tag-ok" style="color:#1d7a45">✓ ' + tag + "</b> "
       + '<span class="foot">' + esc(parts.slice(0, 4).join(" · ")) + (parts.length > 4 ? "…" : "") + "</span></span>";
   }
 
@@ -321,7 +323,7 @@
     const n = Object.keys(resolved.ol.keys).length;
     if (!n) return '<span class="foot">—</span>';
     const tag = resolved.source === "auto" ? "auto" : "keyed";
-    return '<b style="color:#1d7a45">✓ ' + tag + '</b> <span class="foot">' + n + " blockers</span>";
+    return '<b class="wkpkg-tag-ok" style="color:#1d7a45">✓ ' + tag + '</b> <span class="foot">' + n + " blockers</span>";
   }
 
   function collectUniqueInstallPlays(week) {
@@ -376,7 +378,12 @@
         const row = matchPlaybookPlay(call, playbook);
         const drawn = playHasDiagram(row);
         if (!row || !drawn) {
-          if (readsTd) readsTd.innerHTML = '<span class="foot">Not drawn yet — draw to enable reads.</span>';
+          if (readsTd) {
+            const rd = root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign();
+            readsTd.innerHTML = rd
+              ? '<span class="wkpkg-tag-neutral">not drawn yet</span>'
+              : '<span class="foot">Not drawn yet — draw to enable reads.</span>';
+          }
           if (olTd) olTd.innerHTML = '<span class="foot">—</span>';
         } else {
           const rr = resolveInstallReads(row);
@@ -400,12 +407,13 @@
   function renderBriefingSection(week) {
     const g = week && week.gen;
     if (!g || !g.narrative) return '<p class="foot">Briefing generates with the package (generate-week). Offline: committed plan + tendencies still render.</p>';
-    let h = '<div style="white-space:pre-wrap;font-size:14px;line-height:1.55">' + esc(g.narrative) + "</div>";
+    const rd = root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign();
+    let body = '<div style="white-space:pre-wrap;font-size:14px;line-height:1.55">' + esc(g.narrative) + "</div>";
     if (Array.isArray(g.keys) && g.keys.length) {
-      h += '<div class="lbl" style="margin-top:10px">Keys</div>';
-      g.keys.forEach((k, i) => { h += '<div style="font-weight:700;margin:2px 0">' + (i + 1) + ". " + esc(k) + "</div>"; });
+      body += '<div class="lbl" style="margin-top:10px">Keys</div>';
+      g.keys.forEach((k, i) => { body += '<div style="font-weight:700;margin:2px 0">' + (i + 1) + ". " + esc(k) + "</div>"; });
     }
-    return h;
+    return rd ? ('<div class="wkpkg-brief">' + body + "</div>") : body;
   }
 
   function renderScoutActions() {
@@ -429,21 +437,51 @@
     const opp = ctx.opponent || (week && week.opponent) || "";
     const oppName = opp || "This week";
     const canEdit = !!ctx.canEdit;
+    const rd = root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign();
+    const approved = packageApproved(week);
+    const genAt = week && week.gen && week.gen.package_generated_at
+      ? String(week.gen.package_generated_at).slice(0, 16).replace("T", " ")
+      : (week && week.gen && week.gen.generated_at ? String(week.gen.generated_at).slice(0, 10) : "");
     let h = '<div class="panel wkpkg-root" id="wkpkgRoot">';
-    h += '<div class="persp" style="border:none;padding:0;margin-bottom:8px">';
+    h += '<div class="persp wkpkg-head" style="border:none;padding:0;margin-bottom:8px">';
     h += '<span class="pl" style="font-size:18px"><b>' + esc(oppName) + "</b> — weekly package</span>";
-    h += '<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button>';
-    if (canEdit && root.OFFGRD_WEEKLY_PACKAGE_GEN) {
-      h += ' <button type="button" class="ghost no-print" id="wkpkgRegen">Regenerate</button>';
+    if (rd) {
+      h += approved
+        ? '<span class="wkpkg-ok-pill">Approved</span>'
+        : '<span class="wkpkg-draft-pill">DRAFT</span>';
+      if (genAt) h += '<span class="foot">generated ' + esc(genAt) + "</span>";
+    }
+    if (rd) {
+      h += '<span style="flex:1"></span>';
+      if (canEdit && root.OFFGRD_WEEKLY_PACKAGE_GEN) {
+        h += ' <button type="button" class="ghost no-print" id="wkpkgRegen">Regenerate</button>';
+      }
+      h += '<button class="ghost no-print" onclick="printActive()">Print / PDF</button>';
+    } else {
+      h += '<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button>';
+      if (canEdit && root.OFFGRD_WEEKLY_PACKAGE_GEN) {
+        h += ' <button type="button" class="ghost no-print" id="wkpkgRegen">Regenerate</button>';
+      }
     }
     h += "</div>";
+    if (rd && !approved) {
+      h += '<p class="wkpkg-gate-note no-print">Sharing is locked until you approve — your edits win.</p>';
+    }
     h += '<div id="wkpkgStatus"></div>';
-    /* Empty placeholders — progressive fill replaces within one frame budget; never leave "Loading…" forever. */
-    h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div><div id="wkpkgTend"><p class="foot">Preparing snapshot…</p></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div><div id="wkpkgPlan"><p class="foot">Preparing…</p></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div><div id="wkpkgScout"><p class="foot">Preparing…</p></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div><div id="wkpkgInstall"><p class="foot">Preparing…</p></div></section>';
-    h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div><div id="wkpkgBrief"><p class="foot">Preparing…</p></div></section>';
+    if (rd) {
+      h += '<section class="wkpkg-block"><div class="lbl wkpkg-sec-lbl"><span class="wkpkg-num">1</span><span class="wkpkg-sec-title">Opponent snapshot</span></div><div id="wkpkgTend"><p class="foot">Preparing snapshot…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl wkpkg-sec-lbl"><span class="wkpkg-num">2</span><span class="wkpkg-sec-title">Game plan draft</span><span class="wkpkg-sec-sub">AI suggests · you approve</span></div><div id="wkpkgPlan"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl wkpkg-sec-lbl"><span class="wkpkg-num">3</span><span class="wkpkg-sec-title">Scout cards</span></div><div id="wkpkgScout"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl wkpkg-sec-lbl"><span class="wkpkg-num">4</span><span class="wkpkg-sec-title">Install / teaching</span></div><div id="wkpkgInstall"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl wkpkg-sec-lbl"><span class="wkpkg-num">5</span><span class="wkpkg-sec-title">Weekly briefing</span></div><div id="wkpkgBrief"><p class="foot">Preparing…</p></div></section>';
+    } else {
+      /* Empty placeholders — progressive fill replaces within one frame budget; never leave "Loading…" forever. */
+      h += '<section class="wkpkg-block"><div class="lbl">1 · Opponent snapshot</div><div id="wkpkgTend"><p class="foot">Preparing snapshot…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl">2 · Game plan draft <span class="foot">(AI suggests — you approve)</span></div><div id="wkpkgPlan"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl">3 · Scout cards</div><div id="wkpkgScout"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl">4 · Install / teaching</div><div id="wkpkgInstall"><p class="foot">Preparing…</p></div></section>';
+      h += '<section class="wkpkg-block"><div class="lbl">5 · Weekly briefing</div><div id="wkpkgBrief"><p class="foot">Preparing…</p></div></section>';
+    }
     h += "</div>";
     return h;
   }
@@ -784,14 +822,18 @@
 
   function packageBarHTML() {
     if (!isWeeklyPackage() || !root.WEEK) return "";
+    const rd = root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign();
     const hasDraft = !!(root.WEEK.gen && root.WEEK.gen.game_plan_draft && root.WEEK.gen.game_plan_draft.sections && root.WEEK.gen.game_plan_draft.sections.length);
     const btn = root.WEEK_EDIT && root.OFFGRD_WEEKLY_PACKAGE
       ? ('<button class="ghost no-print" id="wkPkgBtn" style="font-weight:800">📦 ' + (hasDraft ? "Open weekly package" : "Generate weekly package") + "</button>")
       : (hasDraft ? '<button class="ghost no-print" id="wkPkgBtn">📦 Weekly package</button>' : "");
     if (!btn) return "";
-    return '<div class="no-print" style="background:#eef6ff;border:1px solid #b8d4f0;border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+    return rd
+      ? ('<div class="no-print rd-pkg-bar">' + btn
+        + '<span class="foot">One screen: tendencies + game-plan draft + scout cards + install + briefing. AI drafts; you approve before sharing.</span></div>')
+      : ('<div class="no-print" style="background:#eef6ff;border:1px solid #b8d4f0;border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
       + btn
-      + '<span class="foot">One screen: tendencies + game-plan draft + scout cards + install + briefing. AI drafts; you approve before sharing.</span></div>';
+      + '<span class="foot">One screen: tendencies + game-plan draft + scout cards + install + briefing. AI drafts; you approve before sharing.</span></div>');
   }
 
   function consumeGmHandoff() {
@@ -804,7 +846,7 @@
   }
 
   function css() {
-    return ".wkpkg-block{margin:14px 0;padding-top:8px;border-top:1px solid var(--line)}.wkpkg-trust{background:#fff8e8;border:1px solid #e8c96a;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;margin-bottom:8px}.wkpkg-sec{margin:10px 0}.wkpkg-sec h3{font-size:15px;margin:0 0 6px;color:var(--ink)}.wkpkg-sec ul{margin:4px 0 0 18px;padding:0;font-size:14px}.tn-tile .tn-stat{background:#f4f6f9;border-radius:8px;padding:8px 10px;min-width:120px}.tn-tile .tn-stat b{display:block;font-size:14px}.tn-tile .tn-stat span{font-size:11px;color:#5b626e}@media print{.wkpkg-why{display:none!important}.no-print{display:none!important}}";
+    return ".wkpkg-block{margin:14px 0;padding-top:8px;border-top:1px solid var(--line)}.wkpkg-trust{background:#fff8e8;border:1px solid #e8c96a;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;margin-bottom:8px}.wkpkg-sec{margin:10px 0}.wkpkg-sec h3{font-size:15px;margin:0 0 6px;color:var(--ink)}.wkpkg-sec ul{margin:4px 0 0 18px;padding:0;font-size:14px}.tn-tile .tn-stat{background:#f4f6f9;border-radius:8px;padding:8px 10px;min-width:120px}.tn-tile .tn-stat b{display:block;font-size:14px}.tn-tile .tn-stat span{font-size:11px;color:#5b626e}.wkpkg-tag-ok{color:#1d7a45;font-weight:800}@media print{.wkpkg-why{display:none!important}.no-print{display:none!important}}";
   }
 
   try {
