@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -255,16 +255,16 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=70"></script>
+<script src="OFFGRD-config.js?v=71"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=70"></script>
-<script src="OFFGRD-render.js?v=70"></script>
-<script src="OFFGRD-autoderive.js?v=70"></script>
-<script src="OFFGRD-scoutcards.js?v=70"></script>
-<script src="OFFGRD-tendencies.js?v=70"></script>
-<script src="OFFGRD-weeklypackage.js?v=70"></script>
-<script src="OFFGRD-telestrate.js?v=70"></script>
-<script src="OFFGRD-redesign.js?v=70"></script>
+<script src="OFFGRD-cache-gate.js?v=71"></script>
+<script src="OFFGRD-render.js?v=71"></script>
+<script src="OFFGRD-autoderive.js?v=71"></script>
+<script src="OFFGRD-scoutcards.js?v=71"></script>
+<script src="OFFGRD-tendencies.js?v=71"></script>
+<script src="OFFGRD-weeklypackage.js?v=71"></script>
+<script src="OFFGRD-telestrate.js?v=71"></script>
+<script src="OFFGRD-redesign.js?v=71"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1611,9 +1611,12 @@ function renderReport(){
   const opp=sit.opp, oppName=opp!=="ANY"?opp:"All opponents";
   /* Same opponent + Games(scope) + This-season pool as Scout grids / Package */
   const off=scopedOppRows("off"), def=scopedOppRows("def");
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+  const scoutTool=rd&&OFFGRD_REDESIGN.getScoutTool?OFFGRD_REDESIGN.getScoutTool():null;
 
-  /* Steal B — full heat-mapped tendency report when flag on */
-  if(window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.isTendency()){
+  /* Redesign: Tendencies tab = heat tables only. Report tab = Top Tells / skim report only.
+     Flag-off keeps the combined page (heat + Top tells) byte-for-byte. */
+  if(window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.isTendency() && (!rd || scoutTool==="tendency")){
     const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
       opponent: opp,
@@ -1621,14 +1624,16 @@ function renderReport(){
       subtitle: "Scope: "+scopeLab+" · opponent filter · self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
       scopeLabel: scopeLab
     });
-    /* Keep classic top-tells strip above for coaches who skim */
-    const T=mineTells(off,def);
-    if(T.length){
-      const strip=document.createElement("div");
-      strip.className="panel";
-      strip.style.marginBottom="10px";
-      strip.innerHTML='<div class="lbl">Top tells</div>'+T.map(t=>`<div class="tell"><b>${esc(t.txt)}</b><span class="n">${t.n} snaps</span></div>`).join("");
-      host.insertBefore(strip, host.firstChild);
+    /* Classic combined page: Top tells above heat tables when redesign is off */
+    if(!rd){
+      const T=mineTells(off,def);
+      if(T.length){
+        const strip=document.createElement("div");
+        strip.className="panel";
+        strip.style.marginBottom="10px";
+        strip.innerHTML='<div class="lbl">Top tells</div>'+T.map(t=>`<div class="tell"><b>${esc(t.txt)}</b><span class="n">${t.n} snaps</span></div>`).join("");
+        host.insertBefore(strip, host.firstChild);
+      }
     }
     return;
   }
@@ -2481,9 +2486,9 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=70"></script>
-<script src="OFFGRD-role-gate.js?v=70"></script>
-<script src="OFFGRD-mobile.js?v=70"></script>
+<script type="module" src="OFFGRD-account.js?v=71"></script>
+<script src="OFFGRD-role-gate.js?v=71"></script>
+<script src="OFFGRD-mobile.js?v=71"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

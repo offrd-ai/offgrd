@@ -11,7 +11,13 @@
     install: { id: "install", label: "Offense install", size: "large", perPageDefault: 4 },
     opponent: { id: "opponent", label: "Opponent scout", size: "small", perPageDefault: 6 }
   };
-  const PER_PAGE = [4, 6, 9];
+  /* 1-up / 2-up = slide layouts; 4/6/9 = sheet grids */
+  const PER_PAGE = [1, 2, 4, 6, 9];
+  function perPageLabel(n) {
+    if (+n === 1) return "1 per page (full)";
+    if (+n === 2) return "2 per page (slide)";
+    return n + " per page";
+  }
 
   function isScoutcards() {
     try {
@@ -121,6 +127,8 @@
       + ".sc-sheet{font-family:system-ui,Segoe UI,sans-serif;color:#13294B}"
       + ".sc-sheet-title{font-size:18px;font-weight:800;margin:0 0 10px;color:#13294B}"
       + ".sc-grid{display:grid;gap:10px}"
+      + ".sc-grid.pp-1{grid-template-columns:1fr}"
+      + ".sc-grid.pp-2{grid-template-columns:repeat(2,1fr)}"
       + ".sc-grid.pp-4{grid-template-columns:repeat(2,1fr)}"
       + ".sc-grid.pp-6{grid-template-columns:repeat(3,1fr)}"
       + ".sc-grid.pp-9{grid-template-columns:repeat(3,1fr)}"
@@ -135,10 +143,22 @@
       + ".sc-size-small .sc-call{font-size:12px}"
       + ".sc-page-break{break-before:page;page-break-before:always;height:0}"
       + "@media print{"
+      + "@page{size:portrait;margin:.4in}"
       + "body *{visibility:hidden!important}"
       + "#scSheetHost,.sc-sheet,#scSheetHost *,.sc-sheet *{visibility:visible!important}"
-      + "#scSheetHost{position:absolute;left:0;top:0;width:100%;padding:12px;background:#fff}"
+      + "#scSheetHost{position:absolute;left:0;top:0;width:100%;padding:0;background:#fff}"
       + ".sc-no-print{display:none!important}"
+      + ".sc-sheet-title{font-size:14px;margin:0 0 8px}"
+      + ".sc-grid.pp-1{gap:0}"
+      + ".sc-grid.pp-1 .sc-card{min-height:9.4in;padding:14px 16px 16px;border-radius:8px;display:flex;flex-direction:column}"
+      + ".sc-grid.pp-1 .sc-call{font-size:22px}"
+      + ".sc-grid.pp-1 .sc-diagram{flex:1;display:flex;align-items:center}"
+      + ".sc-grid.pp-1 .sc-diagram svg{width:100%;max-height:7.6in}"
+      + ".sc-grid.pp-2{gap:12px;align-items:stretch}"
+      + ".sc-grid.pp-2 .sc-card{min-height:4.6in;display:flex;flex-direction:column}"
+      + ".sc-grid.pp-2 .sc-call{font-size:16px}"
+      + ".sc-grid.pp-2 .sc-diagram{flex:1}"
+      + ".sc-grid.pp-2 .sc-diagram svg{max-height:3.4in}"
       + "}"
       + "</style>";
   }
@@ -153,7 +173,9 @@
     opts = opts || {};
     const format = opts.format || "install";
     const perPage = PER_PAGE.indexOf(+opts.perPage) >= 0 ? +opts.perPage : (FORMATS[format] || FORMATS.install).perPageDefault;
-    const size = opts.size || (FORMATS[format] || FORMATS.install).size;
+    /* Slide layouts use large diagrams so 1-up / 2-up are glanceable on the page. */
+    let size = opts.size || (FORMATS[format] || FORMATS.install).size;
+    if (perPage <= 2) size = "large";
     const title = opts.title || (format === "opponent" ? "Opponent scout cards" : "Install scout cards");
     const pages = chunk(plays.filter(hasDiagram), perPage);
     let html = sheetCss() + '<div class="sc-sheet">';
@@ -311,8 +333,8 @@
       + '<span class="lbl">Format</span>'
       + '<button type="button" class="btn" data-fmt="install">Offense install</button>'
       + '<button type="button" class="btn" data-fmt="opponent">Opponent scout</button>'
-      + '<span class="lbl" style="margin-left:8px">Per page</span>'
-      + '<select id="scPerPage" class="btn">' + PER_PAGE.map(n => '<option value="' + n + '">' + n + "</option>").join("") + "</select>"
+      + '<span class="lbl" style="margin-left:8px">Print layout</span>'
+      + '<select id="scPerPage" class="btn" title="Cards per printed page">' + PER_PAGE.map(n => '<option value="' + n + '">' + esc(perPageLabel(n)) + "</option>").join("") + "</select>"
       + '<button type="button" class="btn" id="scAll">Select all</button>'
       + '<button type="button" class="btn" id="scNone">Clear</button>'
       + '<span id="scCount" class="tag"></span>'

@@ -9,12 +9,15 @@
    Phase 3 (v68): Plan body — Game Plan + Package restyle under html.rd-on.
    Phase 4 (v69): Teach body — Practice + Reps Lab + Film chrome (Author deep restyle = 4b).
    Phase 5 (v70): Gameday stripped sideline skin — Caller + Booth under html.rd-on.
+   v71: Scout sub-nav exclusive tabs (Predict / Tendencies / Report / Cards).
    ============================================================ */
 (function (root) {
   "use strict";
 
   const LS_FLAG = "offgrd_redesign";
   const LS_BASE = "offgrd_redesign_base";
+  const LS_SCOUT_TOOL = "offgrd_scout_tool";
+  const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -123,10 +126,10 @@
       label: "Scout",
       views: ["scout", "report"],
       tools: [
-        { id: "predict", label: "Predict", view: "scout" },
-        { id: "tendency", label: "Tendencies", view: "report", action: "tendency" },
-        { id: "report", label: "Report", view: "report" },
-        { id: "cards", label: "Scout cards", action: "scoutcards" }
+        { id: "predict", label: "Predict", view: "scout", tool: "predict" },
+        { id: "tendency", label: "Tendencies", view: "report", tool: "tendency" },
+        { id: "report", label: "Report", view: "report", tool: "report" },
+        { id: "cards", label: "Scout cards", view: "scout", tool: "cards", action: "scoutcards" }
       ]
     },
     {
@@ -213,7 +216,29 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "70";
+  const ASSET_V = "71";
+
+  function getScoutTool() {
+    try {
+      const v = localStorage.getItem(LS_SCOUT_TOOL);
+      if (v && SCOUT_TOOLS[v]) return v;
+    } catch (e) {}
+    const view = currentView();
+    if (view === "report") return "tendency";
+    return "predict";
+  }
+
+  function setScoutTool(tool) {
+    if (!SCOUT_TOOLS[tool]) return getScoutTool();
+    try { localStorage.setItem(LS_SCOUT_TOOL, tool); } catch (e) {}
+    if (tool !== "cards") {
+      try {
+        const ov = document.getElementById("scModal");
+        if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+      } catch (e) {}
+    }
+    return tool;
+  }
 
   function appKind() {
     try {
@@ -1154,10 +1179,21 @@
   function runAction(action) {
     switch (action) {
       case "tendency":
-        if (!clickExisting("tendencyBtn") && typeof root.setView === "function") root.setView("report");
+        setScoutTool("tendency");
+        if (typeof root.setView === "function") root.setView("report");
         break;
       case "scoutcards":
+        setScoutTool("cards");
+        if (typeof root.setView === "function") root.setView("scout");
         clickExisting("scoutCardsBtn");
+        try {
+          setTimeout(function () {
+            const modal = document.getElementById("scModal");
+            if (modal && modal.scrollIntoView) modal.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            const box = modal && modal.querySelector(".ovbox");
+            if (box && box.focus) { try { box.setAttribute("tabindex", "-1"); box.focus(); } catch (e) {} }
+          }, 60);
+        } catch (e) {}
         break;
       case "telestrate":
         if (root.OFFGRD_TELESTRATE && root.OFFGRD_TELESTRATE.openModal) root.OFFGRD_TELESTRATE.openModal({});
@@ -1223,6 +1259,7 @@
         const attrs = [
           'class="rd-pill"',
           'data-phase-tool="' + p.id + '"',
+          t.tool ? 'data-tool="' + t.tool + '"' : "",
           t.view ? 'data-view="' + t.view + '"' : "",
           t.action ? 'data-action="' + t.action + '"' : "",
           t.gate ? 'data-gate="' + t.gate + '"' : "",
@@ -1279,6 +1316,13 @@
     const view = currentView();
     const phase = phaseForView(view);
     const kind = appKind();
+    /* Keep Scout tool aligned with the active view when navigated from elsewhere. */
+    if (phase === "scout") {
+      let t = getScoutTool();
+      if (view === "report" && t !== "tendency" && t !== "report") setScoutTool("tendency");
+      else if (view === "scout" && (t === "tendency" || t === "report")) setScoutTool("predict");
+    }
+    const scoutTool = phase === "scout" ? getScoutTool() : null;
     [].forEach.call(document.querySelectorAll("#rdPhases .rd-phase"), function (b) {
       b.classList.toggle("on", b.getAttribute("data-phase") === phase);
     });
@@ -1292,10 +1336,17 @@
       p.hidden = !forPhase || gatedOff;
       const v = p.getAttribute("data-view");
       const href = p.getAttribute("href") || "";
-      const onPill =
-        (!!(v && v === view)) ||
-        (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
-        (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
+      const tool = p.getAttribute("data-tool");
+      let onPill = false;
+      if (phase === "scout" && tool) {
+        /* Exactly one Scout sub-tool active */
+        onPill = tool === scoutTool;
+      } else {
+        onPill =
+          (!!(v && v === view)) ||
+          (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
+          (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
+      }
       p.classList.toggle("on", onPill);
     });
     syncGamedayChrome();
@@ -1361,6 +1412,7 @@
         const id = b.getAttribute("data-phase");
         const ph = PHASES.filter(function (p) { return p.id === id; })[0];
         if (!ph || !ph.views || !ph.views.length) return;
+        if (id === "scout") setScoutTool("predict");
         if (typeof root.setView === "function") root.setView(ph.views[0]);
         else goMain(ph.views[0]);
         syncPhaseUI();
@@ -1371,6 +1423,8 @@
       p.onclick = function () {
         const action = p.getAttribute("data-action");
         const view = p.getAttribute("data-view");
+        const tool = p.getAttribute("data-tool");
+        if (tool) setScoutTool(tool);
         if (action) runAction(action);
         else if (view && typeof root.setView === "function") root.setView(view);
         else if (view) goMain(view);
@@ -1514,6 +1568,8 @@
       getBase: function () { return "night"; },
       setBase: function () { return "night"; },
       toggleBase: function () { return "night"; },
+      getScoutTool: function () { return "predict"; },
+      setScoutTool: function () { return "predict"; },
       syncPhaseUI: function () {},
       restoreLegacyTheme: restoreLegacyTheme,
       PHASES: PHASES
@@ -1545,6 +1601,8 @@
     getBase: getBase,
     setBase: setBase,
     toggleBase: toggleBase,
+    getScoutTool: getScoutTool,
+    setScoutTool: setScoutTool,
     syncPhaseUI: syncPhaseUI,
     PHASES: PHASES
   };
