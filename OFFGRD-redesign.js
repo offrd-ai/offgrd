@@ -1,23 +1,16 @@
 /* ============================================================
-   OFFGRD-redesign.js — Design system: tokens + shell + Scout body
+   OFFGRD-redesign.js — Design system Phase 1: tokens + nav shell
    Flag: ?redesign=0|1 | localStorage.offgrd_redesign | OFFGRD_CONFIG.redesign
    Default OFF — old UI intact until cutover.
-   Phase 1/1.5: CSS vars (Night Turf / Day) + accent + context bar +
-   four-phase nav + sub-app shell.
-   Phase 2 (v66): Scout body restyle under html.rd-on (presentation only).
-   v67: Kill switch fully restores legacy light — no body.dark / --bg leak.
-   Phase 3 (v68): Plan body — Game Plan + Package restyle under html.rd-on.
+   Phase 1 only: CSS vars (Night Turf / Chalk) + accent-tuning +
+   context bar + four-phase nav. No full screen restyle yet.
+   v64: kill-switch first; one-pass accent (no contrast loops); no data-base MO.
    ============================================================ */
 (function (root) {
   "use strict";
 
   const LS_FLAG = "offgrd_redesign";
   const LS_BASE = "offgrd_redesign_base";
-  const INLINE_TOKEN_PROPS = [
-    "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
-    "--bg", "--panel", "--ink", "--muted", "--line",
-    "--gold", "--blue", "--bluefill", "--accent2", "--chip", "--warn"
-  ];
 
   /* ---- Unconditional kill switch — runs BEFORE any init/observers/tokens ---- */
   function queryFlag() {
@@ -29,88 +22,18 @@
     return null;
   }
 
-  function clearInlineTokenProps() {
-    const els = [document.documentElement, document.body];
-    for (let i = 0; i < els.length; i++) {
-      const el = els[i];
-      if (!el || !el.style) continue;
-      for (let j = 0; j < INLINE_TOKEN_PROPS.length; j++) {
-        try { el.style.removeProperty(INLINE_TOKEN_PROPS[j]); } catch (e) {}
-      }
-    }
-  }
-
-  function removeRdCss() {
-    try {
-      const st = document.getElementById("rdCss");
-      if (st && st.parentNode) st.parentNode.removeChild(st);
-    } catch (e) {}
-  }
-
-  /* Strip redesign paint so legacy :root --bg (#f4f5f7) wins again. */
-  function tearDownRedesignPaint() {
+  (function applyKillSwitch() {
+    if (queryFlag() !== 0) return;
+    try { localStorage.setItem(LS_FLAG, "0"); } catch (e) {}
+    try { localStorage.removeItem(LS_BASE); } catch (e) {}
     try {
       document.documentElement.classList.remove("rd-on");
       document.documentElement.removeAttribute("data-base");
       document.documentElement.removeAttribute("data-rd-accent");
       document.documentElement.removeAttribute("data-rd-base");
-    } catch (e) {}
-    clearInlineTokenProps();
-    removeRdCss();
-    try {
       const shell = document.getElementById("rdShell");
-      if (shell) {
-        if (queryFlag() === 0 && shell.parentNode) shell.parentNode.removeChild(shell);
-        else shell.style.display = "none";
-      }
+      if (shell && shell.parentNode) shell.parentNode.removeChild(shell);
     } catch (e) {}
-  }
-
-  /*
-   * Redesign Night/Day own the look via --rd-* under html.rd-on — never body.dark.
-   * body.dark is classic Booth only; leaving it on leaks #0b1017 --bg into flag-off.
-   */
-  function stripLegacyDarkClass() {
-    try {
-      if (document.body) document.body.classList.remove("dark");
-    } catch (e) {}
-    try {
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta && meta.getAttribute("content") === "#0b1017") meta.setAttribute("content", "#13294B");
-    } catch (e) {}
-  }
-
-  function restoreLegacyTheme() {
-    tearDownRedesignPaint();
-    if (!document.body) return;
-    /* Explicit ?redesign=0: always force light (acceptance). Skip booth auto-restore. */
-    if (queryFlag() === 0) {
-      stripLegacyDarkClass();
-      return;
-    }
-    /* Flag off without kill query: restore classic booth preference. */
-    try {
-      const booth = localStorage.getItem("offgrd_booth") === "1";
-      document.body.classList.toggle("dark", booth);
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", booth ? "#0b1017" : "#13294B");
-    } catch (e) {
-      stripLegacyDarkClass();
-    }
-  }
-
-  function whenDomReady(fn) {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
-    else fn();
-  }
-
-  (function applyKillSwitch() {
-    if (queryFlag() !== 0) return;
-    try { localStorage.setItem(LS_FLAG, "0"); } catch (e) {}
-    try { localStorage.removeItem(LS_BASE); } catch (e) {}
-    tearDownRedesignPaint();
-    /* body may not exist yet (script in <head>) — finish on DOM ready */
-    whenDomReady(function () { restoreLegacyTheme(); });
   })();
 
   const PHASES = [
@@ -165,7 +88,7 @@
     { id: "sync", label: "Sync ↑", action: "sync" },
     { id: "load", label: "Load ↓", action: "load" },
     { id: "signout", label: "Sign out", action: "signout" },
-    { id: "base", label: "Theme: Night / Day", action: "toggleBase" }
+    { id: "base", label: "Theme: Night / Chalk", action: "toggleBase" }
   ];
 
   function isRedesign() {
@@ -185,15 +108,13 @@
   function getBase() {
     try {
       const ls = localStorage.getItem(LS_BASE);
-      if (ls === "chalk") { try { localStorage.setItem("offgrd_redesign_base", "day"); } catch (e) {} return "day"; }
-      if (ls === "day" || ls === "night") return ls;
+      if (ls === "chalk" || ls === "night") return ls;
     } catch (e) {}
     return "night";
   }
 
   function setBase(base) {
-    if (base === "chalk") base = "day";
-    base = base === "day" ? "day" : "night";
+    base = base === "chalk" ? "chalk" : "night";
     try { localStorage.setItem(LS_BASE, base); } catch (e) {}
     try {
       if (document.documentElement.dataset.base !== base) {
@@ -205,61 +126,7 @@
   }
 
   function toggleBase() {
-    return setBase(getBase() === "night" ? "day" : "night");
-  }
-
-  /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "68";
-
-  function appKind() {
-    try {
-      const p = (location.pathname || "").split("/").pop() || "";
-      if (/OFFGRD-QB\.html/i.test(p)) return "qb";
-      if (/OFFGRD-Playbook\.html/i.test(p)) return "playbook";
-    } catch (e) {}
-    return "scout";
-  }
-
-  function assetV() {
-    try {
-      const m = (location.search || "").match(/[?&]v=(\d+)/);
-      if (m) return m[1];
-      const s = document.querySelector('script[src*="OFFGRD-redesign.js"]');
-      if (s) {
-        const sm = String(s.getAttribute("src") || "").match(/[?&]v=(\d+)/);
-        if (sm) return sm[1];
-      }
-    } catch (e) {}
-    return ASSET_V;
-  }
-
-  function withV(href) {
-    if (!href || /^https?:/i.test(href) || href.charAt(0) === "#") return href;
-    const hashIdx = href.indexOf("#");
-    let base = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
-    const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
-    if (/[?&]v=/.test(base)) return href;
-    const v = assetV();
-    base += (base.indexOf("?") >= 0 ? "&" : "?") + "v=" + v;
-    return base + hash;
-  }
-
-  function goMain(view) {
-    try {
-      if (view) sessionStorage.setItem("offgrd_rd_view", view);
-    } catch (e) {}
-    location.href = withV("OFFGRD.html");
-  }
-
-  function stampVersionedLinks() {
-    try {
-      [].forEach.call(document.querySelectorAll("a[href]"), function (a) {
-        const h = a.getAttribute("href") || "";
-        if (/^OFFGRD(-QB|-Playbook)?\.html/i.test(h) || h === "index.html") {
-          a.setAttribute("href", withV(h));
-        }
-      });
-    } catch (e) {}
+    return setBase(getBase() === "night" ? "chalk" : "night");
   }
 
   /* ---- color math (accent tuning) ---- */
@@ -346,9 +213,8 @@
   }
 
   function adjustAccent(teamHex, base) {
-    if (base === "chalk") base = "day";
-    base = base === "day" ? "day" : "night";
-    const fb = base === "day" ? "#0A63FF" : "#C6FF3A";
+    base = base === "chalk" ? "chalk" : "night";
+    const fb = base === "chalk" ? "#0A63FF" : "#C6FF3A";
     const rgb = hexToRgb(teamHex);
     if (!rgb) {
       return { accent: fb, accentText: relativeLuminance(fb) > 0.45 ? "#0E1116" : "#FFFFFF" };
@@ -361,11 +227,11 @@
     else l = clamp(l, 0.36, 0.48);
 
     let accent = hslToHex(hsl.h, s, l);
-    const surface = base === "day" ? "#FFFFFF" : "#0E1116";
+    const surface = base === "chalk" ? "#FFFFFF" : "#0E1116";
 
     /* At most one direct hop + one fallback — bounded, always terminates. */
     if (contrastRatio(accent, surface) < 4.5) {
-      l = base === "day" ? 0.28 : 0.62;
+      l = base === "chalk" ? 0.28 : 0.62;
       accent = hslToHex(hsl.h, s, l);
       if (contrastRatio(accent, surface) < 4.5) accent = fb;
     }
@@ -396,9 +262,6 @@
   function teamHex() { return rawTeamHex(); }
 
   function currentView() {
-    const kind = appKind();
-    if (kind === "qb") return "reps";
-    if (kind === "playbook") return "playbook";
     try {
       if (typeof root.CURRENT_VIEW === "string" && root.CURRENT_VIEW) return root.CURRENT_VIEW;
     } catch (e) {}
@@ -412,12 +275,11 @@
 
   function cssTokens() {
     return [
-      /* Base palettes — ONLY while redesign is on (never redefine legacy --bg globally) */
-      'html.rd-on[data-base="night"]{',
+      'html[data-base="night"]{',
       '--rd-bg:#0E1116;--rd-surface:#1A1F27;--rd-surface-2:#232A34;--rd-border:#2C333D;',
       '--rd-text:#F5F7FA;--rd-muted:#9AA5B4;--rd-warn-bg:#3A2E12;--rd-warn-text:#F5C451;',
       '}',
-      'html.rd-on[data-base="day"]{',
+      'html[data-base="chalk"]{',
       '--rd-bg:#EDF0F4;--rd-surface:#FFFFFF;--rd-surface-2:#F4F6F9;--rd-border:#D8DEE7;',
       '--rd-text:#111722;--rd-muted:#5C6673;--rd-warn-bg:#FBEBCB;--rd-warn-text:#8A5A05;',
       '}',
@@ -431,8 +293,6 @@
       'html.rd-on body{',
       '--bg:var(--rd-bg);--panel:var(--rd-surface);--ink:var(--rd-text);--muted:var(--rd-muted);',
       '--line:var(--rd-border);--accent:var(--rd-accent);--accent-ink:var(--rd-accent-text);',
-      '--gold:var(--rd-accent);--blue:var(--rd-accent);--bluefill:var(--rd-accent);--accent2:var(--rd-accent);',
-      '--chip:var(--rd-surface-2);--warn:var(--rd-warn-text);',
       '}',
       /* Shell — context bar + left-rail phases (desktop) / bottom phases (tablet) */
       '#rdShell{display:none;flex-direction:column;gap:0;position:sticky;top:0;z-index:40;',
@@ -490,335 +350,6 @@
       '.rd-phase{text-align:center;padding:10px 8px;min-height:44px;}',
       '#rdTools{padding:8px 16px 10px;}',
       'html.rd-on body{padding-bottom:64px;}',
-      '}',
-      /* ---- Phase 2: Scout body (presentation only) ---- */
-      'html.rd-on #view-scout{gap:10px;}',
-      'html.rd-on #view-scout > .panel{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
-      'box-shadow:none;padding:12px 14px;margin-bottom:0;',
-      '}',
-      'html.rd-on #view-scout > .panel.result{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);',
-      'border-radius:var(--radius-card);padding:14px 16px;',
-      '}',
-      'html.rd-on #view-scout > .foot.panel{background:transparent!important;border:none!important;padding:4px 6px!important;}',
-      'html.rd-on #view-scout .lbl{',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-scout .seg{background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:2px;}',
-      'html.rd-on #view-scout .seg button{',
-      'background:transparent!important;border:1px solid transparent!important;',
-      'font-weight:500!important;color:var(--rd-muted)!important;border-radius:var(--radius-pill);padding:8px 12px;',
-      '}',
-      'html.rd-on #view-scout .seg button.on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      '}',
-      'html.rd-on #view-scout .gamepick{display:flex;align-items:center;gap:8px;}',
-      'html.rd-on #view-scout .gamepick select{flex:1;min-width:0;}',
-      'html.rd-on #view-scout .presetrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}',
-      'html.rd-on #view-scout .preset{',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);color:var(--rd-text);',
-      'border-radius:var(--radius-pill);font-weight:500;padding:6px 11px;',
-      '}',
-      'html.rd-on #view-scout .preset:hover,html.rd-on #view-scout .preset.on{',
-      'border-color:var(--rd-accent);color:var(--rd-accent);',
-      '}',
-      'html.rd-on #view-scout select{',
-      'background:var(--rd-surface-2)!important;color:var(--rd-text)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-ctl)!important;font-weight:500!important;padding:10px 10px;',
-      '}',
-      'html.rd-on #view-scout select:focus{outline:2px solid var(--rd-accent);outline-offset:1px;border-color:var(--rd-accent)!important;}',
-      'html.rd-on #view-scout .tg{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .tg input{accent-color:var(--rd-accent);}',
-      'html.rd-on #view-scout .reslead{',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-scout .callline{gap:12px;margin:4px 0 8px;align-items:baseline;}',
-      'html.rd-on #view-scout .callname{',
-      'font-size:var(--fs-hero)!important;font-weight:500!important;color:var(--rd-text)!important;line-height:1.05;',
-      '}',
-      'html.rd-on #view-scout .callpct{',
-      'font-size:var(--fs-hero)!important;font-weight:500!important;color:var(--rd-accent)!important;line-height:1.05;',
-      '}',
-      'html.rd-on #view-scout .callline .sub{color:var(--rd-muted);font-size:var(--fs-body);font-weight:500;}',
-      'html.rd-on #view-scout .conf .sub{color:var(--rd-muted);font-size:var(--fs-label);font-weight:500;}',
-      'html.rd-on #view-scout .conf .sub b{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .pill{',
-      'font-weight:500!important;border-radius:var(--radius-pill);letter-spacing:1px;padding:5px 10px;',
-      '}',
-      'html.rd-on #view-scout .pill.warn{background:var(--rd-warn-bg)!important;color:var(--rd-warn-text)!important;}',
-      'html.rd-on #view-scout .pill.good{background:var(--rd-surface-2)!important;color:var(--rd-accent)!important;border:1px solid var(--rd-border);}',
-      'html.rd-on #view-scout .pill.bad{background:var(--rd-warn-bg)!important;color:var(--rd-warn-text)!important;}',
-      'html.rd-on #view-scout .widen{color:var(--rd-warn-text)!important;font-weight:500!important;font-size:var(--fs-label);}',
-      'html.rd-on #view-scout .cards{gap:10px;margin:12px 0;}',
-      'html.rd-on #view-scout .card{',
-      'background:var(--rd-surface)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card);padding:12px 14px;',
-      '}',
-      'html.rd-on #view-scout .card .k{',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-scout .card .v{',
-      'font-size:var(--fs-stat)!important;font-weight:500!important;color:var(--rd-text);margin-top:4px;',
-      '}',
-      'html.rd-on #view-scout .card .v.gold{color:var(--rd-accent)!important;}',
-      'html.rd-on #view-scout .card .s{font-size:var(--fs-label);color:var(--rd-muted);font-weight:500;}',
-      'html.rd-on #view-scout .attack{',
-      'background:var(--rd-surface-2)!important;border-left:4px solid var(--rd-accent)!important;',
-      'border-radius:0 var(--radius-card) var(--radius-card) 0!important;padding:12px 14px;margin:8px 0;',
-      '}',
-      'html.rd-on #view-scout .attack .h{',
-      'color:var(--rd-accent)!important;font-weight:500!important;font-size:var(--fs-micro);letter-spacing:1px;',
-      '}',
-      'html.rd-on #view-scout .attack p,html.rd-on #view-scout .attack .beat{',
-      'color:var(--rd-text)!important;font-weight:400;font-size:var(--fs-body);',
-      '}',
-      'html.rd-on #view-scout .attack .beat b{color:var(--rd-accent)!important;font-weight:500;}',
-      'html.rd-on #view-scout .dist{margin-top:12px;}',
-      'html.rd-on #view-scout .barrow .name{color:var(--rd-text);font-weight:500;font-size:var(--fs-label);}',
-      'html.rd-on #view-scout .track{',
-      'background:var(--rd-surface-2)!important;border-radius:8px;height:22px;overflow:hidden;',
-      '}',
-      'html.rd-on #view-scout .fill,',
-      'html.rd-on #view-scout .fill.cov,',
-      'html.rd-on #view-scout .fill.cov.alt,',
-      'html.rd-on #view-scout .fill.prs{',
-      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      'font-weight:500!important;font-size:var(--fs-micro);border-radius:8px;',
-      '}',
-      'html.rd-on #view-scout details{border-top:1px solid var(--rd-border);}',
-      'html.rd-on #view-scout summary{color:var(--rd-muted);font-weight:500!important;font-size:var(--fs-micro);}',
-      'html.rd-on #view-scout table{font-size:var(--fs-label);}',
-      'html.rd-on #view-scout th{color:var(--rd-muted);font-weight:500;}',
-      'html.rd-on #view-scout td{color:var(--rd-text);border-bottom-color:var(--rd-border);}',
-      'html.rd-on #view-scout .tagrow td{font-weight:500;}',
-      'html.rd-on #view-scout .foot{color:var(--rd-muted);font-size:var(--fs-label);}',
-      'html.rd-on #view-scout .persp{border-bottom-color:var(--rd-border);}',
-      'html.rd-on #view-scout .persp .pl{color:var(--rd-muted);font-weight:500;}',
-      'html.rd-on #view-scout .persp .pl b{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .calls{',
-      'background:var(--rd-surface)!important;border:1px solid var(--rd-border);',
-      'border-left:4px solid var(--rd-accent)!important;border-radius:var(--radius-card);',
-      'padding:12px 14px;margin-top:12px;',
-      '}',
-      'html.rd-on #view-scout .calls .lbl{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .callnote{color:var(--rd-muted);font-weight:500;}',
-      'html.rd-on #view-scout .callsempty{color:var(--rd-muted);}',
-      'html.rd-on #view-scout .callitem .cn{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .callitem .cnn{color:var(--rd-muted);font-weight:500;}',
-      'html.rd-on #view-scout .xchip{color:var(--rd-accent)!important;font-weight:500;}',
-      'html.rd-on #view-scout .btnp,html.rd-on #view-scout .rd-scout-cta{',
-      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;border:0!important;',
-      'border-radius:var(--radius-ctl)!important;padding:10px 16px!important;font-weight:500!important;cursor:pointer;',
-      '}',
-      'html.rd-on #view-scout .gcell{background:var(--rd-surface-2);border-color:var(--rd-border);}',
-      'html.rd-on #view-scout .gcell .gc{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-scout .gcell .gp,html.rd-on #view-scout .legend{color:var(--rd-muted);}',
-      'html.rd-on #view-scout .legend b{color:var(--rd-text);}',
-      'html.rd-on #view-scout .rowh{color:var(--rd-text);font-weight:500;}',
-      /* Scout SVG thumbnails / sketches — route stroke → accent, field lines → border */
-      'html.rd-on #view-scout svg path[stroke]:not([stroke="none"]){stroke:var(--rd-accent);}',
-      'html.rd-on #view-scout svg line[stroke^="rgba"],html.rd-on #view-scout svg line[stroke="#fff"],',
-      'html.rd-on #view-scout svg line[stroke="white"]{stroke:var(--rd-border)!important;}',
-      '@media (max-width:900px){',
-      'html.rd-on #view-scout{display:flex!important;flex-direction:column!important;gap:10px!important;}',
-      'html.rd-on #view-scout > .result{',
-      'order:-1;position:static!important;max-height:none!important;grid-column:auto!important;grid-row:auto!important;',
-      '}',
-      'html.rd-on #view-scout > .panel{grid-column:auto!important;}',
-      '}',
-      /* ---- Phase 3: Plan body — Game Plan + Package (presentation only) ---- */
-      'html.rd-on #view-plan,html.rd-on #view-package{gap:10px;}',
-      'html.rd-on #view-plan > .panel,html.rd-on #view-package > .panel,html.rd-on #view-package .wkpkg-root{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
-      'box-shadow:none;padding:14px 16px;',
-      '}',
-      'html.rd-on #view-plan .persp .pl,html.rd-on #view-package .persp .pl{',
-      'font-size:var(--fs-title)!important;font-weight:500;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-plan .persp .pl b,html.rd-on #view-package .persp .pl b{',
-      'color:var(--rd-text)!important;font-weight:500;font-size:var(--fs-h2);',
-      '}',
-      'html.rd-on #view-plan .seg,html.rd-on #view-package .seg{',
-      'background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:2px;',
-      '}',
-      'html.rd-on #view-plan .seg button,html.rd-on #view-package .seg button{',
-      'background:transparent!important;border:1px solid transparent!important;',
-      'font-weight:500!important;color:var(--rd-muted)!important;border-radius:var(--radius-pill);padding:8px 12px;',
-      '}',
-      'html.rd-on #view-plan .seg button.on,html.rd-on #view-package .seg button.on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      '}',
-      'html.rd-on #view-plan .ghost,html.rd-on #view-package .ghost{',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;color:var(--rd-text)!important;',
-      'border-radius:var(--radius-ctl)!important;font-weight:500!important;',
-      '}',
-      'html.rd-on #view-plan .ghost:hover,html.rd-on #view-package .ghost:hover{border-color:var(--rd-accent)!important;color:var(--rd-accent)!important;}',
-      'html.rd-on #view-plan .go,html.rd-on #view-package .go,html.rd-on #view-package #wkpkgApprove{',
-      'background:var(--rd-accent)!important;border:1px solid var(--rd-accent)!important;',
-      'color:var(--rd-accent-text)!important;border-radius:var(--radius-ctl)!important;',
-      'padding:10px 16px!important;font-weight:500!important;cursor:pointer;',
-      '}',
-      'html.rd-on #view-plan .lbl,html.rd-on #view-package .lbl{',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-plan .foot,html.rd-on #view-package .foot{color:var(--rd-muted);font-size:var(--fs-label);font-weight:500;}',
-      'html.rd-on #view-plan .tg,html.rd-on #view-package .tg{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-plan .tg input,html.rd-on #view-package .tg input{accent-color:var(--rd-accent);}',
-      /* This-week row + form fields */
-      'html.rd-on #view-plan .rd-week-bar,html.rd-on #view-plan .rd-pkg-bar,html.rd-on #view-plan .rd-gen-empty{',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card)!important;padding:10px 12px;margin-bottom:10px;',
-      'display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-plan .rd-week-bar b,html.rd-on #view-plan .rd-pkg-bar b{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-plan select,html.rd-on #view-plan input[type="date"],html.rd-on #view-plan input[type="number"],',
-      'html.rd-on #view-plan input[type="text"],html.rd-on #view-plan .plan-tbl input,html.rd-on #view-plan .plan-tbl select{',
-      'background:var(--rd-surface)!important;color:var(--rd-text)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-ctl)!important;font-weight:500!important;',
-      '}',
-      'html.rd-on #view-plan select:focus,html.rd-on #view-plan input:focus{',
-      'outline:2px solid var(--rd-accent);outline-offset:1px;border-color:var(--rd-accent)!important;',
-      '}',
-      'html.rd-on #view-plan .wb{',
-      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      'border-radius:6px;font-weight:500!important;font-size:var(--fs-micro);',
-      '}',
-      /* Week briefing collapsible */
-      'html.rd-on #view-plan details.rd-week-brief,html.rd-on #view-plan details{',
-      'background:var(--rd-surface)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card)!important;padding:12px 14px;margin-bottom:10px;color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-plan details summary{',
-      'font-weight:500!important;color:var(--rd-text)!important;cursor:pointer;list-style:none;',
-      '}',
-      'html.rd-on #view-plan details summary::-webkit-details-marker{display:none;}',
-      'html.rd-on #view-plan details summary::before{',
-      'content:"";display:inline-block;width:0;height:0;margin-right:8px;vertical-align:middle;',
-      'border-top:5px solid transparent;border-bottom:5px solid transparent;',
-      'border-left:6px solid var(--rd-accent);',
-      '}',
-      'html.rd-on #view-plan details[open] summary::before{',
-      'border-left:5px solid transparent;border-right:5px solid transparent;',
-      'border-top:6px solid var(--rd-accent);border-bottom:0;margin-right:6px;',
-      '}',
-      /* Approve / share banners */
-      'html.rd-on #view-plan .rd-share-locked{',
-      'background:var(--rd-warn-bg)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card)!important;padding:10px 12px;margin-bottom:10px;color:var(--rd-warn-text)!important;',
-      '}',
-      'html.rd-on #view-plan .rd-share-locked .lbl{color:var(--rd-warn-text)!important;}',
-      'html.rd-on #view-plan .rd-share-locked .foot{color:var(--rd-warn-text)!important;opacity:.92;}',
-      'html.rd-on #view-plan .rd-share-open{',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card)!important;padding:10px 12px;margin-bottom:10px;',
-      '}',
-      'html.rd-on #view-plan .rd-share-open label{color:var(--rd-text)!important;font-weight:500!important;}',
-      /* Situation table — dense working grid */
-      'html.rd-on #view-plan .plan-tbl{margin-top:8px;font-size:var(--fs-label);}',
-      'html.rd-on #view-plan .plan-tbl th{',
-      'background:var(--rd-surface-2)!important;color:var(--rd-muted)!important;border-color:var(--rd-border)!important;',
-      'font-weight:500;font-size:var(--fs-micro);letter-spacing:1px;',
-      '}',
-      'html.rd-on #view-plan .plan-tbl td{',
-      'border-color:var(--rd-border)!important;color:var(--rd-text);padding:8px 9px;vertical-align:top;',
-      '}',
-      'html.rd-on #view-plan .plan-tbl td > b{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-plan .rd-stat{color:var(--rd-accent)!important;font-weight:500;}',
-      'html.rd-on #view-plan .wkchip{',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-pill);',
-      'padding:3px 8px;font-weight:500;font-size:var(--fs-label);color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-plan .wkchip .wb{margin-right:4px;}',
-      'html.rd-on #view-plan .wkcall .foot{color:var(--rd-muted);}',
-      'html.rd-on #view-plan .wkcall .nm{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-plan .wkadd{',
-      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;color:var(--rd-accent)!important;',
-      'border-radius:var(--radius-ctl);font-weight:500;',
-      '}',
-      'html.rd-on #view-plan .rd-runpass{color:var(--rd-accent)!important;font-weight:500!important;font-size:var(--fs-micro);letter-spacing:1px;}',
-      /* Package — document-grade */
-      'html.rd-on #view-package .wkpkg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}',
-      'html.rd-on #view-package .wkpkg-draft-pill{',
-      'display:inline-flex;align-items:center;padding:4px 10px;border-radius:var(--radius-pill);',
-      'background:var(--rd-warn-bg)!important;color:var(--rd-warn-text)!important;',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;',
-      '}',
-      'html.rd-on #view-package .wkpkg-ok-pill{',
-      'display:inline-flex;align-items:center;padding:4px 10px;border-radius:var(--radius-pill);',
-      'background:var(--rd-surface-2);color:var(--rd-accent);border:1px solid var(--rd-border);',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;',
-      '}',
-      'html.rd-on #view-package .wkpkg-gate-note{color:var(--rd-muted);font-size:var(--fs-label);font-weight:500;margin:0 0 12px;}',
-      'html.rd-on #view-package .wkpkg-block{',
-      'margin:18px 0;padding-top:14px;border-top:1px solid var(--rd-border)!important;',
-      '}',
-      'html.rd-on #view-package .wkpkg-sec-lbl{',
-      'display:flex;align-items:center;gap:10px;margin-bottom:10px;',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-package .wkpkg-num{',
-      'display:inline-flex;align-items:center;justify-content:center;',
-      'width:22px;height:22px;border-radius:6px;background:var(--rd-accent);color:var(--rd-accent-text);',
-      'font-size:12px;font-weight:500;letter-spacing:0;flex:none;',
-      '}',
-      'html.rd-on #view-package .wkpkg-sec-title{color:var(--rd-text);}',
-      'html.rd-on #view-package .wkpkg-sec-sub{color:var(--rd-muted);font-weight:500;text-transform:none;letter-spacing:0;margin-left:4px;}',
-      'html.rd-on #view-package .wkpkg-trust{',
-      'background:var(--rd-warn-bg)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-card)!important;padding:10px 12px;margin-bottom:10px;',
-      'color:var(--rd-warn-text)!important;font-weight:500!important;font-size:var(--fs-body);',
-      '}',
-      'html.rd-on #view-package .wkpkg-sec h3{color:var(--rd-text)!important;font-weight:500;font-size:var(--fs-title);}',
-      'html.rd-on #view-package .wkpkg-sec ul{color:var(--rd-text);}',
-      'html.rd-on #view-package .wkpkg-sec li b{color:var(--rd-text);font-weight:500;}',
-      'html.rd-on #view-package .tn-tile .tn-stat{',
-      'background:var(--rd-surface)!important;border:1px solid var(--rd-border);',
-      'border-radius:var(--radius-card);padding:12px 14px;min-width:130px;',
-      '}',
-      'html.rd-on #view-package .tn-tile .tn-stat b{',
-      'color:var(--rd-text)!important;font-size:var(--fs-stat)!important;font-weight:500;line-height:1.15;',
-      '}',
-      'html.rd-on #view-package .tn-tile .tn-stat span{',
-      'color:var(--rd-muted)!important;font-size:var(--fs-micro);font-weight:500;',
-      'letter-spacing:1px;text-transform:uppercase;',
-      '}',
-      'html.rd-on #view-package .plan-tbl th{',
-      'background:var(--rd-surface-2)!important;color:var(--rd-muted)!important;border-color:var(--rd-border)!important;',
-      'font-weight:500;font-size:var(--fs-micro);',
-      '}',
-      'html.rd-on #view-package .plan-tbl td{border-color:var(--rd-border)!important;color:var(--rd-text);}',
-      'html.rd-on #view-package .wkpkg-tag-ok{color:var(--rd-accent)!important;font-weight:500!important;}',
-      'html.rd-on #view-package .wkpkg-approved-msg{color:var(--rd-accent)!important;}',
-      'html.rd-on #view-package .wkpkg-tag-neutral{',
-      'display:inline-block;padding:2px 8px;border-radius:var(--radius-pill);',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);color:var(--rd-muted);',
-      'font-size:var(--fs-micro);font-weight:500;',
-      '}',
-      'html.rd-on #view-package .wkpkg-brief{',
-      'background:var(--rd-surface-2)!important;border-left:4px solid var(--rd-accent)!important;',
-      'border-radius:0 var(--radius-card) var(--radius-card) 0;padding:12px 14px;color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-package textarea.wkpkg-why{',
-      'background:var(--rd-surface)!important;color:var(--rd-text)!important;border:1px solid var(--rd-border)!important;',
-      'border-radius:var(--radius-ctl)!important;',
-      '}',
-      'html.rd-on #view-package svg path[stroke]:not([stroke="none"]){stroke:var(--rd-accent);}',
-      'html.rd-on #view-package svg line[stroke^="rgba"],html.rd-on #view-package svg line[stroke="#fff"],',
-      'html.rd-on #view-package svg line[stroke="white"]{stroke:var(--rd-border)!important;}',
-      /* Print — white paper regardless of Night/Day */
-      '@media print{',
-      'html.rd-on #view-plan,html.rd-on #view-package,',
-      'html.rd-on #view-plan .panel,html.rd-on #view-package .panel,html.rd-on #view-package .wkpkg-root{',
-      'background:#fff!important;color:#111!important;border-color:#bbb!important;box-shadow:none!important;',
-      '}',
-      'html.rd-on #view-plan .persp .pl b,html.rd-on #view-package .persp .pl b,',
-      'html.rd-on #view-plan .plan-tbl td,html.rd-on #view-package .plan-tbl td,',
-      'html.rd-on #view-package .wkpkg-sec h3,html.rd-on #view-package .wkpkg-brief{color:#111!important;}',
-      'html.rd-on #view-plan .foot,html.rd-on #view-package .foot,html.rd-on #view-plan .lbl,html.rd-on #view-package .lbl{color:#555!important;}',
-      'html.rd-on #view-plan .wb,html.rd-on #view-package .wkpkg-num{',
-      'background:#333!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;',
-      '}',
       '}'
     ].join("");
   }
@@ -839,8 +370,8 @@
     if (!isRedesign()) return;
     _applyingTokens = true;
     try {
-      const base = (baseOverride === "day" || baseOverride === "chalk" || baseOverride === "night")
-        ? (baseOverride === "chalk" ? "day" : baseOverride)
+      const base = (baseOverride === "chalk" || baseOverride === "night")
+        ? baseOverride
         : getBase();
       try {
         if (document.documentElement.dataset.base !== base) {
@@ -859,8 +390,6 @@
         if (document.body) {
           document.body.style.setProperty("--accent", tuned.accent);
           document.body.style.setProperty("--accent-ink", tuned.accentText);
-          /* Redesign tokens own Night/Day — never leave classic body.dark stuck. */
-          document.body.classList.remove("dark");
         }
       } catch (e) {}
       try {
@@ -879,8 +408,6 @@
   }
 
   function phaseForView(v) {
-    if (v === "reps" || v === "author") return "teach";
-    if (v === "playbook") return "plan";
     for (let i = 0; i < PHASES.length; i++) {
       if (PHASES[i].views.indexOf(v) >= 0) return PHASES[i].id;
     }
@@ -907,8 +434,6 @@
         break;
       case "booth":
         clickExisting("darkBtn");
-        /* Under redesign, strip body.dark so Booth LS can flip without leaking dark --bg. */
-        if (isRedesign()) stripLegacyDarkClass();
         break;
       case "import":
         clickExisting("importBtn");
@@ -945,7 +470,7 @@
 
   function refreshSetupBaseLabel() {
     const b = document.getElementById("rdSetupBase");
-    if (b) b.textContent = "Theme: " + (getBase() === "day" ? "Day (tap→Night)" : "Night (tap→Day)");
+    if (b) b.textContent = "Theme: " + (getBase() === "chalk" ? "Chalk (tap→Night)" : "Night (tap→Chalk)");
   }
 
   function buildShellHtml() {
@@ -965,7 +490,7 @@
           'hidden'
         ].filter(Boolean).join(" ");
         if (t.href) {
-          tools += '<a ' + attrs + ' href="' + esc(withV(t.href)) + '">' + esc(t.label) + "</a>";
+          tools += '<a ' + attrs + ' href="' + esc(t.href) + '">' + esc(t.label) + "</a>";
         } else {
           tools += "<button type=\"button\" " + attrs + ">" + esc(t.label) + "</button>";
         }
@@ -979,7 +504,7 @@
 
     return ''
       + '<div id="rdContext">'
-      + '<a id="rdMark" href="' + esc(withV("OFFGRD.html")) + '" title="OFFGRD home"><img src="icon.svg" alt=""><span>OFF<span style="opacity:.85">GRD</span></span></a>'
+      + '<a id="rdMark" href="index.html" title="OFFGRD home"><img src="icon.svg" alt=""><span>OFF<span style="opacity:.85">GRD</span></span></a>'
       + '<span id="rdCrest"></span>'
       + '<button type="button" id="rdScope" title="Opponent / scope">Scope</button>'
       + '<span id="rdSync">SYNC</span>'
@@ -997,7 +522,6 @@
   function syncPhaseUI() {
     const view = currentView();
     const phase = phaseForView(view);
-    const kind = appKind();
     [].forEach.call(document.querySelectorAll("#rdPhases .rd-phase"), function (b) {
       b.classList.toggle("on", b.getAttribute("data-phase") === phase);
     });
@@ -1010,25 +534,14 @@
       }
       p.hidden = !forPhase || gatedOff;
       const v = p.getAttribute("data-view");
-      const href = p.getAttribute("href") || "";
-      const onPill =
-        (!!(v && v === view)) ||
-        (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
-        (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
-      p.classList.toggle("on", onPill);
+      p.classList.toggle("on", !!(v && v === view));
     });
   }
 
   function syncScopeBadge() {
     const btn = document.getElementById("rdScope");
     const src = document.getElementById("datbadge");
-    if (btn) {
-      if (src && (src.textContent || "").trim()) btn.textContent = src.textContent;
-      else {
-        const kind = appKind();
-        btn.textContent = kind === "qb" ? "Reps Lab" : kind === "playbook" ? "Playbook" : "Scope";
-      }
-    }
+    if (btn && src) btn.textContent = src.textContent || "Scope";
     const sync = document.getElementById("rdSync");
     const stat = document.getElementById("syncstat");
     if (sync) {
@@ -1080,18 +593,16 @@
         const ph = PHASES.filter(function (p) { return p.id === id; })[0];
         if (!ph || !ph.views || !ph.views.length) return;
         if (typeof root.setView === "function") root.setView(ph.views[0]);
-        else goMain(ph.views[0]);
         syncPhaseUI();
       };
     });
     [].forEach.call(shell.querySelectorAll(".rd-pill"), function (p) {
-      if (p.tagName === "A") return; /* href already versioned */
+      if (p.tagName === "A") return;
       p.onclick = function () {
         const action = p.getAttribute("data-action");
         const view = p.getAttribute("data-view");
         if (action) runAction(action);
         else if (view && typeof root.setView === "function") root.setView(view);
-        else if (view) goMain(view);
         syncPhaseUI();
       };
     });
@@ -1116,7 +627,7 @@
     const scope = shell.querySelector("#rdScope");
     if (scope) {
       scope.onclick = function () {
-        if (appKind() !== "scout") { goMain("scout"); return; }
+        /* Prefer opening schedule / opponent context; fall back to scout */
         if (!clickExisting("schedBtn") && typeof root.setView === "function") root.setView("scout");
       };
     }
@@ -1156,7 +667,9 @@
 
   function applyRedesignShell() {
     if (queryFlag() === 0 || !isRedesign()) {
-      restoreLegacyTheme();
+      document.documentElement.classList.remove("rd-on");
+      const shellOff = document.getElementById("rdShell");
+      if (shellOff) shellOff.style.display = "none";
       restoreAcct();
       return false;
     }
@@ -1165,7 +678,6 @@
     ensureCss();
     patchApplyTeamColors();
     setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
-    stripLegacyDarkClass();
 
     let shell = document.getElementById("rdShell");
     if (!shell) {
@@ -1180,7 +692,6 @@
     }
     shell.style.display = "flex";
     adoptAcct();
-    stampVersionedLinks();
     syncCrest();
     syncScopeBadge();
     syncPhaseUI();
@@ -1202,7 +713,11 @@
   function boot() {
     /* Kill switch again at boot — covers late-ready + persisted bad state. */
     if (queryFlag() === 0 || !isRedesign()) {
-      restoreLegacyTheme();
+      document.documentElement.classList.remove("rd-on");
+      try {
+        const shell = document.getElementById("rdShell");
+        if (shell) shell.style.display = "none";
+      } catch (e) {}
       restoreAcct();
       return;
     }
@@ -1225,7 +740,7 @@
   if (queryFlag() === 0) {
     root.OFFGRD_REDESIGN = {
       isRedesign: function () { return false; },
-      applyRedesignShell: function () { restoreLegacyTheme(); return false; },
+      applyRedesignShell: function () { return false; },
       applyTokens: function () {},
       adjustAccent: adjustAccent,
       rawTeamHex: function () { return null; },
@@ -1233,7 +748,6 @@
       setBase: function () { return "night"; },
       toggleBase: function () { return "night"; },
       syncPhaseUI: function () {},
-      restoreLegacyTheme: restoreLegacyTheme,
       PHASES: PHASES
     };
     return;
