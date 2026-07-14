@@ -1,7 +1,7 @@
 /* ============================================================
    OFFGRD-redesign.js — Design system: tokens + shell + Scout body
    Flag: ?redesign=0|1 | localStorage.offgrd_redesign | OFFGRD_CONFIG.redesign
-   Default OFF — old UI intact until cutover.
+   Default ON (v72 cutover). Rollback: ?redesign=0 / localStorage=0 (keep ≥1 release).
    Phase 1/1.5: CSS vars (Night Turf / Day) + accent + context bar +
    four-phase nav + sub-app shell.
    Phase 2 (v66): Scout body restyle under html.rd-on (presentation only).
@@ -10,6 +10,7 @@
    Phase 4 (v69): Teach body — Practice + Reps Lab + Film chrome (Author deep restyle = 4b).
    Phase 5 (v70): Gameday stripped sideline skin — Caller + Booth under html.rd-on.
    v71: Scout sub-nav exclusive tabs (Predict / Tendencies / Report / Cards).
+   v72: Global cutover default-on + scout-cards modal tokens + Booth surfaces.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -172,6 +173,7 @@
     { id: "sync", label: "Sync ↑", action: "sync" },
     { id: "load", label: "Load ↓", action: "load" },
     { id: "signout", label: "Sign out", action: "signout" },
+    { id: "booth", label: "Booth mode", action: "booth" },
     { id: "base", label: "Theme: Night / Day", action: "toggleBase" }
   ];
 
@@ -183,10 +185,11 @@
       const ls = localStorage.getItem(LS_FLAG);
       if (ls === "0") return false;
       if (ls === "1") return true;
-      if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === true) return true;
       if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === false) return false;
+      if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === true) return true;
     } catch (e) {}
-    return false;
+    /* Cutover default ON — escape hatch remains ?redesign=0 / LS=0 */
+    return true;
   }
 
   function getBase() {
@@ -216,7 +219,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "71";
+  const ASSET_V = "72";
 
   function getScoutTool() {
     try {
@@ -970,6 +973,36 @@
       'background:#fff!important;color:#111!important;border-color:#bbb!important;',
       '}',
       '}',
+      /* ---- Cutover polish: Scout cards modal on --rd-* (print sheet stays light) ---- */
+      'html.rd-on #scModal.ov{background:rgba(8,12,18,.62)!important;}',
+      'html.rd-on #scModal .ovbox{',
+      'background:var(--rd-surface)!important;color:var(--rd-text)!important;',
+      'border:1px solid var(--rd-border)!important;border-radius:var(--radius-card);',
+      'box-shadow:0 16px 48px rgba(0,0,0,.35);',
+      '}',
+      'html.rd-on #scModal .ovbox>div>b,html.rd-on #scModal .ovbox b[style]{color:var(--rd-text)!important;}',
+      'html.rd-on #scModal .hint,html.rd-on #scModal .lbl,html.rd-on #scModal .tag{color:var(--rd-muted)!important;}',
+      'html.rd-on #scModal .btn,html.rd-on #scModal select.btn{',
+      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;min-height:40px;',
+      '}',
+      'html.rd-on #scModal .btn.on{',
+      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;border-color:var(--rd-accent)!important;',
+      '}',
+      'html.rd-on #scModal #scPick,html.rd-on #scModal #scPreview{',
+      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;color:var(--rd-text)!important;',
+      '}',
+      'html.rd-on #scModal #scPick label{',
+      'border-bottom:1px solid var(--rd-border)!important;color:var(--rd-text)!important;',
+      '}',
+      'html.rd-on #scModal #scPick b{color:var(--rd-text)!important;}',
+      'html.rd-on #scModal #scPreview .sc-sheet{color:var(--rd-text);}',
+      'html.rd-on #scModal #scPreview .sc-sheet-title{color:var(--rd-text)!important;}',
+      'html.rd-on #scModal #scPreview .sc-card{',
+      'background:var(--rd-surface)!important;border-color:var(--rd-border)!important;color:var(--rd-text)!important;',
+      '}',
+      'html.rd-on #scModal #scPreview .sc-call,html.rd-on #scModal #scPreview .sc-meta{color:var(--rd-text)!important;}',
+      'html.rd-on #scModal #scPreview .sc-sub,html.rd-on #scModal #scPreview .sc-sep{color:var(--rd-muted)!important;}',
       /* ---- Phase 5: Gameday stripped sideline (Caller + Booth) ---- */
       'html.rd-on.rd-gameday #rdNavBody{flex-direction:column;}',
       'html.rd-on.rd-gameday #rdPhases{',
@@ -980,7 +1013,12 @@
       'padding:8px 10px;min-height:40px;font-size:12px;',
       '}',
       'html.rd-on.rd-gameday #rdPhases .rd-phase:not(.on){opacity:.55;}',
-      'html.rd-on.rd-gameday #rdTools{display:none!important;}',
+      /* Keep Booth reachable on Gameday — hide other tool pills only */
+      'html.rd-on.rd-gameday #rdTools{',
+      'display:flex!important;flex-wrap:wrap;gap:6px;padding:4px 8px 8px;align-items:center;',
+      '}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]){display:none!important;}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"]{display:inline-flex!important;min-height:44px;}',
       'html.rd-on.rd-gameday #rdContext{',
       'padding:6px 12px!important;min-height:44px;',
       '}',
@@ -1209,6 +1247,8 @@
           clickExisting("darkBtn");
           if (isRedesign()) stripLegacyDarkClass();
         }
+        refreshBoothLabels();
+        syncPhaseUI();
         break;
       case "import":
         clickExisting("importBtn");
@@ -1248,6 +1288,18 @@
     if (b) b.textContent = "Theme: " + (getBase() === "day" ? "Day (tap→Night)" : "Night (tap→Day)");
   }
 
+  function refreshBoothLabels() {
+    const on = document.documentElement.classList.contains("rd-booth");
+    [].forEach.call(document.querySelectorAll('#rdTools .rd-pill[data-action="booth"], #rdSetupMenu [data-action="booth"]'), function (el) {
+      el.textContent = on ? "Booth mode ✓" : "Booth mode";
+      el.classList.toggle("on", on);
+    });
+    try {
+      const top = document.querySelector("#view-caller .rd-gd-booth");
+      if (top) top.textContent = on ? "Booth ✓" : "Booth";
+    } catch (e) {}
+  }
+
   function buildShellHtml() {
     let phases = PHASES.map(function (p) {
       return '<button type="button" class="rd-phase" data-phase="' + p.id + '">' + esc(p.label) + "</button>";
@@ -1274,7 +1326,7 @@
     });
 
     let setup = SETUP_ITEMS.map(function (it) {
-      const id = it.action === "toggleBase" ? ' id="rdSetupBase"' : "";
+      const id = it.action === "toggleBase" ? ' id="rdSetupBase"' : (it.action === "booth" ? ' id="rdSetupBooth"' : "");
       return '<button type="button"' + id + ' data-action="' + esc(it.action) + '">' + esc(it.label) + "</button>";
     }).join("");
 
@@ -1337,8 +1389,11 @@
       const v = p.getAttribute("data-view");
       const href = p.getAttribute("href") || "";
       const tool = p.getAttribute("data-tool");
+      const action = p.getAttribute("data-action");
       let onPill = false;
-      if (phase === "scout" && tool) {
+      if (action === "booth") {
+        onPill = document.documentElement.classList.contains("rd-booth");
+      } else if (phase === "scout" && tool) {
         /* Exactly one Scout sub-tool active */
         onPill = tool === scoutTool;
       } else {
@@ -1438,6 +1493,7 @@
         e.stopPropagation();
         menu.classList.toggle("open");
         refreshSetupBaseLabel();
+        refreshBoothLabels();
       };
       document.addEventListener("click", function (ev) {
         if (!menu.contains(ev.target) && ev.target !== gear) menu.classList.remove("open");
@@ -1522,6 +1578,7 @@
     syncPhaseUI();
     patchSetView();
     refreshSetupBaseLabel();
+    refreshBoothLabels();
 
     try {
       const badge = document.getElementById("datbadge");

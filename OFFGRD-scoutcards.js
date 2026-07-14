@@ -320,9 +320,13 @@
     ov.id = "scModal";
     ov.className = "ov show";
     ov.style.zIndex = 9990;
+    const rdOn = !!(root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign());
+    const titleColor = rdOn ? "var(--rd-text)" : "var(--navy,#13294B)";
+    const pickBorder = rdOn ? "var(--rd-border)" : "var(--line,#d8dee6)";
+    const prevBg = rdOn ? "var(--rd-surface-2)" : "#f7f9fb";
     ov.innerHTML = '<div class="ovbox" style="max-width:920px">'
       + '<div class="row" style="justify-content:space-between;align-items:center;gap:8px">'
-      + '<b style="font-size:18px;color:var(--navy,#13294B)">Scout cards</b>'
+      + '<b style="font-size:18px;color:' + titleColor + '">Scout cards</b>'
       + '<div class="row sc-no-print" style="gap:6px">'
       + '<button type="button" class="btn" id="scPrint">Print / PDF</button>'
       + '<button type="button" class="btn" id="scPng">PNG (first selected)</button>'
@@ -340,8 +344,8 @@
       + '<span id="scCount" class="tag"></span>'
       + "</div>"
       + '<div class="row" style="align-items:stretch;gap:12px;flex-wrap:wrap">'
-      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:420px;overflow:auto;border:1px solid var(--line,#d8dee6);border-radius:10px;padding:8px"></div>'
-      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:520px;overflow:auto;border:1px solid var(--line,#d8dee6);border-radius:10px;padding:8px;background:#f7f9fb"></div>'
+      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:420px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px"></div>'
+      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:520px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:' + prevBg + '"></div>'
       + "</div></div>";
     document.body.appendChild(ov);
 
@@ -364,7 +368,7 @@
         const id = String(p.id || p.name);
         const on = selected.has(id);
         const m = metaOf(p);
-        return '<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid #e8edf3;cursor:pointer">'
+        return '<label class="sc-pick-row" style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid ' + (rdOn ? "var(--rd-border)" : "#e8edf3") + ';cursor:pointer">'
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
           + '<span><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
           + esc([m.formation, m.personnel, format === "opponent" ? ddLabel(m) : ""].filter(Boolean).join(" · "))

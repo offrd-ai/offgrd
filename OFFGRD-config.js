@@ -19,6 +19,6 @@ window.OFFGRD_CONFIG = {
   weeklyPackage: true,
   /* Film telestration (still-frame Phase 1) — ON. Rollback: ?telestrate=0 or localStorage.offgrd_film_telestrate=0 */
   filmTelestrate: true,
-  /* Redesign tokens + 4-phase nav shell — OFF until cutover. Opt-in: ?redesign=1 or localStorage.offgrd_redesign=1 */
-  redesign: false
+  /* Redesign tokens + 4-phase nav shell — ON (global cutover). Rollback: ?redesign=0 or localStorage.offgrd_redesign=0 */
+  redesign: true
 };
