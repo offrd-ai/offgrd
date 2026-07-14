@@ -5,12 +5,18 @@
    Phase 1/1.5: CSS vars (Night Turf / Day) + accent + context bar +
    four-phase nav + sub-app shell.
    Phase 2 (v66): Scout body restyle under html.rd-on (presentation only).
+   v67: Kill switch fully restores legacy light — no body.dark / --bg leak.
    ============================================================ */
 (function (root) {
   "use strict";
 
   const LS_FLAG = "offgrd_redesign";
   const LS_BASE = "offgrd_redesign_base";
+  const INLINE_TOKEN_PROPS = [
+    "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
+    "--bg", "--panel", "--ink", "--muted", "--line",
+    "--gold", "--blue", "--bluefill", "--accent2", "--chip", "--warn"
+  ];
 
   /* ---- Unconditional kill switch — runs BEFORE any init/observers/tokens ---- */
   function queryFlag() {
@@ -22,18 +28,88 @@
     return null;
   }
 
-  (function applyKillSwitch() {
-    if (queryFlag() !== 0) return;
-    try { localStorage.setItem(LS_FLAG, "0"); } catch (e) {}
-    try { localStorage.removeItem(LS_BASE); } catch (e) {}
+  function clearInlineTokenProps() {
+    const els = [document.documentElement, document.body];
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i];
+      if (!el || !el.style) continue;
+      for (let j = 0; j < INLINE_TOKEN_PROPS.length; j++) {
+        try { el.style.removeProperty(INLINE_TOKEN_PROPS[j]); } catch (e) {}
+      }
+    }
+  }
+
+  function removeRdCss() {
+    try {
+      const st = document.getElementById("rdCss");
+      if (st && st.parentNode) st.parentNode.removeChild(st);
+    } catch (e) {}
+  }
+
+  /* Strip redesign paint so legacy :root --bg (#f4f5f7) wins again. */
+  function tearDownRedesignPaint() {
     try {
       document.documentElement.classList.remove("rd-on");
       document.documentElement.removeAttribute("data-base");
       document.documentElement.removeAttribute("data-rd-accent");
       document.documentElement.removeAttribute("data-rd-base");
-      const shell = document.getElementById("rdShell");
-      if (shell && shell.parentNode) shell.parentNode.removeChild(shell);
     } catch (e) {}
+    clearInlineTokenProps();
+    removeRdCss();
+    try {
+      const shell = document.getElementById("rdShell");
+      if (shell) {
+        if (queryFlag() === 0 && shell.parentNode) shell.parentNode.removeChild(shell);
+        else shell.style.display = "none";
+      }
+    } catch (e) {}
+  }
+
+  /*
+   * Redesign Night/Day own the look via --rd-* under html.rd-on — never body.dark.
+   * body.dark is classic Booth only; leaving it on leaks #0b1017 --bg into flag-off.
+   */
+  function stripLegacyDarkClass() {
+    try {
+      if (document.body) document.body.classList.remove("dark");
+    } catch (e) {}
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta && meta.getAttribute("content") === "#0b1017") meta.setAttribute("content", "#13294B");
+    } catch (e) {}
+  }
+
+  function restoreLegacyTheme() {
+    tearDownRedesignPaint();
+    if (!document.body) return;
+    /* Explicit ?redesign=0: always force light (acceptance). Skip booth auto-restore. */
+    if (queryFlag() === 0) {
+      stripLegacyDarkClass();
+      return;
+    }
+    /* Flag off without kill query: restore classic booth preference. */
+    try {
+      const booth = localStorage.getItem("offgrd_booth") === "1";
+      document.body.classList.toggle("dark", booth);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", booth ? "#0b1017" : "#13294B");
+    } catch (e) {
+      stripLegacyDarkClass();
+    }
+  }
+
+  function whenDomReady(fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  }
+
+  (function applyKillSwitch() {
+    if (queryFlag() !== 0) return;
+    try { localStorage.setItem(LS_FLAG, "0"); } catch (e) {}
+    try { localStorage.removeItem(LS_BASE); } catch (e) {}
+    tearDownRedesignPaint();
+    /* body may not exist yet (script in <head>) — finish on DOM ready */
+    whenDomReady(function () { restoreLegacyTheme(); });
   })();
 
   const PHASES = [
@@ -132,7 +208,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "66";
+  const ASSET_V = "67";
 
   function appKind() {
     try {
@@ -335,11 +411,12 @@
 
   function cssTokens() {
     return [
-      'html[data-base="night"]{',
+      /* Base palettes — ONLY while redesign is on (never redefine legacy --bg globally) */
+      'html.rd-on[data-base="night"]{',
       '--rd-bg:#0E1116;--rd-surface:#1A1F27;--rd-surface-2:#232A34;--rd-border:#2C333D;',
       '--rd-text:#F5F7FA;--rd-muted:#9AA5B4;--rd-warn-bg:#3A2E12;--rd-warn-text:#F5C451;',
       '}',
-      'html[data-base="day"]{',
+      'html.rd-on[data-base="day"]{',
       '--rd-bg:#EDF0F4;--rd-surface:#FFFFFF;--rd-surface-2:#F4F6F9;--rd-border:#D8DEE7;',
       '--rd-text:#111722;--rd-muted:#5C6673;--rd-warn-bg:#FBEBCB;--rd-warn-text:#8A5A05;',
       '}',
@@ -588,6 +665,8 @@
         if (document.body) {
           document.body.style.setProperty("--accent", tuned.accent);
           document.body.style.setProperty("--accent-ink", tuned.accentText);
+          /* Redesign tokens own Night/Day — never leave classic body.dark stuck. */
+          document.body.classList.remove("dark");
         }
       } catch (e) {}
       try {
@@ -634,6 +713,8 @@
         break;
       case "booth":
         clickExisting("darkBtn");
+        /* Under redesign, strip body.dark so Booth LS can flip without leaking dark --bg. */
+        if (isRedesign()) stripLegacyDarkClass();
         break;
       case "import":
         clickExisting("importBtn");
@@ -881,9 +962,7 @@
 
   function applyRedesignShell() {
     if (queryFlag() === 0 || !isRedesign()) {
-      document.documentElement.classList.remove("rd-on");
-      const shellOff = document.getElementById("rdShell");
-      if (shellOff) shellOff.style.display = "none";
+      restoreLegacyTheme();
       restoreAcct();
       return false;
     }
@@ -892,6 +971,7 @@
     ensureCss();
     patchApplyTeamColors();
     setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
+    stripLegacyDarkClass();
 
     let shell = document.getElementById("rdShell");
     if (!shell) {
@@ -928,11 +1008,7 @@
   function boot() {
     /* Kill switch again at boot — covers late-ready + persisted bad state. */
     if (queryFlag() === 0 || !isRedesign()) {
-      document.documentElement.classList.remove("rd-on");
-      try {
-        const shell = document.getElementById("rdShell");
-        if (shell) shell.style.display = "none";
-      } catch (e) {}
+      restoreLegacyTheme();
       restoreAcct();
       return;
     }
@@ -955,7 +1031,7 @@
   if (queryFlag() === 0) {
     root.OFFGRD_REDESIGN = {
       isRedesign: function () { return false; },
-      applyRedesignShell: function () { return false; },
+      applyRedesignShell: function () { restoreLegacyTheme(); return false; },
       applyTokens: function () {},
       adjustAccent: adjustAccent,
       rawTeamHex: function () { return null; },
@@ -963,6 +1039,7 @@
       setBase: function () { return "night"; },
       toggleBase: function () { return "night"; },
       syncPhaseUI: function () {},
+      restoreLegacyTheme: restoreLegacyTheme,
       PHASES: PHASES
     };
     return;
