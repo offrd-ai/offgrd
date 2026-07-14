@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=69";
+import { Cloud } from "./OFFGRD-cloud.js?v=70";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;

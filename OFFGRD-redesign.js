@@ -8,6 +8,7 @@
    v67: Kill switch fully restores legacy light — no body.dark / --bg leak.
    Phase 3 (v68): Plan body — Game Plan + Package restyle under html.rd-on.
    Phase 4 (v69): Teach body — Practice + Reps Lab + Film chrome (Author deep restyle = 4b).
+   Phase 5 (v70): Gameday stripped sideline skin — Caller + Booth under html.rd-on.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -52,6 +53,8 @@
   function tearDownRedesignPaint() {
     try {
       document.documentElement.classList.remove("rd-on");
+      document.documentElement.classList.remove("rd-gameday");
+      document.documentElement.classList.remove("rd-booth");
       document.documentElement.removeAttribute("data-base");
       document.documentElement.removeAttribute("data-rd-accent");
       document.documentElement.removeAttribute("data-rd-base");
@@ -210,7 +213,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "69";
+  const ASSET_V = "70";
 
   function appKind() {
     try {
@@ -941,6 +944,139 @@
       'html.rd-on #view-practice,html.rd-on #view-practice .panel,html.rd-on #view-practice .rd-prd-card{',
       'background:#fff!important;color:#111!important;border-color:#bbb!important;',
       '}',
+      '}',
+      /* ---- Phase 5: Gameday stripped sideline (Caller + Booth) ---- */
+      'html.rd-on.rd-gameday #rdNavBody{flex-direction:column;}',
+      'html.rd-on.rd-gameday #rdPhases{',
+      'flex-direction:row!important;width:auto!important;flex:none!important;',
+      'border-right:0!important;padding:6px 8px!important;gap:4px;',
+      '}',
+      'html.rd-on.rd-gameday #rdPhases .rd-phase{',
+      'padding:8px 10px;min-height:40px;font-size:12px;',
+      '}',
+      'html.rd-on.rd-gameday #rdPhases .rd-phase:not(.on){opacity:.55;}',
+      'html.rd-on.rd-gameday #rdTools{display:none!important;}',
+      'html.rd-on.rd-gameday #rdContext{',
+      'padding:6px 12px!important;min-height:44px;',
+      '}',
+      'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
+      'html.rd-on.rd-booth #rdShell{display:none!important;}',
+      'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
+      'html.rd-on #view-caller{max-width:720px;margin:0 auto;}',
+      'html.rd-on #view-caller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
+      'html.rd-on #view-caller .rd-gd-top{',
+      'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
+      'padding:10px 12px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-top b{color:var(--rd-text);font-weight:500;font-size:var(--fs-title);}',
+      'html.rd-on #view-caller .rd-gd-chip{',
+      'display:inline-flex;align-items:center;padding:6px 10px;min-height:32px;',
+      'border-radius:var(--radius-pill);background:var(--rd-surface-2);border:1px solid var(--rd-border);',
+      'color:var(--rd-muted);font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-caller .rd-gd-btn{',
+      'min-height:44px!important;min-width:44px;padding:10px 14px!important;',
+      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;cursor:pointer;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-exit{margin-left:auto;}',
+      'html.rd-on #view-caller .rd-gd-sit{',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-sit-txt{',
+      'font-size:22px;font-weight:500;color:var(--rd-text);line-height:1.15;margin-bottom:10px;',
+      '}',
+      'html.rd-on.rd-booth #view-caller .rd-gd-sit-txt{font-size:28px;}',
+      'html.rd-on #view-caller .rd-gd-sit .seg{',
+      'background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:4px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-sit .seg button{',
+      'min-height:48px!important;min-width:56px;flex:1;padding:10px 8px!important;',
+      'background:transparent!important;border:1px solid transparent!important;',
+      'color:var(--rd-muted)!important;font-weight:500!important;border-radius:var(--radius-pill);font-size:15px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-sit .seg button.on{',
+      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-edit{margin-top:8px;}',
+      'html.rd-on #view-caller .rd-gd-edit summary{',
+      'cursor:pointer;color:var(--rd-accent);font-weight:500;font-size:var(--fs-label);list-style:none;',
+      'min-height:44px;display:inline-flex;align-items:center;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-hero{',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);',
+      'border-radius:var(--radius-card);padding:16px 18px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-hero-name{',
+      'font-size:44px;font-weight:500;color:var(--rd-text);line-height:1.05;margin:0 0 8px;',
+      '}',
+      'html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:64px;}',
+      'html.rd-on #view-caller .rd-gd-signal{',
+      'display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;',
+      'padding:0 12px;margin:0 10px 8px 0;border-radius:10px;',
+      'background:var(--rd-accent);color:var(--rd-accent-text);font-weight:500;font-size:18px;vertical-align:middle;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-why{',
+      'color:var(--rd-muted);font-size:var(--fs-body);font-weight:500;margin:0 0 12px;line-height:1.35;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-why b{color:var(--rd-accent);font-weight:500;}',
+      'html.rd-on #view-caller .rd-gd-backups{display:flex;flex-direction:column;gap:6px;}',
+      'html.rd-on #view-caller .rd-gd-backup{',
+      'display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;',
+      'background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);',
+      'color:var(--rd-text);font-weight:500;cursor:pointer;width:100%;text-align:left;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-backup .sig{',
+      'min-width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;',
+      'background:var(--rd-accent);color:var(--rd-accent-text);border-radius:8px;font-size:13px;font-weight:500;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-backup .meta{margin-left:auto;color:var(--rd-muted);font-size:var(--fs-label);}',
+      'html.rd-on #view-caller .rd-gd-expect{',
+      'background:var(--rd-surface-2);border-left:4px solid var(--rd-accent);',
+      'border-radius:0 var(--radius-card) var(--radius-card) 0;padding:12px 14px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-expect .lbl{',
+      'color:var(--rd-accent)!important;font-size:var(--fs-micro);letter-spacing:1px;margin-bottom:6px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-expect .body{color:var(--rd-text);font-size:var(--fs-body);font-weight:500;}',
+      'html.rd-on #view-caller .rd-gd-expect .body b{color:var(--rd-accent);}',
+      'html.rd-on #view-caller .rd-gd-panel{',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-panel .lbl{',
+      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);margin-bottom:8px;',
+      '}',
+      'html.rd-on #view-caller .covlog{gap:6px;background:transparent!important;padding:0!important;}',
+      'html.rd-on #view-caller .covlog button{',
+      'min-height:48px!important;min-width:72px;padding:10px 12px!important;flex:1 1 auto;',
+      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-outcomes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}',
+      'html.rd-on #view-caller .rd-gd-outcomes button{',
+      'min-height:52px!important;flex:1 1 40%;padding:12px 14px!important;',
+      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;font-size:15px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-outcomes button.on-hit{',
+      'background:#1d7a45!important;border-color:#1d7a45!important;color:#fff!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-outcomes button.on-miss{',
+      'background:var(--rd-warn-bg)!important;border-color:var(--rd-border)!important;color:var(--rd-warn-text)!important;',
+      '}',
+      'html.rd-on[data-base="night"] #view-caller .rd-gd-outcomes button.on-hit{background:#3fc777!important;color:#0E1116!important;}',
+      'html.rd-on #view-caller .rd-gd-calllog .callitem{',
+      'display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 0;border-bottom:1px solid var(--rd-border);',
+      '}',
+      'html.rd-on #view-caller .foot{color:var(--rd-muted);}',
+      'html.rd-on #view-caller .ghost{',
+      'min-height:44px;background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
+      '}',
+      '@media (orientation:landscape) and (max-height:560px){',
+      'html.rd-on.rd-gameday #view-caller .rd-gd-hero-name{font-size:36px;}',
+      'html.rd-on.rd-gameday #rdPhases{display:none!important;}',
       '}'
     ].join("");
   }
@@ -1028,9 +1164,15 @@
         else clickExisting("telestrateBtn");
         break;
       case "booth":
-        clickExisting("darkBtn");
-        /* Under redesign, strip body.dark so Booth LS can flip without leaking dark --bg. */
-        if (isRedesign()) stripLegacyDarkClass();
+        /* Prefer setBooth so darkBtn label + LS stay in sync (redesign → rd-booth, classic → body.dark). */
+        if (typeof root.setBooth === "function") {
+          if (isRedesign()) root.setBooth(!document.documentElement.classList.contains("rd-booth"));
+          else root.setBooth(!document.body.classList.contains("dark"));
+          if (isRedesign()) stripLegacyDarkClass();
+        } else {
+          clickExisting("darkBtn");
+          if (isRedesign()) stripLegacyDarkClass();
+        }
         break;
       case "import":
         clickExisting("importBtn");
@@ -1116,6 +1258,23 @@
       + '</div>';
   }
 
+  function syncGamedayChrome() {
+    try {
+      const on = isRedesign() && phaseForView(currentView()) === "gameday";
+      document.documentElement.classList.toggle("rd-gameday", on);
+      if (!on) document.documentElement.classList.remove("rd-booth");
+      else {
+        /* Restore redesign booth flag without body.dark */
+        try {
+          if (localStorage.getItem("offgrd_booth") === "1") {
+            document.documentElement.classList.add("rd-booth");
+          }
+        } catch (e) {}
+        stripLegacyDarkClass();
+      }
+    } catch (e) {}
+  }
+
   function syncPhaseUI() {
     const view = currentView();
     const phase = phaseForView(view);
@@ -1139,6 +1298,7 @@
         (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
       p.classList.toggle("on", onPill);
     });
+    syncGamedayChrome();
   }
 
   function syncScopeBadge() {
