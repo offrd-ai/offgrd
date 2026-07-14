@@ -18,11 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=62"></script>
+<script src="OFFGRD-config.js?v=69"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=62"></script>
-<script src="OFFGRD-render.js?v=62"></script>
-<script src="OFFGRD-autoderive.js?v=62"></script>
+<script src="OFFGRD-cache-gate.js?v=69"></script>
+<script src="OFFGRD-render.js?v=69"></script>
+<script src="OFFGRD-autoderive.js?v=69"></script>
+<script src="OFFGRD-redesign.js?v=69"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -409,9 +410,9 @@ function renderWeekBar(){
   el.innerHTML='<b style="color:var(--navy)">This week vs '+esc(WEEKPLAN.opponent||"—")+'</b>'
     +'<span class="tag">'+(gd?("gameday "+esc(gd)):"no game date set")+(cd?(" · "+esc(cd)):"")+(WEEKCOVS.length?(' · they show: '+WEEKCOVS.slice(0,3).map(esc).join(", ")):"")+'</span>'
     +'<span style="flex:1"></span>'
-    +(canRoute[myPos]?'<button class="btn go" id="myWeekTestBtn">ðŸŽ¯ My week test ('+esc(myPos)+')</button>':'<button class="btn go" id="pickPosWeekBtn">Pick position for week test</button>')
-    +(WEEKPLAN.gen?'<button class="btn" id="weekBriefBtn">ðŸ“– Briefing</button>':'')
-    +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"✓ Week mode ON":"ðŸŽ¯ Week mode — this week's plays & looks")+'</button>';
+    +(canRoute[myPos]?'<button class="btn go" id="myWeekTestBtn">\uD83C\uDFAF My week test ('+esc(myPos)+')</button>':'<button class="btn go" id="pickPosWeekBtn">Pick position for week test</button>')
+    +(WEEKPLAN.gen?'<button class="btn" id="weekBriefBtn">\uD83C\uDFC8 Briefing</button>':'')
+    +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"\u2713 Week mode ON":"\uD83C\uDFAF Week mode \u2014 this week's plays & looks")+'</button>';
   document.getElementById("weekModeBtn").onclick=()=>setWeekMode(!WEEKMODE);
   const bb=document.getElementById("weekBriefBtn"); if(bb) bb.onclick=openBriefing;
   const mb=document.getElementById("myWeekTestBtn"); if(mb) mb.onclick=myWeekTest;
@@ -437,7 +438,7 @@ async function openBriefing(){
   const posNote=(((isDef?g.defense.positions:g.positions)||{})[pos])||null;
   const rem=(uid&&g.remediation&&g.remediation[uid])||null;
   let h='<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.35)">'
-    +'<div class="row" style="justify-content:space-between"><b style="font-size:17px;color:var(--navy)">ðŸ“– Week briefing — '+(isDef?'our defense vs ':'vs ')+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX">Close</button></div>'
+    +'<div class="row" style="justify-content:space-between"><b style="font-size:17px;color:var(--navy)">\uD83D\uDCD6 Week briefing — '+(isDef?'our defense vs ':'vs ')+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX">Close</button></div>'
     +(rem?'<div style="background:#fdf3e2;border:1px solid #ecd9b0;border-radius:10px;padding:10px 12px;margin-top:10px"><b>Your focus this week:</b> '+esc(rem)+'</div>':'')
     +(posNote?'<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin-top:10px"><b>'+esc(pos)+' notes:</b> '+esc(posNote)+'</div>':'')
     +'<div style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(src.narrative||"")+'</div>';
@@ -665,7 +666,7 @@ function editWeekDef(){
   Object.keys(WEEKDEF).forEach(c=>{ if(shown.indexOf(c)<0) shown.push(c); });
   if(!shown.length) shown.push("Cover 3");
   let curCov=shown[0];
-  body.innerHTML='<p class="tag" style="margin-top:8px">Set how <b>'+esc(WEEKPLAN.opponent||"this opponent")+'</b> lines up in each look — drag any defender. The base coverage still plays out; this is the pre-snap picture your players see in Train/Test with ðŸŽ¯ Week mode on.</p>'
+  body.innerHTML='<p class="tag" style="margin-top:8px">Set how <b>'+esc(WEEKPLAN.opponent||"this opponent")+'</b> lines up in each look — drag any defender. The base coverage still plays out; this is the pre-snap picture your players see in Train/Test with \uD83C\uDFAF Week mode on.</p>'
     +'<div class="lbl" style="margin-top:8px">Their looks this week</div><div class="chips" id="wdCovs" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:6px;font-size:11px">Add a look</div><div class="chips" id="wdAdd" style="margin:4px 0"></div>'
     +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px"><span class="tag" id="wdCur"></span><button class="btn" id="wdReset" title="reset this look to base">↺ Base look</button></div>'
@@ -689,7 +690,7 @@ function editWeekDef(){
   document.getElementById("wdReset").onclick=()=>{ delete WEEKDEF[curCov]; SELDEF=null; render(); };
   document.getElementById("wdSave").onclick=async()=>{
     const msg=document.getElementById("wdMsg"); msg.textContent="Saving…";
-    try{ await window.QB.saveWeekDef(WEEKPLAN.id, WEEKDEF); WEEKPLAN.def_aligns=JSON.parse(JSON.stringify(WEEKDEF)); msg.textContent="Saved ✓ — live in Train/Test under ðŸŽ¯ Week mode."; }
+    try{ await window.QB.saveWeekDef(WEEKPLAN.id, WEEKDEF); WEEKPLAN.def_aligns=JSON.parse(JSON.stringify(WEEKDEF)); msg.textContent="Saved ✓ — live in Train/Test under \uD83C\uDFAF Week mode."; }
     catch(e){ msg.textContent=e.message||"Save failed"; }
   };
   render();
@@ -1470,7 +1471,7 @@ function myReadinessHTML(rows,uid){
   return '<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin:0 0 16px">'
     +'<b style="color:var(--navy)">Your week vs '+esc(opp)+':</b> <span style="font-weight:800;color:'+READY_DOT[st.s]+'">● '+st.label+'</span>'
     +' <span class="tag">'+st.tests+' week test'+(st.tests===1?"":"s")+(st.tests?(' · avg '+Math.round(st.avg*100)+'%'):'')+(due?(' · '+esc(due)):'')+'</span>'
-    +(st.s==="green"?'':' <span class="tag">— take tests with ðŸŽ¯ Week mode on to go green ('+READY_MIN_TESTS+'+ tests at '+Math.round(READY_AVG*100)+'%+).</span>')
+    +(st.s==="green"?'':' <span class="tag">— take tests with \uD83C\uDFAF Week mode on to go green ('+READY_MIN_TESTS+'+ tests at '+Math.round(READY_AVG*100)+'%+).</span>')
     +'</div>';
 }
 /* ---------- coach results ---------- */
@@ -1571,10 +1572,10 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=62"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=62"></script>
-<script type="module" src="OFFGRD-account.js?v=62"></script>
-<script src="OFFGRD-role-gate.js?v=62"></script>
+<script src="OFFGRD-mobile.js?v=69"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=69"></script>
+<script type="module" src="OFFGRD-account.js?v=69"></script>
+<script src="OFFGRD-role-gate.js?v=69"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -255,16 +255,16 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=62"></script>
+<script src="OFFGRD-config.js?v=69"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=62"></script>
-<script src="OFFGRD-render.js?v=62"></script>
-<script src="OFFGRD-autoderive.js?v=62"></script>
-<script src="OFFGRD-scoutcards.js?v=62"></script>
-<script src="OFFGRD-tendencies.js?v=62"></script>
-<script src="OFFGRD-weeklypackage.js?v=62"></script>
-<script src="OFFGRD-telestrate.js?v=62"></script>
-<script src="OFFGRD-redesign.js?v=64"></script>
+<script src="OFFGRD-cache-gate.js?v=69"></script>
+<script src="OFFGRD-render.js?v=69"></script>
+<script src="OFFGRD-autoderive.js?v=69"></script>
+<script src="OFFGRD-scoutcards.js?v=69"></script>
+<script src="OFFGRD-tendencies.js?v=69"></script>
+<script src="OFFGRD-weeklypackage.js?v=69"></script>
+<script src="OFFGRD-telestrate.js?v=69"></script>
+<script src="OFFGRD-redesign.js?v=69"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -729,7 +729,7 @@ function render(){
       '<div class="reslead">Coverage predictor</div>'+
       '<div class="callline"><div class="callname" style="font-size:30px">No coverage data yet</div></div>'+
       (noDef
-        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button onclick="showGetStarted()" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Get started →</button></div>'
+        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button class="rd-scout-cta" onclick="showGetStarted()" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer')+'">Get started →</button></div>'
         : '<p class="foot">No charted snaps fit this exact situation. Loosen a filter or pick a different look.</p>');
     renderGrid(useRec); return;
   }
@@ -811,7 +811,11 @@ function renderGrid(useRec){
     if(!scopeAllows(rw)) return false;
     return true;
   });
-  const heat=p=>{ const a=Math.min(.85,Math.max(.06,p)); return "background:rgba(168,17,43,"+(a*0.5)+");"; };
+  const heat=p=>{ const a=Math.min(.85,Math.max(.06,p));
+    if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()){
+      return "background:color-mix(in srgb,var(--rd-accent) "+Math.round(a*55)+"%, transparent);";
+    }
+    return "background:rgba(168,17,43,"+(a*0.5)+");"; };
   let html='<table class="gridtbl"><thead><tr><th class="rh"></th>'+dists.map(d=>'<th>'+d+'</th>').join("")+'</tr></thead><tbody>';
   downs.forEach(dn=>{
     html+='<tr><td class="rowh">'+ordinal(dn)+'</td>';
@@ -1107,7 +1111,11 @@ function renderOffenseGrid(useRec){
     if(!scopeAllows(rw)) return false;
     return true;
   });
-  const heat=p=>{ const a=Math.min(.85,Math.max(.06,p)); return "background:rgba(19,41,75,"+(a*0.5)+");"; };
+  const heat=p=>{ const a=Math.min(.85,Math.max(.06,p));
+    if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()){
+      return "background:color-mix(in srgb,var(--rd-accent) "+Math.round(a*55)+"%, transparent);";
+    }
+    return "background:rgba(19,41,75,"+(a*0.5)+");"; };
   let html='<table class="gridtbl"><thead><tr><th class="rh"></th>'+dists.map(d=>'<th>'+d+'</th>').join("")+'</tr></thead><tbody>';
   downs.forEach(dn=>{
     html+='<tr><td class="rowh">'+ordinal(dn)+'</td>';
@@ -1427,25 +1435,36 @@ function openWeekPicker(i){
   rf(); q.focus();
 }
 function weekBarHTML(){
-  const wrap=inner=>'<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+  const wrap=inner=> rd
+    ? '<div class="rd-week-bar">'+inner+'</div>'
+    : '<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
   if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" — a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">▶ Start new week</button>':""));
   const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
   const cd=weekCountdown();
-  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
-  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
+  const fld=rd?'':'background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;';
+  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;'+fld+'">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
+  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;'+fld+'">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
   return wrap('<b>This week</b>'+crest(WEEK.opponent||"",26)+oppSel+'<span class="foot">gameday</span>'+dateIn+(cd?'<span class="wb" style="min-width:auto;padding:0 9px">'+cd+'</span>':"")+'<span style="flex:1"></span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart">Start new week</button>':""));
 }
 function weekPlayerShareHTML(){
   if(!WEEK || !WEEK_EDIT || !window.OFFGRD_WEEK_PLAYER_SHARE) return "";
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   const pkgOn=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage();
   const hasDraft=pkgOn&&WEEK.gen&&WEEK.gen.game_plan_draft;
   const approved=pkgOn&&OFFGRD_WEEKLY_PACKAGE.packageApproved(WEEK);
   if(hasDraft&&!approved){
-    return '<div class="no-print" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>';
+    return rd
+      ? '<div class="no-print rd-share-locked"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>'
+      : '<div class="no-print" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>';
   }
   const s = Object.assign({briefing:true,plays:true,scout:false,practice:true}, WEEK.player_share||{});
   const row = (k,label)=>'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;margin-right:12px"><input type="checkbox" class="wkShare" data-k="'+k+'"'+(s[k]?' checked':'')+'> '+label+'</label>';
-  return '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
+  return rd
+    ? '<div class="no-print rd-share-open"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
+      +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
+      +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>'
+    : '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
     +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
     +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>';
 }
@@ -1462,16 +1481,20 @@ function wireWeekPlayerShare(host){
 }
 function weekGenHTML(){
   if(!WEEK) return "";
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   const g=WEEK.gen;
   const genBtn=(WEEK_EDIT&&window.OFFGRD_WEEK_GEN)?('<button class="ghost no-print" id="wkGenBtn" style="font-weight:800">✦ '+(g?"Regenerate briefing":"Generate AI week briefing")+'</button>'):"";
   if(!g){
     if(!WEEK_EDIT) return "";
-    return '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
+    return rd
+      ? '<div class="no-print rd-gen-empty" style="border-style:dashed">'+genBtn
+        +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>'
+      : '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
       +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>';
   }
   const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
-  let h='<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px">'
-    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+  let h=(rd?'<details class="rd-week-brief"':'<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px"')+'>'
+    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
   if(defSide){
     if(!d||!d.narrative){
       h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
@@ -1677,12 +1700,20 @@ function renderPlan(){
     const target=cov?cov.k:null;
     const runs=target?bestCallsFor(target,b.dn,b.db,"Run"):[]; const passes=target?bestCallsFor(target,b.dn,b.db,"Pass"):[];
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
-    const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
+    const showStr=(()=>{
+      const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+      const head=cov?(rd?'<span class="rd-stat">'+esc(cov.k)+" "+fmtPct(cov.pct)+'</span>':esc(cov.k)+" "+fmtPct(cov.pct)):"—";
+      return head+(fr?" &middot; "+esc(fr.k):"")+" &middot; "+fmtPct(pr)+" press"+(ds.predicted?'<div class="foot">predicted from '+esc(ds.from)+'</div>':"");
+    })();
     const mine=Array.isArray(b.plays)?b.plays:[];
     const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</div>`;
     const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="display:block;padding:2px 9px;margin:5px 0 0;white-space:nowrap">+ Add</button>`:"");
     const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
-    const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
+    const rdMode=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+    const rp=ex=> rdMode
+      ? (' class="foot rd-runpass"'+(ex?' style="'+ex+'"':''))
+      : (' class="foot" style="color:var(--accent);font-weight:800'+(ex?';'+ex:'')+'"');
+    const callStr=(runs.length||passes.length)?`<div${rp("")}>RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div${rp("margin-top:5px")}>PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
   h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;
@@ -1701,6 +1732,7 @@ function renderPractice(){
   if(!WEEK){ host.innerHTML='<div class="panel"><p class="foot">No active week plan yet. Start one in <b>Game Plan &rarr; This week</b>, then build your practice script here.</p></div>'; return; }
   if(!WEEK.practice||!Array.isArray(WEEK.practice.periods)) WEEK.practice=draftPractice();
   const P=WEEK.practice, edit=WEEK_EDIT;
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   let totReps=0,totGood=0,totNeeds=0; P.periods.forEach(pd=>pd.plays.forEach(pl=>{ totReps+=(+pl.reps||0); totGood+=(+pl.good||0); totNeeds+=(+pl.needs||0); }));
   let h='<div class="panel">';
   h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(WEEK.opponent||"",30)}<span class="pl" style="font-size:18px"><b>${esc(WEEK.opponent||"This week")}</b> &mdash; practice script</span>${WEEK.game_date?`<span class="foot" style="margin-left:8px">game ${esc(WEEK.game_date)}${weekCountdown()?" ("+weekCountdown()+")":""}</span>`:""}<button class="ghost no-print" style="margin-left:auto" onclick="printActive()">Print / PDF</button></div>`;
@@ -1708,15 +1740,19 @@ function renderPractice(){
   h+=`<p class="foot">${P.periods.length} periods &middot; ${totReps} planned reps${(totGood+totNeeds)?` &middot; run ${totGood+totNeeds} (${totGood} &#10003; / ${totNeeds} &#9651;)`:""}</p>`;
   if(!P.periods.length) h+='<p class="foot">No periods yet &mdash; add one, or re-draft from the game plan.</p>';
   P.periods.forEach((pd,pi)=>{
-    h+=`<div style="border:1px solid #e2e5ea;border-radius:10px;padding:8px 10px;margin:8px 0">`;
+    h+= rd ? `<div class="rd-prd-card">` : `<div style="border:1px solid #e2e5ea;border-radius:10px;padding:8px 10px;margin:8px 0">`;
     h+=`<div class="row" style="justify-content:space-between;align-items:center;gap:6px">`;
-    h+= edit ? `<input class="prdname" data-pi="${pi}" value="${esc(pd.name)}" style="font-weight:800;font-size:15px;border:1px solid #e2e5ea;border-radius:6px;background:none;flex:1;padding:3px 6px">` : `<b style="font-size:15px">${esc(pd.name)}</b>`;
+    h+= edit
+      ? (rd
+        ? `<input class="prdname" data-pi="${pi}" value="${esc(pd.name)}" style="font-weight:800;font-size:15px;flex:1;padding:3px 6px">`
+        : `<input class="prdname" data-pi="${pi}" value="${esc(pd.name)}" style="font-weight:800;font-size:15px;border:1px solid #e2e5ea;border-radius:6px;background:none;flex:1;padding:3px 6px">`)
+      : `<b style="font-size:15px">${esc(pd.name)}</b>`;
     if(edit) h+=`<span class="no-print" style="white-space:nowrap"><button class="ghost" data-prdup="${pi}">&#8593;</button><button class="ghost" data-prddn="${pi}">&#8595;</button><button class="ghost" data-prddel="${pi}">&times;</button></span>`;
     h+=`</div>`;
     if(pd.plays.length){
       h+=`<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:14px"><tr class="foot"><th style="text-align:left;padding-bottom:3px">Play</th><th style="width:56px">Reps</th><th style="width:170px">Mark</th></tr>`;
       pd.plays.forEach((pl,pj)=>{
-        h+=`<tr style="border-top:1px solid #eef1f5"><td style="padding:5px 0">${esc(pl.name)}</td>`;
+        h+=`<tr style="border-top:1px solid ${rd?'var(--rd-border)':'#eef1f5'}"><td style="padding:5px 0">${esc(pl.name)}</td>`;
         h+=`<td style="text-align:center">`+(edit?`<input class="prep" data-pi="${pi}" data-pj="${pj}" type="number" min="0" value="${+pl.reps||0}" style="width:46px;text-align:center">`:`${+pl.reps||0}`)+`</td>`;
         h+=`<td style="text-align:center"><span class="mk" data-mk="good" data-pi="${pi}" data-pj="${pj}" style="cursor:pointer;color:#1d7a45;font-weight:800;user-select:none">&#10003; ${+pl.good||0}</span><span class="mk" data-mk="needs" data-pi="${pi}" data-pj="${pj}" style="cursor:pointer;color:#b8860b;font-weight:800;user-select:none;margin-left:12px">&#9651; ${+pl.needs||0}</span>${edit?`<button class="ghost no-print" data-pdel="${pi}:${pj}" style="margin-left:10px">&times;</button>`:""}</td></tr>`;
       });
@@ -2086,7 +2122,8 @@ const TEMPLATE='date,opponent,qtr,scoreMargin,down,distance,fieldZone,hash,perso
 /* ---------- wiring ---------- */
 function setBooth(on){ document.body.classList.toggle("dark",on); try{ localStorage.setItem("offgrd_booth",on?"1":"0"); }catch(e){} const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode ✓":"Booth mode"; try{ document.querySelector('meta[name="theme-color"]').setAttribute("content",on?"#0b1017":"#13294B"); }catch(e){} }
 document.getElementById("darkBtn").onclick=()=>setBooth(!document.body.classList.contains("dark"));
-try{ if(localStorage.getItem("offgrd_booth")==="1") setBooth(true); }catch(e){}
+/* Skip booth auto-restore on ?redesign=0 so kill switch stays legacy-light (no body.dark --bg leak). */
+try{ if(localStorage.getItem("offgrd_booth")==="1" && !/[?&]redesign=0(?:&|$)/.test(location.search||"")) setBooth(true); }catch(e){}
 /* mobile menu sheet */
 (function(){
   const mb=document.getElementById("menuBtn"), tools=document.getElementById("tools");
@@ -2327,10 +2364,17 @@ render();
 if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
+/* Redesign sub-app → main handoff: ?view= or sessionStorage.offgrd_rd_view */
+try{
+  const m=(location.search||"").match(/[?&]view=([a-z]+)/i);
+  let want=m?m[1]:"";
+  if(!want){ want=sessionStorage.getItem("offgrd_rd_view")||""; sessionStorage.removeItem("offgrd_rd_view"); }
+  if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
+}catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=62"></script>
-<script src="OFFGRD-role-gate.js?v=62"></script>
-<script src="OFFGRD-mobile.js?v=62"></script>
+<script type="module" src="OFFGRD-account.js?v=69"></script>
+<script src="OFFGRD-role-gate.js?v=69"></script>
+<script src="OFFGRD-mobile.js?v=69"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
