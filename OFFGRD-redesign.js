@@ -11,6 +11,7 @@
    Phase 5 (v70): Gameday stripped sideline skin — Caller + Booth under html.rd-on.
    v71: Scout sub-nav exclusive tabs (Predict / Tendencies / Report / Cards).
    v72: Global cutover default-on + scout-cards modal tokens + Booth surfaces.
+   v73: Starter-prompt library gate + base-aware AA Tendencies heat.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -219,7 +220,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "72";
+  const ASSET_V = "73";
 
   function getScoutTool() {
     try {
@@ -852,6 +853,34 @@
       'background:#333!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;',
       '}',
       '}',
+      /* ---- Tendencies heat tables (base-aware chrome; fills from heatStyle) ---- */
+      'html.rd-on #view-report .tn-wrap,html.rd-on #view-package .tn-wrap{color:var(--rd-text);}',
+      'html.rd-on #view-report .tn-h,html.rd-on #view-package .tn-h{',
+      'color:var(--rd-text)!important;font-weight:500;font-size:var(--fs-title);margin:20px 0 8px;',
+      '}',
+      'html.rd-on #view-report .tn-note,html.rd-on #view-package .tn-note,',
+      'html.rd-on #view-report .tn-legend,html.rd-on #view-package .tn-legend{color:var(--rd-muted)!important;}',
+      'html.rd-on #view-report .tn-wrap>div>b,html.rd-on #view-package .tn-wrap>div>b{color:var(--rd-text)!important;}',
+      'html.rd-on #view-report .tn-tbl,html.rd-on #view-package .tn-tbl{',
+      'border-collapse:separate;border-spacing:0;overflow:hidden;',
+      'border:1px solid var(--rd-border);border-radius:var(--radius-card);background:var(--rd-surface);',
+      '}',
+      'html.rd-on #view-report .tn-tbl th,html.rd-on #view-package .tn-tbl th{',
+      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
+      'border-color:var(--rd-accent)!important;font-weight:500;',
+      '}',
+      'html.rd-on #view-report .tn-tbl td,html.rd-on #view-package .tn-tbl td{border-color:var(--rd-border)!important;}',
+      'html.rd-on #view-report .tn-tbl td.rh,html.rd-on #view-package .tn-tbl td.rh{',
+      'background:var(--rd-surface-2)!important;color:var(--rd-text)!important;font-weight:500;',
+      '}',
+      'html.rd-on #view-report .tn-tbl .sub,html.rd-on #view-package .tn-tbl .sub{',
+      'color:var(--tn-sub,var(--rd-muted))!important;',
+      '}',
+      'html.rd-on #view-report .tn-stat,html.rd-on #view-package .tn-stat{',
+      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;',
+      '}',
+      'html.rd-on #view-report .tn-stat b,html.rd-on #view-package .tn-stat b{color:var(--rd-text)!important;}',
+      'html.rd-on #view-report .tn-stat span,html.rd-on #view-package .tn-stat span{color:var(--rd-muted)!important;}',
       /* ---- Phase 4: Teach body — Practice + Reps Lab + Film chrome ---- */
       /* Practice script */
       'html.rd-on #view-practice > .panel{',
