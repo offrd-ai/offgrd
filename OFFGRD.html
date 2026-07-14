@@ -255,16 +255,16 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=67"></script>
+<script src="OFFGRD-config.js?v=68"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=67"></script>
-<script src="OFFGRD-render.js?v=67"></script>
-<script src="OFFGRD-autoderive.js?v=67"></script>
-<script src="OFFGRD-scoutcards.js?v=67"></script>
-<script src="OFFGRD-tendencies.js?v=67"></script>
-<script src="OFFGRD-weeklypackage.js?v=67"></script>
-<script src="OFFGRD-telestrate.js?v=67"></script>
-<script src="OFFGRD-redesign.js?v=67"></script>
+<script src="OFFGRD-cache-gate.js?v=68"></script>
+<script src="OFFGRD-render.js?v=68"></script>
+<script src="OFFGRD-autoderive.js?v=68"></script>
+<script src="OFFGRD-scoutcards.js?v=68"></script>
+<script src="OFFGRD-tendencies.js?v=68"></script>
+<script src="OFFGRD-weeklypackage.js?v=68"></script>
+<script src="OFFGRD-telestrate.js?v=68"></script>
+<script src="OFFGRD-redesign.js?v=68"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1435,25 +1435,36 @@ function openWeekPicker(i){
   rf(); q.focus();
 }
 function weekBarHTML(){
-  const wrap=inner=>'<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+  const wrap=inner=> rd
+    ? '<div class="rd-week-bar">'+inner+'</div>'
+    : '<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
   if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" — a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">▶ Start new week</button>':""));
   const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
   const cd=weekCountdown();
-  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
-  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
+  const fld=rd?'':'background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;';
+  const oppSel=WEEK_EDIT?('<select id="wkOpp" class="no-print" style="padding:6px 8px;font-size:13px;font-weight:700;'+fld+'">'+opps.map(o=>'<option'+(o===WEEK.opponent?" selected":"")+'>'+esc(o)+'</option>').join("")+'</select>'):('<b>'+esc(WEEK.opponent||"—")+'</b>');
+  const dateIn=WEEK_EDIT?('<input id="wkDate" type="date" class="no-print" value="'+esc(WEEK.game_date||"")+'" style="padding:5px 8px;font-size:13px;'+fld+'">'):(WEEK.game_date?('<b>'+esc(WEEK.game_date)+'</b>'):'<span class="foot">—</span>');
   return wrap('<b>This week</b>'+crest(WEEK.opponent||"",26)+oppSel+'<span class="foot">gameday</span>'+dateIn+(cd?'<span class="wb" style="min-width:auto;padding:0 9px">'+cd+'</span>':"")+'<span style="flex:1"></span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart">Start new week</button>':""));
 }
 function weekPlayerShareHTML(){
   if(!WEEK || !WEEK_EDIT || !window.OFFGRD_WEEK_PLAYER_SHARE) return "";
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   const pkgOn=window.OFFGRD_WEEKLY_PACKAGE&&OFFGRD_WEEKLY_PACKAGE.isWeeklyPackage();
   const hasDraft=pkgOn&&WEEK.gen&&WEEK.gen.game_plan_draft;
   const approved=pkgOn&&OFFGRD_WEEKLY_PACKAGE.packageApproved(WEEK);
   if(hasDraft&&!approved){
-    return '<div class="no-print" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>';
+    return rd
+      ? '<div class="no-print rd-share-locked"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>'
+      : '<div class="no-print" style="background:#fff0f0;border:1px solid #e8a8a8;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players</div><p class="foot" style="margin:0">Approve the <b>game-plan draft</b> in the weekly package before sharing with players. Nothing auto-publishes.</p></div>';
   }
   const s = Object.assign({briefing:true,plays:true,scout:false,practice:true}, WEEK.player_share||{});
   const row = (k,label)=>'<label style="font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;margin-right:12px"><input type="checkbox" class="wkShare" data-k="'+k+'"'+(s[k]?' checked':'')+'> '+label+'</label>';
-  return '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
+  return rd
+    ? '<div class="no-print rd-share-open"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
+      +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
+      +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>'
+    : '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
     +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
     +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>';
 }
@@ -1470,16 +1481,20 @@ function wireWeekPlayerShare(host){
 }
 function weekGenHTML(){
   if(!WEEK) return "";
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   const g=WEEK.gen;
   const genBtn=(WEEK_EDIT&&window.OFFGRD_WEEK_GEN)?('<button class="ghost no-print" id="wkGenBtn" style="font-weight:800">✦ '+(g?"Regenerate briefing":"Generate AI week briefing")+'</button>'):"";
   if(!g){
     if(!WEEK_EDIT) return "";
-    return '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
+    return rd
+      ? '<div class="no-print rd-gen-empty" style="border-style:dashed">'+genBtn
+        +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>'
+      : '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
       +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>';
   }
   const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
-  let h='<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px">'
-    +'<summary style="font-weight:800;cursor:pointer;color:var(--ink)">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+  let h=(rd?'<details class="rd-week-brief"':'<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px"')+'>'
+    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">✦ Week briefing — '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
   if(defSide){
     if(!d||!d.narrative){
       h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
@@ -1685,12 +1700,20 @@ function renderPlan(){
     const target=cov?cov.k:null;
     const runs=target?bestCallsFor(target,b.dn,b.db,"Run"):[]; const passes=target?bestCallsFor(target,b.dn,b.db,"Pass"):[];
     const badge=ds.predicted?` <span class="wb" style="background:var(--blue);font-size:10px;min-width:auto;padding:0 5px">PRED</span>`:"";
-    const showStr=`${cov?esc(cov.k)+" "+fmtPct(cov.pct):"—"}${fr?" &middot; "+esc(fr.k):""} &middot; ${fmtPct(pr)} press`+(ds.predicted?`<div class="foot">predicted from ${esc(ds.from)}</div>`:"");
+    const showStr=(()=>{
+      const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+      const head=cov?(rd?'<span class="rd-stat">'+esc(cov.k)+" "+fmtPct(cov.pct)+'</span>':esc(cov.k)+" "+fmtPct(cov.pct)):"—";
+      return head+(fr?" &middot; "+esc(fr.k):"")+" &middot; "+fmtPct(pr)+" press"+(ds.predicted?'<div class="foot">predicted from '+esc(ds.from)+'</div>':"");
+    })();
     const mine=Array.isArray(b.plays)?b.plays:[];
     const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">×</button>`:""}</div>`;
     const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="display:block;padding:2px 9px;margin:5px 0 0;white-space:nowrap">+ Add</button>`:"");
     const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
-    const callStr=(runs.length||passes.length)?`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:5px">PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
+    const rdMode=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+    const rp=ex=> rdMode
+      ? (' class="foot rd-runpass"'+(ex?' style="'+ex+'"':''))
+      : (' class="foot" style="color:var(--accent);font-weight:800'+(ex?';'+ex:'')+'"');
+    const callStr=(runs.length||passes.length)?`<div${rp("")}>RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div${rp("margin-top:5px")}>PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">—</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
   h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;
@@ -2344,9 +2367,9 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=67"></script>
-<script src="OFFGRD-role-gate.js?v=67"></script>
-<script src="OFFGRD-mobile.js?v=67"></script>
+<script type="module" src="OFFGRD-account.js?v=68"></script>
+<script src="OFFGRD-role-gate.js?v=68"></script>
+<script src="OFFGRD-mobile.js?v=68"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
