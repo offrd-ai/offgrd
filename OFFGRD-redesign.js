@@ -1,25 +1,19 @@
 /* ============================================================
    OFFGRD-redesign.js — Design system: tokens + shell + Scout body
    Flag: ?redesign=0|1 | localStorage.offgrd_redesign | OFFGRD_CONFIG.redesign
-   Default ON (v72 cutover). Rollback: ?redesign=0 / localStorage=0 (keep ≥1 release).
+   Default OFF — old UI intact until cutover.
    Phase 1/1.5: CSS vars (Night Turf / Day) + accent + context bar +
    four-phase nav + sub-app shell.
    Phase 2 (v66): Scout body restyle under html.rd-on (presentation only).
    v67: Kill switch fully restores legacy light — no body.dark / --bg leak.
    Phase 3 (v68): Plan body — Game Plan + Package restyle under html.rd-on.
    Phase 4 (v69): Teach body — Practice + Reps Lab + Film chrome (Author deep restyle = 4b).
-   Phase 5 (v70): Gameday stripped sideline skin — Caller + Booth under html.rd-on.
-   v71: Scout sub-nav exclusive tabs (Predict / Tendencies / Report / Cards).
-   v72: Global cutover default-on + scout-cards modal tokens + Booth surfaces.
-   v73: Starter-prompt library gate + base-aware AA Tendencies heat.
    ============================================================ */
 (function (root) {
   "use strict";
 
   const LS_FLAG = "offgrd_redesign";
   const LS_BASE = "offgrd_redesign_base";
-  const LS_SCOUT_TOOL = "offgrd_scout_tool";
-  const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -58,8 +52,6 @@
   function tearDownRedesignPaint() {
     try {
       document.documentElement.classList.remove("rd-on");
-      document.documentElement.classList.remove("rd-gameday");
-      document.documentElement.classList.remove("rd-booth");
       document.documentElement.removeAttribute("data-base");
       document.documentElement.removeAttribute("data-rd-accent");
       document.documentElement.removeAttribute("data-rd-base");
@@ -128,10 +120,10 @@
       label: "Scout",
       views: ["scout", "report"],
       tools: [
-        { id: "predict", label: "Predict", view: "scout", tool: "predict" },
-        { id: "tendency", label: "Tendencies", view: "report", tool: "tendency" },
-        { id: "report", label: "Report", view: "report", tool: "report" },
-        { id: "cards", label: "Scout cards", view: "scout", tool: "cards", action: "scoutcards" }
+        { id: "predict", label: "Predict", view: "scout" },
+        { id: "tendency", label: "Tendencies", view: "report", action: "tendency" },
+        { id: "report", label: "Report", view: "report" },
+        { id: "cards", label: "Scout cards", action: "scoutcards" }
       ]
     },
     {
@@ -174,7 +166,6 @@
     { id: "sync", label: "Sync ↑", action: "sync" },
     { id: "load", label: "Load ↓", action: "load" },
     { id: "signout", label: "Sign out", action: "signout" },
-    { id: "booth", label: "Booth mode", action: "booth" },
     { id: "base", label: "Theme: Night / Day", action: "toggleBase" }
   ];
 
@@ -186,11 +177,10 @@
       const ls = localStorage.getItem(LS_FLAG);
       if (ls === "0") return false;
       if (ls === "1") return true;
-      if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === false) return false;
       if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === true) return true;
+      if (root.OFFGRD_CONFIG && root.OFFGRD_CONFIG.redesign === false) return false;
     } catch (e) {}
-    /* Cutover default ON — escape hatch remains ?redesign=0 / LS=0 */
-    return true;
+    return false;
   }
 
   function getBase() {
@@ -220,29 +210,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "73";
-
-  function getScoutTool() {
-    try {
-      const v = localStorage.getItem(LS_SCOUT_TOOL);
-      if (v && SCOUT_TOOLS[v]) return v;
-    } catch (e) {}
-    const view = currentView();
-    if (view === "report") return "tendency";
-    return "predict";
-  }
-
-  function setScoutTool(tool) {
-    if (!SCOUT_TOOLS[tool]) return getScoutTool();
-    try { localStorage.setItem(LS_SCOUT_TOOL, tool); } catch (e) {}
-    if (tool !== "cards") {
-      try {
-        const ov = document.getElementById("scModal");
-        if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-      } catch (e) {}
-    }
-    return tool;
-  }
+  const ASSET_V = "69";
 
   function appKind() {
     try {
@@ -853,34 +821,6 @@
       'background:#333!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;',
       '}',
       '}',
-      /* ---- Tendencies heat tables (base-aware chrome; fills from heatStyle) ---- */
-      'html.rd-on #view-report .tn-wrap,html.rd-on #view-package .tn-wrap{color:var(--rd-text);}',
-      'html.rd-on #view-report .tn-h,html.rd-on #view-package .tn-h{',
-      'color:var(--rd-text)!important;font-weight:500;font-size:var(--fs-title);margin:20px 0 8px;',
-      '}',
-      'html.rd-on #view-report .tn-note,html.rd-on #view-package .tn-note,',
-      'html.rd-on #view-report .tn-legend,html.rd-on #view-package .tn-legend{color:var(--rd-muted)!important;}',
-      'html.rd-on #view-report .tn-wrap>div>b,html.rd-on #view-package .tn-wrap>div>b{color:var(--rd-text)!important;}',
-      'html.rd-on #view-report .tn-tbl,html.rd-on #view-package .tn-tbl{',
-      'border-collapse:separate;border-spacing:0;overflow:hidden;',
-      'border:1px solid var(--rd-border);border-radius:var(--radius-card);background:var(--rd-surface);',
-      '}',
-      'html.rd-on #view-report .tn-tbl th,html.rd-on #view-package .tn-tbl th{',
-      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      'border-color:var(--rd-accent)!important;font-weight:500;',
-      '}',
-      'html.rd-on #view-report .tn-tbl td,html.rd-on #view-package .tn-tbl td{border-color:var(--rd-border)!important;}',
-      'html.rd-on #view-report .tn-tbl td.rh,html.rd-on #view-package .tn-tbl td.rh{',
-      'background:var(--rd-surface-2)!important;color:var(--rd-text)!important;font-weight:500;',
-      '}',
-      'html.rd-on #view-report .tn-tbl .sub,html.rd-on #view-package .tn-tbl .sub{',
-      'color:var(--tn-sub,var(--rd-muted))!important;',
-      '}',
-      'html.rd-on #view-report .tn-stat,html.rd-on #view-package .tn-stat{',
-      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;',
-      '}',
-      'html.rd-on #view-report .tn-stat b,html.rd-on #view-package .tn-stat b{color:var(--rd-text)!important;}',
-      'html.rd-on #view-report .tn-stat span,html.rd-on #view-package .tn-stat span{color:var(--rd-muted)!important;}',
       /* ---- Phase 4: Teach body — Practice + Reps Lab + Film chrome ---- */
       /* Practice script */
       'html.rd-on #view-practice > .panel{',
@@ -1001,174 +941,6 @@
       'html.rd-on #view-practice,html.rd-on #view-practice .panel,html.rd-on #view-practice .rd-prd-card{',
       'background:#fff!important;color:#111!important;border-color:#bbb!important;',
       '}',
-      '}',
-      /* ---- Cutover polish: Scout cards modal on --rd-* (print sheet stays light) ---- */
-      'html.rd-on #scModal.ov{background:rgba(8,12,18,.62)!important;}',
-      'html.rd-on #scModal .ovbox{',
-      'background:var(--rd-surface)!important;color:var(--rd-text)!important;',
-      'border:1px solid var(--rd-border)!important;border-radius:var(--radius-card);',
-      'box-shadow:0 16px 48px rgba(0,0,0,.35);',
-      '}',
-      'html.rd-on #scModal .ovbox>div>b,html.rd-on #scModal .ovbox b[style]{color:var(--rd-text)!important;}',
-      'html.rd-on #scModal .hint,html.rd-on #scModal .lbl,html.rd-on #scModal .tag{color:var(--rd-muted)!important;}',
-      'html.rd-on #scModal .btn,html.rd-on #scModal select.btn{',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;min-height:40px;',
-      '}',
-      'html.rd-on #scModal .btn.on{',
-      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;border-color:var(--rd-accent)!important;',
-      '}',
-      'html.rd-on #scModal #scPick,html.rd-on #scModal #scPreview{',
-      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;color:var(--rd-text)!important;',
-      '}',
-      'html.rd-on #scModal #scPick label{',
-      'border-bottom:1px solid var(--rd-border)!important;color:var(--rd-text)!important;',
-      '}',
-      'html.rd-on #scModal #scPick b{color:var(--rd-text)!important;}',
-      'html.rd-on #scModal #scPreview .sc-sheet{color:var(--rd-text);}',
-      'html.rd-on #scModal #scPreview .sc-sheet-title{color:var(--rd-text)!important;}',
-      'html.rd-on #scModal #scPreview .sc-card{',
-      'background:var(--rd-surface)!important;border-color:var(--rd-border)!important;color:var(--rd-text)!important;',
-      '}',
-      'html.rd-on #scModal #scPreview .sc-call,html.rd-on #scModal #scPreview .sc-meta{color:var(--rd-text)!important;}',
-      'html.rd-on #scModal #scPreview .sc-sub,html.rd-on #scModal #scPreview .sc-sep{color:var(--rd-muted)!important;}',
-      /* ---- Phase 5: Gameday stripped sideline (Caller + Booth) ---- */
-      'html.rd-on.rd-gameday #rdNavBody{flex-direction:column;}',
-      'html.rd-on.rd-gameday #rdPhases{',
-      'flex-direction:row!important;width:auto!important;flex:none!important;',
-      'border-right:0!important;padding:6px 8px!important;gap:4px;',
-      '}',
-      'html.rd-on.rd-gameday #rdPhases .rd-phase{',
-      'padding:8px 10px;min-height:40px;font-size:12px;',
-      '}',
-      'html.rd-on.rd-gameday #rdPhases .rd-phase:not(.on){opacity:.55;}',
-      /* Keep Booth reachable on Gameday — hide other tool pills only */
-      'html.rd-on.rd-gameday #rdTools{',
-      'display:flex!important;flex-wrap:wrap;gap:6px;padding:4px 8px 8px;align-items:center;',
-      '}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]){display:none!important;}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"]{display:inline-flex!important;min-height:44px;}',
-      'html.rd-on.rd-gameday #rdContext{',
-      'padding:6px 12px!important;min-height:44px;',
-      '}',
-      'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
-      'html.rd-on.rd-booth #rdShell{display:none!important;}',
-      'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
-      'html.rd-on #view-caller{max-width:720px;margin:0 auto;}',
-      'html.rd-on #view-caller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
-      'html.rd-on #view-caller .rd-gd-top{',
-      'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
-      'padding:10px 12px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-top b{color:var(--rd-text);font-weight:500;font-size:var(--fs-title);}',
-      'html.rd-on #view-caller .rd-gd-chip{',
-      'display:inline-flex;align-items:center;padding:6px 10px;min-height:32px;',
-      'border-radius:var(--radius-pill);background:var(--rd-surface-2);border:1px solid var(--rd-border);',
-      'color:var(--rd-muted);font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-caller .rd-gd-btn{',
-      'min-height:44px!important;min-width:44px;padding:10px 14px!important;',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;cursor:pointer;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-exit{margin-left:auto;}',
-      'html.rd-on #view-caller .rd-gd-sit{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit-txt{',
-      'font-size:22px;font-weight:500;color:var(--rd-text);line-height:1.15;margin-bottom:10px;',
-      '}',
-      'html.rd-on.rd-booth #view-caller .rd-gd-sit-txt{font-size:28px;}',
-      'html.rd-on #view-caller .rd-gd-sit .seg{',
-      'background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:4px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit .seg button{',
-      'min-height:48px!important;min-width:56px;flex:1;padding:10px 8px!important;',
-      'background:transparent!important;border:1px solid transparent!important;',
-      'color:var(--rd-muted)!important;font-weight:500!important;border-radius:var(--radius-pill);font-size:15px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit .seg button.on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-edit{margin-top:8px;}',
-      'html.rd-on #view-caller .rd-gd-edit summary{',
-      'cursor:pointer;color:var(--rd-accent);font-weight:500;font-size:var(--fs-label);list-style:none;',
-      'min-height:44px;display:inline-flex;align-items:center;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-hero{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);',
-      'border-radius:var(--radius-card);padding:16px 18px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-hero-name{',
-      'font-size:44px;font-weight:500;color:var(--rd-text);line-height:1.05;margin:0 0 8px;',
-      '}',
-      'html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:64px;}',
-      'html.rd-on #view-caller .rd-gd-signal{',
-      'display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;',
-      'padding:0 12px;margin:0 10px 8px 0;border-radius:10px;',
-      'background:var(--rd-accent);color:var(--rd-accent-text);font-weight:500;font-size:18px;vertical-align:middle;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-why{',
-      'color:var(--rd-muted);font-size:var(--fs-body);font-weight:500;margin:0 0 12px;line-height:1.35;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-why b{color:var(--rd-accent);font-weight:500;}',
-      'html.rd-on #view-caller .rd-gd-backups{display:flex;flex-direction:column;gap:6px;}',
-      'html.rd-on #view-caller .rd-gd-backup{',
-      'display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);',
-      'color:var(--rd-text);font-weight:500;cursor:pointer;width:100%;text-align:left;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-backup .sig{',
-      'min-width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;',
-      'background:var(--rd-accent);color:var(--rd-accent-text);border-radius:8px;font-size:13px;font-weight:500;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-backup .meta{margin-left:auto;color:var(--rd-muted);font-size:var(--fs-label);}',
-      'html.rd-on #view-caller .rd-gd-expect{',
-      'background:var(--rd-surface-2);border-left:4px solid var(--rd-accent);',
-      'border-radius:0 var(--radius-card) var(--radius-card) 0;padding:12px 14px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-expect .lbl{',
-      'color:var(--rd-accent)!important;font-size:var(--fs-micro);letter-spacing:1px;margin-bottom:6px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-expect .body{color:var(--rd-text);font-size:var(--fs-body);font-weight:500;}',
-      'html.rd-on #view-caller .rd-gd-expect .body b{color:var(--rd-accent);}',
-      'html.rd-on #view-caller .rd-gd-panel{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-panel .lbl{',
-      'font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);margin-bottom:8px;',
-      '}',
-      'html.rd-on #view-caller .covlog{gap:6px;background:transparent!important;padding:0!important;}',
-      'html.rd-on #view-caller .covlog button{',
-      'min-height:48px!important;min-width:72px;padding:10px 12px!important;flex:1 1 auto;',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-outcomes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}',
-      'html.rd-on #view-caller .rd-gd-outcomes button{',
-      'min-height:52px!important;flex:1 1 40%;padding:12px 14px!important;',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;font-size:15px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-outcomes button.on-hit{',
-      'background:#1d7a45!important;border-color:#1d7a45!important;color:#fff!important;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-outcomes button.on-miss{',
-      'background:var(--rd-warn-bg)!important;border-color:var(--rd-border)!important;color:var(--rd-warn-text)!important;',
-      '}',
-      'html.rd-on[data-base="night"] #view-caller .rd-gd-outcomes button.on-hit{background:#3fc777!important;color:#0E1116!important;}',
-      'html.rd-on #view-caller .rd-gd-calllog .callitem{',
-      'display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 0;border-bottom:1px solid var(--rd-border);',
-      '}',
-      'html.rd-on #view-caller .foot{color:var(--rd-muted);}',
-      'html.rd-on #view-caller .ghost{',
-      'min-height:44px;background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
-      '}',
-      '@media (orientation:landscape) and (max-height:560px){',
-      'html.rd-on.rd-gameday #view-caller .rd-gd-hero-name{font-size:36px;}',
-      'html.rd-on.rd-gameday #rdPhases{display:none!important;}',
       '}'
     ].join("");
   }
@@ -1246,38 +1018,19 @@
   function runAction(action) {
     switch (action) {
       case "tendency":
-        setScoutTool("tendency");
-        if (typeof root.setView === "function") root.setView("report");
+        if (!clickExisting("tendencyBtn") && typeof root.setView === "function") root.setView("report");
         break;
       case "scoutcards":
-        setScoutTool("cards");
-        if (typeof root.setView === "function") root.setView("scout");
         clickExisting("scoutCardsBtn");
-        try {
-          setTimeout(function () {
-            const modal = document.getElementById("scModal");
-            if (modal && modal.scrollIntoView) modal.scrollIntoView({ block: "nearest", behavior: "smooth" });
-            const box = modal && modal.querySelector(".ovbox");
-            if (box && box.focus) { try { box.setAttribute("tabindex", "-1"); box.focus(); } catch (e) {} }
-          }, 60);
-        } catch (e) {}
         break;
       case "telestrate":
         if (root.OFFGRD_TELESTRATE && root.OFFGRD_TELESTRATE.openModal) root.OFFGRD_TELESTRATE.openModal({});
         else clickExisting("telestrateBtn");
         break;
       case "booth":
-        /* Prefer setBooth so darkBtn label + LS stay in sync (redesign → rd-booth, classic → body.dark). */
-        if (typeof root.setBooth === "function") {
-          if (isRedesign()) root.setBooth(!document.documentElement.classList.contains("rd-booth"));
-          else root.setBooth(!document.body.classList.contains("dark"));
-          if (isRedesign()) stripLegacyDarkClass();
-        } else {
-          clickExisting("darkBtn");
-          if (isRedesign()) stripLegacyDarkClass();
-        }
-        refreshBoothLabels();
-        syncPhaseUI();
+        clickExisting("darkBtn");
+        /* Under redesign, strip body.dark so Booth LS can flip without leaking dark --bg. */
+        if (isRedesign()) stripLegacyDarkClass();
         break;
       case "import":
         clickExisting("importBtn");
@@ -1317,18 +1070,6 @@
     if (b) b.textContent = "Theme: " + (getBase() === "day" ? "Day (tap→Night)" : "Night (tap→Day)");
   }
 
-  function refreshBoothLabels() {
-    const on = document.documentElement.classList.contains("rd-booth");
-    [].forEach.call(document.querySelectorAll('#rdTools .rd-pill[data-action="booth"], #rdSetupMenu [data-action="booth"]'), function (el) {
-      el.textContent = on ? "Booth mode ✓" : "Booth mode";
-      el.classList.toggle("on", on);
-    });
-    try {
-      const top = document.querySelector("#view-caller .rd-gd-booth");
-      if (top) top.textContent = on ? "Booth ✓" : "Booth";
-    } catch (e) {}
-  }
-
   function buildShellHtml() {
     let phases = PHASES.map(function (p) {
       return '<button type="button" class="rd-phase" data-phase="' + p.id + '">' + esc(p.label) + "</button>";
@@ -1340,7 +1081,6 @@
         const attrs = [
           'class="rd-pill"',
           'data-phase-tool="' + p.id + '"',
-          t.tool ? 'data-tool="' + t.tool + '"' : "",
           t.view ? 'data-view="' + t.view + '"' : "",
           t.action ? 'data-action="' + t.action + '"' : "",
           t.gate ? 'data-gate="' + t.gate + '"' : "",
@@ -1355,7 +1095,7 @@
     });
 
     let setup = SETUP_ITEMS.map(function (it) {
-      const id = it.action === "toggleBase" ? ' id="rdSetupBase"' : (it.action === "booth" ? ' id="rdSetupBooth"' : "");
+      const id = it.action === "toggleBase" ? ' id="rdSetupBase"' : "";
       return '<button type="button"' + id + ' data-action="' + esc(it.action) + '">' + esc(it.label) + "</button>";
     }).join("");
 
@@ -1376,34 +1116,10 @@
       + '</div>';
   }
 
-  function syncGamedayChrome() {
-    try {
-      const on = isRedesign() && phaseForView(currentView()) === "gameday";
-      document.documentElement.classList.toggle("rd-gameday", on);
-      if (!on) document.documentElement.classList.remove("rd-booth");
-      else {
-        /* Restore redesign booth flag without body.dark */
-        try {
-          if (localStorage.getItem("offgrd_booth") === "1") {
-            document.documentElement.classList.add("rd-booth");
-          }
-        } catch (e) {}
-        stripLegacyDarkClass();
-      }
-    } catch (e) {}
-  }
-
   function syncPhaseUI() {
     const view = currentView();
     const phase = phaseForView(view);
     const kind = appKind();
-    /* Keep Scout tool aligned with the active view when navigated from elsewhere. */
-    if (phase === "scout") {
-      let t = getScoutTool();
-      if (view === "report" && t !== "tendency" && t !== "report") setScoutTool("tendency");
-      else if (view === "scout" && (t === "tendency" || t === "report")) setScoutTool("predict");
-    }
-    const scoutTool = phase === "scout" ? getScoutTool() : null;
     [].forEach.call(document.querySelectorAll("#rdPhases .rd-phase"), function (b) {
       b.classList.toggle("on", b.getAttribute("data-phase") === phase);
     });
@@ -1417,23 +1133,12 @@
       p.hidden = !forPhase || gatedOff;
       const v = p.getAttribute("data-view");
       const href = p.getAttribute("href") || "";
-      const tool = p.getAttribute("data-tool");
-      const action = p.getAttribute("data-action");
-      let onPill = false;
-      if (action === "booth") {
-        onPill = document.documentElement.classList.contains("rd-booth");
-      } else if (phase === "scout" && tool) {
-        /* Exactly one Scout sub-tool active */
-        onPill = tool === scoutTool;
-      } else {
-        onPill =
-          (!!(v && v === view)) ||
-          (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
-          (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
-      }
+      const onPill =
+        (!!(v && v === view)) ||
+        (kind === "playbook" && /OFFGRD-Playbook\.html/i.test(href)) ||
+        (kind === "qb" && /OFFGRD-QB\.html/i.test(href));
       p.classList.toggle("on", onPill);
     });
-    syncGamedayChrome();
   }
 
   function syncScopeBadge() {
@@ -1496,7 +1201,6 @@
         const id = b.getAttribute("data-phase");
         const ph = PHASES.filter(function (p) { return p.id === id; })[0];
         if (!ph || !ph.views || !ph.views.length) return;
-        if (id === "scout") setScoutTool("predict");
         if (typeof root.setView === "function") root.setView(ph.views[0]);
         else goMain(ph.views[0]);
         syncPhaseUI();
@@ -1507,8 +1211,6 @@
       p.onclick = function () {
         const action = p.getAttribute("data-action");
         const view = p.getAttribute("data-view");
-        const tool = p.getAttribute("data-tool");
-        if (tool) setScoutTool(tool);
         if (action) runAction(action);
         else if (view && typeof root.setView === "function") root.setView(view);
         else if (view) goMain(view);
@@ -1522,7 +1224,6 @@
         e.stopPropagation();
         menu.classList.toggle("open");
         refreshSetupBaseLabel();
-        refreshBoothLabels();
       };
       document.addEventListener("click", function (ev) {
         if (!menu.contains(ev.target) && ev.target !== gear) menu.classList.remove("open");
@@ -1607,7 +1308,6 @@
     syncPhaseUI();
     patchSetView();
     refreshSetupBaseLabel();
-    refreshBoothLabels();
 
     try {
       const badge = document.getElementById("datbadge");
@@ -1654,8 +1354,6 @@
       getBase: function () { return "night"; },
       setBase: function () { return "night"; },
       toggleBase: function () { return "night"; },
-      getScoutTool: function () { return "predict"; },
-      setScoutTool: function () { return "predict"; },
       syncPhaseUI: function () {},
       restoreLegacyTheme: restoreLegacyTheme,
       PHASES: PHASES
@@ -1687,8 +1385,6 @@
     getBase: getBase,
     setBase: setBase,
     toggleBase: toggleBase,
-    getScoutTool: getScoutTool,
-    setScoutTool: setScoutTool,
     syncPhaseUI: syncPhaseUI,
     PHASES: PHASES
   };
