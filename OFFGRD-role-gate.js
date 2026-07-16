@@ -47,6 +47,8 @@
     return "color:var(--muted)";
   }
 
+  var _playerWeekCache = null;
+
   function isDefPos(pos){
     return pos === "DL" || pos === "LB" || pos === "DB";
   }
@@ -351,6 +353,7 @@
         host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;
       }
+      _playerWeekCache = wp;
       var positions = await resolvePlayerPositions();
       var uid = null, tid = null;
       try{
@@ -466,29 +469,78 @@
     });
   }
 
-  function loadPlayerPractice(){
+  async function loadPlayerWeekCached(force){
+    var load = window.OFFGRD_LOAD_PLAYER_WEEK;
+    if(!load) return null;
+    if(!force && _playerWeekCache) return _playerWeekCache;
+    try{
+      var wp = await load();
+      _playerWeekCache = wp || null;
+      return _playerWeekCache;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function renderPlayerPracticeHtml(wp){
+    if(!wp || wp.linked === false){
+      return '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Practice</h3>'
+        +'<p class="foot">No practice script shared yet — check back before gameday.</p></div>';
+    }
+    var periods = (wp.practice && Array.isArray(wp.practice.periods)) ? wp.practice.periods : [];
+    if(!periods.length){
+      return '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Practice · '+esc(wp.opponent||"This week")+'</h3>'
+        +'<p class="foot">No practice script shared yet — check back before gameday.</p></div>';
+    }
+    var totPlays = 0, totReps = 0;
+    periods.forEach(function(pd){
+      (pd.plays || []).forEach(function(pl){
+        totPlays++;
+        totReps += (+pl.reps || 0);
+      });
+    });
+    var h = '<div class="panel"><h3 style="'+rdTitleCss()+'">Practice · '+esc(wp.opponent||"This week")+'</h3>';
+    if(wp.game_date) h += '<p class="foot" style="margin:0 0 8px">Gameday: <b>'+esc(wp.game_date)+'</b></p>';
+    h += '<p class="foot" style="margin:0 0 12px">'+periods.length+' period'+(periods.length===1?"":"s")
+      +' · '+totPlays+' play'+(totPlays===1?"":"s")
+      +(totReps ? (' · '+totReps+' planned reps') : "")
+      +'</p>';
+    periods.forEach(function(pd){
+      h += '<div style="'+rdCalloutCss()+';margin:10px 0">';
+      h += '<div style="font-weight:800;font-size:15px;margin-bottom:6px;color:var(--ink)">'+esc(pd.name || "Period")+'</div>';
+      var plays = pd.plays || [];
+      if(!plays.length){
+        h += '<p class="foot" style="margin:0">No plays in this period yet.</p>';
+      } else {
+        h += '<ul style="margin:0;padding-left:18px">';
+        plays.forEach(function(pl){
+          var reps = (+pl.reps || 0);
+          h += '<li style="margin:3px 0;color:var(--ink)"><b>'+esc(pl.name || "Play")+'</b>'
+            +(reps ? (' <span class="foot">· '+reps+' rep'+(reps===1?"":"s")+'</span>') : "")
+            +'</li>';
+        });
+        h += '</ul>';
+      }
+      h += '</div>';
+    });
+    h += '<p class="foot" style="margin-top:12px">Read-only — coaches edit the script in Teach → Practice.</p></div>';
+    return h;
+  }
+
+  async function loadPlayerPractice(){
     var host = document.getElementById("view-practice");
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading practice\u2026</p></div>';
-    var tries = 0;
-    function paint(){
-      if(window.WEEK && typeof window.renderPractice === "function"){
-        try{ window.renderPractice(); return true; }catch(e){}
+    try{
+      var wp = await loadPlayerWeekCached(false);
+      if(!wp){
+        /* One forced retry in case first paint raced program ready */
+        wp = await loadPlayerWeekCached(true);
       }
-      if(window.WEEK && typeof window.refreshView === "function"){
-        try{ window.refreshView(); return true; }catch(e){}
-      }
-      return false;
+      host.innerHTML = renderPlayerPracticeHtml(wp);
+    }catch(e){
+      host.innerHTML = '<div class="panel"><p class="foot">Could not load practice: '+esc(e.message||e)+'</p></div>';
     }
-    if(paint()) return;
-    var t = setInterval(function(){
-      if(paint() || ++tries > 40){
-        clearInterval(t);
-        if(!window.WEEK && host){
-          host.innerHTML = '<div class="panel"><p class="foot">No practice script yet. Your coach shares one with the week plan.</p></div>';
-        }
-      }
-    }, 200);
   }
 
   function patchSetView(){
