@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD � Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=76"></script>
+<script src="OFFGRD-config.js?v=79"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=76"></script>
-<script src="OFFGRD-render.js?v=76"></script>
-<script src="OFFGRD-autoderive.js?v=76"></script>
-<script src="OFFGRD-redesign.js?v=76"></script>
+<script src="OFFGRD-cache-gate.js?v=79"></script>
+<script src="OFFGRD-render.js?v=79"></script>
+<script src="OFFGRD-autoderive.js?v=79"></script>
+<script src="OFFGRD-redesign.js?v=79"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -1542,7 +1542,7 @@ function readinessHTML(roster,rows){
   const gk=m=>{ const p=String(m.position||"").toUpperCase(); return groups.indexOf(p)>=0?p:"—"; };
   const ORD={red:0,yellow:1,green:2};
   let h='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px 14px;margin:0 0 16px">'
-    +'<div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Readiness — vs '+esc(opp)+'</b><span class="tag">'+(WEEKPLAN.game_date?("game "+esc(WEEKPLAN.game_date)+(due?" · "+esc(due)):"")):"no game date set")+'</span></div>'
+    +'<div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Readiness — vs '+esc(opp)+'</b><span class="tag">'+(WEEKPLAN.game_date?("game "+esc(WEEKPLAN.game_date)+(due?" · "+esc(due):"")):"no game date set")+'</span></div>'
     +'<div class="row" style="margin:6px 0 4px;gap:14px;flex-wrap:wrap">'
     +'<span style="font-weight:800;color:'+READY_DOT.green+'">\u2713 '+nG+' '+(useSpec?'passed':'ready')+'</span>'
     +'<span style="font-weight:800;color:'+READY_DOT.yellow+'">\u25D0 '+nY+' in progress</span>'
@@ -1673,11 +1673,11 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=76"></script>
-<script src="OFFGRD-week-autotest.js?v=76"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=76"></script>
-<script type="module" src="OFFGRD-account.js?v=76"></script>
-<script src="OFFGRD-role-gate.js?v=76"></script>
+<script src="OFFGRD-mobile.js?v=79"></script>
+<script src="OFFGRD-week-autotest.js?v=79"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=79"></script>
+<script type="module" src="OFFGRD-account.js?v=79"></script>
+<script src="OFFGRD-role-gate.js?v=79"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

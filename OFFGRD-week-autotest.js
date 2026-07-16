@@ -7,17 +7,18 @@
   "use strict";
 
   const POSKINDS = {
-    QB: ["reads", "coverage"],
-    RB: ["routes", "protect"],
+    QB: ["reads", "coverage", "routes", "protect"],
+    RB: ["routes", "protect", "coverage"],
     WR: ["routes"],
     TE: ["routes", "protect"],
     OL: ["protect"],
-    DL: ["protect"],
-    LB: ["coverage"],
+    /* blitz kind ships in follow-up; until then DL/LB show incomplete nudge for blitz */
+    DL: ["blitz"],
+    LB: ["coverage", "blitz"],
     DB: ["coverage"],
     S: ["coverage"],
     CB: ["coverage"],
-    FB: ["routes", "protect"]
+    FB: ["routes", "protect", "coverage"]
   };
   const READY_MIN_TESTS = 2;
   const READY_AVG = 80;
@@ -25,7 +26,8 @@
     reads: "Reads test",
     coverage: "Coverage ID test",
     routes: "Route quiz",
-    protect: "OL test"
+    protect: "OL test",
+    blitz: "Blitz test"
   };
 
   function flagParam(name) {
@@ -51,13 +53,58 @@
     return false;
   }
 
+  /**
+   * Map depth-chart / roster codes → POSKINDS buckets.
+   * Taxonomy matches hub depth chart: LT/LG/C/RG/RT, X/Z/H/Y, MIKE/SAM/WILL, CB/FS/SS/NB.
+   * S/CB collapse into DB so secondary assignments stay one bucket.
+   */
   function normPos(p) {
     p = String(p || "").toUpperCase().trim();
-    if (p === "SAFETY" || p === "FS" || p === "SS") return "DB";
-    if (p === "CORNER" || p === "CB") return "DB";
-    if (p === "ILB" || p === "OLB" || p === "MLB") return "LB";
-    if (p === "DE" || p === "DT" || p === "NT") return "DL";
-    if (p === "C" || p === "OG" || p === "OT" || p === "G" || p === "T") return "OL";
+    if (!p) return "";
+
+    /* OL — depth-chart + free-text */
+    if (
+      p === "LT" || p === "LG" || p === "C" || p === "RG" || p === "RT" ||
+      p === "OG" || p === "OT" || p === "G" || p === "T" ||
+      p === "OC" || p === "CENTER" || p === "GUARD" || p === "TACKLE" ||
+      p.indexOf("OLINE") >= 0 || p === "O-LINE" || p === "OFFENSIVE LINE" || p === "OL"
+    ) return "OL";
+
+    /* WR — depth-chart letter codes + free-text */
+    if (
+      p === "X" || p === "Z" || p === "H" || p === "SLOT" || p === "SE" || p === "FL" ||
+      p === "RECEIVER" || p === "WIDE RECEIVER" || p.indexOf("WIDEOUT") >= 0 || p === "WR"
+    ) return "WR";
+
+    /* TE */
+    if (p === "Y" || p === "TE" || p === "TIGHT END" || p === "TIGHTEND") return "TE";
+
+    /* LB — depth-chart names + free-text */
+    if (
+      p === "MIKE" || p === "SAM" || p === "WILL" ||
+      p === "ILB" || p === "OLB" || p === "MLB" || p === "WLB" || p === "SLB" ||
+      p === "LINEBACKER" || p.indexOf("LINEBACK") >= 0 || p === "LB"
+    ) return "LB";
+
+    /* Secondary → DB (coverage). Includes S/CB/SAF/NB. */
+    if (
+      p === "CB" || p === "FS" || p === "SS" || p === "S" || p === "SAF" || p === "NB" ||
+      p === "NICKEL" || p === "NICKELBACK" || p === "CORNER" || p === "CORNERBACK" ||
+      p === "SAFETY" || p === "FREE SAFETY" || p === "STRONG SAFETY" ||
+      p === "DB" || p === "DEFENSIVE BACK"
+    ) return "DB";
+
+    /* DL */
+    if (
+      p === "DE" || p === "DT" || p === "NT" || p === "EDGE" ||
+      p === "DEFENSIVE END" || p === "DEFENSIVE TACKLE" || p === "NOSE" || p === "NOSE TACKLE" ||
+      p === "DL" || p === "D-LINE" || p === "DEFENSIVE LINE"
+    ) return "DL";
+
+    if (p === "QB" || p === "QUARTERBACK") return "QB";
+    if (p === "RB" || p === "HB" || p === "TB" || p === "RUNNING BACK" || p === "TAILBACK" || p === "HALFBACK") return "RB";
+    if (p === "FB" || p === "FULLBACK") return "FB";
+
     return p;
   }
 
@@ -176,6 +223,10 @@
       const n = rows.filter(function (p) { return p.ol_keys && p.ol_keys.keys && Object.keys(p.ol_keys.keys).length; }).length;
       return n ? { ok: true } : { ok: false, reason: "no OL keys on plan plays" };
     }
+    if (kind === "blitz") {
+      /* Part 3 follow-up: blitz/stunt test not built yet — keep assigned + incomplete nudge */
+      return { ok: false, reason: "blitz test coming soon" };
+    }
     return { ok: false, reason: "unknown kind" };
   }
 
@@ -250,6 +301,7 @@
     if (q.indexOf("Coverage") >= 0) return "coverage";
     if (q.indexOf("Route") >= 0) return "routes";
     if (q.indexOf("OL test") >= 0 || q.indexOf("protect") >= 0) return "protect";
+    if (q.indexOf("Blitz") >= 0 || q.indexOf("blitz") >= 0) return "blitz";
     if (q.indexOf("Reads") >= 0) return "reads";
     return null;
   }
