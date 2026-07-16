@@ -658,10 +658,11 @@
       var st = document.createElement("style");
       st.id = "offgrdPlayerRoCss";
       st.textContent = [
+        /* Keep Defense panel visible — Front/Coverage/Place/Show zones are study aids. */
+        /* Hide only Defense authoring tools (.modebar inside that panel) via .modebar rule below. */
         "html.offgrd-player-ro #routePanel,",
         "html.offgrd-player-ro #asnPanel,",
         "html.offgrd-player-ro .panel[data-sec='Offense'],",
-        "html.offgrd-player-ro .panel[data-sec='Defense'],",
         "html.offgrd-player-ro #wizBtn,",
         "html.offgrd-player-ro #saveBtn,",
         "html.offgrd-player-ro #newBtn,",
@@ -682,7 +683,8 @@
         "html.offgrd-player-ro button[data-act='dup'],",
         "html.offgrd-player-ro button[data-act='del']{display:none!important}",
         "html.offgrd-player-ro #field{pointer-events:none}",
-        "html.offgrd-player-ro #playerRoBanner{display:block}"
+        "html.offgrd-player-ro #playerRoBanner{display:block}",
+        "html.offgrd-player-ro #playerWeekLooks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}"
       ].join("");
       document.head.appendChild(st);
     }
@@ -693,10 +695,12 @@
       banner = document.createElement("div");
       banner.id = "playerRoBanner";
       banner.style.cssText = "background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:var(--ink);font-weight:700";
-      banner.textContent = "View only — open any play to study it. Drawing and saving stay with coaches.";
+      banner.textContent = "View only — open a play, then load a front/coverage to study. Drawing and saving stay with coaches.";
       var wrap = document.querySelector(".wrap") || document.body;
       if(wrap.firstChild) wrap.insertBefore(banner, wrap.firstChild);
       else wrap.appendChild(banner);
+    } else {
+      banner.textContent = "View only — open a play, then load a front/coverage to study. Drawing and saving stay with coaches.";
     }
     function blockAuthor(fnName, label){
       if(typeof window[fnName] !== "function" || window[fnName]._playerRo) return;
@@ -712,6 +716,7 @@
     blockAuthor("dupPlayId", "coaches duplicate plays.");
     blockAuthor("dupPlay", "coaches duplicate plays.");
     try{ if(typeof dismissStarterPrompt === "function") dismissStarterPrompt(); }catch(e){}
+    injectPlayerWeekLooks();
     var scBtn = document.getElementById("scoutCardsBtn");
     if(scBtn){
       scBtn.style.display = "";
@@ -721,6 +726,77 @@
         OFFGRD_SCOUTCARDS.openModal({ installLib: lib, games: [], format: "install", viewOnly: true, onMsg: (typeof msg === "function" ? msg : function(){}) });
       };
     }
+  }
+
+  /** Optional: one-tap buttons for this week's scouted looks (in-memory Place only). */
+  function injectPlayerWeekLooks(){
+    if(document.getElementById("playerWeekLooks")) return;
+    var defPanel = document.querySelector(".panel[data-sec='Defense']");
+    if(!defPanel) return;
+    var load = window.OFFGRD_LOAD_PLAYER_WEEK;
+    if(!load) return;
+    load().then(function(wp){
+      if(!wp || wp.linked === false) return;
+      var looks = [];
+      var seen = {};
+      var topFront = (wp.gen && wp.gen.defense && wp.gen.defense.top_front) || "";
+      var defAligns = (wp.def_aligns && typeof wp.def_aligns === "object") ? wp.def_aligns : {};
+      Object.keys(defAligns).forEach(function(cov){
+        if(!cov || seen[cov]) return;
+        seen[cov] = 1;
+        looks.push({ front: topFront || "4-3", coverage: cov });
+      });
+      var genLooks = wp.gen && wp.gen.defense && wp.gen.defense.looks;
+      if(Array.isArray(genLooks)){
+        genLooks.slice(0, 6).forEach(function(L){
+          var cov = (L && (L.coverage || L.name)) || "";
+          if(!cov || seen[cov]) return;
+          seen[cov] = 1;
+          looks.push({ front: topFront || "4-3", coverage: String(cov) });
+        });
+      }
+      if(!looks.length) return;
+      var row = document.createElement("div");
+      row.id = "playerWeekLooks";
+      row.innerHTML = '<span class="lbl" style="margin-right:4px">This week\'s looks</span>';
+      looks.slice(0, 6).forEach(function(L){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn";
+        b.style.cssText = "font-weight:800;font-size:12px";
+        b.textContent = (L.front && L.front !== "none" ? L.front + " / " : "") + L.coverage;
+        b.onclick = function(){
+          var df = document.getElementById("defFront");
+          var dc = document.getElementById("defCov");
+          var sz = document.getElementById("showZones");
+          if(df && L.front){
+            /* Match option if present; otherwise leave */
+            var ok = false;
+            [].forEach.call(df.options, function(o){ if(o.value === L.front || o.textContent === L.front) ok = true; });
+            if(ok) df.value = L.front;
+          }
+          if(dc && L.coverage){
+            var okc = false;
+            [].forEach.call(dc.options, function(o){ if(o.value === L.coverage || o.textContent === L.coverage) okc = true; });
+            if(okc) dc.value = L.coverage;
+          }
+          if(typeof placeDefense === "function"){
+            try{
+              if(typeof snap === "function") snap();
+              placeDefense(df ? df.value : L.front, dc ? dc.value : L.coverage);
+              if(sz && (dc && dc.value !== "none")){ sz.checked = true; if(window.STATE) STATE.showZones = true; }
+              if(typeof renderAll === "function") renderAll();
+              if(typeof msg === "function") msg("Study look: " + b.textContent + " (not saved)");
+            }catch(e){}
+          } else {
+            var pd = document.getElementById("placeDef");
+            if(pd) pd.click();
+          }
+        };
+        row.appendChild(b);
+      });
+      defPanel.appendChild(row);
+    }).catch(function(){});
   }
 
   function applyPlaybookGate(){
