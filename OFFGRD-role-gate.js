@@ -551,6 +551,8 @@
         if(COACH_VIEWS[v]) v = "thisweek";
         if(PLAYER_VIEWS[v]){
           window.CURRENT_VIEW = v;
+          _playerLandingDone = true;
+          try{ if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.markPlayerLandingDone) OFFGRD_REDESIGN.markPlayerLandingDone(); }catch(e){}
           ["scout","plan","caller","report","package","practice","thisweek","recruiting"].forEach(function(id){
             var el = document.getElementById("view-" + id);
             if(el) el.style.display = (id === v) ? "" : "none";
@@ -600,6 +602,22 @@
   }
   window.OFFGRD_OPEN_PLAYER_SCOUTCARDS = openPlayerScoutCards;
 
+  var _playerLandingDone = false;
+
+  function ensurePlayerLanding(){
+    if(_playerLandingDone) return;
+    var cur = "";
+    try{ cur = window.CURRENT_VIEW || ""; }catch(e){}
+    if(PLAYER_VIEWS[cur]){
+      _playerLandingDone = true;
+      try{ if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.markPlayerLandingDone) OFFGRD_REDESIGN.markPlayerLandingDone(); }catch(e){}
+      return;
+    }
+    if(window.setView) window.setView("thisweek");
+    _playerLandingDone = true;
+    try{ if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.markPlayerLandingDone) OFFGRD_REDESIGN.markPlayerLandingDone(); }catch(e){}
+  }
+
   function applyScoutPlayerUI(){
     if(!isPlayer()) return;
     ensurePlayerViews();
@@ -628,7 +646,8 @@
         if(OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
       }
     }catch(e){}
-    if(window.setView) window.setView("thisweek");
+    /* Default landing once — never clobber Recruiting/Practice after first nav. */
+    ensurePlayerLanding();
   }
 
   function applyPlaybookPlayerUI(){
@@ -705,11 +724,27 @@
   }
 
   function applyPlaybookGate(){
-    if(isPlayer()) applyPlaybookPlayerUI();
+    if(isPlayer()){
+      applyPlaybookPlayerUI();
+      try{
+        if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.applyRedesignShell){
+          OFFGRD_REDESIGN.applyRedesignShell();
+          if(OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
+          if(OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI();
+        }
+      }catch(e){}
+    }
   }
 
   function applyQbPlayerUI(){
     if(!isPlayer()) return;
+    try{
+      if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.applyRedesignShell){
+        OFFGRD_REDESIGN.applyRedesignShell();
+        if(OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
+        if(OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI();
+      }
+    }catch(e){}
     var tb = document.querySelector(".topbar");
     if(tb){
       /* Keep Playbook link — players get full view access */

@@ -253,7 +253,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "83";
+  const ASSET_V = "85";
 
   function getScoutTool() {
     try {
@@ -1309,10 +1309,12 @@
 
   function phaseForView(v) {
     if (isPlayerRole()) {
+      const k = appKind();
+      if (k === "qb") return "testing";
+      if (k === "playbook") return "playbook";
       if (v === "thisweek") return "thisweek";
       if (v === "practice") return "practice";
       if (v === "recruiting") return "recruiting";
-      /* External pages keep their phase highlight if we were there */
       return "thisweek";
     }
     if (v === "reps" || v === "author") return "teach";
@@ -1663,6 +1665,8 @@
     const orig = root.setView;
     root.setView = function (v) {
       if (VALID_VIEWS[v]) setSavedView(v);
+      /* User (or gate) chose a player view — don't let late landing clobber it. */
+      if (v === "thisweek" || v === "practice" || v === "recruiting") markPlayerLandingDone();
       orig.apply(this, arguments);
       if (isRedesign()) {
         try { syncPhaseUI(); syncScopeBadge(); } catch (e) {}
@@ -1672,12 +1676,32 @@
   }
 
   /* Restore persisted view after shell is up (query/session handoff wins in HTML). */
+  let _playerLandingDone = false;
+  const PLAYER_LANDING_VIEWS = { thisweek: 1, practice: 1, recruiting: 1 };
+
+  function maybePlayerLanding() {
+    if (_playerLandingDone) return;
+    if (appKind() !== "scout") return;
+    if (!isPlayerRole()) return;
+    const cur = currentView();
+    if (PLAYER_LANDING_VIEWS[cur]) {
+      _playerLandingDone = true;
+      return;
+    }
+    if (typeof root.setView === "function") {
+      try { root.setView("thisweek"); } catch (e) {}
+    }
+    _playerLandingDone = true;
+  }
+
+  function markPlayerLandingDone() {
+    _playerLandingDone = true;
+  }
+
   function restorePersistedView() {
     if (appKind() !== "scout") return;
     if (isPlayerRole()) {
-      if (typeof root.setView === "function") {
-        try { root.setView("thisweek"); } catch (e) {}
-      }
+      maybePlayerLanding();
       return;
     }
     try {
@@ -1847,9 +1871,8 @@
     try {
       applyRedesignShell();
       rebuildShellIfNeeded();
-      if (isPlayerRole() && typeof root.setView === "function") {
-        root.setView("thisweek");
-      }
+      /* Landing only once — never clobber an active player selection. */
+      maybePlayerLanding();
     } catch (e) {}
   });
 
@@ -1879,6 +1902,7 @@
     PHASES: PHASES,
     PHASES_PLAYER: PHASES_PLAYER,
     isPlayerRole: isPlayerRole,
-    rebuildShellIfNeeded: rebuildShellIfNeeded
+    rebuildShellIfNeeded: rebuildShellIfNeeded,
+    markPlayerLandingDone: markPlayerLandingDone
   };
 })(typeof window !== "undefined" ? window : globalThis);
