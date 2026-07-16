@@ -230,14 +230,85 @@
     return { ok: false, reason: "unknown kind" };
   }
 
+  /** Parse roster member → normalized position buckets (supports positions[] or "WR, DB"). */
+  function parseMemberPositions(m) {
+    const raw = [];
+    if (m && m.positions && m.positions.length) {
+      m.positions.forEach(function (p) { if (p) raw.push(p); });
+    } else if (m && m.position) {
+      String(m.position).split(/[,/|+&]+/).forEach(function (p) {
+        p = String(p || "").trim();
+        if (p) raw.push(p);
+      });
+    }
+    const out = [];
+    raw.forEach(function (p) {
+      const n = normPos(p);
+      if (n && POSKINDS[n] && out.indexOf(n) < 0) out.push(n);
+    });
+    return out;
+  }
+
+  function kindsForPositions(posList) {
+    const kinds = [];
+    (posList || []).forEach(function (pos) {
+      (POSKINDS[pos] || []).forEach(function (k) {
+        if (kinds.indexOf(k) < 0) kinds.push(k);
+      });
+    });
+    return kinds;
+  }
+
+  /** Union test_spec kinds for a player at one or more positions. */
+  function unionSpecForPlayer(posList, testSpec) {
+    posList = posList || [];
+    const positions = (testSpec && testSpec.positions) || {};
+    const kinds = [];
+    let incomplete = false;
+    const missing = [];
+    let minAvg = READY_AVG;
+    posList.forEach(function (pos) {
+      const s = positions[pos];
+      if (!s) return;
+      (s.kinds || []).forEach(function (k) {
+        if (kinds.indexOf(k) < 0) kinds.push(k);
+      });
+      if (s.incomplete) {
+        incomplete = true;
+        (s.missing || []).forEach(function (x) {
+          if (missing.indexOf(x) < 0) missing.push(x);
+        });
+      }
+      if (s.minAvg != null) minAvg = s.minAvg;
+    });
+    if (!kinds.length && posList.length) {
+      return {
+        kinds: kindsForPositions(posList),
+        minTests: READY_MIN_TESTS,
+        minAvg: minAvg,
+        incomplete: false,
+        missing: [],
+        positions: posList.slice()
+      };
+    }
+    return {
+      kinds: kinds,
+      minTests: READY_MIN_TESTS,
+      minAvg: minAvg,
+      incomplete: incomplete,
+      missing: missing,
+      positions: posList.slice()
+    };
+  }
+
   function buildTestSpec(week, roster, playbook, coverages) {
     const planPlays = planPlayList(week);
     const players = (roster || []).filter(function (m) { return m && m.role === "player"; });
     const positions = {};
     players.forEach(function (m) {
-      const pos = normPos(m.position);
-      if (!pos || !POSKINDS[pos]) return;
-      positions[pos] = positions[pos] || { kinds: POSKINDS[pos].slice(), minTests: READY_MIN_TESTS, minAvg: READY_AVG, incomplete: false, missing: [] };
+      parseMemberPositions(m).forEach(function (pos) {
+        positions[pos] = positions[pos] || { kinds: POSKINDS[pos].slice(), minTests: READY_MIN_TESTS, minAvg: READY_AVG, incomplete: false, missing: [] };
+      });
     });
     // Always include positions that have kinds even if roster empty? Ticket says roster-derived — skip empty.
     Object.keys(positions).forEach(function (pos) {
@@ -425,6 +496,9 @@
     completionForPlayer: completionForPlayer,
     quizKindFromLabel: quizKindFromLabel,
     normPos: normPos,
+    parseMemberPositions: parseMemberPositions,
+    kindsForPositions: kindsForPositions,
+    unionSpecForPlayer: unionSpecForPlayer,
     nudgeHtml: nudgeHtml
   };
 })(typeof window !== "undefined" ? window : globalThis);

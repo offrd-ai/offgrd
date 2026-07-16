@@ -46,7 +46,7 @@
       var sit = b.name || b.label || b.situation || b.title || "";
       (b.plays || []).forEach(function(p){
         var nm = (p && (p.name || p.play_name)) || "";
-        var key = String((p && p.id) || nm).toLowerCase().trim();
+        var key = String(nm || (p && p.id) || "").toLowerCase().trim();
         if(!key) return;
         if(!map[key]){
           map[key] = { name: nm || "Play", id: p && p.id, situations: [], play: p };
@@ -58,8 +58,8 @@
     return order.map(function(k){ return map[k]; });
   }
 
-  async function resolvePlayerPos(){
-    var pos = "";
+  async function resolvePlayerPositions(){
+    var me = null;
     try{
       if(window.Cloud && Cloud.ready){
         var tid = null;
@@ -69,17 +69,25 @@
         var team = (teams || []).find(function(t){ return t.id === tid; }) || (teams && teams[0]);
         if(team && u){
           var roster = await Cloud.teamRoster(team.id).catch(function(){ return []; });
-          var me = (roster || []).find(function(m){ return m.user_id === u.id; });
-          if(me && me.position) pos = me.position;
+          me = (roster || []).find(function(m){ return m.user_id === u.id; });
         }
       }
     }catch(e){}
-    if(!pos) try{ pos = localStorage.getItem("offgrd_pos") || ""; }catch(e){}
     var AT = window.OFFGRD_WEEK_AUTOTEST;
-    if(AT && AT.normPos) pos = AT.normPos(pos);
-    else pos = String(pos || "").toUpperCase().trim();
-    if(pos) try{ localStorage.setItem("offgrd_pos", pos); }catch(e){}
-    return pos;
+    if(me && AT && AT.parseMemberPositions){
+      var parsed = AT.parseMemberPositions(me);
+      if(parsed.length) return parsed;
+    }
+    var fallback = "";
+    if(!fallback) try{ fallback = localStorage.getItem("offgrd_pos") || ""; }catch(e){}
+    if(AT && AT.parseMemberPositions && fallback){
+      return AT.parseMemberPositions({ position: fallback });
+    }
+    return [];
+  }
+  async function resolvePlayerPos(){
+    var ps = await resolvePlayerPositions();
+    return ps[0] || "";
   }
 
   async function loadMyQuizRows(teamId, userId){
@@ -147,11 +155,23 @@
     return unique;
   }
 
-  function renderAssignedStripHtml(wp, pos, rows){
+  function playsForPositions(unique, positions, gen){
+    var set = {}, out = [];
+    (positions || []).forEach(function(pos){
+      playsForPos(unique, pos, gen).forEach(function(u){
+        var k = String(u.name || "").toLowerCase();
+        if(k && !set[k]){ set[k] = 1; out.push(u); }
+      });
+    });
+    return out;
+  }
+
+  function renderAssignedStripHtml(wp, positions, rows){
     var AT = window.OFFGRD_WEEK_AUTOTEST;
-    if(!AT || !wp.test_spec || !pos) return "";
-    var spec = (wp.test_spec.positions || {})[pos];
-    if(!spec) return "";
+    positions = positions || [];
+    if(!AT || !wp.test_spec || !positions.length) return "";
+    var spec = AT.unionSpecForPlayer ? AT.unionSpecForPlayer(positions, wp.test_spec) : null;
+    if(!spec || !spec.kinds || !spec.kinds.length) return "";
     var comp = AT.completionForPlayer(spec, rows || [], wp.id, wp.opponent);
     var chips = (comp.items || []).map(function(i){
       var mark = i.passed ? "\u2713" : (i.started ? "\u25D0" : "\u25A2");
@@ -161,8 +181,9 @@
     }).join("");
     var stLabel = comp.status === "passed" ? "Ready" : (comp.status === "started" ? "In progress" : "Not started");
     var stCol = comp.status === "passed" ? "#1d7a45" : (comp.status === "started" ? "#b8860b" : "#7a8494");
+    var posLabel = positions.join(" + ");
     return '<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px;margin:10px 0">'
-      +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(pos)+'</div>'
+      +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(posLabel)+'</div>'
       +'<div style="margin-top:6px">'+chips+'</div>'
       +'<div style="margin-top:8px;font-size:13px"><b style="color:'+stCol+'">'+esc(stLabel)+'</b>'
       +' · '+comp.passed+'/'+comp.assigned+' passed'
@@ -272,8 +293,9 @@
     return h;
   }
 
-  function renderPlaysToKnowHtml(unique, pos){
-    if(isDefPos(pos)) return "";
+  function renderPlaysToKnowHtml(unique, positions){
+    positions = positions || [];
+    if(!positions.length || positions.every(isDefPos)) return "";
     if(!unique || !unique.length) return "";
     var h = '<div style="margin-top:12px"><div class="lbl">Plays to know</div><ul style="margin:6px 0 0;padding-left:18px">';
     unique.forEach(function(u){
@@ -298,7 +320,7 @@
         host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;
       }
-      var pos = await resolvePlayerPos();
+      var positions = await resolvePlayerPositions();
       var uid = null, tid = null;
       try{
         if(window.Cloud && Cloud.ready){
@@ -314,31 +336,32 @@
       var rows = await loadMyQuizRows(tid, uid);
 
       var allUnique = uniquePlaysFromBuckets(wp.buckets);
-      var myPlays = playsForPos(allUnique, pos, wp.gen);
+      var myPlays = playsForPositions(allUnique, positions, wp.gen);
+      var posLabel = positions.join(" + ");
 
       var h = '<div class="panel"><h3 style="margin:0 0 4px;color:#13294B">This Week · '+esc(wp.opponent||"Opponent")+'</h3>';
-      if(wp.game_date) h += '<p class="foot" style="margin:0 0 4px">Gameday: <b>'+esc(wp.game_date)+'</b>'+(pos ? (' · <b>'+esc(pos)+'</b>') : "")+'</p>';
-      else if(pos) h += '<p class="foot" style="margin:0 0 4px">Your position: <b>'+esc(pos)+'</b></p>';
+      if(wp.game_date) h += '<p class="foot" style="margin:0 0 4px">Gameday: <b>'+esc(wp.game_date)+'</b>'+(posLabel ? (' · <b>'+esc(posLabel)+'</b>') : "")+'</p>';
+      else if(posLabel) h += '<p class="foot" style="margin:0 0 4px">Your position(s): <b>'+esc(posLabel)+'</b></p>';
 
-      /* Lead with assigned test + readiness */
-      h += renderAssignedStripHtml(wp, pos, rows);
+      h += renderAssignedStripHtml(wp, positions, rows);
 
-      /* Trimmed player note — never full scheme narrative / OL essay for non-OL / pressure analytics */
       if(wp.gen){
-        h += renderPlayerNoteHtml(wp, pos);
-        h += renderPosTeachingHtml(wp, pos, allUnique);
+        positions.forEach(function(pos){
+          h += renderPlayerNoteHtml(wp, pos);
+          h += renderPosTeachingHtml(wp, pos, allUnique);
+        });
+        if(!positions.length) h += renderPlayerNoteHtml(wp, "");
       }
 
-      /* Deduped plays for this position */
       if(wp.buckets && wp.buckets.length){
-        h += renderPlaysToKnowHtml(myPlays, pos);
+        h += renderPlaysToKnowHtml(myPlays, positions);
       }
 
       if(wp.practice && wp.practice.periods){
         h += '<div style="margin-top:12px"><div class="lbl">Practice</div><p class="foot">'+wp.practice.periods.length+' period(s) — see the <b>Practice</b> tab for your reps.</p></div>';
       }
 
-      if(!pos){
+      if(!positions.length){
         h += '<p class="foot" style="margin-top:12px">Set your position in <a href="OFFGRD-QB.html" style="font-weight:800">Testing</a> so this page can tailor to your job.</p>';
       }
       h += '<p class="foot" style="margin-top:14px">Built for your position. Full scout tools stay with coaches.</p></div>';

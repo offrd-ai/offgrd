@@ -92,6 +92,11 @@ export const Cloud = {
     const { error } = await sb.rpc("offgrd_set_my_position", { t: teamId, pos });
     if (error) throw error;
   },
+  async setMyPositions(teamId, positions) {
+    const arr = Array.isArray(positions) ? positions : [];
+    const { error } = await sb.rpc("offgrd_set_my_positions", { t: teamId, pos: arr });
+    if (error) throw error;
+  },
   async setMyName(name) {
     const u = await this.session(); if (!u) return;
     const { error } = await OG.from("profiles").update({ full_name: name }).eq("id", u.id);

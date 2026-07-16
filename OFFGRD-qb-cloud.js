@@ -1,5 +1,5 @@
 ﻿/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=76";
+import { Cloud } from "./OFFGRD-cloud.js?v=80";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -21,14 +21,29 @@ window.QB = {
     return Cloud.saveQuizResult(t.id, result);
   },
   async rosterPosition(){
+    const ps = await this.rosterPositions();
+    return ps.length ? ps[0] : null;
+  },
+  async rosterPositions(){
     try{
       const ctx = await this.context();
-      if(!ctx || !ctx.user || !ctx.team) return null;
+      if(!ctx || !ctx.user || !ctx.team) return [];
       const roster = await Cloud.teamRoster(ctx.team.id).catch(()=>[]);
       const me = (roster||[]).find(m => m.user_id === ctx.user.id);
-      if(me && me.position) return String(me.position).toUpperCase();
+      if(!me) return [];
+      const AT = window.OFFGRD_WEEK_AUTOTEST;
+      if(AT && AT.parseMemberPositions) return AT.parseMemberPositions(me);
+      if(me.positions && me.positions.length) return me.positions.map(p => String(p).toUpperCase());
+      if(me.position) return [String(me.position).toUpperCase()];
     }catch(e){}
-    return null;
+    return [];
+  },
+  async saveMyPositions(positions){
+    const ctx = await this.context();
+    if(!ctx || !ctx.team) throw new Error("Join a program first.");
+    const arr = (positions || []).map(p => String(p || "").trim()).filter(Boolean);
+    await Cloud.setMyPositions(ctx.team.id, arr);
+    return arr;
   },
   async results(){
     const t = await activeTeam(); if(!t) return { rows:[], roster:[] };
