@@ -79,10 +79,53 @@
 
   function isExplosive(gain) { return +gain >= 12; }
 
-  /* Heat: frequency 0–1 → red wash (matches Scout gridtbl feel). */
+  /* Heat: frequency 0–1 → base-aware stepped ramp (AA text on each fill). */
+  function redesignOn() {
+    try {
+      return !!(root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign());
+    } catch (e) { return false; }
+  }
+  function redesignBase() {
+    try {
+      if (root.OFFGRD_REDESIGN && typeof OFFGRD_REDESIGN.getBase === "function") return OFFGRD_REDESIGN.getBase();
+      const d = document.documentElement.getAttribute("data-base");
+      if (d === "day" || d === "night") return d;
+    } catch (e) {}
+    return "night";
+  }
+  /* Seven evenly spaced bands — same semantics (share → intensity), different paints per base. */
+  function heatBands(base) {
+    if (base === "day") {
+      return [
+        { bg: "#F5F2F3", fg: "#13294B", sub: "rgba(19,41,75,.70)" },
+        { bg: "#F0D4D8", fg: "#13294B", sub: "rgba(19,41,75,.72)" },
+        { bg: "#E5A8B0", fg: "#13294B", sub: "rgba(19,41,75,.75)" },
+        { bg: "#D66B78", fg: "#FFFFFF", sub: "rgba(255,255,255,.85)" },
+        { bg: "#C43A4A", fg: "#FFFFFF", sub: "rgba(255,255,255,.88)" },
+        { bg: "#A8112B", fg: "#FFFFFF", sub: "rgba(255,255,255,.90)" },
+        { bg: "#8B0E24", fg: "#FFFFFF", sub: "rgba(255,255,255,.90)" }
+      ];
+    }
+    /* Night: floor sits above --rd-bg; hot end bright enough for light (or dark) text AA */
+    return [
+      { bg: "#1C232D", fg: "#E8ECF2", sub: "rgba(232,236,242,.78)" },
+      { bg: "#3A272C", fg: "#F2E8EB", sub: "rgba(242,232,235,.80)" },
+      { bg: "#5C2E36", fg: "#F7EEF0", sub: "rgba(247,238,240,.82)" },
+      { bg: "#8B3842", fg: "#FFFFFF", sub: "rgba(255,255,255,.86)" },
+      { bg: "#C44A52", fg: "#FFFFFF", sub: "rgba(255,255,255,.88)" },
+      { bg: "#E86860", fg: "#0E1116", sub: "rgba(14,17,22,.78)" },
+      { bg: "#FF8578", fg: "#0E1116", sub: "rgba(14,17,22,.80)" }
+    ];
+  }
   function heatStyle(rate) {
-    const a = Math.min(0.85, Math.max(0.04, +rate || 0));
-    return "background:rgba(168,17,43," + (a * 0.55).toFixed(3) + ");";
+    const t = Math.min(1, Math.max(0, +rate || 0));
+    const idx = Math.min(6, Math.max(0, Math.round(t * 6)));
+    if (!redesignOn()) {
+      const a = (0.10 + (idx / 6) * 0.55).toFixed(3);
+      return "background:rgba(168,17,43," + a + ");color:#13294B;";
+    }
+    const band = heatBands(redesignBase())[idx];
+    return "background:" + band.bg + ";color:" + band.fg + ";--tn-sub:" + band.sub + ";";
   }
 
   function defPersGroup(r) {
@@ -307,8 +350,9 @@
       + ".tn-tbl th,.tn-tbl td{border:1px solid #d0d7e0;padding:6px 7px;text-align:center}"
       + ".tn-tbl th{background:#13294B;color:#fff;font-weight:800}"
       + ".tn-tbl td.rh{background:#eef2f6;font-weight:800;text-align:left;white-space:nowrap}"
-      + ".tn-tbl .sub{display:block;font-size:10px;color:#5a6575;font-weight:600}"
+      + ".tn-tbl .sub{display:block;font-size:10px;font-weight:600;color:var(--tn-sub,#5a6575)}"
       + ".tn-tbl .hot{font-weight:800}"
+      + ".tn-tbl .hot .sub{color:var(--tn-sub,inherit);opacity:1}"
       + ".tn-legend{font-size:11px;color:#5a6575;margin:4px 0 12px}"
       + "@media print{.tn-no-print{display:none!important}}"
       + "</style>";

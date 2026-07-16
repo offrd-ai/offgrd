@@ -1,5 +1,5 @@
-/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=69";
+﻿/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
+import { Cloud } from "./OFFGRD-cloud.js?v=76";
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -19,6 +19,16 @@ window.QB = {
   async save(result){
     const t = await activeTeam(); if(!t) throw new Error("No program yet.");
     return Cloud.saveQuizResult(t.id, result);
+  },
+  async rosterPosition(){
+    try{
+      const ctx = await this.context();
+      if(!ctx || !ctx.user || !ctx.team) return null;
+      const roster = await Cloud.teamRoster(ctx.team.id).catch(()=>[]);
+      const me = (roster||[]).find(m => m.user_id === ctx.user.id);
+      if(me && me.position) return String(me.position).toUpperCase();
+    }catch(e){}
+    return null;
   },
   async results(){
     const t = await activeTeam(); if(!t) return { rows:[], roster:[] };

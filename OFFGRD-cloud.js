@@ -178,7 +178,14 @@ export const Cloud = {
 
   /* ---------- QB reads trainer results ---------- */
   async saveQuizResult(teamId, r) {
-    const row = { team_id: teamId, quiz: r.quiz || "Test", score: r.score|0, total: r.total|0, detail: r.detail || [] };
+    const row = {
+      team_id: teamId,
+      quiz: r.quiz || "Test",
+      score: r.score|0,
+      total: r.total|0,
+      detail: r.detail || []
+    };
+    if (r.week_plan_id) row.week_plan_id = r.week_plan_id;
     const { data, error } = await OG.from("qb_results").insert(row).select().single();
     if (error) throw error; return data;
   },
@@ -276,3 +283,5 @@ export const Cloud = {
     return data || { plan: "free", plan_status: "active" };
   }
 };
+
+if (typeof window !== "undefined") window.Cloud = Cloud;

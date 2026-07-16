@@ -38,6 +38,14 @@
       ".topbar{flex-wrap:wrap}",
       /* tighten page padding */
       ".wrap,main,body>.container{padding-left:10px!important;padding-right:10px!important}",
+      /* richer Plan/Package/Caller/Report views: same content, scroll tables instead of clipping */
+      "#view-package .plan-tbl,#view-package .tn-tbl,#view-report .tn-tbl,#view-caller table,",
+      "#view-package .wkpkg-root,#view-caller{max-width:100%}",
+      "#view-package .plan-tbl,#view-package .tn-tbl,#view-report .tn-tbl{",
+        "display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}",
+      /* redesign tool pills: swipeable strip (active state painted by redesign.js) */
+      "#rdTools{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}",
+      "#rdTools .rd-pill{flex:0 0 auto;min-height:44px}",
       /* accordion */
       ".acc-head{display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;",
         "background:var(--panel,#fff);border:0;border-bottom:1px solid var(--line,#e2e5ea);",

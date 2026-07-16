@@ -17,8 +17,11 @@ window.OFFGRD_CONFIG = {
   tendencyReports: true,
   /* AI-GM weekly package — ON. Rollback: ?weeklypackage=0 or localStorage.offgrd_weekly_package=0 */
   weeklyPackage: true,
+  /* Auto-assign week teach-tests on package approve — OFF until cutover.
+     Opt-in: ?week_autotest=1 or localStorage.offgrd_week_autotest=1 */
+  weekAutotest: false,
   /* Film telestration (still-frame Phase 1) — ON. Rollback: ?telestrate=0 or localStorage.offgrd_film_telestrate=0 */
   filmTelestrate: true,
-  /* Redesign tokens + 4-phase nav shell — OFF until cutover. Opt-in: ?redesign=1 or localStorage.offgrd_redesign=1 */
-  redesign: false
+  /* Redesign tokens + 4-phase nav shell — ON (global cutover). Rollback: ?redesign=0 or localStorage.offgrd_redesign=0 */
+  redesign: true
 };

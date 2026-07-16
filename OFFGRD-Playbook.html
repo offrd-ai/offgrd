@@ -16,7 +16,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#13294B"/>
-<title>OFFGRD ¬∑ Playbook</title>
+<title>OFFGRD ∑ Playbook</title>
 <style>
   :root{--bg:#f4f5f7;--panel:#fff;--ink:#16181d;--muted:#5b626e;--line:#e2e5ea;--accent:#4B9CD3;--navy:#13294B;--good:#1d7a45;--bad:#a8112b;--shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06)}
   *{box-sizing:border-box} html,body{margin:0}
@@ -58,16 +58,16 @@
   .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
   textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=69"></script>
+<script src="OFFGRD-config.js?v=75"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=69"></script>
-<script src="OFFGRD-render.js?v=69"></script>
-<script src="OFFGRD-scoutcards.js?v=69"></script>
-<script src="OFFGRD-telestrate.js?v=69"></script>
-<script src="OFFGRD-redesign.js?v=69"></script>
+<script src="OFFGRD-cache-gate.js?v=75"></script>
+<script src="OFFGRD-render.js?v=75"></script>
+<script src="OFFGRD-scoutcards.js?v=75"></script>
+<script src="OFFGRD-telestrate.js?v=75"></script>
+<script src="OFFGRD-redesign.js?v=75"></script>
 </head>
 <body>
-  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD ‚Äî back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>¬∑ Playbook ‚Äî draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">‚Üê OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">‚ú¶ Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
+  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD ó back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>∑ Playbook ó draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
 
   <!-- SETUP / GENERAL -->
   <div class="panel" data-sec="Setup &amp; field">
@@ -110,13 +110,13 @@
   </div>
 
   <div class="panel" id="routePanel">
-    <div class="lbl" style="margin-bottom:6px">Quick routes ‚Äî tap a player, then a route</div>
+    <div class="lbl" style="margin-bottom:6px">Quick routes ó tap a player, then a route</div>
     <div class="row" id="routeBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Concepts ‚Äî apply to all receivers at once</div>
+    <div class="lbl" style="margin:10px 0 6px">Concepts ó apply to all receivers at once</div>
     <div class="row" id="conceptBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Run blocks ‚Äî tap a lineman, then a block</div>
+    <div class="lbl" style="margin:10px 0 6px">Run blocks ó tap a lineman, then a block</div>
     <div class="row" id="blockBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Assignments ‚Üí routes ‚Äî type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
+    <div class="lbl" style="margin:10px 0 6px">Assignments ? routes ó type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
     <div class="row"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
   </div>
 
@@ -141,7 +141,7 @@
   <div class="panel" style="padding:6px">
     <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
     <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
-      <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">‚ñ∂ Play</button>
+      <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">? Play</button>
       <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
       <button class="btn" id="undoBtn2" title="Undo">&#8630; Undo</button>
       <button class="btn" id="redoBtn2" title="Redo">&#8631; Redo</button>
@@ -161,12 +161,12 @@
   <div class="panel" id="asnPanel">
     <div class="row" style="justify-content:space-between;align-items:center">
       <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
-      <button class="btn" id="asnToggle">Show ‚ñæ</button>
+      <button class="btn" id="asnToggle">Show ?</button>
     </div>
     <div id="asnBody" style="display:none">
-      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew ‚Äî type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
+      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew ó type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
       <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
-      <div class="lbl" style="margin:12px 0 4px">QB notes ‚Äî progression, hots, reminders</div>
+      <div class="lbl" style="margin:12px 0 4px">QB notes ó progression, hots, reminders</div>
       <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
     </div>
   </div>
@@ -196,7 +196,7 @@
       <span class="sp" style="flex:1"></span>
       <button class="btn nav" id="installBtn">Install plan</button>
       <button class="btn nav" id="scoutCardsBtn" title="Printable scout cards from drawn plays">Scout cards</button>
-      <button class="btn nav" id="telestrateBtn" title="Draw on film ‚Äî still-frame telestration">Film</button>
+      <button class="btn nav" id="telestrateBtn" title="Draw on film ó still-frame telestration">Film</button>
       <button class="btn" id="exportLib">Export playbook</button>
       <button class="btn" id="importLib">Import playbook</button>
       <input type="file" id="libFile" accept=".json" style="display:none">
@@ -207,13 +207,13 @@
   <div class="panel">
     <div class="lbl" style="margin-bottom:6px">Your playbook (<span id="playCount">0</span>)</div>
     <div class="libtools">
-      <input type="search" id="libSearch" placeholder="Search name, tags, formation‚Ä¶" autocomplete="off">
+      <input type="search" id="libSearch" placeholder="Search name, tags, formationÖ" autocomplete="off">
       <select id="libForm"><option value="">All formations</option></select>
       <select id="libFam"><option value="">All families</option></select>
       <select id="libSer"><option value="">All series</option></select>
       <select id="libPers"><option value="">All personnel</option></select>
       <select id="libTag"><option value="">All tags</option></select>
-      <select id="libSort"><option value="updated">Recently updated</option><option value="name">Name A‚ÄìZ</option></select>
+      <select id="libSort"><option value="updated">Recently updated</option><option value="name">Name AñZ</option></select>
     </div>
     <div class="plays" id="playList"></div>
   </div>
@@ -234,7 +234,7 @@
 </div></div>
 
 <script>
-/* ============ OFFGRD Playbook ‚Äî vector routes, edit, animate ============ */
+/* ============ OFFGRD Playbook ó vector routes, edit, animate ============ */
 const LOS=380,W=1000,H=640;
 let MODE="route",SEL=null,STATE=null,DRAG=null,ANIM=null,LIB=[];
 let UNDO=[],REDO=[];
@@ -358,7 +358,7 @@ function autoAsn(p){ if(!p||p.group) return "";
     else if(p.blk==="set") parts.push("Pass set");
     else parts.push("Block");
   } else if(p.route&&p.route.length){ parts.push(p.rname?p.rname+" route":"Route as drawn"); }
-  return parts.join(" ¬∑ ");
+  return parts.join(" ∑ ");
 }
 let ASN_SIG=null;
 function asnSig(){ if(!STATE) return ""; return STATE.players.map(p=>p.id+"|"+p.lab+"|"+(p.asn||"")+"|"+autoAsn(p)).join("~")+"~"+(STATE.qbNotes||""); }
@@ -372,15 +372,15 @@ function renderAsn(){
   ps.forEach(p=>{
     const w=document.createElement("div"); w.style.cssText="display:flex;align-items:center;gap:6px";
     const chip=document.createElement("span"); chip.textContent=p.lab; chip.style.cssText="min-width:36px;text-align:center;font-weight:800;font-size:12px;background:#13294B;color:#fff;border-radius:7px;padding:6px 4px;flex:none";
-    const inp=document.createElement("input"); inp.style.flex="1"; inp.style.minWidth="0"; inp.value=p.asn||""; inp.placeholder=autoAsn(p)||"assignment‚Ä¶"; inp.dataset.pid=p.id;
+    const inp=document.createElement("input"); inp.style.flex="1"; inp.style.minWidth="0"; inp.value=p.asn||""; inp.placeholder=autoAsn(p)||"assignmentÖ"; inp.dataset.pid=p.id;
     inp.oninput=e=>{ p.asn=e.target.value; ASN_SIG=asnSig(); };
     w.appendChild(chip); w.appendChild(inp); list.appendChild(w);
   });
   const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
 }
 function ctxAsnInput(host){ if(!SEL||SEL.group) return;
-  ctxLbl(host,(SEL.lab||"Player")+" ‚Äî assignment (shows in Reps Lab)");
-  const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignment‚Ä¶";
+  ctxLbl(host,(SEL.lab||"Player")+" ó assignment (shows in Reps Lab)");
+  const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignmentÖ";
   inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
   host.appendChild(inp);
 }
@@ -394,7 +394,7 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
   STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
   STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write ‚Äî blank canvas must not nag on reopen */}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write ó blank canvas must not nag on reopen */}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
   (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
   (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
@@ -468,7 +468,7 @@ function persistUndoSession(){ try{ sessionStorage.setItem(UNDO_SS, JSON.stringi
 function restoreUndoSession(forId){ try{ const raw=sessionStorage.getItem(UNDO_SS); if(!raw) return; const o=JSON.parse(raw); if(!o||(forId&&o.id&&o.id!==forId)) return; if(Array.isArray(o.undo)) UNDO=o.undo; if(Array.isArray(o.redo)) REDO=o.redo; syncUndo(); }catch(e){} }
 function draftIsMeaningful(st){
   if(!st) return false;
-  /* Stock formation players alone do NOT count ‚Äî only real coach work */
+  /* Stock formation players alone do NOT count ó only real coach work */
   if((st.name||"").trim()) return true;
   if((st.family||"").trim()||(st.series||"").trim()||(st.qbNotes||"").trim()||(st.group||"").trim()) return true;
   if(Array.isArray(st.tags)&&st.tags.length) return true;
@@ -525,7 +525,7 @@ function offerRestoreDraft(){
   if(!d||!d.state||d.saved||!draftIsMeaningful(d.state)||!draftDiffersFromSaved(d.state)){ clearDraft(); return; }
   const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9999;
   ov.innerHTML='<div class="ovbox" style="max-width:460px"><b style="font-size:18px;color:var(--navy)">Restore unsaved play?</b>'
-    +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' ‚Äî <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
+    +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' ó <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
     +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="drDiscard">Discard</button><button class="btn go" id="drRestore">Restore</button></div></div>';
   document.body.appendChild(ov);
   ov.querySelector("#drDiscard").onclick=()=>{ clearDraft(); ov.remove(); };
@@ -535,7 +535,7 @@ function offerRestoreDraft(){
     /* Consume the prompt draft, then re-stash so leave-without-save still restores once */
     clearDraft();
     scheduleDraft(true);
-    msg("Restored unsaved play"+(STATE.name?(" ‚Äî "+STATE.name):"")+".");
+    msg("Restored unsaved play"+(STATE.name?(" ó "+STATE.name):"")+".");
     ov.remove();
   };
 }
@@ -552,7 +552,7 @@ function hitHandle(pt){ if(!SEL) return null; const start={x:SEL.x,y:SEL.y}; let
   return null;
 }
 
-/* ---- render (delegates to OFFGRD-render.js ‚Äî Stage 1 extraction) ---- */
+/* ---- render (delegates to OFFGRD-render.js ó Stage 1 extraction) ---- */
 function fieldSVG(){ return OFFGRD_RENDER.fieldSVG(STATE); }
 function routeD(p){ return OFFGRD_RENDER.routeD(p); }
 function routePath(p){ return OFFGRD_RENDER.routePath(p); }
@@ -575,16 +575,16 @@ function buildCtxBar(){
   const host=document.getElementById("ctxBar"); if(!host) return; host.innerHTML="";
   if(!SEL) return;
   if(SEL.group){ /* defender */
-    ctxLbl(host,(SEL.lab||"Defender")+" ‚Äî assignment");
+    ctxLbl(host,(SEL.lab||"Defender")+" ó assignment");
     ctxBtn(host,"Zone drop",()=>{snap();SEL.role="zone";SEL.dx=SEL.x;SEL.dy=Math.max(150,SEL.y-110);SEL.route=[];renderAll();msg((SEL.lab||"D")+": zone drop.");},SEL.role==="zone");
     ctxBtn(host,"Man (nearest)",()=>{snap();SEL.role="man";let best=null,bd=1e9;STATE.players.filter(p=>p.type==="route"||p.type==="rb").forEach(p=>{const dd=Math.abs(p.x-SEL.x);if(dd<bd){bd=dd;best=p;}});SEL.manId=best?best.id:null;SEL.route=[];renderAll();msg((SEL.lab||"D")+": man"+(best?" on "+best.lab:"")+".");},SEL.role==="man");
     ctxBtn(host,"Blitz",()=>{snap();SEL.role="rush";SEL.route=[];renderAll();msg((SEL.lab||"D")+": blitz.");},SEL.role==="rush");
-    ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"‚Äôs path ‚Äî it overrides his drop.");},MODE==="route");
+    ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"ís path ó it overrides his drop.");},MODE==="route");
     if(SEL.route&&SEL.route.length) ctxBtn(host,"Clear path",()=>{snap();SEL.route=[];renderAll();});
     return;
   }
   if(SEL.ol || SEL.type==="block"){ /* lineman / blocker */
-    ctxLbl(host,(SEL.lab||"Line")+" ‚Äî protection & blocks");
+    ctxLbl(host,(SEL.lab||"Line")+" ó protection & blocks");
     const ps=document.getElementById("protSel");
     if(ps){ const sel=ps.cloneNode(true); sel.removeAttribute("id"); sel.value=ps.value; sel.style.maxWidth="180px"; sel.title="Protection (whole line)"; sel.onchange=()=>{ ps.value=sel.value; ps.dispatchEvent(new Event("change")); }; host.appendChild(sel); }
     BLOCKS.forEach(bl=>ctxBtn(host,bl[0],()=>applyBlock(bl[1],bl[2])));
@@ -592,11 +592,11 @@ function buildCtxBar(){
     return;
   }
   /* skill player (WR / TE / RB / QB): routes + motion */
-  ctxLbl(host,(SEL.lab||"Player")+" ‚Äî routes");
+  ctxLbl(host,(SEL.lab||"Player")+" ó routes");
   CTX_ROUTES.forEach(n=>{ if(typeof ROUTES!=="undefined" && ROUTES[n]) ctxBtn(host,n,()=>applyRoute(n)); });
   ctxLbl(host,"Tools");
-  ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"‚Äôs route.");},MODE==="route");
-  ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"‚Äôs pre-snap motion.");},MODE==="motion");
+  ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ís route.");},MODE==="route");
+  ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ís pre-snap motion.");},MODE==="motion");
   ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];SEL.rname=null;renderAll();});
   ctxAsnInput(host);
 }
@@ -655,7 +655,7 @@ function migrateLib(arr){
     return keep;
   };
   let list=arr.map(norm);
-  /* same cloud row ‚Üí one local row */
+  /* same cloud row ? one local row */
   const byCid=new Map(), noCid=[];
   list.forEach(p=>{
     if(p.cid){ if(byCid.has(p.cid)) byCid.set(p.cid, prefer(byCid.get(p.cid), p)); else byCid.set(p.cid, p); }
@@ -683,7 +683,7 @@ function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("
 function renderTagChips(){
   const host=document.getElementById("tagChips"); if(!host||!STATE) return;
   const tags=Array.isArray(STATE.tags)?STATE.tags:[];
-  host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">√ó</button></span>`).join("");
+  host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">◊</button></span>`).join("");
   host.querySelectorAll("button[data-i]").forEach(b=>{ b.onclick=()=>{ STATE.tags.splice(+b.dataset.i,1); renderTagChips(); scheduleDraft(); }; });
 }
 function addTagFromInput(){
@@ -731,7 +731,7 @@ function loadPlayId(id){
   if(!STATE.id) STATE.id=uuid();
   if(!Array.isArray(STATE.tags)) STATE.tags=[];
   SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim(); writeMeta(); renderAll();
-  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ‚Äî don't rewrite blank/identical draft */
+  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ó don't rewrite blank/identical draft */
   msg("Loaded "+STATE.name+".");
 }
 function loadPlay(i){ if(LIB[i]) loadPlayId(LIB[i].id); }
@@ -791,9 +791,9 @@ function renderLib(){
   if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
   host.innerHTML=list.map(p=>{
     const th=p.thumbSvg?`<span class="th">${p.thumbSvg}</span>`:`<span class="th"></span>`;
-    const tags=(p.tags&&p.tags.length)?` ¬∑ ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
-    const grp=p.group?` ¬∑ ${esc(p.group)}`:"";
-    return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" ¬∑ ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">‚úï</button></div>`;
+    const tags=(p.tags&&p.tags.length)?` ∑ ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
+    const grp=p.group?` ∑ ${esc(p.group)}`:"";
+    return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" ∑ ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">?</button></div>`;
   }).join("");
   host.querySelectorAll("button[data-act]").forEach(b=>{
     b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
@@ -822,7 +822,7 @@ function exportPNG(){
 
 /* ---- modes ---- */
 function setMode(m){MODE=m;document.querySelectorAll(".btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
-/* ---------- starter playbook ‚Äî no blank page (coach onboarding) ---------- */
+/* ---------- starter playbook ó no blank page (coach onboarding) ---------- */
 function starterLib(){
   const out=[];
   const P=lab=>STATE.players.find(p=>p.lab===lab);
@@ -859,28 +859,53 @@ function starterLib(){
   mk("Power Lt","Run","Power","10","2x2 Doubles (Gun)","none",()=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.blk=null; p.runblk={type:"down",dir:-1}; }); const rg=P("RG"); if(rg) rg.runblk={type:"pull",dir:-1}; rbPath([{x:455,y:435},{x:420,y:300}]); });
   return out;
 }
-function offerStarter(){
+/* Starter prompt keys off the saved LIBRARY (=1 play), not the empty designer canvas.
+   Defer until cloud hydrate can populate LIB so existing programs never get nagged. */
+let _starterTimer=null;
+function dismissStarterPrompt(){
+  try{ localStorage.setItem("offgrd_pb_starter","1"); }catch(e){}
+  if(_starterTimer){ try{ clearTimeout(_starterTimer); }catch(e){} _starterTimer=null; }
+  const ov=document.getElementById("pbStarterOv"); if(ov) ov.remove();
+}
+function libraryHasPlays(){
+  if(LIB && LIB.length) return true;
+  try{
+    const s=localStorage.getItem(STORE);
+    if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) return true; }
+  }catch(e){}
+  return false;
+}
+function offerStarter(opts){
+  opts=opts||{};
+  if(libraryHasPlays()){ dismissStarterPrompt(); return; }
   let done=null; try{ done=localStorage.getItem("offgrd_pb_starter"); }catch(e){}
-  if(done || (LIB && LIB.length)) return;
-  const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9998;
+  if(done) return;
+  /* Wait for cloud merge before deciding the library is truly empty */
+  if(!opts.force){
+    if(_starterTimer) clearTimeout(_starterTimer);
+    _starterTimer=setTimeout(function(){ offerStarter({ force:true }); }, 1400);
+    return;
+  }
+  if(libraryHasPlays()){ dismissStarterPrompt(); return; }
+  if(document.getElementById("pbStarterOv")) return;
+  const ov=document.createElement("div"); ov.id="pbStarterOv"; ov.className="ov show"; ov.style.zIndex=9998;
   ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
-   +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book ‚Äî <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don‚Äôt run. If you‚Äôre signed in, they sync to your whole program automatically.</p>'
+   +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book ó <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you donít run. If youíre signed in, they sync to your whole program automatically.</p>'
    +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
   document.body.appendChild(ov);
-  const close=()=>{ try{ localStorage.setItem("offgrd_pb_starter","1"); }catch(e){} ov.remove(); };
-  ov.querySelector("#stSkip").onclick=close;
-  ov.querySelector("#stGo").onclick=()=>{
-    if(LIB && LIB.length){ close(); msg("Your team playbook already loaded from the cloud."); return; }
+  ov.querySelector("#stSkip").onclick=function(){ dismissStarterPrompt(); };
+  ov.querySelector("#stGo").onclick=function(){
+    if(libraryHasPlays()){ dismissStarterPrompt(); msg("Your team playbook already loaded from the cloud."); return; }
     LIB=starterLib(); saveLib(); refreshLibUI();
     newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
-    msg("Starter playbook loaded ‚Äî 12 plays. Open any play, rename it, make it yours.");
-    close();
+    msg("Starter playbook loaded ó 12 plays. Open any play, rename it, make it yours.");
+    dismissStarterPrompt();
   };
 }
 
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 window.loadPlayId=loadPlayId;window.delPlayId=delPlayId;window.dupPlayId=dupPlayId;
-/* Expose the sync bridge IMMEDIATELY ‚Äî OFFGRD-account.js (a deferred module) reads
+/* Expose the sync bridge IMMEDIATELY ó OFFGRD-account.js (a deferred module) reads
    window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
    DOMContentLoaded handler meant the Playbook page never synced plays at all. */
 window.OFFGRD_APP={
@@ -891,13 +916,16 @@ window.OFFGRD_APP={
     const next=migrateLib(a);
     LIB=next;
     try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
-    /* One UI refresh after merge ‚Äî never per-row, never sync-push from set (avoids pull‚Üîpush loops). */
+    /* One UI refresh after merge ó never per-row, never sync-push from set (avoids pull?push loops). */
     refreshLibUI();
+    /* Cloud hydrate landed with plays ó never nag with the starter prompt. */
+    if(LIB && LIB.length) dismissStarterPrompt();
   },
-  /* After push only updates cids ‚Äî persist without rebuilding filter DOM if list identity unchanged. */
+  /* After push only updates cids ó persist without rebuilding filter DOM if list identity unchanged. */
   touch:a=>{
     if(Array.isArray(a)) LIB=a;
     try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
+    if(LIB && LIB.length) dismissStarterPrompt();
   }
 };
 
@@ -938,12 +966,12 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
   document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();scheduleDraft();};
   document.getElementById("imgBtn").onclick=()=>document.getElementById("imgFile").click();
-  document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded ‚Äî trace it, then Clear when done.");};rd.readAsDataURL(f);};
+  document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded ó trace it, then Clear when done.");};rd.readAsDataURL(f);};
   document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
   document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
   document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
   const asnT=document.getElementById("asnToggle"), asnB=document.getElementById("asnBody");
-  const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ‚ñ¥":"Show ‚ñæ"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
+  const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ?":"Show ?"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
   asnT.onclick=()=>asnSet(asnB.style.display==="none");
   let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
   document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); scheduleDraft(); } };
@@ -970,7 +998,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const show=!(window.OFFGRD_SCOUTCARDS)||OFFGRD_SCOUTCARDS.isScoutcards();
     scBtn.style.display=show?"":"none";
     scBtn.onclick=()=>{
-      if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off ‚Äî set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
+      if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off ó set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
       let games=[]; try{ games=JSON.parse(localStorage.getItem("offgrd_season_v2")||"[]"); }catch(e){}
       OFFGRD_SCOUTCARDS.openModal({
         installLib:LIB,
@@ -985,7 +1013,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const show=!(window.OFFGRD_TELESTRATE)||OFFGRD_TELESTRATE.isTelestrate();
     telBtn.style.display=show?"":"none";
     telBtn.onclick=()=>{
-      if(!(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.isTelestrate())){ msg("Film telestration is off ‚Äî set localStorage.offgrd_film_telestrate=1 or remove ?telestrate=0."); return; }
+      if(!(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.isTelestrate())){ msg("Film telestration is off ó set localStorage.offgrd_film_telestrate=1 or remove ?telestrate=0."); return; }
       OFFGRD_TELESTRATE.openModal({ onBlocked:msg });
     };
   }
@@ -1001,9 +1029,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=69"></script>
-<script src="OFFGRD-role-gate.js?v=69"></script>
-<script src="OFFGRD-mobile.js?v=69"></script>
+<script type="module" src="OFFGRD-account.js?v=75"></script>
+<script src="OFFGRD-role-gate.js?v=75"></script>
+<script src="OFFGRD-mobile.js?v=75"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

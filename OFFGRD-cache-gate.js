@@ -7,6 +7,7 @@
   /* Feature-flag rollbacks — must survive clearProgramCache. */
   var FLAG_KEYS = {
     "offgrd_weekly_package": 1,
+    "offgrd_week_autotest": 1,
     "offgrd_unified_render": 1,
     "offgrd_autoderive_reads": 1,
     "offgrd_scoutcards": 1,

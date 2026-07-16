@@ -589,6 +589,32 @@
     week.gen.package_approved_at = new Date().toISOString();
     try { localStorage.setItem("offgrd_week_v1", JSON.stringify(week)); } catch (e) {}
     if (root.OFFGRD_WEEK_PUSH) root.OFFGRD_WEEK_PUSH({ gen: week.gen });
+    /* Gap 1: auto-generate test_spec + def_aligns when week_autotest is on */
+    try {
+      if (root.OFFGRD_WEEK_AUTOTEST && OFFGRD_WEEK_AUTOTEST.isWeekAutotest && OFFGRD_WEEK_AUTOTEST.isWeekAutotest()
+          && typeof OFFGRD_WEEK_AUTOTEST.onApprove === "function") {
+        Promise.resolve(OFFGRD_WEEK_AUTOTEST.onApprove(week)).then(function (res) {
+          if (!res) return;
+          try { localStorage.setItem("offgrd_week_v1", JSON.stringify(week)); } catch (e) {}
+          if (root.OFFGRD_WEEK_PUSH) {
+            root.OFFGRD_WEEK_PUSH({ gen: week.gen, test_spec: week.test_spec, def_aligns: week.def_aligns });
+          }
+          try {
+            const host = document.getElementById("wkpkgHost") || document.querySelector(".wkpkg-shell");
+            if (host && OFFGRD_WEEK_AUTOTEST.nudgeHtml) {
+              let n = host.querySelector(".wkpkg-autotest-nudge");
+              if (!n) {
+                n = document.createElement("div");
+                n.className = "wkpkg-autotest-nudge";
+                host.appendChild(n);
+              }
+              n.innerHTML = OFFGRD_WEEK_AUTOTEST.nudgeHtml(res.test_spec)
+                || '<p class="foot" style="color:#1d7a45;font-weight:700;margin:8px 0 0">Week tests assigned for roster positions.</p>';
+            }
+          } catch (e) {}
+        }).catch(function (e) { console.warn("[week-autotest] approve hook", e); });
+      }
+    } catch (e) {}
   }
 
   function mergeGenFromResult(res) {
