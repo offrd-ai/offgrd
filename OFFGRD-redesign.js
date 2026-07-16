@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, report: 1, practice: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -169,18 +169,47 @@
     }
   ];
 
+  /* Player shell — flat phase bar (no Scout/Plan/Gameday coach phases). */
+  const PHASES_PLAYER = [
+    { id: "thisweek", label: "This Week", views: ["thisweek"], tools: [] },
+    { id: "practice", label: "Practice", views: ["practice"], tools: [] },
+    { id: "testing", label: "Testing", views: [], href: "OFFGRD-QB.html", tools: [] },
+    { id: "playbook", label: "Playbook", views: [], href: "OFFGRD-Playbook.html", tools: [] },
+    { id: "scoutcards", label: "Scout cards", views: [], action: "scoutcards", tools: [] },
+    { id: "recruiting", label: "Recruiting", views: ["recruiting"], tools: [] }
+  ];
+
   const SETUP_ITEMS = [
     { id: "import", label: "Import data", action: "import" },
     { id: "brand", label: "Team & logos", action: "brand" },
     { id: "team", label: "Team / roster", action: "team" },
     { id: "sched", label: "Schedule", action: "sched" },
     { id: "manage", label: "Manage library", action: "manage" },
-    { id: "sync", label: "Sync ↑", action: "sync" },
-    { id: "load", label: "Load ↓", action: "load" },
+    { id: "sync", label: "Sync \u2191", action: "sync" },
+    { id: "load", label: "Load \u2193", action: "load" },
     { id: "signout", label: "Sign out", action: "signout" },
     { id: "booth", label: "Booth mode", action: "booth" },
     { id: "base", label: "Theme: Night / Day", action: "toggleBase" }
   ];
+
+  const SETUP_PLAYER = [
+    { id: "base", label: "Theme: Night / Day", action: "toggleBase" },
+    { id: "signout", label: "Sign out", action: "signout" }
+  ];
+
+  function isPlayerRole() {
+    try {
+      return !!(root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.isPlayer && root.OFFGRD_PROGRAM.isPlayer());
+    } catch (e) { return false; }
+  }
+
+  function activePhases() {
+    return isPlayerRole() ? PHASES_PLAYER : PHASES;
+  }
+
+  function activeSetup() {
+    return isPlayerRole() ? SETUP_PLAYER : SETUP_ITEMS;
+  }
 
   function isRedesign() {
     try {
@@ -224,7 +253,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "75";
+  const ASSET_V = "83";
 
   function getScoutTool() {
     try {
@@ -264,8 +293,10 @@
 
   /* Last in-phase view for phase taps (Plan→Package stays Package, not Game Plan). */
   function lastViewForPhase(phaseId) {
-    const ph = PHASES.filter(function (p) { return p.id === phaseId; })[0];
-    if (!ph || !ph.views || !ph.views.length) return "scout";
+    const ph = activePhases().filter(function (p) { return p.id === phaseId; })[0];
+    if (!ph || !ph.views || !ph.views.length) {
+      return isPlayerRole() ? "thisweek" : "scout";
+    }
     const saved = getSavedView();
     if (saved && ph.views.indexOf(saved) >= 0) return saved;
     if (phaseId === "scout") {
@@ -504,6 +535,11 @@
       'background:var(--rd-surface);border-bottom:1px solid var(--rd-border);}',
       'html.rd-on #rdShell{display:flex;}',
       'html.rd-on .topbar,html.rd-on #navbar{display:none!important;}',
+      /* Player flat phase bar — no coach sub-tool pills */
+      'html.rd-on.rd-player #rdTools{display:none!important;}',
+      'html.rd-on.rd-player #rdPhases{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:6px;padding:8px 12px;width:100%;}',
+      'html.rd-on.rd-player #rdPhases .rd-phase{flex:0 0 auto;padding:8px 12px;font-size:13px;}',
+      'html.rd-on.rd-player #rdPhases a.rd-phase{text-decoration:none;display:inline-flex;align-items:center;}',
       '#rdContext{display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap;',
       'min-height:52px;}',
       '#rdMark{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit;font-weight:500;font-size:15px;}',
@@ -1272,10 +1308,18 @@
   }
 
   function phaseForView(v) {
+    if (isPlayerRole()) {
+      if (v === "thisweek") return "thisweek";
+      if (v === "practice") return "practice";
+      if (v === "recruiting") return "recruiting";
+      /* External pages keep their phase highlight if we were there */
+      return "thisweek";
+    }
     if (v === "reps" || v === "author") return "teach";
     if (v === "playbook") return "plan";
-    for (let i = 0; i < PHASES.length; i++) {
-      if (PHASES[i].views.indexOf(v) >= 0) return PHASES[i].id;
+    const phases = activePhases();
+    for (let i = 0; i < phases.length; i++) {
+      if (phases[i].views.indexOf(v) >= 0) return phases[i].id;
     }
     return "scout";
   }
@@ -1293,6 +1337,11 @@
         if (typeof root.setView === "function") root.setView("report");
         break;
       case "scoutcards":
+        if (isPlayerRole()) {
+          if (typeof root.OFFGRD_OPEN_PLAYER_SCOUTCARDS === "function") root.OFFGRD_OPEN_PLAYER_SCOUTCARDS();
+          else clickExisting("scoutCardsBtn");
+          break;
+        }
         setScoutTool("cards");
         if (typeof root.setView === "function") root.setView("scout");
         clickExisting("scoutCardsBtn");
@@ -1373,12 +1422,19 @@
   }
 
   function buildShellHtml() {
-    let phases = PHASES.map(function (p) {
-      return '<button type="button" class="rd-phase" data-phase="' + p.id + '">' + esc(p.label) + "</button>";
+    const phasesCfg = activePhases();
+    const setupCfg = activeSetup();
+    let phases = phasesCfg.map(function (p) {
+      if (p.href) {
+        return '<a class="rd-phase" data-phase="' + p.id + '" href="' + esc(withV(p.href)) + '">' + esc(p.label) + "</a>";
+      }
+      return '<button type="button" class="rd-phase" data-phase="' + p.id + '"'
+        + (p.action ? ' data-action="' + esc(p.action) + '"' : "")
+        + ">" + esc(p.label) + "</button>";
     }).join("");
 
     let tools = "";
-    PHASES.forEach(function (p) {
+    phasesCfg.forEach(function (p) {
       (p.tools || []).forEach(function (t) {
         const attrs = [
           'class="rd-pill"',
@@ -1397,7 +1453,7 @@
       });
     });
 
-    let setup = SETUP_ITEMS.map(function (it) {
+    let setup = setupCfg.map(function (it) {
       const id = it.action === "toggleBase" ? ' id="rdSetupBase"' : (it.action === "booth" ? ' id="rdSetupBooth"' : "");
       return '<button type="button"' + id + ' data-action="' + esc(it.action) + '">' + esc(it.label) + "</button>";
     }).join("");
@@ -1409,7 +1465,7 @@
       + '<button type="button" id="rdScope" title="Opponent / scope">Scope</button>'
       + '<span id="rdSync">SYNC</span>'
       + '<span class="rd-spacer"></span>'
-      + '<div id="rdSetup"><button type="button" class="rd-iconbtn" id="rdGear" aria-label="Setup">⚙ Setup</button>'
+      + '<div id="rdSetup"><button type="button" class="rd-iconbtn" id="rdGear" aria-label="Setup">\u2699 Setup</button>'
       + '<div id="rdSetupMenu" role="menu">' + setup + '</div></div>'
       + '<span id="rdAcctHost"></span>'
       + '</div>'
@@ -1535,10 +1591,18 @@
 
   function wireShell(shell) {
     [].forEach.call(shell.querySelectorAll(".rd-phase"), function (b) {
+      if (b.tagName === "A") return; /* href already versioned */
       b.onclick = function () {
         const id = b.getAttribute("data-phase");
-        const ph = PHASES.filter(function (p) { return p.id === id; })[0];
-        if (!ph || !ph.views || !ph.views.length) return;
+        const action = b.getAttribute("data-action");
+        const ph = activePhases().filter(function (p) { return p.id === id; })[0];
+        if (!ph) return;
+        if (action || ph.action) {
+          runAction(action || ph.action);
+          syncPhaseUI();
+          return;
+        }
+        if (!ph.views || !ph.views.length) return;
         const target = lastViewForPhase(id);
         if (id === "scout") {
           /* Restore last scout tool — do not force Predict. */
@@ -1586,6 +1650,7 @@
     const scope = shell.querySelector("#rdScope");
     if (scope) {
       scope.onclick = function () {
+        if (isPlayerRole()) return;
         if (appKind() !== "scout") { goMain("scout"); return; }
         if (!clickExisting("schedBtn") && typeof root.setView === "function") root.setView("scout");
       };
@@ -1609,6 +1674,12 @@
   /* Restore persisted view after shell is up (query/session handoff wins in HTML). */
   function restorePersistedView() {
     if (appKind() !== "scout") return;
+    if (isPlayerRole()) {
+      if (typeof root.setView === "function") {
+        try { root.setView("thisweek"); } catch (e) {}
+      }
+      return;
+    }
     try {
       const q = (location.search || "").match(/[?&]view=([a-z]+)/i);
       if (q && VALID_VIEWS[q[1]]) return; /* HTML already applied */
@@ -1624,6 +1695,28 @@
     if (cur === "scout" || !VALID_VIEWS[cur]) {
       try { root.setView(saved); } catch (e) {}
     }
+  }
+
+  let _shellRole = null;
+  function rebuildShellIfNeeded() {
+    const shell = document.getElementById("rdShell");
+    if (!shell || !isRedesign()) return false;
+    const role = isPlayerRole() ? "player" : "coach";
+    if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
+    _shellRole = role;
+    try {
+      document.documentElement.classList.toggle("rd-player", role === "player");
+    } catch (e) {}
+    shell.innerHTML = buildShellHtml();
+    wireShell(shell);
+    adoptAcct();
+    stampVersionedLinks();
+    syncCrest();
+    syncScopeBadge();
+    syncPhaseUI();
+    refreshSetupBaseLabel();
+    refreshBoothLabels();
+    return true;
   }
 
   let _patchedColors = false;
@@ -1653,6 +1746,9 @@
     }
 
     document.documentElement.classList.add("rd-on");
+    try {
+      document.documentElement.classList.toggle("rd-player", isPlayerRole());
+    } catch (e) {}
     ensureCss();
     patchApplyTeamColors();
     setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
@@ -1666,8 +1762,11 @@
       const top = document.querySelector(".topbar");
       if (top && top.parentNode) top.parentNode.insertBefore(shell, top);
       else document.body.insertBefore(shell, document.body.firstChild);
+      _shellRole = isPlayerRole() ? "player" : "coach";
       shell.innerHTML = buildShellHtml();
       wireShell(shell);
+    } else {
+      rebuildShellIfNeeded();
     }
     shell.style.display = "flex";
     adoptAcct();
@@ -1742,6 +1841,18 @@
     setTimeout(boot, 0);
   }
 
+  /* Role may resolve after first paint — rebuild player/coach shell then. */
+  document.addEventListener("offgrd-program-ready", function () {
+    if (queryFlag() === 0 || !isRedesign()) return;
+    try {
+      applyRedesignShell();
+      rebuildShellIfNeeded();
+      if (isPlayerRole() && typeof root.setView === "function") {
+        root.setView("thisweek");
+      }
+    } catch (e) {}
+  });
+
   /* Re-apply accent when cloud brand lands (may overwrite earlier wrap) */
   const prevBrand = root.OFFGRD_BRAND;
   root.OFFGRD_BRAND = function () {
@@ -1765,6 +1876,9 @@
     getSavedView: getSavedView,
     setSavedView: setSavedView,
     syncPhaseUI: syncPhaseUI,
-    PHASES: PHASES
+    PHASES: PHASES,
+    PHASES_PLAYER: PHASES_PLAYER,
+    isPlayerRole: isPlayerRole,
+    rebuildShellIfNeeded: rebuildShellIfNeeded
   };
 })(typeof window !== "undefined" ? window : globalThis);

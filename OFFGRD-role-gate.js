@@ -466,6 +466,31 @@
     });
   }
 
+  function loadPlayerPractice(){
+    var host = document.getElementById("view-practice");
+    if(!host) return;
+    host.innerHTML = '<div class="panel"><p class="foot">Loading practice\u2026</p></div>';
+    var tries = 0;
+    function paint(){
+      if(window.WEEK && typeof window.renderPractice === "function"){
+        try{ window.renderPractice(); return true; }catch(e){}
+      }
+      if(window.WEEK && typeof window.refreshView === "function"){
+        try{ window.refreshView(); return true; }catch(e){}
+      }
+      return false;
+    }
+    if(paint()) return;
+    var t = setInterval(function(){
+      if(paint() || ++tries > 40){
+        clearInterval(t);
+        if(!window.WEEK && host){
+          host.innerHTML = '<div class="panel"><p class="foot">No practice script yet. Your coach shares one with the week plan.</p></div>';
+        }
+      }
+    }, 200);
+  }
+
   function patchSetView(){
     if(!window.setView || window.setView._roleGated) return;
     var orig = window.setView;
@@ -474,17 +499,16 @@
         if(COACH_VIEWS[v]) v = "thisweek";
         if(PLAYER_VIEWS[v]){
           window.CURRENT_VIEW = v;
-          ["scout","plan","caller","report","practice","thisweek","recruiting"].forEach(function(id){
+          ["scout","plan","caller","report","package","practice","thisweek","recruiting"].forEach(function(id){
             var el = document.getElementById("view-" + id);
             if(el) el.style.display = (id === v) ? "" : "none";
           });
-          var nv = document.getElementById("navbar");
-          if(nv) [].forEach.call(nv.querySelectorAll("button"), function(b){
-            if(b.dataset.view === v) b.classList.add("on"); else b.classList.remove("on");
-          });
           if(v === "thisweek") renderPlayerWeek();
           else if(v === "recruiting") renderRecruitingShell();
-          else if(v === "practice" && window.refreshView) window.refreshView();
+          else if(v === "practice") loadPlayerPractice();
+          try{
+            if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI();
+          }catch(e){}
           return;
         }
       }
@@ -522,12 +546,13 @@
     }
     open([]);
   }
+  window.OFFGRD_OPEN_PLAYER_SCOUTCARDS = openPlayerScoutCards;
 
   function applyScoutPlayerUI(){
     if(!isPlayer()) return;
     ensurePlayerViews();
     patchSetView();
-    /* Keep scout cards viewable for players; hide coach-only tools */
+    /* Shell owns player nav under redesign — do not rewrite #navbar (it is hidden). */
     hideIds(["importBtn","manageBtn","schedBtn","brandBtn","tendencyBtn"]);
     var scBtn = document.getElementById("scoutCardsBtn");
     if(scBtn){
@@ -536,28 +561,21 @@
     }
     var tools = document.getElementById("tools");
     if(tools){
-      /* Playbook is now viewable for players — keep the link */
       [].forEach.call(tools.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){
         a.style.display = "";
         a.title = "View playbook (read-only)";
       });
     }
-    var nv = document.getElementById("navbar");
-    if(nv){
-      nv.innerHTML =
-        '<button class="on" data-view="thisweek" onclick="setView(\'thisweek\')">This Week</button>'+
-        '<button data-view="practice" onclick="setView(\'practice\')">Practice</button>'+
-        '<a class="ghost" href="OFFGRD-QB.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Testing</a>'+
-        '<a class="ghost" href="OFFGRD-Playbook.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Playbook</a>'+
-        '<button type="button" id="playerScoutCardsNav" style="font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer">Scout cards</button>'+
-        '<button data-view="recruiting" onclick="setView(\'recruiting\')">Recruiting</button>';
-      var psc = document.getElementById("playerScoutCardsNav");
-      if(psc) psc.onclick = openPlayerScoutCards;
-    }
-    ["scout","plan","caller","report"].forEach(function(id){
+    ["scout","plan","caller","report","package"].forEach(function(id){
       var el = document.getElementById("view-" + id);
       if(el) el.style.display = "none";
     });
+    try{
+      if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.applyRedesignShell){
+        OFFGRD_REDESIGN.applyRedesignShell();
+        if(OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
+      }
+    }catch(e){}
     if(window.setView) window.setView("thisweek");
   }
 
