@@ -314,6 +314,7 @@
     let selected = new Set((opts.selectedIds || []).map(String));
     if (!selected.size && format === "install") install.slice(0, Math.min(6, install.length)).forEach(p => selected.add(String(p.id || p.name)));
 
+    const viewOnly = !!opts.viewOnly;
     let ov = document.getElementById("scModal");
     if (ov) ov.remove();
     ov = document.createElement("div");
@@ -324,30 +325,35 @@
     const titleColor = rdOn ? "var(--rd-text)" : "var(--navy,#13294B)";
     const pickBorder = rdOn ? "var(--rd-border)" : "var(--line,#d8dee6)";
     const prevBg = rdOn ? "var(--rd-surface-2)" : "#f7f9fb";
-    ov.innerHTML = '<div class="ovbox" style="max-width:920px">'
+    const inkSafe = "color:#111827";
+    ov.innerHTML = '<div class="ovbox" style="max-width:920px;background:#fff;' + inkSafe + '">'
       + '<div class="row" style="justify-content:space-between;align-items:center;gap:8px">'
-      + '<b style="font-size:18px;color:' + titleColor + '">Scout cards</b>'
+      + '<b style="font-size:18px;color:#13294B">Scout cards' + (viewOnly ? ' <span style="font-size:12px;font-weight:700;color:#5C6673">(view)</span>' : "") + '</b>'
       + '<div class="row sc-no-print" style="gap:6px">'
+      + (viewOnly ? "" : '<button type="button" class="btn" id="scPng">PNG (first selected)</button>')
       + '<button type="button" class="btn" id="scPrint">Print / PDF</button>'
-      + '<button type="button" class="btn" id="scPng">PNG (first selected)</button>'
       + '<button type="button" class="btn" id="scClose">Close</button>'
       + "</div></div>"
-      + '<p class="hint" style="margin:6px 0 8px">Diagrams from the shared renderer — same play you drew. Call strip uses your playbook names.</p>'
+      + '<p class="hint" style="margin:6px 0 8px;color:#374151">' + (viewOnly
+        ? "View your program's install diagrams. Print is ok — creating/editing plays stays with coaches."
+        : "Diagrams from the shared renderer — same play you drew. Call strip uses your playbook names.") + "</p>"
       + '<div class="row sc-no-print" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">'
-      + '<span class="lbl">Format</span>'
+      + '<span class="lbl" style="color:#5C6673">Format</span>'
       + '<button type="button" class="btn" data-fmt="install">Offense install</button>'
-      + '<button type="button" class="btn" data-fmt="opponent">Opponent scout</button>'
-      + '<span class="lbl" style="margin-left:8px">Print layout</span>'
+      + (viewOnly ? "" : '<button type="button" class="btn" data-fmt="opponent">Opponent scout</button>')
+      + '<span class="lbl" style="margin-left:8px;color:#5C6673">Print layout</span>'
       + '<select id="scPerPage" class="btn" title="Cards per printed page">' + PER_PAGE.map(n => '<option value="' + n + '">' + esc(perPageLabel(n)) + "</option>").join("") + "</select>"
       + '<button type="button" class="btn" id="scAll">Select all</button>'
       + '<button type="button" class="btn" id="scNone">Clear</button>'
-      + '<span id="scCount" class="tag"></span>'
+      + '<span id="scCount" class="tag" style="color:#5C6673"></span>'
       + "</div>"
       + '<div class="row" style="align-items:stretch;gap:12px;flex-wrap:wrap">'
-      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:420px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px"></div>'
-      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:520px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:' + prevBg + '"></div>'
+      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:420px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#fff;color:#111827"></div>'
+      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:520px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#f7f9fb;color:#111827"></div>'
       + "</div></div>";
     document.body.appendChild(ov);
+
+    if (viewOnly) format = "install";
 
     function sourceList() {
       if (format === "opponent") {
@@ -422,7 +428,8 @@
       });
       if (!r.ok && opts.onMsg) opts.onMsg(r.error);
     };
-    ov.querySelector("#scPng").onclick = () => {
+    const pngBtn = ov.querySelector("#scPng");
+    if (pngBtn) pngBtn.onclick = () => {
       const plays = selectedPlays();
       if (!plays.length) { if (opts.onMsg) opts.onMsg("Select a play first."); return; }
       downloadCardPng(plays[0]);

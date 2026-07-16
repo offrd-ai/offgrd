@@ -364,7 +364,7 @@
       if(!positions.length){
         h += '<p class="foot" style="margin-top:12px">Set your position in <a href="OFFGRD-QB.html" style="font-weight:800">Testing</a> so this page can tailor to your job.</p>';
       }
-      h += '<p class="foot" style="margin-top:14px">Built for your position. Full scout tools stay with coaches.</p></div>';
+      h += '<p class="foot" style="margin-top:14px">Built for your position. Scout cards + playbook are view-only; authoring stays with coaches.</p></div>';
       host.innerHTML = h;
     }catch(e){
       host.innerHTML = '<div class="panel"><p class="foot">Could not load this week: '+esc(e.message||e)+'</p></div>';
@@ -462,14 +462,54 @@
     window.setView._roleGated = true;
   }
 
+  function openPlayerScoutCards(){
+    if(!(window.OFFGRD_SCOUTCARDS && OFFGRD_SCOUTCARDS.isScoutcards && OFFGRD_SCOUTCARDS.isScoutcards())){
+      alert("Scout cards are off for this program.");
+      return;
+    }
+    function open(lib){
+      OFFGRD_SCOUTCARDS.openModal({
+        installLib: Array.isArray(lib) ? lib : [],
+        games: [],
+        format: "install",
+        viewOnly: true,
+        onMsg: function(t){ try{ console.warn("[scout]", t); }catch(e){} }
+      });
+    }
+    var lib = [];
+    try{ lib = JSON.parse(localStorage.getItem("offgrd_playbook_v1") || "[]"); }catch(e){}
+    if(lib && lib.length){ open(lib); return; }
+    if(window.Cloud && Cloud.ready && Cloud.listPlays){
+      Cloud.myTeams().then(function(teams){
+        var tid = null;
+        try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
+        var team = (teams || []).find(function(t){ return t.id === tid; }) || (teams && teams[0]);
+        if(!team){ open([]); return; }
+        return Cloud.listPlays(team.id).then(function(plays){ open(plays || []); });
+      }).catch(function(){ open([]); });
+      return;
+    }
+    open([]);
+  }
+
   function applyScoutPlayerUI(){
     if(!isPlayer()) return;
     ensurePlayerViews();
     patchSetView();
-    hideIds(["importBtn","manageBtn","schedBtn","brandBtn","scoutCardsBtn","tendencyBtn"]);
+    /* Keep scout cards viewable for players; hide coach-only tools */
+    hideIds(["importBtn","manageBtn","schedBtn","brandBtn","tendencyBtn"]);
+    var scBtn = document.getElementById("scoutCardsBtn");
+    if(scBtn){
+      scBtn.style.display = "";
+      scBtn.onclick = function(ev){ if(ev) ev.preventDefault(); openPlayerScoutCards(); };
+    }
     var tools = document.getElementById("tools");
     if(tools){
-      [].forEach.call(tools.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){ a.style.display = "none"; });
+      /* Playbook is now viewable for players — keep the link */
+      [].forEach.call(tools.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){
+        a.style.display = "";
+        a.title = "View playbook (read-only)";
+      });
     }
     var nv = document.getElementById("navbar");
     if(nv){
@@ -477,7 +517,11 @@
         '<button class="on" data-view="thisweek" onclick="setView(\'thisweek\')">This Week</button>'+
         '<button data-view="practice" onclick="setView(\'practice\')">Practice</button>'+
         '<a class="ghost" href="OFFGRD-QB.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Testing</a>'+
+        '<a class="ghost" href="OFFGRD-Playbook.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Playbook</a>'+
+        '<button type="button" id="playerScoutCardsNav" style="font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer">Scout cards</button>'+
         '<button data-view="recruiting" onclick="setView(\'recruiting\')">Recruiting</button>';
+      var psc = document.getElementById("playerScoutCardsNav");
+      if(psc) psc.onclick = openPlayerScoutCards;
     }
     ["scout","plan","caller","report"].forEach(function(id){
       var el = document.getElementById("view-" + id);
@@ -486,16 +530,92 @@
     if(window.setView) window.setView("thisweek");
   }
 
+  function applyPlaybookPlayerUI(){
+    if(!isPlayer()) return;
+    window.OFFGRD_PLAYER_READONLY = true;
+    document.documentElement.classList.add("offgrd-player-ro");
+    if(!document.getElementById("offgrdPlayerRoCss")){
+      var st = document.createElement("style");
+      st.id = "offgrdPlayerRoCss";
+      st.textContent = [
+        "html.offgrd-player-ro #routePanel,",
+        "html.offgrd-player-ro #asnPanel,",
+        "html.offgrd-player-ro .panel[data-sec='Offense'],",
+        "html.offgrd-player-ro .panel[data-sec='Defense'],",
+        "html.offgrd-player-ro #wizBtn,",
+        "html.offgrd-player-ro #saveBtn,",
+        "html.offgrd-player-ro #newBtn,",
+        "html.offgrd-player-ro #exportLib,",
+        "html.offgrd-player-ro #importLib,",
+        "html.offgrd-player-ro #installBtn,",
+        "html.offgrd-player-ro #telestrateBtn,",
+        "html.offgrd-player-ro #clearRoutes,",
+        "html.offgrd-player-ro #clearAll,",
+        "html.offgrd-player-ro #addWR,",
+        "html.offgrd-player-ro #imgBtn,",
+        "html.offgrd-player-ro #selPanel,",
+        "html.offgrd-player-ro #undoBtn,",
+        "html.offgrd-player-ro #redoBtn,",
+        "html.offgrd-player-ro #undoBtn2,",
+        "html.offgrd-player-ro #redoBtn2,",
+        "html.offgrd-player-ro .modebar,",
+        "html.offgrd-player-ro button[data-act='dup'],",
+        "html.offgrd-player-ro button[data-act='del']{display:none!important}",
+        "html.offgrd-player-ro #field{pointer-events:none}",
+        "html.offgrd-player-ro #playerRoBanner{display:block}"
+      ].join("");
+      document.head.appendChild(st);
+    }
+    var field = document.getElementById("field");
+    if(field) field.style.pointerEvents = "none";
+    var banner = document.getElementById("playerRoBanner");
+    if(!banner){
+      banner = document.createElement("div");
+      banner.id = "playerRoBanner";
+      banner.style.cssText = "background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:#111827;font-weight:700";
+      banner.textContent = "View only — open any play to study it. Drawing and saving stay with coaches.";
+      var wrap = document.querySelector(".wrap") || document.body;
+      if(wrap.firstChild) wrap.insertBefore(banner, wrap.firstChild);
+      else wrap.appendChild(banner);
+    }
+    function blockAuthor(fnName, label){
+      if(typeof window[fnName] !== "function" || window[fnName]._playerRo) return;
+      window[fnName] = function(){
+        if(typeof msg === "function") msg("View only — " + label);
+        else alert("View only — " + label);
+      };
+      window[fnName]._playerRo = true;
+    }
+    blockAuthor("savePlay", "coaches save plays.");
+    blockAuthor("delPlayId", "coaches delete plays.");
+    blockAuthor("delPlay", "coaches delete plays.");
+    blockAuthor("dupPlayId", "coaches duplicate plays.");
+    blockAuthor("dupPlay", "coaches duplicate plays.");
+    try{ if(typeof dismissStarterPrompt === "function") dismissStarterPrompt(); }catch(e){}
+    var scBtn = document.getElementById("scoutCardsBtn");
+    if(scBtn){
+      scBtn.style.display = "";
+      scBtn.onclick = function(){
+        if(!(window.OFFGRD_SCOUTCARDS && OFFGRD_SCOUTCARDS.isScoutcards())) return;
+        var lib = (typeof LIB !== "undefined" && Array.isArray(LIB)) ? LIB : [];
+        OFFGRD_SCOUTCARDS.openModal({ installLib: lib, games: [], format: "install", viewOnly: true, onMsg: (typeof msg === "function" ? msg : function(){}) });
+      };
+    }
+  }
+
   function applyPlaybookGate(){
-    if(isPlayer()) location.replace("OFFGRD-QB.html");
+    if(isPlayer()) applyPlaybookPlayerUI();
   }
 
   function applyQbPlayerUI(){
     if(!isPlayer()) return;
     var tb = document.querySelector(".topbar");
     if(tb){
-      /* Keep OFFGRD.html (player home). Hide Playbook only — coach authoring tool. */
-      [].forEach.call(tb.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){ a.style.display = "none"; });
+      /* Keep Playbook link — players get full view access */
+      [].forEach.call(tb.querySelectorAll('a[href="OFFGRD-Playbook.html"]'), function(a){
+        a.style.display = "";
+        a.title = "View playbook (read-only)";
+      });
     }
   }
 
