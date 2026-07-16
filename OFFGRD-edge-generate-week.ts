@@ -204,19 +204,27 @@ ${rosterCtx || "(no players on the roster yet)"}
 Return ONLY a valid JSON object — no markdown fences, no commentary — with exactly these keys:
 {
  "narrative": "2-3 short paragraphs for Monday: how this opponent plays defense, what our plan attacks and why. Coaches and players both read this.",
- "keys": ["exactly three short keys to the game"],
+ "keys": [
+   { "text": "short key to the game", "positions": ["TEAM"] },
+   { "text": "position-specific key", "positions": ["QB"] },
+   { "text": "another key", "positions": ["OL"] }
+ ],
  "plays": { "<play name exactly as listed>": { "why": "1-2 sentences: why this call vs THIS opponent's shown tendencies", "coaching": "one concrete coaching point" } },
  "ol": { "<play name exactly as listed in the protection keys>": { "front": "<the front they show>", "why": "1-2 sentences: why these blocking keys beat THIS opponent's front and its stunt", "coaching": "one concrete O-line coaching point (leverage, communication, or the alert)" } },
  "positions": { "QB": "...", "RB": "...", "WR": "...", "TE": "...", "OL": "..." },
  "remediation": { "<user_id>": "2 encouraging sentences: what to work on and which week test to take next" },
  "defense": {
    "narrative": "1-2 short paragraphs: how their offense attacks (grounded in their offensive tendencies) and how our defense answers",
-   "keys": ["exactly three defensive keys to the game"],
+   "keys": [
+     { "text": "defensive key", "positions": ["TEAM"] },
+     { "text": "DB-specific key", "positions": ["DB"] },
+     { "text": "LB-specific key", "positions": ["LB"] }
+   ],
    "situations": { "<bucket name exactly as listed>": "one sentence: the front/coverage/pressure answer for that situation and why" },
    "positions": { "DL": "...", "LB": "...", "DB": "..." }
  }
 }
-Rules: include every play listed in the plan in "plays". Include a play in "ol" ONLY if it appears in the O-LINE PROTECTION KEYS section, using its exact name; explain the "why" in terms of the keyed assignments and the front/stunt shown. positions = 2-3 sentences each about THIS week vs THIS opponent (omit a position if nothing useful to say). remediation ONLY for players with fewer than 2 week tests or an average below 80% — key strictly by their user_id; use their name inside the text. defense.situations must use the exact bucket names listed above; if there is no offensive data for the opponent, keep defense honest about the thin sample instead of inventing tendencies.`;
+Rules: include every play listed in the plan in "plays". Include a play in "ol" ONLY if it appears in the O-LINE PROTECTION KEYS section, using its exact name; explain the "why" in terms of the keyed assignments and the front/stunt shown. positions = 2-3 sentences each about THIS week vs THIS opponent (omit a position if nothing useful to say). remediation ONLY for players with fewer than 2 week tests or an average below 80% — key strictly by their user_id; use their name inside the text. defense.situations must use the exact bucket names listed above; if there is no offensive data for the opponent, keep defense honest about the thin sample instead of inventing tendencies. Each key MUST be an object {text, positions[]} where positions is one or more of QB,RB,WR,TE,OL,DL,LB,DB,ST,TEAM — use TEAM only for genuinely whole-unit keys; never tag an O-line blocking assignment as TEAM or QB.`;
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -241,6 +249,26 @@ Rules: include every play listed in the plan in "plays". Include a play in "ol" 
       return json({ error: "Claude returned unparseable output — try again" + hint }, 502);
     }
 
+    const ALLOWED_KEY_POS = new Set(["QB","RB","WR","TE","OL","DL","LB","DB","ST","TEAM"]);
+    function normalizeKeys(arr: any[]): Array<{ text: string; positions: string[] }> {
+      if (!Array.isArray(arr)) return [];
+      return arr.slice(0, 6).map((k) => {
+        if (typeof k === "string") return { text: k, positions: ["TEAM"] };
+        if (k && typeof k === "object") {
+          const text = String(k.text || k.key || k.k || "").trim();
+          let positions: any = k.positions || k.for || [];
+          if (typeof positions === "string") positions = positions.split(/[,/|+\s]+/);
+          if (!Array.isArray(positions)) positions = [];
+          const cleaned = positions
+            .map((p: any) => String(p || "").toUpperCase().trim())
+            .filter((p: string) => ALLOWED_KEY_POS.has(p));
+          return { text, positions: cleaned.length ? cleaned : ["TEAM"] };
+        }
+        return { text: String(k || ""), positions: ["TEAM"] };
+      }).filter((x) => x.text);
+    }
+
+    const defParsed = parsed.defense && typeof parsed.defense === "object" ? parsed.defense : {};
     const gen = {
       v: 1,
       generated_at: new Date().toISOString(),
@@ -248,12 +276,15 @@ Rules: include every play listed in the plan in "plays". Include a play in "ol" 
       inputs_hash: inputsHash,
       opponent: wp.opponent || "",
       narrative: String(parsed.narrative || ""),
-      keys: Array.isArray(parsed.keys) ? parsed.keys.slice(0, 3).map(String) : [],
+      keys: normalizeKeys(parsed.keys),
       plays: parsed.plays && typeof parsed.plays === "object" ? parsed.plays : {},
       ol: parsed.ol && typeof parsed.ol === "object" ? parsed.ol : {},
       positions: parsed.positions && typeof parsed.positions === "object" ? parsed.positions : {},
       remediation: parsed.remediation && typeof parsed.remediation === "object" ? parsed.remediation : {},
-      defense: parsed.defense && typeof parsed.defense === "object" ? parsed.defense : {},
+      defense: {
+        ...defParsed,
+        keys: normalizeKeys(defParsed.keys),
+      },
     };
     /* Deterministic opponent looks for week_autotest / def_aligns seeding */
     try {

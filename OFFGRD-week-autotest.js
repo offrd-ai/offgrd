@@ -484,6 +484,117 @@
     return '<p class="foot" style="color:#b8860b;font-weight:700;margin:8px 0 0">Week test gaps — ' + lines.join(" · ") + "</p>";
   }
 
+  /** Normalize a week.gen key entry → { text, positions[] }. Supports plain strings + tagged objects. */
+  function keyText(k) {
+    if (k == null) return "";
+    if (typeof k === "string") return k;
+    if (typeof k === "object") return String(k.text || k.key || k.k || "");
+    return String(k);
+  }
+
+  function uniqPos(arr) {
+    const out = [];
+    (arr || []).forEach(function (p) {
+      const n = String(p || "").toUpperCase();
+      if (n === "TEAM" || n === "ALL") { if (out.indexOf("TEAM") < 0) out.push("TEAM"); return; }
+      const np = normPos(n) || n;
+      if (np && out.indexOf(np) < 0) out.push(np);
+    });
+    return out;
+  }
+
+  /** Keyword heuristic when AI hasn't tagged positions yet. */
+  function inferKeyPositions(text, side) {
+    const t = String(text || "").toLowerCase();
+    const hits = [];
+    const push = function (p) { if (hits.indexOf(p) < 0) hits.push(p); };
+
+    if (/o-?line|offensive line|protection|pass.?pro|get the block|combo block|slide protect|who's your man|who do you block/.test(t)
+      || (/\b(block|blocking|blocker)\b/.test(t) && /\b(mike|will|sam|a-?gap|b-?gap|blitz|stunt|twist|edge)\b/.test(t))) {
+      push("OL");
+    }
+    if (/\b(qb|quarterback)\b/.test(t)
+      || /\b(progression|hot route|sight.?adjust|check.?down|pre-?snap|audible|cadence)\b/.test(t)
+      || /read (the )?(coverage|shell|leverage|front)/.test(t)) {
+      push("QB");
+    }
+    if (/\b(wr|wide ?out|wide ?receiver|receiver|te\b|tight end)\b/.test(t)
+      || /\b(route|release|stemming|stem)\b/.test(t)) {
+      push("WR"); push("TE");
+    }
+    if (/\b(rb|running back|halfback|fullback|\bfb\b)\b/.test(t)
+      || /blitz.?pickup|check.?release|pass.?pro.?rb/.test(t)) {
+      push("RB");
+    }
+    if (/\b(db|corner|\bcb\b|safety|nickel|\bfs\b|\bss\b)\b/.test(t)
+      || /\b(trail|bail|press man|man turn|zone turn|play the ball)\b/.test(t)) {
+      push("DB");
+    }
+    if (/\b(lb|linebacker)\b/.test(t)
+      || (/\b(mike|will|sam)\b/.test(t) && !/o-?line|get the block|protection|block/.test(t))) {
+      push("LB");
+    }
+    if (/\b(dl|defensive line|defensive end|nose|dt\b)\b/.test(t)
+      || (/\b(rush|set the edge|two-?gap|shed)\b/.test(t) && side === "def")) {
+      push("DL");
+    }
+    if (/\b(special teams|punt|kickoff|return team|coverage unit)\b/.test(t)) {
+      push("ST");
+    }
+
+    if (!hits.length) {
+      if (side === "def") return ["TEAM"];
+      return ["TEAM"];
+    }
+    return hits;
+  }
+
+  function keyPositions(k, side) {
+    if (k && typeof k === "object") {
+      let raw = k.positions || k.for || k.pos || k.audience;
+      if (typeof raw === "string") raw = raw.split(/[,/|+\s]+/);
+      if (Array.isArray(raw) && raw.length) {
+        const tagged = uniqPos(raw);
+        if (tagged.length) return tagged;
+      }
+    }
+    return inferKeyPositions(keyText(k), side);
+  }
+
+  /** Filter keys for one position (includes TEAM). Dedupes by text. */
+  function filterKeysForPos(keys, pos, side) {
+    pos = normPos(pos) || String(pos || "").toUpperCase();
+    const out = [];
+    const seen = {};
+    (keys || []).forEach(function (k) {
+      const text = keyText(k).trim();
+      if (!text) return;
+      const sk = text.toLowerCase();
+      if (seen[sk]) return;
+      const ps = keyPositions(k, side);
+      if (ps.indexOf("TEAM") >= 0 || (pos && ps.indexOf(pos) >= 0)) {
+        seen[sk] = 1;
+        out.push(text);
+      }
+    });
+    return out;
+  }
+
+  /** Union of keys matching any of the player's positions (+ TEAM). */
+  function filterKeysForPositions(keys, positions, side) {
+    const out = [];
+    const seen = {};
+    (positions && positions.length ? positions : [""]).forEach(function (pos) {
+      filterKeysForPos(keys, pos, side).forEach(function (t) {
+        const sk = t.toLowerCase();
+        if (seen[sk]) return;
+        seen[sk] = 1;
+        out.push(t);
+      });
+    });
+    return out;
+  }
+
   root.OFFGRD_WEEK_AUTOTEST = {
     isWeekAutotest: isWeekAutotest,
     POSKINDS: POSKINDS,
@@ -499,6 +610,11 @@
     parseMemberPositions: parseMemberPositions,
     kindsForPositions: kindsForPositions,
     unionSpecForPlayer: unionSpecForPlayer,
-    nudgeHtml: nudgeHtml
+    nudgeHtml: nudgeHtml,
+    keyText: keyText,
+    keyPositions: keyPositions,
+    inferKeyPositions: inferKeyPositions,
+    filterKeysForPos: filterKeysForPos,
+    filterKeysForPositions: filterKeysForPositions
   };
 })(typeof window !== "undefined" ? window : globalThis);

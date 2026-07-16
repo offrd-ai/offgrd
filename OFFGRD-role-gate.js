@@ -33,10 +33,44 @@
     });
   }
 
+  /* Theme-aware tokens — never hardcode light-theme ink/surfaces on the night base. */
+  function rdTitleCss(extra){
+    return "margin:0 0 4px;color:var(--ink);"+ (extra || "");
+  }
+  function rdCalloutCss(){
+    return "background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5";
+  }
+  function rdStripCss(){
+    return "background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;color:var(--ink)";
+  }
+  function rdMutedCss(){
+    return "color:var(--muted)";
+  }
+
   function isDefPos(pos){
     return pos === "DL" || pos === "LB" || pos === "DB";
   }
   function isOlPos(pos){ return pos === "OL"; }
+
+  function lookupPosNote(posMap, pos){
+    if(!posMap || !pos) return null;
+    if(posMap[pos]) return String(posMap[pos]);
+    var found = null;
+    Object.keys(posMap).forEach(function(k){
+      var AT = window.OFFGRD_WEEK_AUTOTEST;
+      var nk = AT && AT.normPos ? AT.normPos(k) : String(k).toUpperCase();
+      if(nk === pos && posMap[k]) found = String(posMap[k]);
+    });
+    return found;
+  }
+
+  function filterKeys(keys, pos, side){
+    var AT = window.OFFGRD_WEEK_AUTOTEST;
+    if(AT && AT.filterKeysForPos) return AT.filterKeysForPos(keys || [], pos, side);
+    return (keys || []).map(function(k){
+      return (typeof k === "string") ? k : String((k && (k.text || k.key)) || "");
+    }).filter(Boolean);
+  }
 
   /** Unique plays across situation buckets, with situation tags. */
   function uniquePlaysFromBuckets(buckets){
@@ -182,14 +216,14 @@
     var stLabel = comp.status === "passed" ? "Ready" : (comp.status === "started" ? "In progress" : "Not started");
     var stCol = comp.status === "passed" ? "#1d7a45" : (comp.status === "started" ? "#b8860b" : "#7a8494");
     var posLabel = positions.join(" + ");
-    return '<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px;margin:10px 0">'
-      +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(posLabel)+'</div>'
+    return '<div style="'+rdStripCss()+'">'
+      +'<div style="font-size:11px;font-weight:800;'+rdMutedCss()+';text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(posLabel)+'</div>'
       +'<div style="margin-top:6px">'+chips+'</div>'
       +'<div style="margin-top:8px;font-size:13px"><b style="color:'+stCol+'">'+esc(stLabel)+'</b>'
       +' · '+comp.passed+'/'+comp.assigned+' passed'
       +(spec.incomplete ? ' <span class="foot" style="color:#b8860b"> · some drills need coach keys</span>' : "")
       +'</div>'
-      +'<p class="foot" style="margin:8px 0 0"><a href="OFFGRD-QB.html" style="font-weight:800">Open Testing →</a></p>'
+      +'<p class="foot" style="margin:8px 0 0"><a href="OFFGRD-QB.html" style="font-weight:800;color:var(--ink)">Open Testing →</a></p>'
       +'</div>';
   }
 
@@ -198,26 +232,23 @@
     if(!g) return "";
     var isDef = isDefPos(pos);
     var src = (isDef && g.defense) ? g.defense : g;
+    var side = isDef ? "def" : "off";
     var posMap = (isDef && g.defense && g.defense.positions) ? g.defense.positions : (g.positions || {});
-    var posNote = pos && posMap[pos] ? posMap[pos] : null;
-    /* Also try raw roster codes if positions keyed that way */
-    if(!posNote && posMap){
-      Object.keys(posMap).forEach(function(k){
-        var AT = window.OFFGRD_WEEK_AUTOTEST;
-        var nk = AT && AT.normPos ? AT.normPos(k) : String(k).toUpperCase();
-        if(nk === pos && posMap[k]) posNote = posMap[k];
-      });
-    }
+    var posNote = lookupPosNote(posMap, pos);
+    /* Fallback: if def note missing, try offense map (and vice versa) for multi-pos quirks */
+    if(!posNote && g.positions) posNote = lookupPosNote(g.positions, pos);
+    if(!posNote && g.defense && g.defense.positions) posNote = lookupPosNote(g.defense.positions, pos);
     var h = "";
-    if(posNote){
-      h += '<div style="margin-top:12px"><div class="lbl">Your job this week</div>'
-        +'<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5">'
+    if(posNote && String(posNote).trim()){
+      h += '<div style="margin-top:12px"><div class="lbl">Your job this week'+(pos ? (' · '+esc(pos)) : "")+'</div>'
+        +'<div style="'+rdCalloutCss()+'">'
         +esc(posNote)+'</div></div>';
     }
-    if(Array.isArray(src.keys) && src.keys.length){
-      h += '<div style="margin-top:12px"><div class="lbl">Keys</div>';
-      src.keys.slice(0, 4).forEach(function(k, i){
-        h += '<div style="font-weight:700;font-size:14px;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>';
+    var keys = filterKeys(src.keys, pos, side);
+    if(keys.length){
+      h += '<div style="margin-top:12px"><div class="lbl">Keys'+(pos ? (' · '+esc(pos)) : "")+'</div>';
+      keys.slice(0, 5).forEach(function(k, i){
+        h += '<div style="font-weight:700;font-size:14px;margin:2px 0;color:var(--ink)">'+(i+1)+'. '+esc(k)+'</div>';
       });
       h += '</div>';
     }
@@ -317,7 +348,7 @@
     try{
       var wp = await load();
       if(!wp || wp.linked === false){
-        host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
+        host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;
       }
       var positions = await resolvePlayerPositions();
@@ -339,7 +370,7 @@
       var myPlays = playsForPositions(allUnique, positions, wp.gen);
       var posLabel = positions.join(" + ");
 
-      var h = '<div class="panel"><h3 style="margin:0 0 4px;color:#13294B">This Week · '+esc(wp.opponent||"Opponent")+'</h3>';
+      var h = '<div class="panel"><h3 style="'+rdTitleCss()+'">This Week · '+esc(wp.opponent||"Opponent")+'</h3>';
       if(wp.game_date) h += '<p class="foot" style="margin:0 0 4px">Gameday: <b>'+esc(wp.game_date)+'</b>'+(posLabel ? (' · <b>'+esc(posLabel)+'</b>') : "")+'</p>';
       else if(posLabel) h += '<p class="foot" style="margin:0 0 4px">Your position(s): <b>'+esc(posLabel)+'</b></p>';
 
@@ -381,22 +412,22 @@
     host.innerHTML = '<div class="panel"><p class="foot">Loading your recruiting profile…</p></div>';
     var load = window.OFFGRD_LOAD_RECRUITING_SNAPSHOT;
     if(!load){
-      host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+      host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Recruiting Profile</h3>'
         +'<p class="foot">Sign in to see your seeded recruiting snapshot.</p>'
-        +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+        +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800;color:var(--ink)">Complete my recruiting profile →</a></p></div>';
       return;
     }
     load().then(function(snap){
       if(!snap || snap.ok === false){
-        host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+        host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Recruiting Profile</h3>'
           +'<p class="foot">Couldn’t load your profile yet. Join a team or finish signup, then refresh.</p>'
-          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800;color:var(--ink)">Complete my recruiting profile →</a></p></div>';
         return;
       }
       if(!snap.has_profile){
-        host.innerHTML = '<div class="panel"><h3 style="margin:0 0 8px;color:#13294B">Recruiting Profile</h3>'
+        host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Recruiting Profile</h3>'
           +'<p class="foot">Your roster seed isn’t on your recruiting profile yet.</p>'
-          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800">Complete my recruiting profile →</a></p></div>';
+          +'<p class="foot" style="margin-top:10px"><a href="'+REC_SETUP+'" style="font-weight:800;color:var(--ink)">Complete my recruiting profile →</a></p></div>';
         return;
       }
       var missing = Array.isArray(snap.missing) ? snap.missing.slice(0, 2) : [];
@@ -414,15 +445,15 @@
       var editUrl = snap.complete_url || REC_SETUP;
       if (!/^https?:\/\//i.test(editUrl)) editUrl = REC_BASE + editUrl;
       host.innerHTML = '<div class="panel">'
-        +'<h3 style="margin:0 0 4px;color:#13294B">Recruiting · '+esc(name)+'</h3>'
+        +'<h3 style="'+rdTitleCss()+'">Recruiting · '+esc(name)+'</h3>'
         +'<p class="foot" style="margin:0 0 12px">'+esc(meta)+'</p>'
         +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
-        +'<div style="flex:1;min-width:120px;background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px">'
-        +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase">Profile strength</div>'
-        +'<div style="font-size:28px;font-weight:900;color:#13294B">'+pct+'%</div></div>'
-        +'<div style="flex:1;min-width:120px;background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px">'
-        +'<div style="font-size:11px;font-weight:800;color:#5b626e;text-transform:uppercase">OFFRD Score</div>'
-        +'<div style="font-size:28px;font-weight:900;color:#13294B">'+score+'</div>'
+        +'<div style="flex:1;min-width:120px;'+rdCalloutCss()+'">'
+        +'<div style="font-size:11px;font-weight:800;'+rdMutedCss()+';text-transform:uppercase">Profile strength</div>'
+        +'<div style="font-size:28px;font-weight:900;color:var(--ink)">'+pct+'%</div></div>'
+        +'<div style="flex:1;min-width:120px;'+rdCalloutCss()+'">'
+        +'<div style="font-size:11px;font-weight:800;'+rdMutedCss()+';text-transform:uppercase">OFFRD Score</div>'
+        +'<div style="font-size:28px;font-weight:900;color:var(--ink)">'+score+'</div>'
         +'<div class="foot" style="margin:2px 0 0">profile portion</div></div></div>'
         +'<p class="foot" style="margin:0 0 6px">'+missLine+'</p>'
         +'<p class="foot" style="margin:0 0 14px">'+esc(matchesLine)+'</p>'
@@ -518,7 +549,7 @@
         '<button data-view="practice" onclick="setView(\'practice\')">Practice</button>'+
         '<a class="ghost" href="OFFGRD-QB.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Testing</a>'+
         '<a class="ghost" href="OFFGRD-Playbook.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line)">Playbook</a>'+
-        '<button type="button" id="playerScoutCardsNav" style="font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer">Scout cards</button>'+
+        '<button type="button" id="playerScoutCardsNav" style="font-weight:800;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer">Scout cards</button>'+
         '<button data-view="recruiting" onclick="setView(\'recruiting\')">Recruiting</button>';
       var psc = document.getElementById("playerScoutCardsNav");
       if(psc) psc.onclick = openPlayerScoutCards;
@@ -572,7 +603,7 @@
     if(!banner){
       banner = document.createElement("div");
       banner.id = "playerRoBanner";
-      banner.style.cssText = "background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:#111827;font-weight:700";
+      banner.style.cssText = "background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:var(--ink);font-weight:700";
       banner.textContent = "View only — open any play to study it. Drawing and saving stay with coaches.";
       var wrap = document.querySelector(".wrap") || document.body;
       if(wrap.firstChild) wrap.insertBefore(banner, wrap.firstChild);

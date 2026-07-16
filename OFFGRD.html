@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -255,17 +255,17 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=81"></script>
+<script src="OFFGRD-config.js?v=82"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=81"></script>
-<script src="OFFGRD-render.js?v=81"></script>
-<script src="OFFGRD-autoderive.js?v=81"></script>
-<script src="OFFGRD-scoutcards.js?v=81"></script>
-<script src="OFFGRD-tendencies.js?v=81"></script>
-<script src="OFFGRD-week-autotest.js?v=81"></script>
-<script src="OFFGRD-weeklypackage.js?v=81"></script>
-<script src="OFFGRD-telestrate.js?v=81"></script>
-<script src="OFFGRD-redesign.js?v=81"></script>
+<script src="OFFGRD-cache-gate.js?v=82"></script>
+<script src="OFFGRD-render.js?v=82"></script>
+<script src="OFFGRD-autoderive.js?v=82"></script>
+<script src="OFFGRD-scoutcards.js?v=82"></script>
+<script src="OFFGRD-tendencies.js?v=82"></script>
+<script src="OFFGRD-week-autotest.js?v=82"></script>
+<script src="OFFGRD-weeklypackage.js?v=82"></script>
+<script src="OFFGRD-telestrate.js?v=82"></script>
+<script src="OFFGRD-redesign.js?v=82"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1508,13 +1508,13 @@ function weekGenHTML(){
       h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed ? hit Regenerate below to add our defense vs their offense.</p>';
     } else {
       h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(d.narrative||"")+'</div>';
-      if(Array.isArray(d.keys)&&d.keys.length){ h+='<div class="lbl" style="margin-top:10px">Defensive keys</div>'; d.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+      if(Array.isArray(d.keys)&&d.keys.length){ h+='<div class="lbl" style="margin-top:10px">Defensive keys</div>'; d.keys.forEach((k,i)=>{ const kt=(typeof k==="string")?k:String((k&&(k.text||k.key))||""); if(kt) h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(kt)+'</div>'; }); }
       if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> ? '+esc(d.situations[nm])+'</div>'; }); }
       if(d.positions&&Object.keys(d.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(d.positions).forEach(ps=>{ if(d.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(d.positions[ps])+'</div>'; }); }
     }
   } else {
     h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
-    if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(k)+'</div>'; }); }
+    if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ const kt=(typeof k==="string")?k:String((k&&(k.text||k.key))||""); if(kt) h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(kt)+'</div>'; }); }
     if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> ? '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
     if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection ? why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> ? '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
     if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
@@ -2496,9 +2496,9 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=81"></script>
-<script src="OFFGRD-role-gate.js?v=81"></script>
-<script src="OFFGRD-mobile.js?v=81"></script>
+<script type="module" src="OFFGRD-account.js?v=82"></script>
+<script src="OFFGRD-role-gate.js?v=82"></script>
+<script src="OFFGRD-mobile.js?v=82"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

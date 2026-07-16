@@ -411,7 +411,10 @@
     let body = '<div style="white-space:pre-wrap;font-size:14px;line-height:1.55">' + esc(g.narrative) + "</div>";
     if (Array.isArray(g.keys) && g.keys.length) {
       body += '<div class="lbl" style="margin-top:10px">Keys</div>';
-      g.keys.forEach((k, i) => { body += '<div style="font-weight:700;margin:2px 0">' + (i + 1) + ". " + esc(k) + "</div>"; });
+      g.keys.forEach((k, i) => {
+        const kt = (typeof k === "string") ? k : String((k && (k.text || k.key)) || "");
+        if (kt) body += '<div style="font-weight:700;margin:2px 0">' + (i + 1) + ". " + esc(kt) + "</div>";
+      });
     }
     return rd ? ('<div class="wkpkg-brief">' + body + "</div>") : body;
   }
