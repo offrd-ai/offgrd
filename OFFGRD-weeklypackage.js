@@ -645,8 +645,9 @@
    * Fire-and-forget entry for Regenerate / Generate clicks.
    * MUST return void immediately so the click stack never awaits the network or fill.
    */
-  function askConfirm(message) {
+  function askConfirm(message, confirmLabel) {
     /* Non-blocking confirm — window.confirm freezes the main thread (breaks automation + watchdog). */
+    const yesLab = confirmLabel || "OK";
     return new Promise(function (resolve) {
       try {
         let ov = document.getElementById("wkpkgConfirmOv");
@@ -660,7 +661,7 @@
           + '<p style="margin:0 0 14px;font-weight:700;line-height:1.4">' + esc(message) + "</p>"
           + '<div style="display:flex;gap:8px;justify-content:flex-end">'
           + '<button type="button" class="ghost" id="wkpkgConfirmNo" style="padding:8px 12px">Cancel</button>'
-          + '<button type="button" class="go" id="wkpkgConfirmYes" style="padding:8px 12px;font-weight:800">Regenerate</button>'
+          + '<button type="button" class="go" id="wkpkgConfirmYes" style="padding:8px 12px;font-weight:800">' + esc(yesLab) + "</button>"
           + "</div></div>";
         ov.style.display = "flex";
         const done = function (val) {
@@ -675,6 +676,22 @@
         resolve(false);
       }
     });
+  }
+
+  /** Same resolution as injectPackage render path — never depend on root.WEEK alone. */
+  function resolveWeek(ctx) {
+    ctx = ctx || {};
+    let w = ctx.week || root.WEEK || null;
+    if (!w) {
+      try {
+        if (typeof WEEK !== "undefined" && WEEK) w = WEEK;
+      } catch (e) {}
+    }
+    if (w) {
+      try { root.WEEK = w; } catch (e) {}
+      try { if (typeof window !== "undefined") window.WEEK = w; } catch (e) {}
+    }
+    return w;
   }
 
   function showGenError(msg) {
@@ -709,7 +726,7 @@
         go();
         return;
       }
-      askConfirm(opts.confirmMsg || "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.")
+      askConfirm(opts.confirmMsg || "Regenerate the weekly package? Replaces the AI game-plan draft and refreshes the briefing.", "Regenerate")
         .then(function (ok) { if (ok) go(); })
         .catch(function () {});
     }, 0);
@@ -790,17 +807,31 @@
 
     const saveBtn = host.querySelector("#wkpkgSaveEdits");
     if (saveBtn) saveBtn.onclick = () => {
-      const draft = gamePlanDraft(root.WEEK);
-      if (draft) { saveDraftEdits(root.WEEK, draft); alert("Edits saved."); }
+      const week = resolveWeek(ctx);
+      const draft = gamePlanDraft(week);
+      if (draft) { saveDraftEdits(week, draft); if (typeof msg === "function") msg("Edits saved."); else alert("Edits saved."); }
+      else if (typeof msg === "function") msg("No draft to save.");
     };
 
     const appr = host.querySelector("#wkpkgApprove");
     if (appr) appr.onclick = async () => {
-      const draft = gamePlanDraft(root.WEEK);
-      if (!draft || !draft.sections || !draft.sections.length) return;
-      if (!confirm("Approve this game-plan draft for sharing with players? You can still edit afterward.")) return;
-      approvePackage(root.WEEK, draft);
-      await injectPackage(host, ctx);
+      const week = resolveWeek(ctx);
+      if (!week) {
+        try { alert("No active week plan loaded — open Plan and wait for the week to sync, then try again."); } catch (e) {}
+        return;
+      }
+      const draft = gamePlanDraft(week);
+      if (!draft || !draft.sections || !draft.sections.length) {
+        try { alert("No game-plan draft yet — tap Regenerate first, then Approve."); } catch (e) {}
+        return;
+      }
+      const ok = await askConfirm(
+        "Approve this game-plan draft for sharing with players? You can still edit afterward.",
+        "Approve & share"
+      );
+      if (!ok) return;
+      approvePackage(week, draft);
+      await injectPackage(host, Object.assign({}, ctx, { week: week }));
       if (typeof root.refreshView === "function") root.refreshView();
     };
 

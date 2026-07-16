@@ -1,7 +1,7 @@
 /* ============================================================
    OFFGRD-week-autotest.js — auto-generate & assign weekly teach-tests
    Flag: ?week_autotest=0|1 | localStorage.offgrd_week_autotest | OFFGRD_CONFIG.weekAutotest
-   Default OFF until cutover. Flag off = today's manual behavior.
+   Default ON (config). Rollback: ?week_autotest=0 / localStorage=0.
    ============================================================ */
 (function (root) {
   "use strict";
