@@ -838,11 +838,31 @@
     }
   }
 
+  var _playerRenderWatch = false;
+  /* Self-heal: on player load, multiple init paths (base app, redesign shell, role gate)
+     race and can leave the landing view hidden/empty. Retry setView on the current player
+     view until it actually renders, so This Week populates without a click. Only re-renders
+     the CURRENT view, so it never clobbers the player's navigation. */
+  function ensurePlayerLandingRendered(){
+    if(_playerRenderWatch) return;
+    _playerRenderWatch = true;
+    var tries = 0;
+    var iv = setInterval(function(){
+      if(!isPlayer()){ clearInterval(iv); return; }
+      var v = window.CURRENT_VIEW;
+      if(!(v === "thisweek" || v === "practice" || v === "recruiting")) v = "thisweek";
+      var host = document.getElementById("view-" + v);
+      var done = host && host.offsetParent !== null && (host.innerText || "").trim().length > 20;
+      if(done || ++tries > 24){ clearInterval(iv); return; }
+      try{ if(window.setView) window.setView(v); }catch(e){}
+    }, 200);
+  }
+
   function apply(){
     if(!prog().ready) return;
     var kind = window.OFFGRD_APP && window.OFFGRD_APP.kind;
     if(kind === "playbook") applyPlaybookGate();
-    else if(kind === "scout"){ if(isPlayer()) applyScoutPlayerUI(); }
+    else if(kind === "scout"){ if(isPlayer()){ applyScoutPlayerUI(); ensurePlayerLandingRendered(); } }
     else if(kind === "qb") applyQbPlayerUI();
   }
 
