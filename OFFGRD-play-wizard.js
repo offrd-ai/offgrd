@@ -1137,7 +1137,7 @@
     const dock = document.getElementById("wizDock");
     if (dock) {
       if (skill === "guided") {
-        dock.style.display = "";
+        dock.style.display = "block";
         open({ quiet: true });
       } else {
         dock.style.display = "none";

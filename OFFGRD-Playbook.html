@@ -58,6 +58,7 @@
  .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
  textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 
+ #skillBar{border:2px solid var(--accent,#4B9CD3)}
  .skillSeg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-left:12px}
  .skillSeg .btn{border:0;border-radius:0;min-width:72px}
  .skillSeg .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
@@ -70,17 +71,17 @@
 <script src="OFFGRD-config.js?v=97"></script>
 <script src="supabase.js?v=31"></script>
 <script src="OFFGRD-cache-gate.js?v=97"></script>
-<script src="OFFGRD-render.js?v=105"></script>
-<script src="OFFGRD-pos-glossary.js?v=106"></script>
+<script src="OFFGRD-render.js?v=107"></script>
+<script src="OFFGRD-pos-glossary.js?v=107"></script>
 <script src="OFFGRD-autoderive.js?v=105"></script>
 <script src="OFFGRD-week-autotest.js?v=105"></script>
-<script src="OFFGRD-play-wizard.js?v=105"></script>
+<script src="OFFGRD-play-wizard.js?v=107"></script>
 <script src="OFFGRD-scoutcards.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
 <script src="OFFGRD-redesign.js?v=97"></script>
 </head>
 <body>
- <div class="topbar"><a href="OFFGRD.html" title="OFFGRD Ã¯Â¿Â½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>Ã¯Â¿Â½ Playbook Ã¯Â¿Â½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span class="skillSeg" title="Guided walks you through; Expert is the full designer"><button type="button" class="btn" id="skillGuided">Guided</button><button type="button" class="btn" id="skillExpert">Expert</button></span><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
+ <div class="topbar"><a href="OFFGRD.html" title="OFFGRD Ã¯Â¿Â½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>Ã¯Â¿Â½ Playbook Ã¯Â¿Â½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
 
   <div class="panel" id="posGlossaryPanel" data-sec="Position names">
  <div class="row" style="justify-content:space-between;align-items:center">
@@ -160,7 +161,15 @@
  </div>
 
  
- <!-- GUIDED WIZARD DOCK (live canvas below) -->
+  <div class="panel" id="skillBar" data-sec="Build mode">
+ <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
+ <span class="lbl" style="margin:0">Build mode</span>
+ <span class="skillSeg" title="Guided walks you through; Expert is the full designer"><button type="button" class="btn" id="skillGuided">Guided</button><button type="button" class="btn" id="skillExpert">Expert</button></span>
+ <button class="btn go" id="wizBtn">Build a Play</button>
+ <span class="hint" style="margin:0;flex:1;min-width:180px">Guided = step-by-step wizard above the field. Expert = full designer.</span>
+ </div>
+ </div>
+<!-- GUIDED WIZARD DOCK (live canvas below) -->
  <div class="panel" id="wizDock">
  <div id="wizDockHead"></div>
  <div id="wizDockBody"></div>
