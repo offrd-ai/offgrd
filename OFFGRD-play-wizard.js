@@ -349,23 +349,31 @@
     render();
   }
 
+  function glossPrefix() {
+    if (WZ.glossaryDone) return [];
+    try {
+      if (root.OFFGRD_POS_GLOSSARY && OFFGRD_POS_GLOSSARY.shouldPromptWizard()) return ["glossary"];
+    } catch (e) {}
+    return [];
+  }
   function stepsFor() {
     if (!WZ) return [];
     if (!WZ.mode) return ["entry"];
+    const g = glossPrefix();
     if (WZ.track === "offense") {
       if (WZ.mode === "template") {
-        const base = ["entry", "template", "playType"];
+        const base = ["entry"].concat(g).concat(["template", "playType"]);
         if (!WZ.playType) return base;
         if (WZ.playType === "run") return base.concat(["carrier", "assigns", "name", "tests"]);
         return base.concat(["tweak", "name", "tests"]);
       }
-      const base = ["entry", "formation", "personnel", "playType"];
+      const base = ["entry"].concat(g).concat(["formation", "personnel", "playType"]);
       if (!WZ.playType) return base;
       if (WZ.playType === "run") return base.concat(["scheme", "carrier", "assigns", "name", "tests"]);
       return base.concat(["concept", "tweak", "protection", "name", "tests"]);
     }
-    if (WZ.mode === "template") return ["entry", "template", "align", "motion", "name", "tests"];
-    return ["entry", "front", "coverage", "pressure", "align", "motion", "name", "tests"];
+    if (WZ.mode === "template") return ["entry"].concat(g).concat(["template", "align", "motion", "name", "tests"]);
+    return ["entry"].concat(g).concat(["front", "coverage", "pressure", "align", "motion", "name", "tests"]);
   }
 
   function liveApplyOffenseBase() {
@@ -508,10 +516,11 @@
       motionRule: "bump",
       adjusters: { motion: { default: "bump" } },
       confirmed: false,
-      save: true
+      save: true,
+      glossaryDone: false
     };
     const dock = document.getElementById("wizDock");
-    if (dock) dock.style.display = "";
+    if (dock) dock.style.display = "block";
     if (!opts.quiet) H.msg("Guided build — pick Offense or Defense to start.");
     render();
   }
@@ -529,6 +538,7 @@
   function titles() {
     return {
       entry: "How do you want to start?",
+      glossary: "What do you call your positions?",
       template: WZ.track === "offense" ? "Pick an offense template" : "Pick a defense template",
       formation: "Formation",
       personnel: "Personnel",
@@ -602,6 +612,29 @@
         WZ.mode,
         function (v) { WZ.mode = v; WZ.i = 1; render(); }
       ));
+    } else if (id === "glossary") {
+      note(body, "Name your positions once for the whole program. You can change this later in Setup → Position names. Skip to use defaults.");
+      const host = document.createElement("div");
+      body.appendChild(host);
+      if (root.OFFGRD_POS_GLOSSARY) {
+        OFFGRD_POS_GLOSSARY.mountEditor(host, {
+          showSkip: true,
+          onSave: function () {
+            WZ.glossaryDone = true;
+            OFFGRD_POS_GLOSSARY.markPrompted();
+            if (H.renderAll) H.renderAll();
+            nav(1);
+          },
+          onSkip: function () {
+            WZ.glossaryDone = true;
+            OFFGRD_POS_GLOSSARY.markPrompted();
+            nav(1);
+          }
+        });
+      } else {
+        note(body, "Glossary module not loaded — skip ahead.");
+        WZ.glossaryDone = true;
+      }
     } else if (id === "template") {
       const list = WZ.track === "offense" ? OFF_TEMPLATES : DEF_TEMPLATES;
       note(body, "One tap drops a near-complete call on the field — tweak next.");
@@ -692,7 +725,7 @@
         const p = ol[WZ.assignIdx];
         H.selectPlayer(p);
         const cur = p.runblk ? (p.runblk.type + (p.runblk.dir < 0 ? " ◀" : p.runblk.dir > 0 ? " ▶" : "")) : (p.blk || "—");
-        note(body, "<b>" + p.lab + "</b> block: " + cur + " (" + (WZ.assignIdx + 1) + " of " + ol.length + ")");
+        note(body, "<b>" + ((root.OFFGRD_RENDER && OFFGRD_RENDER.POSLABEL) ? OFFGRD_RENDER.POSLABEL(p.lab, "off") : p.lab) + "</b> block: " + cur + " (" + (WZ.assignIdx + 1) + " of " + ol.length + ")");
         const brow = document.createElement("div");
         brow.className = "row";
         brow.style.flexWrap = "wrap";
@@ -753,7 +786,7 @@
         if (WZ.tweakIdx >= elig.length) WZ.tweakIdx = 0;
         const p = elig[WZ.tweakIdx];
         H.selectPlayer(p);
-        note(body, "Set <b>" + (p.lab || "?") + "</b>'s route (" + (WZ.tweakIdx + 1) + " of " + elig.length + "). Suggested from the concept — tap to change.");
+        note(body, "Set <b>" + ((root.OFFGRD_RENDER && OFFGRD_RENDER.POSLABEL) ? OFFGRD_RENDER.POSLABEL(p.lab || "?", "off") : (p.lab || "?")) + "</b>'s route (" + (WZ.tweakIdx + 1) + " of " + elig.length + "). Suggested from the concept — tap to change.");
         body.appendChild(chips(routeNames(), p.rname || "", function (v) {
           H.snap();
           H.rebuildRoute(p, v);
@@ -907,7 +940,7 @@
     const skip = document.getElementById("wizDockSkip");
     if (back) back.style.visibility = WZ.i === 0 ? "hidden" : "visible";
     if (skip) {
-      const optional = id === "personnel" || id === "pressure" || id === "motion" || id === "coverage" && WZ.mode === "scratch";
+      const optional = id === "glossary" || id === "personnel" || id === "pressure" || id === "motion" || (id === "coverage" && WZ.mode === "scratch");
       skip.style.display = optional ? "" : "none";
     }
     if (next) {
@@ -955,6 +988,12 @@
 
   function skip() {
     if (!WZ) return;
+    const order = stepsFor();
+    const id = order[WZ.i];
+    if (id === "glossary") {
+      WZ.glossaryDone = true;
+      try { if (root.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.markPrompted(); } catch (e) {}
+    }
     nav(1);
   }
 

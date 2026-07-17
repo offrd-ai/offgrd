@@ -258,7 +258,8 @@
 <script src="OFFGRD-config.js?v=97"></script>
 <script src="supabase.js?v=31"></script>
 <script src="OFFGRD-cache-gate.js?v=97"></script>
-<script src="OFFGRD-render.js?v=102"></script>
+<script src="OFFGRD-render.js?v=105"></script>
+<script src="OFFGRD-pos-glossary.js?v=105"></script>
 <script src="OFFGRD-autoderive.js?v=97"></script>
 <script src="OFFGRD-scoutcards.js?v=97"></script>
 <script src="OFFGRD-tendencies.js?v=97"></script>
@@ -2371,6 +2372,7 @@ function brandingHTML(){
      +'<label class="lbl" style="display:flex;align-items:center;gap:6px">Primary <input type="color" id="brBg" value="'+(me.bg||"#13294B")+'"></label>'
      +'<label class="lbl" style="display:flex;align-items:center;gap:6px">Text <input type="color" id="brFg" value="'+(me.fg||"#ffffff")+'"></label>'
      +'<button class="ghost" id="brLogoBtn">Upload logo</button><button class="ghost" id="brLogoClr">Use initials</button></div>'
+   +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Position names</div><p class="foot" style="margin:4px 0 8px">What your staff calls each spot — shared with the whole program.</p><div id="brPosGlossary"></div></div>'
    +'<div style="margin-top:14px"><button id="brSave" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Save team</button> <span id="brMsg" class="foot"></span></div>'
    +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Opponent logos</div>'+opphtml+'</div>'
    +'<input type="file" id="brFile" accept="image/*" style="display:none"><input type="file" id="brOppFile" accept="image/*" style="display:none">'
@@ -2380,7 +2382,7 @@ function openBranding(){
   if(!brEl){ brEl=document.createElement("div"); brEl.id="brWrap";
     brEl.style.cssText="position:fixed;inset:0;background:rgba(9,18,34,.6);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:9998;overflow:auto";
     document.body.appendChild(brEl); brEl.addEventListener("click",e=>{ if(e.target===brEl) brEl.style.display="none"; }); }
-  brEl.innerHTML=brandingHTML(); brEl.style.display="flex"; wireBranding();
+  brEl.innerHTML=brandingHTML(); brEl.style.display="flex"; wireBranding(); try{ var _pg=brEl.querySelector("#brPosGlossary"); if(_pg&&window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.mountEditor(_pg,{ onSave:function(){ var m=brEl.querySelector("#brMsg"); if(m) m.textContent="Position names saved."; } }); }catch(_e){}
 }
 function wireBranding(){
   brEl.querySelector("#brClose").onclick=()=>brEl.style.display="none";
@@ -2497,7 +2499,7 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=97"></script>
+<script type="module" src="OFFGRD-account.js?v=105"></script>
 <script src="OFFGRD-role-gate.js?v=97"></script>
 <script src="OFFGRD-mobile.js?v=97"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>

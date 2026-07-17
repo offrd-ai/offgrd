@@ -590,7 +590,10 @@ function obApplyBrand(name, bg, fg, logo){
 function pushBrand(name, brand){
   try{
     if(!TEAM || !canEdit() || !Cloud.setTeamBrand) return;
-    const b=Object.assign({name:name}, brand||{});
+    const prev=TEAM.brand||{};
+    const b=Object.assign({}, prev, brand||{}, {name:name});
+    /* Keep position glossary unless the caller explicitly sets it */
+    if(brand && !brand.posGlossary && prev.posGlossary) b.posGlossary=prev.posGlossary;
     TEAM.brand=b;
     Cloud.setTeamBrand(TEAM.id, b).catch(()=>{});
   }catch(e){}
@@ -602,13 +605,20 @@ function applyCloudBrand(){
     const brand={abbr:b.abbr||obAbbr(b.name), fg:b.fg||"#ffffff", bg:b.bg||"#13294B", logo:b.logo||""};
     let cur={}; try{ cur=JSON.parse(localStorage.getItem("offgrd_brands")||"{}"); }catch(e){}
     let curId=""; try{ curId=localStorage.getItem("offgrd_identity")||""; }catch(e){}
-    if(curId===b.name && JSON.stringify(cur[b.name]||{})===JSON.stringify(brand)) return;   /* already current on this device */
-    if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(b.name, brand); }
+    if(curId===b.name && JSON.stringify(cur[b.name]||{})===JSON.stringify(brand)) {
+      /* still apply glossary — may have changed without name/colors */
+    } else if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(b.name, brand); }
     else{
       cur[b.name]=brand;
       localStorage.setItem("offgrd_brands", JSON.stringify(cur));
       localStorage.setItem("offgrd_identity", b.name);
     }
+    /* Program position glossary (display-only labels) */
+    try{
+      if(b.posGlossary && window.OFFGRD_POS_GLOSSARY_ON_BRAND) window.OFFGRD_POS_GLOSSARY_ON_BRAND(b);
+      else if(b.posGlossary && window.OFFGRD_POS_GLOSSARY) window.OFFGRD_POS_GLOSSARY.apply(b.posGlossary,{skipCloud:true,silent:true});
+      else if(window.OFFGRD_POS_GLOSSARY) window.OFFGRD_POS_GLOSSARY.pullFromTeam();
+    }catch(e2){}
   }catch(e){}
 }
 /* ---------- week plan bridge (Phase A of the education engine) ----------

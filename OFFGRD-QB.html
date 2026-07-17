@@ -21,7 +21,8 @@
 <script src="OFFGRD-config.js?v=100"></script>
 <script src="supabase.js?v=31"></script>
 <script src="OFFGRD-cache-gate.js?v=100"></script>
-<script src="OFFGRD-render.js?v=102"></script>
+<script src="OFFGRD-render.js?v=105"></script>
+<script src="OFFGRD-pos-glossary.js?v=105"></script>
 <script src="OFFGRD-autoderive.js?v=100"></script>
 <script src="OFFGRD-redesign.js?v=100"></script>
 <style>
@@ -2253,7 +2254,7 @@ function answerOl(sel){
  if(rep.postKey && olHasStunts(rep.play.state, rep.play.ol&&rep.play.ol.stunt)){
  OLPHASE="await-snap";
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"? Pre-snap: right man":"? Pre-snap: not your man")+" â€” "+esc(rep.blocker)+": "+esc(rep._pre.answer)+"</h4><div>Now ? Snap â€” read the stunt and pick up your new man.</div>";
+ fb.innerHTML="<h4>"+(correct?"? Pre-snap: right man":"? Pre-snap: not your man")+" â€” "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ? Snap â€” read the stunt and pick up your new man.</div>";
  document.getElementById("snapBtn").classList.remove("hidden");
  document.getElementById("prompt").textContent=rep.blocker+" â€” ? Snap to see the front move.";
  } else {
@@ -2271,9 +2272,9 @@ function finalizeOl(overallCorrect, post, job){
  const fb=document.getElementById("fb"); fb.className="fb show "+(overallCorrect?"ok":"bad");
  let head, detail="";
  if(single){
- head=(overallCorrect?"? Correct":"? Not your man")+" â€” "+esc(rep.blocker)+": "+esc(rep._pre?rep._pre.answer:"");
+ head=(overallCorrect?"? Correct":"? Not your man")+" â€” "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
  } else {
- head=(overallCorrect?"? Correct":"? Missed the assignment")+" â€” "+esc(rep.blocker);
+ head=(overallCorrect?"? Correct":"? Missed the assignment")+" â€” "+esc(PL(rep.blocker,"off"));
  detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"?":"?")+" ("+esc(rep._pre?rep._pre.answer:"")+") â€” After stunt: "+(post.postCorrect?"?":"?")+" ("+esc(post.postAnswer)+")";
  }
  fb.innerHTML="<h4>"+head+"</h4>"
@@ -2714,7 +2715,7 @@ function renderBlitzField(r){
 function blitzSnap(){
  if(SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
- document.getElementById("prompt").textContent="Front's moving â€” call "+rep.defLab+"'s job.";
+ document.getElementById("prompt").textContent="Front's moving â€” call "+PL(rep.defLab,"def")+"'s job.";
  const go=function(){ animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt); };
  if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
  else go();
@@ -2722,7 +2723,7 @@ function blitzSnap(){
 function showBlitzChoices(){
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
- lbl.textContent="You're "+rep.defLab+" â€” what's your assignment on this call?"; cc.appendChild(lbl);
+ lbl.textContent="You're "+PL(rep.defLab,"def")+" â€” what's your assignment on this call?"; cc.appendChild(lbl);
  BLITZ_OPTS.forEach(o=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=o; b.onclick=()=>answerBlitz(o); cc.appendChild(b); });
 }
 function answerBlitz(opt){
@@ -2730,7 +2731,7 @@ function answerBlitz(opt){
  const correct = opt===rep.answer;
  olClearRings(); olRing(rep.di, correct?"#19c37d":"#e23b2e");
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" â€” "+esc(rep.defLab)+": "+esc(rep.answer)+"</h4>"
+ fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" â€” "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>"
  +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Blitz")+" \u2014 "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
  test.i++;
@@ -2793,7 +2794,7 @@ function renderDefCoverageField(r){
 function defCoverageSnap(){
   if(SNAPPED)return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
-  document.getElementById("prompt").textContent="Coverage rotating â€” track "+rep.defLab+" to the landmark.";
+  document.getElementById("prompt").textContent="Coverage rotating â€” track "+PL(rep.defLab,"def")+" to the landmark.";
   const go=function(){ animateOlStunts(rep.play.state,function(){showDefCoverageChoices();},"field",defenderCoveragePaths(rep.play)); };
   if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
   else go();
@@ -2801,7 +2802,7 @@ function defCoverageSnap(){
 function showDefCoverageChoices(){
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+rep.defLab+" â€” what's your coverage responsibility?"; cc.appendChild(lbl);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" â€” what's your coverage responsibility?"; cc.appendChild(lbl);
   const opts=DEF_COVERAGE_OPTS.slice();
   if(opts.indexOf(rep.answer)<0) opts.unshift(rep.answer);
   opts.slice(0,14).forEach(function(o){const b=document.createElement("button");b.className="chip";b.textContent=o;b.onclick=function(){answerDefCoverage(o);};cc.appendChild(b);});
@@ -2811,7 +2812,7 @@ function answerDefCoverage(opt){
   const correct=opt===rep.answer;
   olClearRings(); olRing(rep.di,correct?"#19c37d":"#e23b2e");
   const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
-  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the responsibility")+" â€” "+esc(rep.defLab)+": "+esc(rep.answer)+"</h4>";
+  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the responsibility")+" â€” "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>";
   test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Formation")+" â€” "+rep.defLab,coverage:rep.play.ourCall||rep.play.coverage||"",correct:correct,chose:opt,answer:rep.answer});
   test.i++;
   setTimeout(function(){if(!test)return;if(test.i>=test.queue.length){finishTest();}else{showRep(test.queue[test.i]);updateProgress();}},correct?1300:2200);
@@ -2933,7 +2934,7 @@ function finishAlignAnswer(correct, choseTxt){
   svg.appendChild(mark);
   const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
   const why=alignWhy(rep.play, rep.di);
-  fb.innerHTML="<h4>"+(correct?"Lined up":"Missed the landmark")+" \u2014 "+esc(rep.defLab)+" @ "+Math.round(key.x)+","+Math.round(key.y)+(key.leverage?(" \u00b7 "+key.leverage):"")+"</h4>"
+  fb.innerHTML="<h4>"+(correct?"Lined up":"Missed the landmark")+" \u2014 "+esc(PL(rep.defLab,"def"))+" @ "+Math.round(key.x)+","+Math.round(key.y)+(key.leverage?(" \u00b7 "+key.leverage):"")+"</h4>"
     +(correct?"":("<div class=\"prog\">"+esc(why)+"</div>"));
   test.results.push({
     concept:(rep.formationLabel||"Formation")+" \u2014 "+rep.defLab,
@@ -2987,11 +2988,12 @@ function pickRep(){
  return null;
 }
 function isCovTest(){ return MODE==="test" && test && test.kind==="coverage"; }
+function PL(pos,side){ try{ return (window.OFFGRD_RENDER&&OFFGRD_RENDER.POSLABEL)?OFFGRD_RENDER.POSLABEL(pos,side||null):String(pos||""); }catch(e){ return String(pos||""); } }
 function showRep(r){
  rep=r; answered=false; SNAPPED=false;
  if(r.protect){
  SNAPPED=true; OLPHASE="pre"; r._pre=null;
- document.getElementById("prompt").textContent=`â€”${r.play.name}â€” vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} â€” you're the ${r.blocker}. Who do you block?`;
+ document.getElementById("prompt").textContent=`â€”${r.play.name}â€” vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} â€” you're the ${PL(r.blocker,"off")}. Who do you block?`;
  cancelQB(); renderOlQuiz(r);
  const fbp=document.getElementById("fb"); fbp.className="fb"; fbp.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3001,7 +3003,7 @@ function showRep(r){
  }
  if(r.routes){
  SNAPPED=true;
- document.getElementById("prompt").textContent=`â€”${r.play.name}â€” â€” which route does ${r.target.lab} run?`;
+ document.getElementById("prompt").textContent=`â€”${r.play.name}â€” â€” which route does ${PL(r.target.lab,"off")} run?`;
  cancelQB(); renderRouteQuiz(r);
  const fb0=document.getElementById("fb"); fb0.className="fb"; fb0.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3012,7 +3014,7 @@ function showRep(r){
  }
  if(r.blitz){
  SNAPPED=false;
- document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"}`+(r.motion?(" \u2014 "+(r.motion.name||"motion")):"")+` \u2014 you're the ${r.defLab}. Snap, then call your job.`;
+ document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"}`+(r.motion?(" \u2014 "+(r.motion.name||"motion")):"")+` \u2014 you're the ${PL(r.defLab,"def")}. Snap, then call your job.`;
  cancelQB(); renderBlitzField(r);
  const fbb=document.getElementById("fb"); fbb.className="fb"; fbb.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3023,7 +3025,7 @@ function showRep(r){
  }
  if(r.align){
  SNAPPED=true; /* pre-snap placement â€” no snap needed */
- document.getElementById("prompt").textContent="vs their "+(r.formationLabel||"formation")+", our "+(r.ourCall||"call")+(r.motion?(" \u2014 "+(r.motionLabel||r.motion.name||"motion")):"")+" \u2014 you're the "+r.defLab+". "+(r.motion?"Re-align.":"Line up.");
+ document.getElementById("prompt").textContent="vs their "+(r.formationLabel||"formation")+", our "+(r.ourCall||"call")+(r.motion?(" \u2014 "+(r.motionLabel||r.motion.name||"motion")):"")+" \u2014 you're the "+PL(r.defLab,"def")+". "+(r.motion?"Re-align.":"Line up.");
  cancelQB(); renderAlignField(r);
  const fba=document.getElementById("fb"); fba.className="fb"; fba.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3049,7 +3051,7 @@ function showRep(r){
  }
  if(r.defCoverage){
    SNAPPED=false;
-   document.getElementById("prompt").textContent=(r.play.oppLabel||r.play.name)+" vs our "+(r.play.ourCall||r.play.coverage||"coverage")+(r.motion?(" â€” "+(r.motion.name||"motion")):"")+" â€” you're the "+r.defLab+". What's your job?";
+   document.getElementById("prompt").textContent=(r.play.oppLabel||r.play.name)+" vs our "+(r.play.ourCall||r.play.coverage||"coverage")+(r.motion?(" â€” "+(r.motion.name||"motion")):"")+" â€” you're the "+PL(r.defLab,"def")+". What's your job?";
    cancelQB(); renderDefCoverageField(r);
    const fbc=document.getElementById("fb"); fbc.className="fb"; fbc.innerHTML="";
    document.getElementById("nextBtn").classList.add("hidden");
@@ -3469,9 +3471,10 @@ init();
 </script>
 <script src="OFFGRD-mobile.js?v=100"></script>
 <script src="OFFGRD-scoutcards.js?v=100"></script>
-<script src="OFFGRD-week-autotest.js?v=100"></script>
+<script src="OFFGRD-week-autotest.js?v=105"></script>
 <script type="module" src="OFFGRD-qb-cloud.js?v=100"></script>
-<script type="module" src="OFFGRD-account.js?v=100"></script>
+<script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
+<script type="module" src="OFFGRD-account.js?v=105"></script>
 <script src="OFFGRD-role-gate.js?v=100"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>

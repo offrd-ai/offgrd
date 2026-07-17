@@ -21,6 +21,67 @@
   const GCOL = { DL: "#9aa4b2", LB: "#b8860b", DB: "#13294B" };
   const LAB = { DE: "DE", DT: "DT", NT: "NT", WLB: "W", MLB: "M", SLB: "S", ILB: "I", OLB: "O", LCB: "CB", RCB: "CB", FS: "FS", SS: "SS", NB: "N" };
 
+  /* ---- Team Position Glossary (display-only; canonical keys untouched) ---- */
+  const DEFAULT_POS_GLOSSARY = {
+    off: {
+      QB: "QB", RB: "RB", FB: "FB", X: "X", Y: "Y", Z: "Z", H: "H", F: "F", TE: "TE",
+      LT: "LT", LG: "LG", C: "C", RG: "RG", RT: "RT", A: "A", U: "U", W: "W", B: "B"
+    },
+    def: {
+      DE: "DE", DT: "DT", NT: "NT", W: "W", M: "M", S: "S", I: "I", O: "O",
+      CB: "CB", FS: "FS", SS: "SS", N: "N",
+      WLB: "W", MLB: "M", SLB: "S", ILB: "I", OLB: "O", LCB: "CB", RCB: "CB", NB: "N"
+    }
+  };
+  let _posGlossary = null;
+
+  function cloneGlossary(g) {
+    return {
+      off: Object.assign({}, DEFAULT_POS_GLOSSARY.off, (g && g.off) || {}),
+      def: Object.assign({}, DEFAULT_POS_GLOSSARY.def, (g && g.def) || {})
+    };
+  }
+  function getPosGlossary() {
+    if (!_posGlossary) _posGlossary = cloneGlossary(null);
+    return _posGlossary;
+  }
+  function setPosGlossary(g) {
+    _posGlossary = cloneGlossary(g || null);
+    return _posGlossary;
+  }
+  /** Display label for a canonical position key. side: "off"|"def"|null (auto). */
+  function POSLABEL(pos, side) {
+    if (pos == null || pos === "") return "";
+    const raw = String(pos);
+    const viaLab = LAB[raw] || raw;
+    const g = getPosGlossary();
+    if (side === "off") return g.off[viaLab] || g.off[raw] || viaLab;
+    if (side === "def") return g.def[viaLab] || g.def[raw] || viaLab;
+    /* auto — pass side when possible; W is the only off/def overlap */
+    if (LAB[raw]) return g.def[viaLab] || viaLab;
+    const offOnly = { QB: 1, RB: 1, FB: 1, X: 1, Y: 1, Z: 1, H: 1, F: 1, TE: 1, LT: 1, LG: 1, C: 1, RG: 1, RT: 1, A: 1, U: 1, B: 1 };
+    const defOnly = { DE: 1, DT: 1, NT: 1, CB: 1, FS: 1, SS: 1, N: 1, I: 1, O: 1, M: 1, S: 1 };
+    if (offOnly[viaLab]) return g.off[viaLab] || viaLab;
+    if (defOnly[viaLab]) return g.def[viaLab] || viaLab;
+    if (viaLab === "W") return g.def.W || g.off.W || "W";
+    return g.off[viaLab] || g.def[viaLab] || viaLab;
+  }
+  /** Tooltip "Will (Buck)" when custom ≠ canonical. */
+  function POSLABELtip(pos, side) {
+    const raw = String(pos == null ? "" : pos);
+    const canon = LAB[raw] || raw;
+    const shown = POSLABEL(raw, side);
+    if (!shown || shown === canon) return canon;
+    return canon + " (" + shown + ")";
+  }
+  function tokenFontSize(label, base) {
+    const n = String(label || "").length;
+    const b = base || 12;
+    if (n <= 3) return String(b);
+    if (n <= 5) return String(Math.max(8, b - 2));
+    return String(Math.max(7, b - 3.5));
+  }
+
   const DFRONTS = {
     "4-3": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
       .concat([{ pos: "WLB", x: 400, y: 316 }, { pos: "MLB", x: 500, y: 312 }, { pos: "SLB", x: 600, y: 316 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
@@ -332,6 +393,9 @@
     const x = pos ? pos.x : p.x, y = pos ? pos.y : p.y;
     const selected = opts.sel && (opts.sel === p || (opts.selId != null && p.id === opts.selId));
     const ring = selected ? `<circle cx="${x}" cy="${y}" r="21" fill="none" stroke="#ffd24a" stroke-width="3"/>` : "";
+    const shown = POSLABEL(p.lab, "off");
+    const tip = POSLABELtip(p.lab, "off");
+    const fs = tokenFontSize(shown, 12);
     if (p.type === "block") {
       let g = "";
       if (p.runblk) g = blockGlyph(p, x, y);
@@ -339,10 +403,10 @@
         const a = (p.blk === "L" ? -0.6 : p.blk === "R" ? 0.6 : 0);
         g = `<line x1="${x}" y1="${y - 13}" x2="${x + 18 * a}" y2="${y - 31}" stroke="#fff" stroke-width="3"/>`;
       }
-      return ring + g + `<rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="5" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab || "")}</text>`;
+      return ring + g + `<rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="5" fill="${pColor(p)}" stroke="#fff" stroke-width="2"><title>${esc(tip)}</title></rect><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text>`;
     }
     const tap = opts.quiz ? ` data-lab="${esc(p.lab || "")}" style="cursor:pointer"` : "";
-    return ring + `<g${tap}><circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab || "")}</text></g>`;
+    return ring + `<g${tap}><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text></g>`;
   }
   function defNode(d, pos, opts) {
     opts = opts || {};
@@ -350,7 +414,10 @@
     const selected = opts.sel && (opts.sel === d || (opts.selId != null && (d.id === opts.selId || d.idx === opts.selId)));
     const ring = selected ? `<circle cx="${x}" cy="${y}" r="19" fill="none" stroke="#ffd24a" stroke-width="3"/>` : "";
     const ar = (d.role === "rush") ? `<line x1="${x}" y1="${y + 14}" x2="${x}" y2="${y + 40}" stroke="#ff6b81" stroke-width="3" marker-end="url(#rush)"/>` : "";
-    return ar + ring + `<circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle">${esc(d.lab || "D")}</text>`;
+    const shown = POSLABEL(d.lab || d.pos, "def");
+    const tip = POSLABELtip(d.lab || d.pos, "def");
+    const fs = tokenFontSize(shown, 10.5);
+    return ar + ring + `<g><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "D")}</text></g>`;
   }
   function textNode(t) {
     return `<text x="${t.x}" y="${t.y}" font-size="${t.size}" font-weight="800" fill="${t.color}" stroke="rgba(255,255,255,.5)" stroke-width="0.6" paint-order="stroke" text-anchor="middle">${esc(t.text)}</text>`;
@@ -377,7 +444,8 @@
     (state.players || []).filter(p => p.type === "route" || p.type === "rb").forEach(p => {
       const end = routeEnd(p);
       const isR = revealLab && p.lab === revealLab;
-      s += `<g data-lab="${esc(p.lab || "")}" style="cursor:pointer"><circle cx="${end.x}" cy="${end.y}" r="19" fill="${isR ? "rgba(25,195,125,.9)" : "rgba(255,255,255,.18)"}" stroke="${isR ? "#0b6b3f" : "#fff"}" stroke-width="2.5"/><text x="${end.x}" y="${end.y + 5}" font-size="14" font-weight="900" fill="#fff" text-anchor="middle">${esc(p.lab || "")}</text></g>`;
+      const shown = POSLABEL(p.lab, "off");
+      s += `<g data-lab="${esc(p.lab || "")}" style="cursor:pointer"><title>${esc(POSLABELtip(p.lab, "off"))}</title><circle cx="${end.x}" cy="${end.y}" r="19" fill="${isR ? "rgba(25,195,125,.9)" : "rgba(255,255,255,.18)"}" stroke="${isR ? "#0b6b3f" : "#fff"}" stroke-width="2.5"/><text x="${end.x}" y="${end.y + 5}" font-size="${tokenFontSize(shown, 14)}" font-weight="900" fill="#fff" text-anchor="middle">${esc(shown || "")}</text></g>`;
     });
     return s;
   }
@@ -633,7 +701,8 @@
   }
 
   root.OFFGRD_RENDER = {
-    LOS, W, H, DLAND, GCOL, LAB, DFRONTS, PPY, YARD_ROUTES,
+    LOS, W, H, DLAND, GCOL, LAB, DFRONTS, PPY, YARD_ROUTES, DEFAULT_POS_GLOSSARY,
+    POSLABEL, POSLABELtip, getPosGlossary, setPosGlossary, cloneGlossary,
     isUnified, hasPlayData, normalizePlayData, prepareDrillState, yardToData, yardRouteToPoints,
     esc, fieldSVG, routeD, routePath, motionPath, playerNode, defNode, textNode, drawNode,
     zoneShapes, manConnectors, assignCoverage, assignManMatchups, placeDefenseOn, handles, segMid, flatten, along, ease,
