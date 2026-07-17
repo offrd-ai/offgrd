@@ -344,10 +344,13 @@
     const tap = opts.quiz ? ` data-lab="${esc(p.lab || "")}" style="cursor:pointer"` : "";
     return ring + `<g${tap}><circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab || "")}</text></g>`;
   }
-  function defNode(d, pos) {
+  function defNode(d, pos, opts) {
+    opts = opts || {};
     const x = pos ? pos.x : d.x, y = pos ? pos.y : d.y;
+    const selected = opts.sel && (opts.sel === d || (opts.selId != null && (d.id === opts.selId || d.idx === opts.selId)));
+    const ring = selected ? `<circle cx="${x}" cy="${y}" r="19" fill="none" stroke="#ffd24a" stroke-width="3"/>` : "";
     const ar = (d.role === "rush") ? `<line x1="${x}" y1="${y + 14}" x2="${x}" y2="${y + 40}" stroke="#ff6b81" stroke-width="3" marker-end="url(#rush)"/>` : "";
-    return ar + `<circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle">${esc(d.lab || "D")}</text>`;
+    return ar + ring + `<circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle">${esc(d.lab || "D")}</text>`;
   }
   function textNode(t) {
     return `<text x="${t.x}" y="${t.y}" font-size="${t.size}" font-weight="800" fill="${t.color}" stroke="rgba(255,255,255,.5)" stroke-width="0.6" paint-order="stroke" text-anchor="middle">${esc(t.text)}</text>`;
@@ -405,7 +408,7 @@
     if (showZ && !anim && cov && (cov === "Cover 0" || cov === "Cover 1" || cov === "2-Man")) {
       s += manConnectors(defs, players);
     }
-    defs.forEach(d => { const pos = anim ? (d._ap || { x: d.x, y: d.y }) : null; s += defNode(d, pos); });
+    defs.forEach(d => { const pos = anim ? (d._ap || { x: d.x, y: d.y }) : null; s += defNode(d, pos, { sel: opts.sel, selId: opts.selId }); });
     players.forEach(p => {
       const pos = anim ? (p._ap || { x: p.x, y: p.y }) : null;
       s += playerNode(p, pos, { sel: opts.sel, selId: opts.selId, quiz: !!opts.quiz && !anim });
