@@ -349,6 +349,13 @@
     if(!load){ host.innerHTML = '<div class="panel"><p class="foot">Sign in and join your program first.</p></div>'; return; }
     try{
       var wp = await load();
+      /* Players don't sync the coach's raw scouting charts — show their week opponent
+         on the scope chip instead of stale local counts. */
+      try {
+        window.OFFGRD_PLAYER_SCOPE = (wp && wp.opponent) ? ("vs " + wp.opponent) : "This week";
+        var _sc = document.getElementById("rdScope"); if(_sc) _sc.textContent = window.OFFGRD_PLAYER_SCOPE;
+        var _sy = document.getElementById("rdSync"); if(_sy) _sy.textContent = "";
+      } catch(e){}
       if(!wp || wp.linked === false){
         host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;

@@ -1539,8 +1539,12 @@
 
   function syncScopeBadge() {
     const btn = document.getElementById("rdScope");
-    const src = document.getElementById("datbadge");
-    if (btn) {
+    /* Players don't sync the coach's raw scouting charts, so the datbadge counts are
+       stale/local for them — show their week opponent instead (set by the role gate). */
+    if (btn && isPlayerRole()) {
+      btn.textContent = root.OFFGRD_PLAYER_SCOPE || "This week";
+    } else if (btn) {
+      const src = document.getElementById("datbadge");
       if (src && (src.textContent || "").trim()) btn.textContent = src.textContent;
       else {
         const kind = appKind();
@@ -1550,8 +1554,11 @@
     const sync = document.getElementById("rdSync");
     const stat = document.getElementById("syncstat");
     if (sync) {
-      const t = (stat && (stat.textContent || "").trim()) || "";
-      sync.textContent = t || "LOCAL";
+      if (isPlayerRole()) { sync.textContent = ""; }
+      else {
+        const t = (stat && (stat.textContent || "").trim()) || "";
+        sync.textContent = t || "LOCAL";
+      }
     }
   }
 
