@@ -57,17 +57,28 @@
  .ov.show{display:flex}
  .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
  textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
+
+ .skillSeg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-left:12px}
+ .skillSeg .btn{border:0;border-radius:0;min-width:72px}
+ .skillSeg .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+ body.skill-guided .expert-only{display:none!important}
+ #wizDock{display:none;border:2px solid var(--accent);background:linear-gradient(180deg,#f7fbff,#fff)}
+ #wizDock .wizDockNav{display:flex;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
+
 </style>
 <script src="OFFGRD-config.js?v=97"></script>
 <script src="supabase.js?v=31"></script>
 <script src="OFFGRD-cache-gate.js?v=97"></script>
 <script src="OFFGRD-render.js?v=102"></script>
+<script src="OFFGRD-autoderive.js?v=103"></script>
+<script src="OFFGRD-week-autotest.js?v=103"></script>
+<script src="OFFGRD-play-wizard.js?v=103"></script>
 <script src="OFFGRD-scoutcards.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
 <script src="OFFGRD-redesign.js?v=97"></script>
 </head>
 <body>
- <div class="topbar"><a href="OFFGRD.html" title="OFFGRD Ã¯Â¿Â½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>Ã¯Â¿Â½ Playbook Ã¯Â¿Â½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
+ <div class="topbar"><a href="OFFGRD.html" title="OFFGRD Ã¯Â¿Â½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>Ã¯Â¿Â½ Playbook Ã¯Â¿Â½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span class="skillSeg" title="Guided walks you through; Expert is the full designer"><button type="button" class="btn" id="skillGuided">Guided</button><button type="button" class="btn" id="skillExpert">Expert</button></span><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
 
  <!-- SETUP / GENERAL -->
  <div class="panel" data-sec="Setup &amp; field">
@@ -91,7 +102,7 @@
  </div>
 
  <!-- OFFENSE -->
- <div class="panel" data-sec="Offense">
+ <div class="panel expert-only" data-sec="Offense">
  <div class="row">
  <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">&#8644; Flip</button>
  <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">&mdash; pers &mdash;</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
@@ -109,7 +120,7 @@
  </div>
  </div>
 
- <div class="panel" id="routePanel">
+ <div class="panel expert-only" id="routePanel">
  <div class="lbl" style="margin-bottom:6px">Quick routes Ã¯Â¿Â½ tap a player, then a route</div>
  <div class="row" id="routeBar"></div>
  <div class="lbl" style="margin:10px 0 6px">Concepts Ã¯Â¿Â½ apply to all receivers at once</div>
@@ -121,7 +132,7 @@
  </div>
 
  <!-- DEFENSE -->
- <div class="panel" data-sec="Defense">
+ <div class="panel expert-only" data-sec="Defense">
  <div class="row">
  <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
  <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
@@ -138,7 +149,19 @@
  </div>
  </div>
 
- <div class="panel" style="padding:6px">
+ 
+ <!-- GUIDED WIZARD DOCK (live canvas below) -->
+ <div class="panel" id="wizDock">
+ <div id="wizDockHead"></div>
+ <div id="wizDockBody"></div>
+ <div class="wizDockNav">
+ <button type="button" class="btn" id="wizDockBack">Back</button>
+ <button type="button" class="btn" id="wizDockSkip" style="display:none">Skip</button>
+ <span style="flex:1"></span>
+ <button type="button" class="btn go" id="wizDockNext" style="min-width:110px">Next</button>
+ </div>
+ </div>
+<div class="panel" style="padding:6px">
  <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
  <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
  <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">? Play</button>
@@ -190,6 +213,7 @@
  </div>
  <div class="row" style="margin-top:10px">
  <button class="btn go" id="saveBtn">Save play</button>
+ <button class="btn nav expert-only" id="autoTestsBtn" title="Seed Author test answer keys from the current play">Auto-build tests</button>
  <button class="btn" id="newBtn">New play</button>
  <button class="btn" id="pngBtn">Export PNG</button>
  <button class="btn" id="printBtn">Print / PDF</button>
@@ -424,8 +448,15 @@ const WSTEPS=["formation","personnel","kind","scheme","protection","defense","na
 let WZ=null;
 function wizVis(id){ if(id==="scheme") return WZ.kind!=="Custom"; if(id==="protection") return WZ.kind==="Pass"; return true; }
 function wizOrder(){ return WSTEPS.filter(wizVis); }
-function wizOpen(){ WZ={i:0,formation:WFORMS[0],personnel:"",kind:"Pass",concept:"",scheme:"",protection:"none",front:"none",cov:"none",name:"",family:"",series:"",save:true}; document.getElementById("wizModal").classList.add("show"); wizRender(); }
-function wizClose(){ document.getElementById("wizModal").classList.remove("show"); }
+function wizOpen(){
+ if(window.OFFGRD_PLAY_WIZARD){
+  OFFGRD_PLAY_WIZARD.open();
+  const dock=document.getElementById("wizDock"); if(dock){ dock.style.display=""; try{ dock.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(e){} }
+  return;
+ }
+ WZ={i:0,formation:WFORMS[0],personnel:"",kind:"Pass",concept:"",scheme:"",protection:"none",front:"none",cov:"none",name:"",family:"",series:"",save:true}; document.getElementById("wizModal").classList.add("show"); wizRender();
+}
+function wizClose(){ if(window.OFFGRD_PLAY_WIZARD){ OFFGRD_PLAY_WIZARD.close(); return; } document.getElementById("wizModal").classList.remove("show"); }
 function wizChips(items,current,onpick){ const w=document.createElement("div"); w.className="row"; w.style.flexWrap="wrap"; items.forEach(it=>{ const v=Array.isArray(it)?it[0]:it, lbl=Array.isArray(it)?it[1]:it; const b=document.createElement("button"); b.className="btn"+(current===v?" go":""); b.style.minWidth="70px"; b.textContent=lbl; b.onclick=()=>onpick(v); w.appendChild(b); }); return w; }
 function wizRender(){
  const order=wizOrder(), id=order[WZ.i];
@@ -1022,7 +1053,27 @@ document.addEventListener("DOMContentLoaded",()=>{
  }
  document.getElementById("installClose").onclick=()=>document.getElementById("installModal").classList.remove("show");
  document.getElementById("installModal").onclick=e=>{if(e.target.id==="installModal")e.currentTarget.classList.remove("show");};
- document.getElementById("wizBtn").onclick=wizOpen;
+ 
+ /* Play-building wizard (Guided / Expert) */
+ if(window.OFFGRD_PLAY_WIZARD){
+  OFFGRD_PLAY_WIZARD.init({
+   getState:()=>STATE,
+   libCount:()=>LIB.length,
+   snap, newPlay, placePersonnel, applyConcept, applyProtection, applyRunScheme, placeDefense,
+   rebuildRoute, renderAll, savePlay, setMode, msg, set, readMeta,
+   selectPlayer:(p)=>{ SEL=p; updateSelPanel(); renderAll(); },
+   formations:()=>Object.keys(FORMS),
+   personnelCodes:()=>Object.keys(PERS),
+   concepts:()=>CONCEPTS.slice(),
+   routeNames:()=>Object.keys(ROUTES),
+   onSkillChange:(sk)=>{
+    const auto=document.getElementById("autoTestsBtn");
+    if(auto) auto.style.display = sk==="expert"?"":"none";
+   }
+  });
+ }
+
+document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("wizX").onclick=wizClose;
  document.getElementById("wizBack").onclick=()=>wizNav(-1);
  document.getElementById("wizNext").onclick=()=>wizNav(1);
