@@ -106,11 +106,107 @@
     else if (cov === "Cover 1") { cbs.forEach(M); nbs.forEach(M); M(safs[1]); lbs.forEach(M); Z(safs[0], "MID"); }
     else if (cov === "Cover 0") { cbs.forEach(M); nbs.forEach(M); safs.forEach(M); lbs.forEach(M); }
     else if (cov === "2-Man") { cbs.forEach(M); nbs.forEach(M); lbs.forEach(M); Z(safs[0], "HL"); Z(safs[1], "HR"); }
-    const skill = skillPlayers || [];
-    defs.filter(d => d.role === "man").forEach(d => {
+    assignManMatchups(defs, skillPlayers || []);
+  }
+
+  /**
+   * One-to-one man assignment: CBs → #1 (outside-in), Nickel → #2/slot,
+   * man safeties → #3/TE, LBs → remaining / backs. Never double-covers.
+   * Leftover man defender becomes a rat/robber (manId null + hole landmark).
+   */
+  function assignManMatchups(defs, skillPlayers) {
+    const skill = (skillPlayers || []).filter(function (p) { return p && (p.type === "route" || p.type === "rb"); });
+    skill.forEach(function (p, i) { if (p.id == null) p.id = "sk-" + i; });
+    const manDefs = (defs || []).filter(function (d) { return d && d.role === "man"; });
+    manDefs.forEach(function (d) { d.manId = null; d._rat = false; });
+    if (!manDefs.length || !skill.length) return;
+
+    const claimed = {};
+    const isClaimed = function (p) { return !!(p && claimed[p.id]); };
+    const claim = function (p) {
+      if (!p || isClaimed(p)) return null;
+      claimed[p.id] = 1;
+      return p;
+    };
+    const dist = function (d, p) {
+      const dx = (p.x || 0) - (d.x || 0);
+      const dy = ((p.y || 380) - (d.y || 380)) * 0.4;
+      return Math.hypot(dx, dy);
+    };
+    const nearestUnclaimed = function (def, pool) {
       let best = null, bd = 1e9;
-      skill.forEach(p => { const dd = Math.abs(p.x - d.x); if (dd < bd) { bd = dd; best = p; } });
-      d.manId = best ? best.id : null;
+      (pool || []).forEach(function (p) {
+        if (isClaimed(p)) return;
+        const dd = dist(def, p);
+        if (dd < bd) { bd = dd; best = p; }
+      });
+      return claim(best);
+    };
+
+    /* Outside-in per side: #1 = outermost, #2 = next, … Backs are their own bucket. */
+    const left = skill.filter(function (p) { return p.type !== "rb" && (p.x || 0) < 500; }).sort(function (a, b) { return (a.x || 0) - (b.x || 0); });
+    const right = skill.filter(function (p) { return p.type !== "rb" && (p.x || 0) >= 500; }).sort(function (a, b) { return (b.x || 0) - (a.x || 0); });
+    const backs = skill.filter(function (p) { return p.type === "rb"; });
+    const wrSkill = skill.filter(function (p) { return p.type !== "rb"; });
+    const sideOf = function (d) { return (d.x || 0) < 500 ? "L" : "R"; };
+    const bucket = function (side) { return side === "L" ? left : right; };
+
+    const isCB = function (d) {
+      const pos = String(d.pos || "");
+      return pos === "LCB" || pos === "RCB" || (d.group === "DB" && String(d.lab || "") === "CB");
+    };
+    const isNB = function (d) {
+      const pos = String(d.pos || "");
+      const lab = String(d.lab || "");
+      return pos === "NB" || lab === "N" || lab === "NB";
+    };
+    const isSaf = function (d) {
+      const pos = String(d.pos || "");
+      const lab = String(d.lab || "");
+      return pos === "FS" || pos === "SS" || lab === "FS" || lab === "SS";
+    };
+
+    /* Pass 1 — CBs → #1 on their side */
+    manDefs.filter(isCB).sort(function (a, b) { return (a.x || 0) - (b.x || 0); }).forEach(function (d) {
+      const b = bucket(sideOf(d));
+      const target = b.find(function (p) { return !isClaimed(p); });
+      const hit = claim(target) || nearestUnclaimed(d, wrSkill);
+      if (hit) d.manId = hit.id;
+    });
+
+    /* Pass 2 — Nickel → #2 / slot on their side */
+    manDefs.filter(isNB).sort(function (a, b) { return (a.x || 0) - (b.x || 0); }).forEach(function (d) {
+      const b = bucket(sideOf(d));
+      var target = (b[1] && !isClaimed(b[1])) ? b[1] : b.find(function (p) { return !isClaimed(p); });
+      const hit = claim(target) || nearestUnclaimed(d, wrSkill);
+      if (hit) d.manId = hit.id;
+    });
+
+    /* Pass 3 — man safeties → #3 / TE remaining on side, then backs */
+    manDefs.filter(isSaf).forEach(function (d) {
+      const b = bucket(sideOf(d));
+      const target = b.find(function (p) { return !isClaimed(p); });
+      const hit = claim(target) || nearestUnclaimed(d, backs) || nearestUnclaimed(d, skill);
+      if (hit) d.manId = hit.id;
+    });
+
+    /* Pass 4 — man LBs → nearest remaining skill / back */
+    manDefs.filter(function (d) { return d.group === "LB"; }).forEach(function (d) {
+      const hit = nearestUnclaimed(d, skill);
+      if (hit) d.manId = hit.id;
+    });
+
+    /* Pass 5 — any leftover man def still unmatched */
+    manDefs.filter(function (d) { return d.manId == null; }).forEach(function (d) {
+      const hit = nearestUnclaimed(d, skill);
+      if (hit) d.manId = hit.id;
+    });
+
+    /* Unmatched man → rat/robber in the hole (not a phantom double) */
+    manDefs.filter(function (d) { return d.manId == null; }).forEach(function (d) {
+      d._rat = true;
+      d.dx = DLAND.HKM.x;
+      d.dy = DLAND.HKM.y;
     });
   }
 
@@ -139,7 +235,33 @@
     if (cov === "Cover 6") return ell(D.Q1, 118, 58, "¼") + ell(D.Q2, 118, 58, "¼") + ell(D.HR, 235, 72, "DEEP ½") + rc(120, 282, 150, 60, "CURL") + rc(360, 282, 200, 60, "HOOK") + rc(700, 282, 180, 60, "FLAT");
     if (cov === "Tampa 2") return ell(D.HL, 235, 72, "DEEP ½") + ell(D.HR, 235, 72, "DEEP ½") + ell({ x: 500, y: 235 }, 110, 80, "POLE") + rc(120, 290, 170, 55, "FLAT") + rc(310, 290, 180, 55, "CURL") + rc(560, 290, 170, 55, "CURL") + rc(740, 290, 150, 55, "FLAT");
     if (cov === "Cover 1") return ell(D.MID, 160, 64, "DEEP MIDDLE");
+    if (cov === "2-Man") return ell(D.HL, 235, 72, "DEEP ½") + ell(D.HR, 235, 72, "DEEP ½");
     return "";
+  }
+
+  /** Dashed man connectors (Show coverage) — who has who. */
+  function manConnectors(defs, players) {
+    const byId = {};
+    (players || []).forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
+    let s = "";
+    (defs || []).forEach(function (d) {
+      if (!d || d.role !== "man") return;
+      if (d.manId == null) {
+        const hx = d.dx != null ? d.dx : DLAND.HKM.x;
+        const hy = d.dy != null ? d.dy : DLAND.HKM.y;
+        s += `<line x1="${d.x}" y1="${d.y}" x2="${hx}" y2="${hy}" stroke="rgba(255,210,74,.55)" stroke-width="1.8" stroke-dasharray="4 4"/>`;
+        s += `<circle cx="${hx}" cy="${hy}" r="16" fill="none" stroke="rgba(255,210,74,.75)" stroke-width="2" stroke-dasharray="4 3"/>`;
+        s += `<text x="${hx}" y="${hy + 4}" font-size="10" font-weight="800" fill="#ffd24a" text-anchor="middle">RAT</text>`;
+        return;
+      }
+      const r = byId[d.manId];
+      if (!r) return;
+      const mx = (d.x + r.x) / 2, my = (d.y + r.y) / 2;
+      s += `<line x1="${d.x}" y1="${d.y}" x2="${r.x}" y2="${r.y}" stroke="rgba(255,210,74,.8)" stroke-width="2.2" stroke-dasharray="6 5"/>`;
+      s += `<circle cx="${r.x}" cy="${r.y}" r="5.5" fill="rgba(255,210,74,.9)" stroke="#13294B" stroke-width="1"/>`;
+      s += `<text x="${mx}" y="${my - 5}" font-size="9" font-weight="800" fill="#ffd24a" text-anchor="middle" stroke="rgba(0,0,0,.35)" stroke-width="2" paint-order="stroke">MAN</text>`;
+    });
+    return s;
   }
 
   function fieldSVG(state) {
@@ -279,6 +401,10 @@
     players.forEach(p => { s += motionPath(p); s += routePath(p); });
     defs.forEach(d => { if (d.route && d.route.length) s += routePath(d); });
     s += `</g>`;
+    /* Man matchup connectors under tokens when Show coverage is on (Cover 0 / 1 / 2-Man). */
+    if (showZ && !anim && cov && (cov === "Cover 0" || cov === "Cover 1" || cov === "2-Man")) {
+      s += manConnectors(defs, players);
+    }
     defs.forEach(d => { const pos = anim ? (d._ap || { x: d.x, y: d.y }) : null; s += defNode(d, pos); });
     players.forEach(p => {
       const pos = anim ? (p._ap || { x: p.x, y: p.y }) : null;
@@ -507,7 +633,7 @@
     LOS, W, H, DLAND, GCOL, LAB, DFRONTS, PPY, YARD_ROUTES,
     isUnified, hasPlayData, normalizePlayData, prepareDrillState, yardToData, yardRouteToPoints,
     esc, fieldSVG, routeD, routePath, motionPath, playerNode, defNode, textNode, drawNode,
-    zoneShapes, assignCoverage, placeDefenseOn, handles, segMid, flatten, along, ease,
+    zoneShapes, manConnectors, assignCoverage, assignManMatchups, placeDefenseOn, handles, segMid, flatten, along, ease,
     renderMarkup, renderState, play, cancelAnim, quizTargets, routeEnd, markerDefs, pColor, blockGlyph
   };
 })(typeof window !== "undefined" ? window : globalThis);
