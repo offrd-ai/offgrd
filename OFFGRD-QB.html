@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=91"></script>
+<script src="OFFGRD-config.js?v=92"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=91"></script>
-<script src="OFFGRD-render.js?v=91"></script>
-<script src="OFFGRD-autoderive.js?v=91"></script>
-<script src="OFFGRD-redesign.js?v=91"></script>
+<script src="OFFGRD-cache-gate.js?v=92"></script>
+<script src="OFFGRD-render.js?v=92"></script>
+<script src="OFFGRD-autoderive.js?v=92"></script>
+<script src="OFFGRD-redesign.js?v=92"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -1395,22 +1395,85 @@ function finalizeOl(overallCorrect, post, job){
   if(test) test.results.push({concept:rep.play.name+" — "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
   if(test){ test.i++; setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, overallCorrect?1400:2600); }
 }
-/* ---------- Blitz drill — front-seven rush lane / stunt path / drop assignment (defender POV) ----------
-   Reuses the OL front + stunt render (olField) and post-snap animation (animateOlStunts), inverted to
-   the defender: show the front, Snap to run the stunt, then ask THIS defender's job as a multiple-choice
-   call (same scaffold as the Coverage-ID drill). Assignments are derived from the authored front + stunt
-   geometry (ol_keys.stunt / drawn blitz paths). */
+/* ---------- Blitz drill — opponent offense picture + our front/blitz call (defender POV) ----------
+   Offense look comes from the opponent's scouted plays/formations. Our defensive front + stunt
+   overlay (and the graded assignment) come from our week plan plays with authored defs/stunts.
+   Reuses olField + animateOlStunts + Coverage-ID MC scaffold. */
 const BLITZ_OPTS=["Rush A-gap","Rush B-gap","Rush C-gap / edge","Loop / twist","Drop to hook"];
-let BLITZPLAYS=[];
+let BLITZCALLS=[];
+let OPPLOOKS=[];
+function cloneJson(v){ try{ return JSON.parse(JSON.stringify(v)); }catch(e){ return v; } }
+async function loadOpponentOffenseLooks(){
+  const opp=(WEEKPLAN&&WEEKPLAN.opponent)||"";
+  let games=[];
+  try{ if(window.QB&&window.QB.games) games=await window.QB.games(); }catch(e){ games=[]; }
+  const filtered=(games||[]).filter(g=>{
+    if(opp && g.opponent && g.opponent!==opp) return false;
+    return !g.side || g.side==="off" || g.side==="offense";
+  });
+  let looks=[];
+  try{
+    if(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.opponentPlaysFromGames){
+      looks=OFFGRD_SCOUTCARDS.opponentPlaysFromGames(filtered);
+    }
+  }catch(e){ looks=[]; }
+  looks=(looks||[]).map(p=>{
+    const raw=(p.data&&p.data.players)?p.data:(p.players?p:(p.data||p));
+    const players=(raw&&raw.players)||p.players||[];
+    return {
+      id:p.id||("opp-"+(p.name||p.formation||"look")),
+      name:p.name||p.formation||"Opp look",
+      formation:p.formation||"",
+      state:{ players:cloneJson(players) }
+    };
+  }).filter(l=>((l.state&&l.state.players)||[]).length);
+  /* Fallback: charted formations without diagrams → STDFORM skeleton labeled by formation name. */
+  if(!looks.length){
+    const forms={};
+    filtered.forEach(g=>{
+      (g.rows||[]).forEach(r=>{
+        const f=String((r&&(r.formation||r.playType))||"").trim();
+        if(f) forms[f]=(forms[f]||0)+1;
+      });
+    });
+    Object.keys(forms).sort((a,b)=>forms[b]-forms[a]).slice(0,8).forEach(f=>{
+      looks.push({
+        id:"form-"+f,
+        name:f,
+        formation:f,
+        state:{ players:cloneJson((STDFORM&&STDFORM.players)||[]) },
+        _synthetic:true
+      });
+    });
+  }
+  return looks.filter(l=>((l.state&&l.state.players)||[]).length);
+}
 async function loadBlitzPlays(){
-  BLITZPLAYS=[];
+  BLITZCALLS=[]; OPPLOOKS=[];
   if(!(window.QB&&window.QB.ready)) return;
   try{
     const rows=await window.QB.plays();
-    BLITZPLAYS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
+    BLITZCALLS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
       .filter(p=>((p.state&&p.state.defs)||[]).length && olHasStunts(p.state, p.ol&&p.ol.stunt));
-    if(WEEKMODE) BLITZPLAYS=BLITZPLAYS.filter(p=>weekPlayMatch(p));
-  }catch(e){ BLITZPLAYS=[]; }
+    if(WEEKMODE) BLITZCALLS=BLITZCALLS.filter(p=>weekPlayMatch(p));
+  }catch(e){ BLITZCALLS=[]; }
+  try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
+}
+function composeBlitzPlay(look, call){
+  const our=cloneJson(call.state||{});
+  const players=cloneJson(((look.state&&look.state.players)||[]).length?(look.state.players):((STDFORM&&STDFORM.players)||[]));
+  const defs=cloneJson(our.defs||[]);
+  const front=(our.front&&our.front!=="none")?our.front:((call.state&&call.state.front)||"our front");
+  const oppName=look.name||look.formation||"Opp look";
+  const oppTag=(WEEKPLAN&&WEEKPLAN.opponent)?WEEKPLAN.opponent:"";
+  return {
+    id:(look.id||"opp")+"+"+(call.id||"d"),
+    name:oppName,
+    oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
+    ourCall:call.name||"Blitz",
+    state:{ players:players, defs:defs, front:front },
+    ol:call.ol||{}
+  };
 }
 function blitzPathFor(play,i){
   const d=((play.state&&play.state.defs)||[])[i]||{};
@@ -1430,13 +1493,11 @@ function blitzAssignFor(play,i){
     const cx=olCenterX(state), end=path[path.length-1];
     const ex=(end&&end.x!=null)?end.x:d.x;
     const startSide=Math.sign(d.x-cx)||1, endSide=Math.sign(ex-cx)||startSide;
-    /* a looper crosses center or bends around a control point -> twist/loop;
-       a straight penetrator long-sticks into the gap it ends in */
     if(startSide!==endSide || path.some(p=>p&&p.cx!=null)) return "Loop / twist";
     return blitzGapForX(state,ex);
   }
-  if(isBacker) return "Drop to hook";      /* off-ball LB with no blitz path -> coverage drop */
-  return blitzGapForX(state,d.x);          /* DL rushing his aligned gap */
+  if(isBacker) return "Drop to hook";
+  return blitzGapForX(state,d.x);
 }
 function blitzTargets(play){
   const state=play.state, defs=(state&&state.defs)||[], stunt=(play.ol&&play.ol.stunt)||{}, idx=[];
@@ -1447,17 +1508,18 @@ function blitzTargets(play){
   return idx;
 }
 function pickBlitzRep(){
-  if(!BLITZPLAYS.length) return null;
+  if(!BLITZCALLS.length || !OPPLOOKS.length) return null;
   for(let tries=0;tries<40;tries++){
-    const p=BLITZPLAYS[Math.floor(Math.random()*BLITZPLAYS.length)];
+    const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
+    const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
+    const p=composeBlitzPlay(look, call);
     const tg=blitzTargets(p); if(!tg.length) continue;
     const i=tg[Math.floor(Math.random()*tg.length)];
     const d=((p.state&&p.state.defs)||[])[i]; if(!d) continue;
     return {blitz:true, play:p, di:i, defLab:(d.lab||"defender"), answer:blitzAssignFor(p,i)};
   }
   return null;
-}
-function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
+}function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
 function renderBlitzField(r){
   const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
   svg.innerHTML=olField(r.play.state, null, null, null, false);
@@ -1482,7 +1544,7 @@ function answerBlitz(opt){
   const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
   fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" — "+esc(rep.defLab)+": "+esc(rep.answer)+"</h4>"
     +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
-  test.results.push({concept:(rep.play.name||"Blitz")+" — "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
+  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Blitz")+" \u2014 "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
   test.i++;
   setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?1300:2200);
 }
@@ -1531,7 +1593,7 @@ function showRep(r){
   }
   if(r.blitz){
     SNAPPED=false;
-    document.getElementById("prompt").textContent=`—${r.play.name}— vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} — you're the ${r.defLab}. ▶ Snap, then call your job.`;
+    document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"} \u2014 you're the ${r.defLab}. Snap, then call your job.`;
     cancelQB(); renderBlitzField(r);
     const fbb=document.getElementById("fb"); fbb.className="fb"; fbb.innerHTML="";
     document.getElementById("nextBtn").classList.add("hidden");
@@ -1649,9 +1711,9 @@ async function startTest(){
     await loadBlitzPlays();
     for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickBlitzRep(); if(r) test.queue.push(r); }
     if(!test.queue.length){
-      empty(WEEKMODE?"This week’s blitz install isn’t ready":"No blitz/stunt looks yet",
-        WEEKMODE?"None of this week’s plan plays have a drawn front with a blitz/stunt yet. Your coach places the front and adds Blitz / Direct stunt paths in the Playbook, then keys it under Author → OL keys."
-          :"No plays with a drawn front + stunt yet. A coach places the opponent’s front on a play in the Playbook, adds stunt/blitz paths, and keys it under Author → OL keys.");
+      empty(WEEKMODE?"This week's blitz install isn't ready":"No opponent looks / blitz calls yet",
+        WEEKMODE?"Need opponent offensive looks (scout cards or charted formations) AND our week plan plays with a drawn front + blitz/stunt. Coach: Scout cards for the opponent, plus Playbook front/stunt on week plays."
+          :"Need opponent offensive looks from scouting AND plays with a drawn front + stunt (Playbook).");
       return;
     }
     swap("play"); showRep(test.queue[0]); updateProgress(); return;
@@ -1879,11 +1941,12 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=91"></script>
-<script src="OFFGRD-week-autotest.js?v=91"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=91"></script>
-<script type="module" src="OFFGRD-account.js?v=91"></script>
-<script src="OFFGRD-role-gate.js?v=91"></script>
+<script src="OFFGRD-mobile.js?v=92"></script>
+<script src="OFFGRD-scoutcards.js?v=92"></script>
+<script src="OFFGRD-week-autotest.js?v=92"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=92"></script>
+<script type="module" src="OFFGRD-account.js?v=92"></script>
+<script src="OFFGRD-role-gate.js?v=92"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

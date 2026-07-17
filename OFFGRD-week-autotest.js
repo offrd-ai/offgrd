@@ -202,7 +202,36 @@
     return { derivedReads: derivedReads, derivedOl: derivedOl };
   }
 
-  function kindBuildable(kind, planPlays, playbook, coverages) {
+  /** Opponent offensive looks available for blitz picture: drawn scout diagrams and/or charted formations. */
+  function opponentOffenseLookCount(games, opponent) {
+    const opp = (opponent || "").trim();
+    const list = (games || []).filter(function (g) {
+      if (opp && g.opponent && g.opponent !== opp) return false;
+      return !g.side || g.side === "off" || g.side === "offense";
+    });
+    let diagrams = 0;
+    if (root.OFFGRD_SCOUTCARDS && typeof root.OFFGRD_SCOUTCARDS.opponentPlaysFromGames === "function") {
+      diagrams = root.OFFGRD_SCOUTCARDS.opponentPlaysFromGames(list).length;
+    } else {
+      list.forEach(function (g) {
+        (g.rows || []).forEach(function (r) {
+          if (r && (r.thumbSvg || r.data || r.diagram || r.players)) diagrams += 1;
+        });
+      });
+    }
+    if (diagrams) return diagrams;
+    const forms = {};
+    list.forEach(function (g) {
+      (g.rows || []).forEach(function (r) {
+        const f = String((r && (r.formation || r.playType)) || "").trim();
+        if (f) forms[f] = 1;
+      });
+    });
+    return Object.keys(forms).length;
+  }
+
+  function kindBuildable(kind, planPlays, playbook, coverages, ctx) {
+    ctx = ctx || {};
     const rows = planPlays.map(function (c) { return resolvePlayRow(c, playbook); }).filter(Boolean);
     if (!rows.length) return { ok: false, reason: "no plays" };
     if (kind === "reads") {
@@ -224,12 +253,10 @@
       return n ? { ok: true } : { ok: false, reason: "no OL keys on plan plays" };
     }
     if (kind === "blitz") {
-      /* Buildable when a plan play carries a drawn defensive front with an assignable
-         rush/blitz/stunt structure (authored stunt paths, or a rushing/blitzing defender
-         with a drawn path). Mirrors the OL "protect" gate, inverted to the defender POV —
-         the blitz drill reuses the same front + stunt geometry. No blitz/stunt authored =>
-         incomplete "needs coach keys" nudge (don't fabricate). */
-      const n = rows.filter(function (p) {
+      /* Buildable when (a) our week has a drawn front + blitz/stunt AND (b) the opponent
+         has offensive looks (drawn scout cards or charted formations). Picture = opponent
+         offense; overlay/answer = our defensive call. Don't fabricate either side. */
+      const calls = rows.filter(function (p) {
         const st = (p.data && p.data.players) ? p.data : (p.data || p);
         const defs = (st && st.defs) || [];
         if (!defs.length) return false;
@@ -238,7 +265,10 @@
         const hasBlitzPath = defs.some(function (d) { return d && d.route && d.route.length; });
         return !!(hasStunt || hasBlitzPath);
       }).length;
-      return n ? { ok: true } : { ok: false, reason: "no fronts with a blitz/stunt on plan plays" };
+      if (!calls) return { ok: false, reason: "no fronts with a blitz/stunt on plan plays" };
+      const looks = opponentOffenseLookCount(ctx.games, ctx.opponent || "");
+      if (!looks) return { ok: false, reason: "no opponent offensive looks (scout cards / charted formations)" };
+      return { ok: true };
     }
     return { ok: false, reason: "unknown kind" };
   }
@@ -314,10 +344,11 @@
     };
   }
 
-  function buildTestSpec(week, roster, playbook, coverages) {
+  function buildTestSpec(week, roster, playbook, coverages, games) {
     const planPlays = planPlayList(week);
     const players = (roster || []).filter(function (m) { return m && m.role === "player"; });
     const positions = {};
+    const blitzCtx = { games: games || [], opponent: (week && week.opponent) || "" };
     players.forEach(function (m) {
       parseMemberPositions(m).forEach(function (pos) {
         positions[pos] = positions[pos] || { kinds: POSKINDS[pos].slice(), minTests: READY_MIN_TESTS, minAvg: READY_AVG, incomplete: false, missing: [] };
@@ -329,7 +360,7 @@
       const missing = [];
       const okKinds = [];
       (spec.kinds || []).forEach(function (k) {
-        const b = kindBuildable(k, planPlays, playbook, coverages);
+        const b = kindBuildable(k, planPlays, playbook, coverages, blitzCtx);
         if (b.ok) okKinds.push(k);
         else missing.push(k + ": " + b.reason);
       });
@@ -430,7 +461,7 @@
     let coverages = opts.coverages || [];
 
     try {
-      if ((!roster.length || !playbook.length) && root.Cloud && root.Cloud.ready) {
+      if (root.Cloud && root.Cloud.ready) {
         const teams = await root.Cloud.myTeams();
         let tid = null;
         try { tid = localStorage.getItem("offgrd_team"); } catch (e) {}
@@ -438,10 +469,11 @@
         if (team) {
           if (!roster.length) roster = await root.Cloud.teamRoster(team.id).catch(function () { return []; });
           if (!playbook.length) playbook = await root.Cloud.listPlays(team.id).catch(function () { return []; });
-          if (!coverages.length) {
-            try {
-              let games = await root.Cloud.listGames(team.id).catch(function () { return []; });
-              if (!games || !games.length) games = root.GAMES || [];
+          try {
+            let games = await root.Cloud.listGames(team.id).catch(function () { return []; });
+            if (!games || !games.length) games = root.GAMES || [];
+            opts._games = games;
+            if (!coverages.length) {
               const counts = {};
               (games || []).filter(function (g) { return g.side === "def" && g.opponent === week.opponent; }).forEach(function (g) {
                 (g.rows || []).forEach(function (r) {
@@ -450,8 +482,8 @@
                 });
               });
               coverages = Object.keys(counts).map(function (k) { return { k: k, n: counts[k] }; }).sort(function (a, b) { return b.n - a.n; });
-            } catch (e) {}
-          }
+            }
+          } catch (e) {}
         }
       }
     } catch (e) {}
@@ -459,7 +491,7 @@
     // Force derive path during approve (authored wins)
     const derive = await ensureDerivedContent(playbook, true);
     const covNames = coverages.map(function (c) { return typeof c === "string" ? c : c.k; }).filter(Boolean);
-    const test_spec = buildTestSpec(week, roster, playbook, covNames);
+    const test_spec = buildTestSpec(week, roster, playbook, covNames, opts._games || root.GAMES || []);
     const genDef = (week.gen && week.gen.defense) || {};
     const def_aligns = Object.assign({}, week.def_aligns || {}, buildDefAligns(coverages, genDef));
 

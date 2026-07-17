@@ -57,6 +57,10 @@ window.QB = {
     const t = await activeTeam(); if(!t) return [];
     return Cloud.listPlays(t.id);
   },
+  async games(){
+    const t = await activeTeam(); if(!t) return [];
+    try{ return await Cloud.listGames(t.id); }catch(e){ return []; }
+  },
   async savePlayReads(id, reads){
     return Cloud.updatePlayReads(id, reads);
   },
