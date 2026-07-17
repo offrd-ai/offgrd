@@ -1395,7 +1395,19 @@
         clickExisting("cd");
         break;
       case "signout":
-        clickExisting("co");
+        /* #co doesn't exist on the redesigned shell, so the old clickExisting was a no-op.
+           Call the real sign-out and return to the signed-out landing. */
+        if (!clickExisting("co")) {
+          (function () {
+            try {
+              if (root.Cloud && root.Cloud.signOut) { Promise.resolve(root.Cloud.signOut()).catch(function () {}); }
+            } catch (e) {}
+            try { localStorage.removeItem("offgrd_team"); } catch (e) {}
+            setTimeout(function () {
+              try { location.href = withV("OFFGRD.html"); } catch (e) { try { location.reload(); } catch (e2) {} }
+            }, 200);
+          })();
+        }
         break;
       case "toggleBase":
         toggleBase();
@@ -1690,15 +1702,15 @@
     if (_playerLandingDone) return;
     if (appKind() !== "scout") return;
     if (!isPlayerRole()) return;
-    const cur = currentView();
-    if (PLAYER_LANDING_VIEWS[cur]) {
-      _playerLandingDone = true;
-      return;
-    }
-    if (typeof root.setView === "function") {
-      try { root.setView("thisweek"); } catch (e) {}
-    }
     _playerLandingDone = true;
+    /* Render the landing view once on load so This Week populates without a click.
+       (Previously we returned early when currentView was already 'thisweek', which
+       left the view hidden/empty because the player render never fired.) */
+    const cur = currentView();
+    const target = PLAYER_LANDING_VIEWS[cur] ? cur : "thisweek";
+    if (typeof root.setView === "function") {
+      try { root.setView(target); } catch (e) {}
+    }
   }
 
   function markPlayerLandingDone() {
