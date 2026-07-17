@@ -3,234 +3,234 @@
 <head>
 <meta charset="utf-8"/>
 <script>
-  (function () {
-    // Canonical host: signed-in OFFGRD lives at getoffrd.com/gameday (Phase 3 SSO).
-    // Hostname guard = no-op under the getoffrd.com rewrite (avoids loop with A1 fetch).
-    // Offline skip: don't brick an offops.app PWA/cache on the sideline.
-    if (navigator.onLine === false) return;
-    if (/(^|\.)offops\.app$/i.test(location.hostname)) {
-      var file = location.pathname.split('/').pop() || 'OFFGRD.html';
-      location.replace('https://getoffrd.com/gameday/' + file + location.search + location.hash);
-    }
-  })();
+ (function () {
+ // Canonical host: signed-in OFFGRD lives at getoffrd.com/gameday (Phase 3 SSO).
+ // Hostname guard = no-op under the getoffrd.com rewrite (avoids loop with A1 fetch).
+ // Offline skip: don't brick an offops.app PWA/cache on the sideline.
+ if (navigator.onLine === false) return;
+ if (/(^|\.)offops\.app$/i.test(location.hostname)) {
+ var file = location.pathname.split('/').pop() || 'OFFGRD.html';
+ location.replace('https://getoffrd.com/gameday/' + file + location.search + location.hash);
+ }
+ })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#13294B"/>
 <title>OFFGRD — Playbook</title>
 <style>
-  :root{--bg:#f4f5f7;--panel:#fff;--ink:#16181d;--muted:#5b626e;--line:#e2e5ea;--accent:#4B9CD3;--navy:#13294B;--good:#1d7a45;--bad:#a8112b;--shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06)}
-  *{box-sizing:border-box} html,body{margin:0}
-  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:14px;max-width:1180px;margin:0 auto;-webkit-tap-highlight-color:transparent}
-  .topbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-  .topbar b{font-size:22px;letter-spacing:.5px;color:var(--navy)}
-  .topbar span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:12px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .lbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-right:4px}
-  button{font-family:inherit;cursor:pointer}
-  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;border-radius:9px;font-weight:800;font-size:13px}
-  .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn.nav{background:var(--navy);border-color:var(--navy);color:#fff}
-  .btn.go{background:var(--good);border-color:var(--good);color:#fff}
-  .btn.dz{color:var(--bad)}
-  .btn:disabled{opacity:.4;cursor:default}
-  select,input{padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-weight:700;font-size:13px;font-family:inherit}
-  svg{width:100%;height:auto;display:block;border-radius:12px;touch-action:none;background:#1f7a3d}
-  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
-  .meta label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-  .plays{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
-  .playrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13px}
-  .playrow .nm{font-weight:800}.playrow .tag{color:var(--muted);font-size:11px}.playrow .sp{flex:1}
-  .playrow .th{width:72px;height:46px;flex:0 0 auto;border-radius:6px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
-  .playrow .th svg{width:100%;height:100%;display:block;border-radius:0}
-  .libtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
-  .libtools input[type="search"],.libtools select{min-width:0;flex:1 1 120px;max-width:220px}
-  .tagchip{display:inline-flex;align-items:center;gap:4px;background:#eef5fc;border:1px solid #cfe0f3;color:var(--navy);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800}
-  .tagchip button{border:0;background:transparent;color:var(--muted);font-weight:900;cursor:pointer;padding:0 2px;line-height:1}
-  .insth{width:56px;height:36px;flex:0 0 auto;border-radius:5px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
-  .insth svg{width:100%;height:100%;display:block;border-radius:0}
-  .hint{font-size:12px;color:var(--muted);line-height:1.5}
-  .modebar .btn{min-width:64px}
-  .sw{width:24px;height:24px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
-  #selPanel{display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
-  .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:20px;z-index:50;overflow:auto}
-  .ov.show{display:flex}
-  .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
-  textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
+ :root{--bg:#f4f5f7;--panel:#fff;--ink:#16181d;--muted:#5b626e;--line:#e2e5ea;--accent:#4B9CD3;--navy:#13294B;--good:#1d7a45;--bad:#a8112b;--shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06)}
+ *{box-sizing:border-box} html,body{margin:0}
+ body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:14px;max-width:1180px;margin:0 auto;-webkit-tap-highlight-color:transparent}
+ .topbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+ .topbar b{font-size:22px;letter-spacing:.5px;color:var(--navy)}
+ .topbar span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+ .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:12px}
+ .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+ .lbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-right:4px}
+ button{font-family:inherit;cursor:pointer}
+ .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;border-radius:9px;font-weight:800;font-size:13px}
+ .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+ .btn.nav{background:var(--navy);border-color:var(--navy);color:#fff}
+ .btn.go{background:var(--good);border-color:var(--good);color:#fff}
+ .btn.dz{color:var(--bad)}
+ .btn:disabled{opacity:.4;cursor:default}
+ select,input{padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-weight:700;font-size:13px;font-family:inherit}
+ svg{width:100%;height:auto;display:block;border-radius:12px;touch-action:none;background:#1f7a3d}
+ .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+ .meta label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+ .plays{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
+ .playrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13px}
+ .playrow .nm{font-weight:800}.playrow .tag{color:var(--muted);font-size:11px}.playrow .sp{flex:1}
+ .playrow .th{width:72px;height:46px;flex:0 0 auto;border-radius:6px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
+ .playrow .th svg{width:100%;height:100%;display:block;border-radius:0}
+ .libtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
+ .libtools input[type="search"],.libtools select{min-width:0;flex:1 1 120px;max-width:220px}
+ .tagchip{display:inline-flex;align-items:center;gap:4px;background:#eef5fc;border:1px solid #cfe0f3;color:var(--navy);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800}
+ .tagchip button{border:0;background:transparent;color:var(--muted);font-weight:900;cursor:pointer;padding:0 2px;line-height:1}
+ .insth{width:56px;height:36px;flex:0 0 auto;border-radius:5px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
+ .insth svg{width:100%;height:100%;display:block;border-radius:0}
+ .hint{font-size:12px;color:var(--muted);line-height:1.5}
+ .modebar .btn{min-width:64px}
+ .sw{width:24px;height:24px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+ #selPanel{display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+ .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:20px;z-index:50;overflow:auto}
+ .ov.show{display:flex}
+ .ovbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px;box-shadow:var(--shadow)}
+ textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);color:var(--ink)}
 </style>
-<script src="OFFGRD-config.js?v=94"></script>
+<script src="OFFGRD-config.js?v=95"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=94"></script>
-<script src="OFFGRD-render.js?v=94"></script>
-<script src="OFFGRD-scoutcards.js?v=94"></script>
-<script src="OFFGRD-telestrate.js?v=94"></script>
-<script src="OFFGRD-redesign.js?v=94"></script>
+<script src="OFFGRD-cache-gate.js?v=95"></script>
+<script src="OFFGRD-render.js?v=95"></script>
+<script src="OFFGRD-scoutcards.js?v=95"></script>
+<script src="OFFGRD-telestrate.js?v=95"></script>
+<script src="OFFGRD-redesign.js?v=95"></script>
 </head>
 <body>
-  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD ï¿½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>ï¿½ Playbook ï¿½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
+ <div class="topbar"><a href="OFFGRD.html" title="OFFGRD ï¿½ back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>ï¿½ Playbook ï¿½ draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><button class="btn go" id="wizBtn" style="margin-left:16px">? Build a Play</button><span id="acct" style="margin-left:auto"></span></div>
 
-  <!-- SETUP / GENERAL -->
-  <div class="panel" data-sec="Setup &amp; field">
-    <div class="row">
-      <span class="lbl">Field</span><select id="fieldSel"><option selected>High School</option><option>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
-      <span class="lbl" style="margin-left:6px">Trace</span><button class="btn" id="imgBtn">Image</button><input type="range" id="bgOp" min="10" max="100" value="50" style="width:84px" title="image opacity"><button class="btn" id="bgClear">Clear</button><input type="file" id="imgFile" accept="image/*" style="display:none">
-      <span class="sp" style="flex:1"></span>
-      <button class="btn" id="undoBtn" title="Undo">&#8630; Undo</button>
-      <button class="btn" id="redoBtn" title="Redo">&#8631; Redo</button>
-      <button class="btn go" id="playBtn">&#9654; Play</button>
-      <button class="btn nav" id="resetBtn">Reset</button>
-    </div>
-    <div class="row modebar" style="margin-top:8px">
-      <span class="lbl">Annotate</span>
-      <button class="btn" data-mode="text">Text</button>
-      <button class="btn" data-mode="draw">Draw</button>
-      <button class="btn" data-mode="erase">Erase</button>
-      <span class="sp" style="flex:1"></span>
-      <button class="btn dz" id="clearAll">Clear field</button>
-    </div>
-  </div>
+ <!-- SETUP / GENERAL -->
+ <div class="panel" data-sec="Setup &amp; field">
+ <div class="row">
+ <span class="lbl">Field</span><select id="fieldSel"><option selected>High School</option><option>College</option><option>NFL</option><option>Red Zone</option><option>Blank</option></select>
+ <span class="lbl" style="margin-left:6px">Trace</span><button class="btn" id="imgBtn">Image</button><input type="range" id="bgOp" min="10" max="100" value="50" style="width:84px" title="image opacity"><button class="btn" id="bgClear">Clear</button><input type="file" id="imgFile" accept="image/*" style="display:none">
+ <span class="sp" style="flex:1"></span>
+ <button class="btn" id="undoBtn" title="Undo">&#8630; Undo</button>
+ <button class="btn" id="redoBtn" title="Redo">&#8631; Redo</button>
+ <button class="btn go" id="playBtn">&#9654; Play</button>
+ <button class="btn nav" id="resetBtn">Reset</button>
+ </div>
+ <div class="row modebar" style="margin-top:8px">
+ <span class="lbl">Annotate</span>
+ <button class="btn" data-mode="text">Text</button>
+ <button class="btn" data-mode="draw">Draw</button>
+ <button class="btn" data-mode="erase">Erase</button>
+ <span class="sp" style="flex:1"></span>
+ <button class="btn dz" id="clearAll">Clear field</button>
+ </div>
+ </div>
 
-  <!-- OFFENSE -->
-  <div class="panel" data-sec="Offense">
-    <div class="row">
-      <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">&#8644; Flip</button>
-      <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">&mdash; pers &mdash;</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
-      <button class="btn" id="addWR">+ Player</button>
-      <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">&mdash; none &mdash;</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
-    </div>
-    <div class="row modebar" style="margin-top:8px">
-      <span class="lbl">Offense tools</span>
-      <button class="btn on" data-mode="route">Route</button>
-      <button class="btn" data-mode="move">Move</button>
-      <button class="btn" data-mode="block">Block</button>
-      <button class="btn" data-mode="motion">Motion</button>
-      <span class="sp" style="flex:1"></span>
-      <button class="btn" id="clearRoutes">Clear routes</button>
-    </div>
-  </div>
+ <!-- OFFENSE -->
+ <div class="panel" data-sec="Offense">
+ <div class="row">
+ <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">&#8644; Flip</button>
+ <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">&mdash; pers &mdash;</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
+ <button class="btn" id="addWR">+ Player</button>
+ <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">&mdash; none &mdash;</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
+ </div>
+ <div class="row modebar" style="margin-top:8px">
+ <span class="lbl">Offense tools</span>
+ <button class="btn on" data-mode="route">Route</button>
+ <button class="btn" data-mode="move">Move</button>
+ <button class="btn" data-mode="block">Block</button>
+ <button class="btn" data-mode="motion">Motion</button>
+ <span class="sp" style="flex:1"></span>
+ <button class="btn" id="clearRoutes">Clear routes</button>
+ </div>
+ </div>
 
-  <div class="panel" id="routePanel">
-    <div class="lbl" style="margin-bottom:6px">Quick routes ï¿½ tap a player, then a route</div>
-    <div class="row" id="routeBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Concepts ï¿½ apply to all receivers at once</div>
-    <div class="row" id="conceptBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Run blocks ï¿½ tap a lineman, then a block</div>
-    <div class="row" id="blockBar"></div>
-    <div class="lbl" style="margin:10px 0 6px">Assignments ? routes ï¿½ type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
-    <div class="row"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
-  </div>
+ <div class="panel" id="routePanel">
+ <div class="lbl" style="margin-bottom:6px">Quick routes ï¿½ tap a player, then a route</div>
+ <div class="row" id="routeBar"></div>
+ <div class="lbl" style="margin:10px 0 6px">Concepts ï¿½ apply to all receivers at once</div>
+ <div class="row" id="conceptBar"></div>
+ <div class="lbl" style="margin:10px 0 6px">Run blocks ï¿½ tap a lineman, then a block</div>
+ <div class="row" id="blockBar"></div>
+ <div class="lbl" style="margin:10px 0 6px">Assignments ? routes ï¿½ type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
+ <div class="row"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
+ </div>
 
-  <!-- DEFENSE -->
-  <div class="panel" data-sec="Defense">
-    <div class="row">
-      <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
-      <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
-      <button class="btn" id="placeDef">Place defense</button>
-      <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show zones</label>
-    </div>
-    <div class="row modebar" style="margin-top:8px">
-      <span class="lbl">Defense tools</span>
-      <button class="btn" data-mode="def">Add defender</button>
-      <button class="btn" data-mode="blitz">Blitz</button>
-      <button class="btn" data-mode="move">Move</button>
-      <button class="btn" data-mode="route">Direct</button>
-      <span class="hint" style="flex-basis:100%;margin-top:6px">Direct a defender: <b>Direct</b> tool &rarr; tap the defender &rarr; tap where he should go (drag green dots to adjust, gray to curve). A drawn path overrides his coverage drop.</span>
-    </div>
-  </div>
+ <!-- DEFENSE -->
+ <div class="panel" data-sec="Defense">
+ <div class="row">
+ <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
+ <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
+ <button class="btn" id="placeDef">Place defense</button>
+ <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show zones</label>
+ </div>
+ <div class="row modebar" style="margin-top:8px">
+ <span class="lbl">Defense tools</span>
+ <button class="btn" data-mode="def">Add defender</button>
+ <button class="btn" data-mode="blitz">Blitz</button>
+ <button class="btn" data-mode="move">Move</button>
+ <button class="btn" data-mode="route">Direct</button>
+ <span class="hint" style="flex-basis:100%;margin-top:6px">Direct a defender: <b>Direct</b> tool &rarr; tap the defender &rarr; tap where he should go (drag green dots to adjust, gray to curve). A drawn path overrides his coverage drop.</span>
+ </div>
+ </div>
 
-  <div class="panel" style="padding:6px">
-    <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
-    <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
-      <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">? Play</button>
-      <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
-      <button class="btn" id="undoBtn2" title="Undo">&#8630; Undo</button>
-      <button class="btn" id="redoBtn2" title="Redo">&#8631; Redo</button>
-    </div>
-    <div id="selPanel">
-      <span class="lbl">Selected</span>
-      <input id="selLab" maxlength="3" style="width:54px;text-align:center" title="Player letter">
-      <span class="lbl" style="margin-left:4px">Color</span><span id="swatches" class="row" style="gap:5px"></span>
-      <button class="btn" id="selType">Make blocker</button>
-      <button class="btn dz" id="selDel">Delete player</button>
-      <div id="ctxBar" class="row" style="flex-basis:100%;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)"></div>
-    </div>
-    <p class="hint" id="hint" style="margin:8px 0 0"></p>
-  </div>
+ <div class="panel" style="padding:6px">
+ <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
+ <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
+ <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">? Play</button>
+ <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
+ <button class="btn" id="undoBtn2" title="Undo">&#8630; Undo</button>
+ <button class="btn" id="redoBtn2" title="Redo">&#8631; Redo</button>
+ </div>
+ <div id="selPanel">
+ <span class="lbl">Selected</span>
+ <input id="selLab" maxlength="3" style="width:54px;text-align:center" title="Player letter">
+ <span class="lbl" style="margin-left:4px">Color</span><span id="swatches" class="row" style="gap:5px"></span>
+ <button class="btn" id="selType">Make blocker</button>
+ <button class="btn dz" id="selDel">Delete player</button>
+ <div id="ctxBar" class="row" style="flex-basis:100%;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)"></div>
+ </div>
+ <p class="hint" id="hint" style="margin:8px 0 0"></p>
+ </div>
 
-  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in Reps Lab; feeds the education engine) -->
-  <div class="panel" id="asnPanel">
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
-      <button class="btn" id="asnToggle">Show ?</button>
-    </div>
-    <div id="asnBody" style="display:none">
-      <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew ï¿½ type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
-      <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
-      <div class="lbl" style="margin:12px 0 4px">QB notes ï¿½ progression, hots, reminders</div>
-      <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
-    </div>
-  </div>
+ <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in Reps Lab; feeds the education engine) -->
+ <div class="panel" id="asnPanel">
+ <div class="row" style="justify-content:space-between;align-items:center">
+ <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
+ <button class="btn" id="asnToggle">Show ?</button>
+ </div>
+ <div id="asnBody" style="display:none">
+ <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew ï¿½ type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
+ <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
+ <div class="lbl" style="margin:12px 0 4px">QB notes ï¿½ progression, hots, reminders</div>
+ <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
+ </div>
+ </div>
 
-  <div class="panel">
-    <div class="meta">
-      <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
-      <label>Family<input id="m-family" placeholder="e.g. Inside Zone"></label>
-      <label>Series<input id="m-series" placeholder="e.g. Zone"></label>
-      <label>Personnel<input id="m-pers" placeholder="e.g. 11"></label>
-      <label>Formation<input id="m-form" placeholder="e.g. 2x2"></label>
-      <label>Protection<input id="m-prot" placeholder="e.g. Slide R"></label>
-      <label style="grid-column:1/-1">Tags
-        <div class="row" style="margin-top:4px;gap:6px">
-          <input id="m-tagIn" placeholder="Add tag + Enter" style="flex:1;text-transform:none;font-weight:600">
-          <button type="button" class="btn" id="m-tagAdd">Add</button>
-        </div>
-        <div class="row" id="tagChips" style="margin-top:6px;gap:6px"></div>
-      </label>
-      <label>Group / folder<input id="m-group" placeholder="optional folder"></label>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn go" id="saveBtn">Save play</button>
-      <button class="btn" id="newBtn">New play</button>
-      <button class="btn" id="pngBtn">Export PNG</button>
-      <button class="btn" id="printBtn">Print / PDF</button>
-      <span class="sp" style="flex:1"></span>
-      <button class="btn nav" id="installBtn">Install plan</button>
-      <button class="btn nav" id="scoutCardsBtn" title="Printable scout cards from drawn plays">Scout cards</button>
-      <button class="btn nav" id="telestrateBtn" title="Draw on film ï¿½ still-frame telestration">Film</button>
-      <button class="btn" id="exportLib">Export playbook</button>
-      <button class="btn" id="importLib">Import playbook</button>
-      <input type="file" id="libFile" accept=".json" style="display:none">
-    </div>
-    <p class="hint" id="saveMsg" style="margin-top:8px"></p>
-  </div>
+ <div class="panel">
+ <div class="meta">
+ <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
+ <label>Family<input id="m-family" placeholder="e.g. Inside Zone"></label>
+ <label>Series<input id="m-series" placeholder="e.g. Zone"></label>
+ <label>Personnel<input id="m-pers" placeholder="e.g. 11"></label>
+ <label>Formation<input id="m-form" placeholder="e.g. 2x2"></label>
+ <label>Protection<input id="m-prot" placeholder="e.g. Slide R"></label>
+ <label style="grid-column:1/-1">Tags
+ <div class="row" style="margin-top:4px;gap:6px">
+ <input id="m-tagIn" placeholder="Add tag + Enter" style="flex:1;text-transform:none;font-weight:600">
+ <button type="button" class="btn" id="m-tagAdd">Add</button>
+ </div>
+ <div class="row" id="tagChips" style="margin-top:6px;gap:6px"></div>
+ </label>
+ <label>Group / folder<input id="m-group" placeholder="optional folder"></label>
+ </div>
+ <div class="row" style="margin-top:10px">
+ <button class="btn go" id="saveBtn">Save play</button>
+ <button class="btn" id="newBtn">New play</button>
+ <button class="btn" id="pngBtn">Export PNG</button>
+ <button class="btn" id="printBtn">Print / PDF</button>
+ <span class="sp" style="flex:1"></span>
+ <button class="btn nav" id="installBtn">Install plan</button>
+ <button class="btn nav" id="scoutCardsBtn" title="Printable scout cards from drawn plays">Scout cards</button>
+ <button class="btn nav" id="telestrateBtn" title="Draw on film ï¿½ still-frame telestration">Film</button>
+ <button class="btn" id="exportLib">Export playbook</button>
+ <button class="btn" id="importLib">Import playbook</button>
+ <input type="file" id="libFile" accept=".json" style="display:none">
+ </div>
+ <p class="hint" id="saveMsg" style="margin-top:8px"></p>
+ </div>
 
-  <div class="panel">
-    <div class="lbl" style="margin-bottom:6px">Your playbook (<span id="playCount">0</span>)</div>
-    <div class="libtools">
-      <input type="search" id="libSearch" placeholder="Search name, tags, formationï¿½" autocomplete="off">
-      <select id="libForm"><option value="">All formations</option></select>
-      <select id="libFam"><option value="">All families</option></select>
-      <select id="libSer"><option value="">All series</option></select>
-      <select id="libPers"><option value="">All personnel</option></select>
-      <select id="libTag"><option value="">All tags</option></select>
-      <select id="libSort"><option value="updated">Recently updated</option><option value="name">Name Aï¿½Z</option></select>
-    </div>
-    <div class="plays" id="playList"></div>
-  </div>
+ <div class="panel">
+ <div class="lbl" style="margin-bottom:6px">Your playbook (<span id="playCount">0</span>)</div>
+ <div class="libtools">
+ <input type="search" id="libSearch" placeholder="Search name, tags, formationï¿½" autocomplete="off">
+ <select id="libForm"><option value="">All formations</option></select>
+ <select id="libFam"><option value="">All families</option></select>
+ <select id="libSer"><option value="">All series</option></select>
+ <select id="libPers"><option value="">All personnel</option></select>
+ <select id="libTag"><option value="">All tags</option></select>
+ <select id="libSort"><option value="updated">Recently updated</option><option value="name">Name Aï¿½Z</option></select>
+ </div>
+ <div class="plays" id="playList"></div>
+ </div>
 
 <div class="ov" id="installModal"><div class="ovbox"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Install plan</b><div><button class="btn" onclick="window.print()">Print</button> <button class="btn" id="installClose">Close</button></div></div><p class="hint" style="margin:6px 0">Generated from your saved plays, grouped by series, base series first, ~6 installs per day.</p><div id="installBody"></div></div></div>
 
 <div class="ov" id="wizModal"><div class="ovbox" style="max-width:640px">
-  <div class="row" style="justify-content:space-between;align-items:center">
-    <b style="font-size:18px;color:var(--navy)">Build a Play</b>
-    <button class="btn" id="wizX">Close</button>
-  </div>
-  <div id="wizSteps" class="hint" style="margin:4px 0 12px;font-weight:800"></div>
-  <div id="wizBody"></div>
-  <div class="row" style="justify-content:space-between;margin-top:18px">
-    <button class="btn" id="wizBack">Back</button>
-    <button class="btn go" id="wizNext" style="min-width:110px">Next</button>
-  </div>
+ <div class="row" style="justify-content:space-between;align-items:center">
+ <b style="font-size:18px;color:var(--navy)">Build a Play</b>
+ <button class="btn" id="wizX">Close</button>
+ </div>
+ <div id="wizSteps" class="hint" style="margin:4px 0 12px;font-weight:800"></div>
+ <div id="wizBody"></div>
+ <div class="row" style="justify-content:space-between;margin-top:18px">
+ <button class="btn" id="wizBack">Back</button>
+ <button class="btn go" id="wizNext" style="min-width:110px">Next</button>
+ </div>
 </div></div>
 
 <script>
@@ -250,52 +250,52 @@ function nfKey(p){ return String(p.name||"").toLowerCase()+"|"+String(p.formatio
 function OL(){return[{lab:"LT",x:380,y:LOS,type:"block",ol:1},{lab:"LG",x:440,y:LOS,type:"block",ol:1},{lab:"C",x:500,y:LOS,type:"block",ol:1},{lab:"RG",x:560,y:LOS,type:"block",ol:1},{lab:"RT",x:620,y:LOS,type:"block",ol:1}];}
 function mir(a){return a.map(function(p){return Object.assign({},p,{x:W-p.x});});}
 const SK={
-  doubles:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:545,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:745,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
-  trips:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
-  bunch:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:705,y:LOS,type:"route"},{lab:"H",x:766,y:420,type:"route"},{lab:"Z",x:700,y:440,type:"route"}],
-  empty:[{lab:"QB",x:500,y:465,type:"qb"},{lab:"X",x:110,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:700,y:408,type:"route"},{lab:"Z",x:830,y:LOS,type:"route"},{lab:"F",x:915,y:418,type:"route"}],
-  pistol2:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:260,y:408,type:"route"},{lab:"Y",x:740,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
-  pistoltrips:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
-  ipro:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:658,y:LOS,type:"route"},{lab:"Z",x:872,y:LOS,type:"route"}],
-  itwins:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"Z",x:815,y:408,type:"route"}],
-  ace:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:500,y:530,type:"rb"},{lab:"H",x:352,y:LOS,type:"route"},{lab:"Y",x:648,y:LOS,type:"route"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}]
+ doubles:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:545,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:745,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
+ trips:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
+ bunch:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:455,y:470,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:705,y:LOS,type:"route"},{lab:"H",x:766,y:420,type:"route"},{lab:"Z",x:700,y:440,type:"route"}],
+ empty:[{lab:"QB",x:500,y:465,type:"qb"},{lab:"X",x:110,y:LOS,type:"route"},{lab:"H",x:255,y:408,type:"route"},{lab:"Y",x:700,y:408,type:"route"},{lab:"Z",x:830,y:LOS,type:"route"},{lab:"F",x:915,y:418,type:"route"}],
+ pistol2:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"H",x:260,y:408,type:"route"},{lab:"Y",x:740,y:408,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}],
+ pistoltrips:[{lab:"QB",x:500,y:460,type:"qb"},{lab:"RB",x:500,y:525,type:"rb"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"H",x:788,y:412,type:"route"},{lab:"Z",x:878,y:432,type:"route"}],
+ ipro:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:658,y:LOS,type:"route"},{lab:"Z",x:872,y:LOS,type:"route"}],
+ itwins:[{lab:"QB",x:500,y:425,type:"qb"},{lab:"FB",x:500,y:480,type:"rb"},{lab:"RB",x:500,y:540,type:"rb"},{lab:"X",x:130,y:LOS,type:"route"},{lab:"Y",x:700,y:LOS,type:"route"},{lab:"Z",x:815,y:408,type:"route"}],
+ ace:[{lab:"QB",x:500,y:470,type:"qb"},{lab:"RB",x:500,y:530,type:"rb"},{lab:"H",x:352,y:LOS,type:"route"},{lab:"Y",x:648,y:LOS,type:"route"},{lab:"X",x:120,y:LOS,type:"route"},{lab:"Z",x:880,y:LOS,type:"route"}]
 };
 const FORMS={
-  "2x2 Doubles (Gun)":()=>OL().concat(SK.doubles),
-  "Trips Rt (Gun)":()=>OL().concat(SK.trips),
-  "Trips Lt (Gun)":()=>OL().concat(mir(SK.trips)),
-  "Bunch Rt (Gun)":()=>OL().concat(SK.bunch),
-  "Bunch Lt (Gun)":()=>OL().concat(mir(SK.bunch)),
-  "Empty 3x2 (Gun)":()=>OL().concat(SK.empty),
-  "Pistol 2x2":()=>OL().concat(SK.pistol2),
-  "Pistol Trips Rt":()=>OL().concat(SK.pistoltrips),
-  "Pistol Trips Lt":()=>OL().concat(mir(SK.pistoltrips)),
-  "I-Form Pro":()=>OL().concat(SK.ipro),
-  "I-Form Twins Rt":()=>OL().concat(SK.itwins),
-  "I-Form Twins Lt":()=>OL().concat(mir(SK.itwins)),
-  "Singleback Ace (12)":()=>OL().concat(SK.ace)
+ "2x2 Doubles (Gun)":()=>OL().concat(SK.doubles),
+ "Trips Rt (Gun)":()=>OL().concat(SK.trips),
+ "Trips Lt (Gun)":()=>OL().concat(mir(SK.trips)),
+ "Bunch Rt (Gun)":()=>OL().concat(SK.bunch),
+ "Bunch Lt (Gun)":()=>OL().concat(mir(SK.bunch)),
+ "Empty 3x2 (Gun)":()=>OL().concat(SK.empty),
+ "Pistol 2x2":()=>OL().concat(SK.pistol2),
+ "Pistol Trips Rt":()=>OL().concat(SK.pistoltrips),
+ "Pistol Trips Lt":()=>OL().concat(mir(SK.pistoltrips)),
+ "I-Form Pro":()=>OL().concat(SK.ipro),
+ "I-Form Twins Rt":()=>OL().concat(SK.itwins),
+ "I-Form Twins Lt":()=>OL().concat(mir(SK.itwins)),
+ "Singleback Ace (12)":()=>OL().concat(SK.ace)
 };
 const DLAND=OFFGRD_RENDER.DLAND;
 const GCOL=OFFGRD_RENDER.GCOL;
 const LAB=OFFGRD_RENDER.LAB;
 const DFRONTS=OFFGRD_RENDER.DFRONTS;
 function assignCoverage(defs,cov){
-  const skill=(STATE&&STATE.players)?STATE.players.filter(p=>p.type==="route"||p.type==="rb"):[];
-  OFFGRD_RENDER.assignCoverage(defs,cov,skill);
+ const skill=(STATE&&STATE.players)?STATE.players.filter(p=>p.type==="route"||p.type==="rb"):[];
+ OFFGRD_RENDER.assignCoverage(defs,cov,skill);
 }
 function placeDefense(front,cov){
-  if(front==="none"){ STATE.defs=[]; STATE.front="none"; STATE.coverage="none"; return; }
-  OFFGRD_RENDER.placeDefenseOn(STATE, front, cov);
+ if(front==="none"){ STATE.defs=[]; STATE.front="none"; STATE.coverage="none"; return; }
+ OFFGRD_RENDER.placeDefenseOn(STATE, front, cov);
 }
 function applyProtection(prot){ STATE.protection=prot; const ol=STATE.players.filter(p=>p.ol); const rb=STATE.players.find(p=>p.type==="rb");
-  ol.forEach(p=>{p.type="block";p.route=[];p.motion=[];p.rname=null;});
-  if(prot==="BOB"){ ol.forEach(p=>p.blk="set"); }
-  else if(prot==="Slide R"){ ol.forEach(p=>p.blk="R"); }
-  else if(prot==="Slide L"){ ol.forEach(p=>p.blk="L"); }
-  else if(prot==="Half-Slide R"){ ol.forEach(p=>p.blk=(p.x>=500?"R":"set")); }
-  else if(prot==="Half-Slide L"){ ol.forEach(p=>p.blk=(p.x<=500?"L":"set")); }
-  else if(prot==="6-Man (RB)"){ ol.forEach(p=>p.blk="set"); if(rb){rb.type="block";rb.blk="set";rb.route=[];rb.rname=null;} }
-  else { ol.forEach(p=>p.blk=null); }
+ ol.forEach(p=>{p.type="block";p.route=[];p.motion=[];p.rname=null;});
+ if(prot==="BOB"){ ol.forEach(p=>p.blk="set"); }
+ else if(prot==="Slide R"){ ol.forEach(p=>p.blk="R"); }
+ else if(prot==="Slide L"){ ol.forEach(p=>p.blk="L"); }
+ else if(prot==="Half-Slide R"){ ol.forEach(p=>p.blk=(p.x>=500?"R":"set")); }
+ else if(prot==="Half-Slide L"){ ol.forEach(p=>p.blk=(p.x<=500?"L":"set")); }
+ else if(prot==="6-Man (RB)"){ ol.forEach(p=>p.blk="set"); if(rb){rb.type="block";rb.blk="set";rb.route=[];rb.rname=null;} }
+ else { ol.forEach(p=>p.blk=null); }
 }
 function zoneShapes(cov){ return OFFGRD_RENDER.zoneShapes(cov); }
 function hitText(pt){ if(!STATE.texts)return -1; for(let i=STATE.texts.length-1;i>=0;i--){const t=STATE.texts[i];if(Math.abs(pt.x-t.x)< (t.text.length*t.size*0.32+12) && Math.abs(pt.y-t.y)<t.size+6)return i;} return -1; }
@@ -330,93 +330,93 @@ function rebuildRoute(p,name){ if(!p||p.group||!ROUTES[name])return; if(p.type==
 function applyRoute(name){ if(!SEL){msg("Tap a player first, then choose a route.");return;} if(SEL.group){msg("Routes are for offensive players. Pick one of yours.");return;} snap(); rebuildRoute(SEL,name); renderAll(); msg(SEL.lab+": "+name); }
 const CONCEPTS=["Four Verts","Smash","Mesh","Flood","Stick","Curl-Flat"];
 function applyConcept(name){ if(!STATE)return; snap();
-  const wr=STATE.players.filter(p=>p.type==="route"); const backs=STATE.players.filter(p=>p.type==="rb");
-  const L=wr.filter(p=>p.x<500).sort((a,b)=>a.x-b.x); const R=wr.filter(p=>p.x>=500).sort((a,b)=>b.x-a.x);
-  if(name==="Four Verts"){ [L,R].forEach(s=>s.forEach((p,i)=>rebuildRoute(p,i===0?"Go":"Seam"))); backs.forEach(b=>rebuildRoute(b,"Flat")); }
-  else if(name==="Smash"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Hitch"); if(s[1])rebuildRoute(s[1],"Corner"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
-  else if(name==="Curl-Flat"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Curl"); if(s[1])rebuildRoute(s[1],"Flat"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
-  else if(name==="Stick"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Go"); if(s[1])rebuildRoute(s[1],"Stick"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
-  else if(name==="Mesh"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Corner"); }); [L[1],R[1]].filter(Boolean).forEach(p=>rebuildRoute(p,"Drag")); backs.forEach(b=>rebuildRoute(b,"Flat")); }
-  else if(name==="Flood"){ const strong=R.length>=L.length?R:L, weak=strong===R?L:R; if(strong[0])rebuildRoute(strong[0],"Go"); if(strong[1])rebuildRoute(strong[1],"Out"); if(backs[0])rebuildRoute(backs[0],"Flat"); else if(strong[2])rebuildRoute(strong[2],"Flat"); if(weak[0])rebuildRoute(weak[0],"Comeback"); }
-  renderAll(); msg("Concept: "+name); }
+ const wr=STATE.players.filter(p=>p.type==="route"); const backs=STATE.players.filter(p=>p.type==="rb");
+ const L=wr.filter(p=>p.x<500).sort((a,b)=>a.x-b.x); const R=wr.filter(p=>p.x>=500).sort((a,b)=>b.x-a.x);
+ if(name==="Four Verts"){ [L,R].forEach(s=>s.forEach((p,i)=>rebuildRoute(p,i===0?"Go":"Seam"))); backs.forEach(b=>rebuildRoute(b,"Flat")); }
+ else if(name==="Smash"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Hitch"); if(s[1])rebuildRoute(s[1],"Corner"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
+ else if(name==="Curl-Flat"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Curl"); if(s[1])rebuildRoute(s[1],"Flat"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
+ else if(name==="Stick"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Go"); if(s[1])rebuildRoute(s[1],"Stick"); }); backs.forEach(b=>rebuildRoute(b,"Flat")); }
+ else if(name==="Mesh"){ [L,R].forEach(s=>{ if(s[0])rebuildRoute(s[0],"Corner"); }); [L[1],R[1]].filter(Boolean).forEach(p=>rebuildRoute(p,"Drag")); backs.forEach(b=>rebuildRoute(b,"Flat")); }
+ else if(name==="Flood"){ const strong=R.length>=L.length?R:L, weak=strong===R?L:R; if(strong[0])rebuildRoute(strong[0],"Go"); if(strong[1])rebuildRoute(strong[1],"Out"); if(backs[0])rebuildRoute(backs[0],"Flat"); else if(strong[2])rebuildRoute(strong[2],"Flat"); if(weak[0])rebuildRoute(weak[0],"Comeback"); }
+ renderAll(); msg("Concept: "+name); }
 const BLOCKS=[["Base","base",0],["Reach\u25c0","reach",-1],["Reach\u25b6","reach",1],["Down","down",0],["Kick","kick",0],["Pull\u25c0","pull",-1],["Pull\u25b6","pull",1],["Combo\u25c0","combo",-1],["Combo\u25b6","combo",1],["Pass set","set",0]];
 function applyBlock(type,dir){ if(!SEL){msg("Tap a lineman first.");return;} if(SEL.group){msg("Blocks are for your players.");return;} snap(); SEL.type="block"; SEL.route=[]; SEL.motion=[]; SEL.rname=null; if(type==="set"){SEL.runblk=null;SEL.blk="set";} else {SEL.runblk={type:type,dir:dir};SEL.blk=null;} renderAll(); msg(SEL.lab+" block: "+type); }
 const RKW=[["post-corner","Post-Corner"],["post corner","Post-Corner"],["sluggo","Sluggo"],["comeback","Comeback"],["hitch","Hitch"],["slant","Slant"],["curl","Curl"],["dig","Dig"],["corner","Corner"],["post","Post"],["seam","Seam"],["fade","Fade"],["wheel","Wheel"],["drag","Drag"],["cross","Drag"],["screen","Screen"],["stick","Stick"],["whip","Whip"],["pivot","Pivot"],["flat","Flat"],["out","Out"],["vert","Go"],["streak","Go"],["go","Go"]];
 function applyAssignments(text){ if(!STATE||!text.trim())return; snap(); const lines=text.split(/\n|,|;/).map(l=>l.trim()).filter(Boolean); let n=0;
-  lines.forEach(line=>{ const m=line.match(/^([A-Za-z$]{1,3})\b/); if(!m)return; const lab=m[1].toUpperCase(); const p=STATE.players.find(pp=>!pp.group && pp.lab.toUpperCase()===lab); if(!p)return; const low=line.toLowerCase();
-    if(/pass\s*pro|protection|\bblock\b|\bscan\b|\bcheck\b/.test(low)){ p.type="block"; p.blk="set"; p.runblk=null; p.route=[]; p.rname=null; n++; return; }
-    for(const kv of RKW){ if(low.indexOf(kv[0])>=0){ rebuildRoute(p,kv[1]); n++; break; } }
-  });
-  renderAll(); msg("Applied "+n+" assignment"+(n===1?"":"s")+"."); }
+ lines.forEach(line=>{ const m=line.match(/^([A-Za-z$]{1,3})\b/); if(!m)return; const lab=m[1].toUpperCase(); const p=STATE.players.find(pp=>!pp.group && pp.lab.toUpperCase()===lab); if(!p)return; const low=line.toLowerCase();
+ if(/pass\s*pro|protection|\bblock\b|\bscan\b|\bcheck\b/.test(low)){ p.type="block"; p.blk="set"; p.runblk=null; p.route=[]; p.rname=null; n++; return; }
+ for(const kv of RKW){ if(low.indexOf(kv[0])>=0){ rebuildRoute(p,kv[1]); n++; break; } }
+ });
+ renderAll(); msg("Applied "+n+" assignment"+(n===1?"":"s")+"."); }
 /* ---------- per-play assignments: auto-derived from the drawing, coach text always wins ---------- */
 function autoAsn(p){ if(!p||p.group) return "";
-  const parts=[]; if(p.motion&&p.motion.length) parts.push("Motion");
-  if(p.type==="block"){
-    if(p.runblk){ const M={base:"Base block",reach:"Reach block",down:"Down block",kick:"Kick out",pull:"Pull",combo:"Combo block"}; let t=M[p.runblk.type]||"Block"; if(p.runblk.dir<0)t+=" left"; else if(p.runblk.dir>0)t+=" right"; parts.push(t); }
-    else if(p.blk==="L") parts.push("Slide protection left");
-    else if(p.blk==="R") parts.push("Slide protection right");
-    else if(p.blk==="set") parts.push("Pass set");
-    else parts.push("Block");
-  } else if(p.route&&p.route.length){ parts.push(p.rname?p.rname+" route":"Route as drawn"); }
-  return parts.join(" ï¿½ ");
+ const parts=[]; if(p.motion&&p.motion.length) parts.push("Motion");
+ if(p.type==="block"){
+ if(p.runblk){ const M={base:"Base block",reach:"Reach block",down:"Down block",kick:"Kick out",pull:"Pull",combo:"Combo block"}; let t=M[p.runblk.type]||"Block"; if(p.runblk.dir<0)t+=" left"; else if(p.runblk.dir>0)t+=" right"; parts.push(t); }
+ else if(p.blk==="L") parts.push("Slide protection left");
+ else if(p.blk==="R") parts.push("Slide protection right");
+ else if(p.blk==="set") parts.push("Pass set");
+ else parts.push("Block");
+ } else if(p.route&&p.route.length){ parts.push(p.rname?p.rname+" route":"Route as drawn"); }
+ return parts.join(" ï¿½ ");
 }
 let ASN_SIG=null;
 function asnSig(){ if(!STATE) return ""; return STATE.players.map(p=>p.id+"|"+p.lab+"|"+(p.asn||"")+"|"+autoAsn(p)).join("~")+"~"+(STATE.qbNotes||""); }
 function renderAsn(){
-  const list=document.getElementById("asnList"); if(!list||!STATE) return;
-  const sig=asnSig(); if(sig===ASN_SIG) return;
-  ASN_SIG=sig;
-  if(list.contains(document.activeElement)) return; /* don't yank the field out from under a typing coach */
-  list.innerHTML="";
-  const ps=STATE.players.slice().sort((a,b)=>(a.ol||0)-(b.ol||0)); /* skill first, line after */
-  ps.forEach(p=>{
-    const w=document.createElement("div"); w.style.cssText="display:flex;align-items:center;gap:6px";
-    const chip=document.createElement("span"); chip.textContent=p.lab; chip.style.cssText="min-width:36px;text-align:center;font-weight:800;font-size:12px;background:#13294B;color:#fff;border-radius:7px;padding:6px 4px;flex:none";
-    const inp=document.createElement("input"); inp.style.flex="1"; inp.style.minWidth="0"; inp.value=p.asn||""; inp.placeholder=autoAsn(p)||"assignmentï¿½"; inp.dataset.pid=p.id;
-    inp.oninput=e=>{ p.asn=e.target.value; ASN_SIG=asnSig(); };
-    w.appendChild(chip); w.appendChild(inp); list.appendChild(w);
-  });
-  const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
+ const list=document.getElementById("asnList"); if(!list||!STATE) return;
+ const sig=asnSig(); if(sig===ASN_SIG) return;
+ ASN_SIG=sig;
+ if(list.contains(document.activeElement)) return; /* don't yank the field out from under a typing coach */
+ list.innerHTML="";
+ const ps=STATE.players.slice().sort((a,b)=>(a.ol||0)-(b.ol||0)); /* skill first, line after */
+ ps.forEach(p=>{
+ const w=document.createElement("div"); w.style.cssText="display:flex;align-items:center;gap:6px";
+ const chip=document.createElement("span"); chip.textContent=p.lab; chip.style.cssText="min-width:36px;text-align:center;font-weight:800;font-size:12px;background:#13294B;color:#fff;border-radius:7px;padding:6px 4px;flex:none";
+ const inp=document.createElement("input"); inp.style.flex="1"; inp.style.minWidth="0"; inp.value=p.asn||""; inp.placeholder=autoAsn(p)||"assignmentï¿½"; inp.dataset.pid=p.id;
+ inp.oninput=e=>{ p.asn=e.target.value; ASN_SIG=asnSig(); };
+ w.appendChild(chip); w.appendChild(inp); list.appendChild(w);
+ });
+ const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
 }
 function ctxAsnInput(host){ if(!SEL||SEL.group) return;
-  ctxLbl(host,(SEL.lab||"Player")+" ï¿½ assignment (shows in Reps Lab)");
-  const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignmentï¿½";
-  inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
-  host.appendChild(inp);
+ ctxLbl(host,(SEL.lab||"Player")+" ï¿½ assignment (shows in Reps Lab)");
+ const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignmentï¿½";
+ inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
+ host.appendChild(inp);
 }
 const PERS={"00":{RB:0,TE:0,WR:5},"10":{RB:1,TE:0,WR:4},"11":{RB:1,TE:1,WR:3},"12":{RB:1,TE:2,WR:2},"13":{RB:1,TE:3,WR:1},"20":{RB:2,TE:0,WR:3},"21":{RB:2,TE:1,WR:2},"22":{RB:2,TE:2,WR:1}};
 function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:"X",x:120,y:380},{lab:"Z",x:880,y:380},{lab:"H",x:250,y:405},{lab:"F",x:750,y:405},{lab:"A",x:500,y:545}]; const TE=[{lab:"Y",x:332,y:380},{lab:"U",x:668,y:380},{lab:"W",x:705,y:402}]; const RB=[{lab:"RB",x:545,y:470},{lab:"FB",x:455,y:478},{lab:"B",x:500,y:528}];
-  const arr=OL().map(p=>({lab:p.lab,x:p.x,y:p.y,type:p.type,ol:1}));
-  arr.push({lab:"QB",x:500,y:470,type:"qb"});
-  for(let i=0;i<c.TE;i++){arr.push({lab:TE[i].lab,x:TE[i].x,y:TE[i].y,type:"route",color:"#1d7a45"});}
-  for(let i=0;i<c.WR;i++){arr.push({lab:WR[i].lab,x:WR[i].x,y:WR[i].y,type:"route"});}
-  for(let i=0;i<c.RB;i++){arr.push({lab:RB[i].lab,x:RB[i].x,y:RB[i].y,type:"rb"});}
-  STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
-  STATE.personnel=code; SEL=null;
+ const arr=OL().map(p=>({lab:p.lab,x:p.x,y:p.y,type:p.type,ol:1}));
+ arr.push({lab:"QB",x:500,y:470,type:"qb"});
+ for(let i=0;i<c.TE;i++){arr.push({lab:TE[i].lab,x:TE[i].x,y:TE[i].y,type:"route",color:"#1d7a45"});}
+ for(let i=0;i<c.WR;i++){arr.push({lab:WR[i].lab,x:WR[i].x,y:WR[i].y,type:"route"});}
+ for(let i=0;i<c.RB;i++){arr.push({lab:RB[i].lab,x:RB[i].x,y:RB[i].y,type:"rb"});}
+ STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
+ STATE.personnel=code; SEL=null;
 }
 function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write ï¿½ blank canvas must not nag on reopen */}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
-  (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
-  (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
-  (STATE.texts||[]).forEach(t=>{ t.x=fx(t.x); });
-  (STATE.draws||[]).forEach(dr=>{ (dr.pts||[]).forEach(pt=>{pt.x=fx(pt.x);}); });
-  SEL=null; renderAll(); msg("Flipped left \u21c4 right."); }
+ (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
+ (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
+ (STATE.texts||[]).forEach(t=>{ t.x=fx(t.x); });
+ (STATE.draws||[]).forEach(dr=>{ (dr.pts||[]).forEach(pt=>{pt.x=fx(pt.x);}); });
+ SEL=null; renderAll(); msg("Flipped left \u21c4 right."); }
 
 /* ===== Guided play-design wizard ===== */
 function applyRunScheme(name){ if(!STATE)return; snap();
-  const ol=STATE.players.filter(p=>p.ol).sort((a,b)=>a.x-b.x);
-  const rb=STATE.players.find(p=>p.type==="rb"); const C=ol[2]||{x:500,y:LOS};
-  const dir=/Lt/.test(name)?-1:1;
-  const setb=(p,t,d)=>{p.type="block";p.blk=null;p.route=[];p.motion=[];p.rname=null;p.runblk={type:t,dir:d||0};};
-  if(/Zone/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
-  else if(/Power/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3); if(bsG) setb(p,"pull",dir); else setb(p,"down",0); }); }
-  else if(/Counter/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3), bsT=(dir>0?i===0:i===4); if(bsG) setb(p,"pull",dir); else if(bsT) setb(p,"kick",dir); else setb(p,"down",0); }); }
-  else if(/Draw/.test(name)){ ol.forEach(p=>setb(p,"set",0)); }
-  if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null; rb.rname=null;
-    const aimX=/Outside/.test(name)?(C.x+dir*150):(C.x+dir*55);
-    const aimY=/Draw/.test(name)?LOS-45:LOS-72;
-    rb.route=[{x:C.x+dir*12,y:rb.y-6,cx:null,cy:null},{x:aimX,y:aimY,cx:null,cy:null}]; }
-  renderAll(); }
+ const ol=STATE.players.filter(p=>p.ol).sort((a,b)=>a.x-b.x);
+ const rb=STATE.players.find(p=>p.type==="rb"); const C=ol[2]||{x:500,y:LOS};
+ const dir=/Lt/.test(name)?-1:1;
+ const setb=(p,t,d)=>{p.type="block";p.blk=null;p.route=[];p.motion=[];p.rname=null;p.runblk={type:t,dir:d||0};};
+ if(/Zone/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
+ else if(/Power/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3); if(bsG) setb(p,"pull",dir); else setb(p,"down",0); }); }
+ else if(/Counter/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3), bsT=(dir>0?i===0:i===4); if(bsG) setb(p,"pull",dir); else if(bsT) setb(p,"kick",dir); else setb(p,"down",0); }); }
+ else if(/Draw/.test(name)){ ol.forEach(p=>setb(p,"set",0)); }
+ if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null; rb.rname=null;
+ const aimX=/Outside/.test(name)?(C.x+dir*150):(C.x+dir*55);
+ const aimY=/Draw/.test(name)?LOS-45:LOS-72;
+ rb.route=[{x:C.x+dir*12,y:rb.y-6,cx:null,cy:null},{x:aimX,y:aimY,cx:null,cy:null}]; }
+ renderAll(); }
 
 const WFORMS=Object.keys(FORMS), WPERS=Object.keys(PERS);
 const WRUN=["Inside Zone Rt","Inside Zone Lt","Outside Zone Rt","Outside Zone Lt","Power Rt","Power Lt","Counter Rt","Counter Lt","Draw"];
@@ -428,35 +428,35 @@ function wizOpen(){ WZ={i:0,formation:WFORMS[0],personnel:"",kind:"Pass",concept
 function wizClose(){ document.getElementById("wizModal").classList.remove("show"); }
 function wizChips(items,current,onpick){ const w=document.createElement("div"); w.className="row"; w.style.flexWrap="wrap"; items.forEach(it=>{ const v=Array.isArray(it)?it[0]:it, lbl=Array.isArray(it)?it[1]:it; const b=document.createElement("button"); b.className="btn"+(current===v?" go":""); b.style.minWidth="70px"; b.textContent=lbl; b.onclick=()=>onpick(v); w.appendChild(b); }); return w; }
 function wizRender(){
-  const order=wizOrder(), id=order[WZ.i];
-  const titles={formation:"Formation",personnel:"Personnel (optional)",kind:"Pass, Run, or Custom?",scheme:(WZ.kind==="Run"?"Run scheme":"Pass concept"),protection:"Protection",defense:"Defense to draw against (optional)",name:"Name & finish"};
-  document.getElementById("wizSteps").textContent="Step "+(WZ.i+1)+" of "+order.length+"  \u2014  "+titles[id];
-  const body=document.getElementById("wizBody"); body.innerHTML="";
-  const note=t=>{const p=document.createElement("p");p.className="hint";p.style.margin="0 0 10px";p.innerHTML=t;body.appendChild(p);};
-  if(id==="formation"){ note("Pick your base alignment \u2014 you can flip or edit it later."); body.appendChild(wizChips(WFORMS,WZ.formation,v=>{WZ.formation=v;wizRender();})); }
-  else if(id==="personnel"){ note("Optional grouping. <b>Skip</b> keeps the formation exactly as chosen."); body.appendChild(wizChips([["","Skip"]].concat(WPERS.map(p=>[p,p])),WZ.personnel,v=>{WZ.personnel=v;wizRender();})); }
-  else if(id==="kind"){ note("How does this play attack?"); body.appendChild(wizChips(["Pass","Run","Custom"],WZ.kind,v=>{WZ.kind=v;wizRender();})); }
-  else if(id==="scheme"){ if(WZ.kind==="Run"){ note("Blocks and the back\u2019s path get drawn for you."); body.appendChild(wizChips(WRUN,WZ.scheme,v=>{WZ.scheme=v;wizRender();})); } else { note("Routes get assigned to your receivers."); body.appendChild(wizChips([["","None (I\u2019ll draw)"]].concat(CONCEPTS.map(c=>[c,c])),WZ.concept,v=>{WZ.concept=v;wizRender();})); } }
-  else if(id==="protection"){ note("Protection for the line & back."); body.appendChild(wizChips(["none","BOB","Slide R","Slide L","Half-Slide R","Half-Slide L","6-Man (RB)"].map(p=>[p,p==="none"?"None":p]),WZ.protection,v=>{WZ.protection=v;wizRender();})); }
-  else if(id==="defense"){ note("Optionally drop a defense to draw against."); body.appendChild(wizChips(["none","4-3","3-4","4-2-5","Nickel","Bear (46)","3-3-5 (Tite)","Dime (4-1-6)"].map(x=>[x,x==="none"?"No defense":x]),WZ.front,v=>{WZ.front=v;wizRender();})); if(WZ.front!=="none"){ const c=wizChips(["none","Cover 0","Cover 1","2-Man","Cover 2","Cover 3","Cover 4","Cover 6","Tampa 2"].map(x=>[x,x==="none"?"Front only":x]),WZ.cov,v=>{WZ.cov=v;wizRender();}); c.style.marginTop="8px"; body.appendChild(c); } }
-  else if(id==="name"){ note("Name it and finish \u2014 you\u2019ll drop into the editor with it all drawn."); const mk=(lbl,key,ph)=>{const w=document.createElement("label");w.style.cssText="display:flex;flex-direction:column;font-size:12px;font-weight:800;color:#5b626e;gap:4px;margin-bottom:10px";w.appendChild(document.createTextNode(lbl));const inp=document.createElement("input");inp.value=WZ[key]||"";inp.placeholder=ph||"";inp.oninput=e=>WZ[key]=e.target.value;inp.style.minHeight="40px";w.appendChild(inp);body.appendChild(w);}; mk("Play name","name","e.g. DINO"); mk("Family (optional)","family","e.g. Inside Zone"); mk("Series (optional)","series","e.g. Zone"); const sv=document.createElement("label"); sv.style.cssText="display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-top:2px"; const cb=document.createElement("input");cb.type="checkbox";cb.checked=WZ.save;cb.onchange=e=>WZ.save=e.target.checked; sv.appendChild(cb); sv.appendChild(document.createTextNode("Save to my playbook now")); body.appendChild(sv); }
-  const back=document.getElementById("wizBack"), next=document.getElementById("wizNext");
-  back.style.visibility=WZ.i===0?"hidden":"visible";
-  next.textContent=(WZ.i===order.length-1)?"Finish \u2713":"Next";
+ const order=wizOrder(), id=order[WZ.i];
+ const titles={formation:"Formation",personnel:"Personnel (optional)",kind:"Pass, Run, or Custom?",scheme:(WZ.kind==="Run"?"Run scheme":"Pass concept"),protection:"Protection",defense:"Defense to draw against (optional)",name:"Name & finish"};
+ document.getElementById("wizSteps").textContent="Step "+(WZ.i+1)+" of "+order.length+" \u2014 "+titles[id];
+ const body=document.getElementById("wizBody"); body.innerHTML="";
+ const note=t=>{const p=document.createElement("p");p.className="hint";p.style.margin="0 0 10px";p.innerHTML=t;body.appendChild(p);};
+ if(id==="formation"){ note("Pick your base alignment \u2014 you can flip or edit it later."); body.appendChild(wizChips(WFORMS,WZ.formation,v=>{WZ.formation=v;wizRender();})); }
+ else if(id==="personnel"){ note("Optional grouping. <b>Skip</b> keeps the formation exactly as chosen."); body.appendChild(wizChips([["","Skip"]].concat(WPERS.map(p=>[p,p])),WZ.personnel,v=>{WZ.personnel=v;wizRender();})); }
+ else if(id==="kind"){ note("How does this play attack?"); body.appendChild(wizChips(["Pass","Run","Custom"],WZ.kind,v=>{WZ.kind=v;wizRender();})); }
+ else if(id==="scheme"){ if(WZ.kind==="Run"){ note("Blocks and the back\u2019s path get drawn for you."); body.appendChild(wizChips(WRUN,WZ.scheme,v=>{WZ.scheme=v;wizRender();})); } else { note("Routes get assigned to your receivers."); body.appendChild(wizChips([["","None (I\u2019ll draw)"]].concat(CONCEPTS.map(c=>[c,c])),WZ.concept,v=>{WZ.concept=v;wizRender();})); } }
+ else if(id==="protection"){ note("Protection for the line & back."); body.appendChild(wizChips(["none","BOB","Slide R","Slide L","Half-Slide R","Half-Slide L","6-Man (RB)"].map(p=>[p,p==="none"?"None":p]),WZ.protection,v=>{WZ.protection=v;wizRender();})); }
+ else if(id==="defense"){ note("Optionally drop a defense to draw against."); body.appendChild(wizChips(["none","4-3","3-4","4-2-5","Nickel","Bear (46)","3-3-5 (Tite)","Dime (4-1-6)"].map(x=>[x,x==="none"?"No defense":x]),WZ.front,v=>{WZ.front=v;wizRender();})); if(WZ.front!=="none"){ const c=wizChips(["none","Cover 0","Cover 1","2-Man","Cover 2","Cover 3","Cover 4","Cover 6","Tampa 2"].map(x=>[x,x==="none"?"Front only":x]),WZ.cov,v=>{WZ.cov=v;wizRender();}); c.style.marginTop="8px"; body.appendChild(c); } }
+ else if(id==="name"){ note("Name it and finish \u2014 you\u2019ll drop into the editor with it all drawn."); const mk=(lbl,key,ph)=>{const w=document.createElement("label");w.style.cssText="display:flex;flex-direction:column;font-size:12px;font-weight:800;color:#5b626e;gap:4px;margin-bottom:10px";w.appendChild(document.createTextNode(lbl));const inp=document.createElement("input");inp.value=WZ[key]||"";inp.placeholder=ph||"";inp.oninput=e=>WZ[key]=e.target.value;inp.style.minHeight="40px";w.appendChild(inp);body.appendChild(w);}; mk("Play name","name","e.g. DINO"); mk("Family (optional)","family","e.g. Inside Zone"); mk("Series (optional)","series","e.g. Zone"); const sv=document.createElement("label"); sv.style.cssText="display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-top:2px"; const cb=document.createElement("input");cb.type="checkbox";cb.checked=WZ.save;cb.onchange=e=>WZ.save=e.target.checked; sv.appendChild(cb); sv.appendChild(document.createTextNode("Save to my playbook now")); body.appendChild(sv); }
+ const back=document.getElementById("wizBack"), next=document.getElementById("wizNext");
+ back.style.visibility=WZ.i===0?"hidden":"visible";
+ next.textContent=(WZ.i===order.length-1)?"Finish \u2713":"Next";
 }
 function wizNav(d){ const order=wizOrder(); const ni=WZ.i+d; if(ni<0)return; if(ni>=order.length){ wizFinish(); return; } WZ.i=ni; wizRender(); }
 function wizFinish(){
-  newPlay(WZ.formation); const fs=document.getElementById("formSel"); if(fs)fs.value=WZ.formation; set("m-form",WZ.formation);
-  if(WZ.personnel){ placePersonnel(WZ.personnel); const ps=document.getElementById("persSel"); if(ps)ps.value=WZ.personnel; set("m-pers",WZ.personnel); }
-  if(WZ.kind==="Pass" && WZ.concept){ applyConcept(WZ.concept); }
-  if(WZ.kind==="Run" && WZ.scheme){ applyRunScheme(WZ.scheme); }
-  if(WZ.kind==="Pass" && WZ.protection && WZ.protection!=="none"){ applyProtection(WZ.protection); const pr=document.getElementById("protSel"); if(pr)pr.value=WZ.protection; set("m-prot",WZ.protection); }
-  if(WZ.front && WZ.front!=="none"){ placeDefense(WZ.front,WZ.cov); const df=document.getElementById("defFront"),dc=document.getElementById("defCov"),sz=document.getElementById("showZones"); if(df)df.value=WZ.front; if(dc)dc.value=WZ.cov; if(WZ.cov!=="none"&&sz){sz.checked=true;STATE.showZones=true;} }
-  set("m-name",WZ.name); set("m-series",WZ.series);
-  if(WZ.family) set("m-family",WZ.family); else if(WZ.kind==="Run" && WZ.scheme) set("m-family",WZ.scheme.replace(/ (Rt|Lt)$/,""));
-  readMeta(); renderAll();
-  if(WZ.save && WZ.name) savePlay();
-  wizClose(); msg("Play built"+(WZ.save&&WZ.name?" & saved":"")+" \u2014 edit anything on the field.");
+ newPlay(WZ.formation); const fs=document.getElementById("formSel"); if(fs)fs.value=WZ.formation; set("m-form",WZ.formation);
+ if(WZ.personnel){ placePersonnel(WZ.personnel); const ps=document.getElementById("persSel"); if(ps)ps.value=WZ.personnel; set("m-pers",WZ.personnel); }
+ if(WZ.kind==="Pass" && WZ.concept){ applyConcept(WZ.concept); }
+ if(WZ.kind==="Run" && WZ.scheme){ applyRunScheme(WZ.scheme); }
+ if(WZ.kind==="Pass" && WZ.protection && WZ.protection!=="none"){ applyProtection(WZ.protection); const pr=document.getElementById("protSel"); if(pr)pr.value=WZ.protection; set("m-prot",WZ.protection); }
+ if(WZ.front && WZ.front!=="none"){ placeDefense(WZ.front,WZ.cov); const df=document.getElementById("defFront"),dc=document.getElementById("defCov"),sz=document.getElementById("showZones"); if(df)df.value=WZ.front; if(dc)dc.value=WZ.cov; if(WZ.cov!=="none"&&sz){sz.checked=true;STATE.showZones=true;} }
+ set("m-name",WZ.name); set("m-series",WZ.series);
+ if(WZ.family) set("m-family",WZ.family); else if(WZ.kind==="Run" && WZ.scheme) set("m-family",WZ.scheme.replace(/ (Rt|Lt)$/,""));
+ readMeta(); renderAll();
+ if(WZ.save && WZ.name) savePlay();
+ wizClose(); msg("Play built"+(WZ.save&&WZ.name?" & saved":"")+" \u2014 edit anything on the field.");
 }
 
 /* ---- undo ---- */
@@ -467,77 +467,77 @@ function syncUndo(){["undoBtn","undoBtn2"].forEach(id=>{const b=document.getElem
 function persistUndoSession(){ try{ sessionStorage.setItem(UNDO_SS, JSON.stringify({id:STATE&&STATE.id, undo:UNDO.slice(-UNDO_CAP), redo:REDO.slice(-40)})); }catch(e){} }
 function restoreUndoSession(forId){ try{ const raw=sessionStorage.getItem(UNDO_SS); if(!raw) return; const o=JSON.parse(raw); if(!o||(forId&&o.id&&o.id!==forId)) return; if(Array.isArray(o.undo)) UNDO=o.undo; if(Array.isArray(o.redo)) REDO=o.redo; syncUndo(); }catch(e){} }
 function draftIsMeaningful(st){
-  if(!st) return false;
-  /* Stock formation players alone do NOT count ï¿½ only real coach work */
-  if((st.name||"").trim()) return true;
-  if((st.family||"").trim()||(st.series||"").trim()||(st.qbNotes||"").trim()||(st.group||"").trim()) return true;
-  if(Array.isArray(st.tags)&&st.tags.length) return true;
-  if(st.defs&&st.defs.length) return true;
-  if(st.texts&&st.texts.some(t=>t&&String(t.text||"").trim())) return true;
-  if(st.draws&&st.draws.some(d=>d.pts&&d.pts.length>1)) return true;
-  if(st.bg) return true;
-  if((st.players||[]).some(p=>(p.route&&p.route.length)||(p.motion&&p.motion.length)||p.rname||p.runblk||(p.asn&&String(p.asn).trim())||(p.blk&&p.blk!=="set"&&p.ol))) return true;
-  if(st.protection&&st.protection!=="none") return true;
-  if(st.front&&st.front!=="none") return true;
-  return false;
+ if(!st) return false;
+ /* Stock formation players alone do NOT count ï¿½ only real coach work */
+ if((st.name||"").trim()) return true;
+ if((st.family||"").trim()||(st.series||"").trim()||(st.qbNotes||"").trim()||(st.group||"").trim()) return true;
+ if(Array.isArray(st.tags)&&st.tags.length) return true;
+ if(st.defs&&st.defs.length) return true;
+ if(st.texts&&st.texts.some(t=>t&&String(t.text||"").trim())) return true;
+ if(st.draws&&st.draws.some(d=>d.pts&&d.pts.length>1)) return true;
+ if(st.bg) return true;
+ if((st.players||[]).some(p=>(p.route&&p.route.length)||(p.motion&&p.motion.length)||p.rname||p.runblk||(p.asn&&String(p.asn).trim())||(p.blk&&p.blk!=="set"&&p.ol))) return true;
+ if(st.protection&&st.protection!=="none") return true;
+ if(st.front&&st.front!=="none") return true;
+ return false;
 }
 function draftFingerprint(st){
-  if(!st) return "";
-  try{
-    const lean=JSON.parse(JSON.stringify(Object.assign({},st,{bg:null,thumbSvg:undefined,_ap:undefined,updatedAt:0})));
-    delete lean.id; /* pristine blank compare ignores ephemeral id */
-    (lean.players||[]).forEach(p=>{ delete p._ap; delete p.asnAuto; });
-    (lean.defs||[]).forEach(d=>{ delete d._ap; });
-    return JSON.stringify(lean);
-  }catch(e){ return String(st.id||"")+"|"+(st.name||"")+"|"+(st.updatedAt||0); }
+ if(!st) return "";
+ try{
+ const lean=JSON.parse(JSON.stringify(Object.assign({},st,{bg:null,thumbSvg:undefined,_ap:undefined,updatedAt:0})));
+ delete lean.id; /* pristine blank compare ignores ephemeral id */
+ (lean.players||[]).forEach(p=>{ delete p._ap; delete p.asnAuto; });
+ (lean.defs||[]).forEach(d=>{ delete d._ap; });
+ return JSON.stringify(lean);
+ }catch(e){ return String(st.id||"")+"|"+(st.name||"")+"|"+(st.updatedAt||0); }
 }
 function draftDiffersFromSaved(st){
-  if(!st||!st.id) return draftIsMeaningful(st);
-  const saved=LIB.find(p=>p.id===st.id);
-  if(!saved) return draftIsMeaningful(st);
-  return draftFingerprint(st)!==draftFingerprint(saved);
+ if(!st||!st.id) return draftIsMeaningful(st);
+ const saved=LIB.find(p=>p.id===st.id);
+ if(!saved) return draftIsMeaningful(st);
+ return draftFingerprint(st)!==draftFingerprint(saved);
 }
 function scheduleDraft(force){
-  clearTimeout(_draftT); _draftT=null;
-  const go=()=>{
-    try{
-      if(!STATE) return;
-      readMeta();
-      /* Guard 1: never persist a blank/initial canvas */
-      if(!draftIsMeaningful(STATE)){ clearDraft(); return; }
-      /* Only keep drafts that differ from the last-saved copy of this play */
-      if(!draftDiffersFromSaved(STATE)){ clearDraft(); return; }
-      const payload={ts:Date.now(), saved:false, state:JSON.parse(JSON.stringify(Object.assign({},STATE,{bg:null})))};
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-    }catch(e){}
-  };
-  if(force) go(); else _draftT=setTimeout(go,700);
+ clearTimeout(_draftT); _draftT=null;
+ const go=()=>{
+ try{
+ if(!STATE) return;
+ readMeta();
+ /* Guard 1: never persist a blank/initial canvas */
+ if(!draftIsMeaningful(STATE)){ clearDraft(); return; }
+ /* Only keep drafts that differ from the last-saved copy of this play */
+ if(!draftDiffersFromSaved(STATE)){ clearDraft(); return; }
+ const payload={ts:Date.now(), saved:false, state:JSON.parse(JSON.stringify(Object.assign({},STATE,{bg:null})))};
+ localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+ }catch(e){}
+ };
+ if(force) go(); else _draftT=setTimeout(go,700);
 }
 function clearDraft(){
-  clearTimeout(_draftT); _draftT=null;
-  try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
+ clearTimeout(_draftT); _draftT=null;
+ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
 }
 function offerRestoreDraft(){
-  let raw=null; try{ raw=localStorage.getItem(DRAFT_KEY); }catch(e){}
-  if(!raw) return;
-  let d; try{ d=JSON.parse(raw); }catch(e){ clearDraft(); return; }
-  /* Guard 2: only prompt for non-empty, unsaved, dirty drafts */
-  if(!d||!d.state||d.saved||!draftIsMeaningful(d.state)||!draftDiffersFromSaved(d.state)){ clearDraft(); return; }
-  const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9999;
-  ov.innerHTML='<div class="ovbox" style="max-width:460px"><b style="font-size:18px;color:var(--navy)">Restore unsaved play?</b>'
-    +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' ï¿½ <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
-    +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="drDiscard">Discard</button><button class="btn go" id="drRestore">Restore</button></div></div>';
-  document.body.appendChild(ov);
-  ov.querySelector("#drDiscard").onclick=()=>{ clearDraft(); ov.remove(); };
-  ov.querySelector("#drRestore").onclick=()=>{
-    STATE=d.state; if(!STATE.id) STATE.id=uuid(); if(!Array.isArray(STATE.tags)) STATE.tags=[];
-    SEL=null; UNDO=[]; REDO=[]; cancelAnim(); writeMeta(); renderTagChips(); renderAll(); syncUndo();
-    /* Consume the prompt draft, then re-stash so leave-without-save still restores once */
-    clearDraft();
-    scheduleDraft(true);
-    msg("Restored unsaved play"+(STATE.name?(" ï¿½ "+STATE.name):"")+".");
-    ov.remove();
-  };
+ let raw=null; try{ raw=localStorage.getItem(DRAFT_KEY); }catch(e){}
+ if(!raw) return;
+ let d; try{ d=JSON.parse(raw); }catch(e){ clearDraft(); return; }
+ /* Guard 2: only prompt for non-empty, unsaved, dirty drafts */
+ if(!d||!d.state||d.saved||!draftIsMeaningful(d.state)||!draftDiffersFromSaved(d.state)){ clearDraft(); return; }
+ const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9999;
+ ov.innerHTML='<div class="ovbox" style="max-width:460px"><b style="font-size:18px;color:var(--navy)">Restore unsaved play?</b>'
+ +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' ï¿½ <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
+ +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="drDiscard">Discard</button><button class="btn go" id="drRestore">Restore</button></div></div>';
+ document.body.appendChild(ov);
+ ov.querySelector("#drDiscard").onclick=()=>{ clearDraft(); ov.remove(); };
+ ov.querySelector("#drRestore").onclick=()=>{
+ STATE=d.state; if(!STATE.id) STATE.id=uuid(); if(!Array.isArray(STATE.tags)) STATE.tags=[];
+ SEL=null; UNDO=[]; REDO=[]; cancelAnim(); writeMeta(); renderTagChips(); renderAll(); syncUndo();
+ /* Consume the prompt draft, then re-stash so leave-without-save still restores once */
+ clearDraft();
+ scheduleDraft(true);
+ msg("Restored unsaved play"+(STATE.name?(" ï¿½ "+STATE.name):"")+".");
+ ov.remove();
+ };
 }
 
 /* ---- coords ---- */
@@ -547,9 +547,9 @@ function hitPlayer(pt){let b=null,bd=1e9;STATE.players.forEach(p=>{const d=(p.x-
 function hitDef(pt){let bi=-1,bd=1e9;STATE.defs.forEach((p,i)=>{const d=(p.x-pt.x)**2+(p.y-pt.y)**2;if(d<bd){bd=d;bi=i;}});return bd<=900?bi:-1;}
 function segMid(prev,a){return a.cx!=null?{x:a.cx,y:a.cy}:{x:(prev.x+a.x)/2,y:(prev.y+a.y)/2};}
 function hitHandle(pt){ if(!SEL) return null; const start={x:SEL.x,y:SEL.y}; let prev=start;
-  for(let i=0;i<SEL.route.length;i++){ const a=SEL.route[i]; const m=segMid(prev,a); if(near(m.x,m.y,pt,15)) return {kind:"ctrl",i}; prev={x:a.x,y:a.y}; }
-  for(let i=0;i<SEL.route.length;i++){ const a=SEL.route[i]; if(near(a.x,a.y,pt,16)) return {kind:"anchor",i}; }
-  return null;
+ for(let i=0;i<SEL.route.length;i++){ const a=SEL.route[i]; const m=segMid(prev,a); if(near(m.x,m.y,pt,15)) return {kind:"ctrl",i}; prev={x:a.x,y:a.y}; }
+ for(let i=0;i<SEL.route.length;i++){ const a=SEL.route[i]; if(near(a.x,a.y,pt,16)) return {kind:"anchor",i}; }
+ return null;
 }
 
 /* ---- render (delegates to OFFGRD-render.js ï¿½ Stage 1 extraction) ---- */
@@ -561,8 +561,8 @@ function pColor(p){ return OFFGRD_RENDER.pColor(p); }
 function playerNode(p,pos){ return OFFGRD_RENDER.playerNode(p,pos,{sel:SEL}); }
 function handles(p){ if(SEL!==p) return ""; return OFFGRD_RENDER.handles(p); }
 function renderAll(anim){
-  OFFGRD_RENDER.renderState(STATE,{ anim:!!anim, sel:SEL, showHandles:true, targetId:"field" });
-  updateSelPanel(); renderAsn();
+ OFFGRD_RENDER.renderState(STATE,{ anim:!!anim, sel:SEL, showHandles:true, targetId:"field" });
+ updateSelPanel(); renderAsn();
 }
 
 /* ---- selected panel ---- */
@@ -572,33 +572,33 @@ const CTX_ROUTES=["Hitch","Slant","Stick","Drag","Whip","Pivot","Curl","Out","Di
 function ctxBtn(host,txt,fn,on){const b=document.createElement("button");b.className="btn"+(on?" on":"");b.textContent=txt;b.onclick=fn;host.appendChild(b);return b;}
 function ctxLbl(host,txt){const s=document.createElement("span");s.textContent=txt;s.style.cssText="flex-basis:100%;font-size:10.5px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:2px 0 0;text-transform:uppercase";host.appendChild(s);}
 function buildCtxBar(){
-  const host=document.getElementById("ctxBar"); if(!host) return; host.innerHTML="";
-  if(!SEL) return;
-  if(SEL.group){ /* defender */
-    ctxLbl(host,(SEL.lab||"Defender")+" ï¿½ assignment");
-    ctxBtn(host,"Zone drop",()=>{snap();SEL.role="zone";SEL.dx=SEL.x;SEL.dy=Math.max(150,SEL.y-110);SEL.route=[];renderAll();msg((SEL.lab||"D")+": zone drop.");},SEL.role==="zone");
-    ctxBtn(host,"Man (nearest)",()=>{snap();SEL.role="man";let best=null,bd=1e9;STATE.players.filter(p=>p.type==="route"||p.type==="rb").forEach(p=>{const dd=Math.abs(p.x-SEL.x);if(dd<bd){bd=dd;best=p;}});SEL.manId=best?best.id:null;SEL.route=[];renderAll();msg((SEL.lab||"D")+": man"+(best?" on "+best.lab:"")+".");},SEL.role==="man");
-    ctxBtn(host,"Blitz",()=>{snap();SEL.role="rush";SEL.route=[];renderAll();msg((SEL.lab||"D")+": blitz.");},SEL.role==="rush");
-    ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"ï¿½s path ï¿½ it overrides his drop.");},MODE==="route");
-    if(SEL.route&&SEL.route.length) ctxBtn(host,"Clear path",()=>{snap();SEL.route=[];renderAll();});
-    return;
-  }
-  if(SEL.ol || SEL.type==="block"){ /* lineman / blocker */
-    ctxLbl(host,(SEL.lab||"Line")+" ï¿½ protection & blocks");
-    const ps=document.getElementById("protSel");
-    if(ps){ const sel=ps.cloneNode(true); sel.removeAttribute("id"); sel.value=ps.value; sel.style.maxWidth="180px"; sel.title="Protection (whole line)"; sel.onchange=()=>{ ps.value=sel.value; ps.dispatchEvent(new Event("change")); }; host.appendChild(sel); }
-    BLOCKS.forEach(bl=>ctxBtn(host,bl[0],()=>applyBlock(bl[1],bl[2])));
-    ctxAsnInput(host);
-    return;
-  }
-  /* skill player (WR / TE / RB / QB): routes + motion */
-  ctxLbl(host,(SEL.lab||"Player")+" ï¿½ routes");
-  CTX_ROUTES.forEach(n=>{ if(typeof ROUTES!=="undefined" && ROUTES[n]) ctxBtn(host,n,()=>applyRoute(n)); });
-  ctxLbl(host,"Tools");
-  ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ï¿½s route.");},MODE==="route");
-  ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ï¿½s pre-snap motion.");},MODE==="motion");
-  ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];SEL.rname=null;renderAll();});
-  ctxAsnInput(host);
+ const host=document.getElementById("ctxBar"); if(!host) return; host.innerHTML="";
+ if(!SEL) return;
+ if(SEL.group){ /* defender */
+ ctxLbl(host,(SEL.lab||"Defender")+" ï¿½ assignment");
+ ctxBtn(host,"Zone drop",()=>{snap();SEL.role="zone";SEL.dx=SEL.x;SEL.dy=Math.max(150,SEL.y-110);SEL.route=[];renderAll();msg((SEL.lab||"D")+": zone drop.");},SEL.role==="zone");
+ ctxBtn(host,"Man (nearest)",()=>{snap();SEL.role="man";let best=null,bd=1e9;STATE.players.filter(p=>p.type==="route"||p.type==="rb").forEach(p=>{const dd=Math.abs(p.x-SEL.x);if(dd<bd){bd=dd;best=p;}});SEL.manId=best?best.id:null;SEL.route=[];renderAll();msg((SEL.lab||"D")+": man"+(best?" on "+best.lab:"")+".");},SEL.role==="man");
+ ctxBtn(host,"Blitz",()=>{snap();SEL.role="rush";SEL.route=[];renderAll();msg((SEL.lab||"D")+": blitz.");},SEL.role==="rush");
+ ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"ï¿½s path ï¿½ it overrides his drop.");},MODE==="route");
+ if(SEL.route&&SEL.route.length) ctxBtn(host,"Clear path",()=>{snap();SEL.route=[];renderAll();});
+ return;
+ }
+ if(SEL.ol || SEL.type==="block"){ /* lineman / blocker */
+ ctxLbl(host,(SEL.lab||"Line")+" ï¿½ protection & blocks");
+ const ps=document.getElementById("protSel");
+ if(ps){ const sel=ps.cloneNode(true); sel.removeAttribute("id"); sel.value=ps.value; sel.style.maxWidth="180px"; sel.title="Protection (whole line)"; sel.onchange=()=>{ ps.value=sel.value; ps.dispatchEvent(new Event("change")); }; host.appendChild(sel); }
+ BLOCKS.forEach(bl=>ctxBtn(host,bl[0],()=>applyBlock(bl[1],bl[2])));
+ ctxAsnInput(host);
+ return;
+ }
+ /* skill player (WR / TE / RB / QB): routes + motion */
+ ctxLbl(host,(SEL.lab||"Player")+" ï¿½ routes");
+ CTX_ROUTES.forEach(n=>{ if(typeof ROUTES!=="undefined" && ROUTES[n]) ctxBtn(host,n,()=>applyRoute(n)); });
+ ctxLbl(host,"Tools");
+ ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ï¿½s route.");},MODE==="route");
+ ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"ï¿½s pre-snap motion.");},MODE==="motion");
+ ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];SEL.rname=null;renderAll();});
+ ctxAsnInput(host);
 }
 function buildSwatches(){const host=document.getElementById("swatches");host.innerHTML=SWATCH.map(c=>`<button class="sw" style="background:${c}" data-c="${c}"></button>`).join("");host.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{if(SEL){snap();SEL.color=b.dataset.c;renderAll();}});}
 
@@ -612,67 +612,67 @@ function cancelAnim(){ OFFGRD_RENDER.cancelAnim(); ANIM=null; }
 /* ---- interaction ---- */
 function nearestHit(pt){const pl=hitPlayer(pt);const di=hitDef(pt);const d=di>=0?STATE.defs[di]:null;if(pl&&d)return ((pl.x-pt.x)**2+(pl.y-pt.y)**2)<=((d.x-pt.x)**2+(d.y-pt.y)**2)?pl:d;return pl||d;}
 function onDown(e){if(!STATE)return;e.preventDefault();cancelAnim();const pt=toSvg(e);
-  const hh=hitHandle(pt);
-  if(hh){snap();DRAG={kind:hh.kind,i:hh.i};return;}
-  if(MODE==="blitz"){const di=hitDef(pt);if(di>=0){snap();const d=STATE.defs[di];d.role=(d.role==="rush"?"zone":"rush");if(d.role==="zone"){d.dx=d.x;d.dy=Math.max(150,d.y-110);d.route=d.route||[];}renderAll();}return;}
-  if(MODE==="def"){const di=hitDef(pt);if(di>=0){SEL=STATE.defs[di];snap();DRAG={kind:"obj",o:STATE.defs[di]};}else{snap();STATE.defs.push({x:pt.x,y:pt.y,lab:"D",group:"DB",role:"zone",dx:pt.x,dy:Math.max(150,pt.y-110),manId:null,color:"#13294B",route:[]});}renderAll();return;}
-  if(MODE==="text"){const ti=hitText(pt);if(ti>=0){const nv=prompt("Edit text (blank to delete):",STATE.texts[ti].text);if(nv!==null){snap();if(nv.trim()==="")STATE.texts.splice(ti,1);else STATE.texts[ti].text=nv;}}else{const nv=prompt("Text label:");if(nv&&nv.trim()){snap();STATE.texts.push({x:pt.x,y:pt.y,text:nv.trim(),color:"#13294B",size:18});}}renderAll();return;}
-  if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};renderAll();return;}
-  const hit=nearestHit(pt);
-  if(MODE==="erase"){if(hit){snap();hit.route=[];hit.rname=null;if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
-  if(MODE==="block"){const pl=hitPlayer(pt);if(pl){snap();pl.type=(pl.type==="block"?"route":"block");pl.route=[];}renderAll();return;}
-  if(MODE==="move"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}renderAll();return;}
-  if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.rname=null;SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
-  if(MODE==="motion"){if(hit){SEL=hit;}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
+ const hh=hitHandle(pt);
+ if(hh){snap();DRAG={kind:hh.kind,i:hh.i};return;}
+ if(MODE==="blitz"){const di=hitDef(pt);if(di>=0){snap();const d=STATE.defs[di];d.role=(d.role==="rush"?"zone":"rush");if(d.role==="zone"){d.dx=d.x;d.dy=Math.max(150,d.y-110);d.route=d.route||[];}renderAll();}return;}
+ if(MODE==="def"){const di=hitDef(pt);if(di>=0){SEL=STATE.defs[di];snap();DRAG={kind:"obj",o:STATE.defs[di]};}else{snap();STATE.defs.push({x:pt.x,y:pt.y,lab:"D",group:"DB",role:"zone",dx:pt.x,dy:Math.max(150,pt.y-110),manId:null,color:"#13294B",route:[]});}renderAll();return;}
+ if(MODE==="text"){const ti=hitText(pt);if(ti>=0){const nv=prompt("Edit text (blank to delete):",STATE.texts[ti].text);if(nv!==null){snap();if(nv.trim()==="")STATE.texts.splice(ti,1);else STATE.texts[ti].text=nv;}}else{const nv=prompt("Text label:");if(nv&&nv.trim()){snap();STATE.texts.push({x:pt.x,y:pt.y,text:nv.trim(),color:"#13294B",size:18});}}renderAll();return;}
+ if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};renderAll();return;}
+ const hit=nearestHit(pt);
+ if(MODE==="erase"){if(hit){snap();hit.route=[];hit.rname=null;if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
+ if(MODE==="block"){const pl=hitPlayer(pt);if(pl){snap();pl.type=(pl.type==="block"?"route":"block");pl.route=[];}renderAll();return;}
+ if(MODE==="move"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}renderAll();return;}
+ if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.rname=null;SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
+ if(MODE==="motion"){if(hit){SEL=hit;}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
 }
 function onMove(e){if(!DRAG)return;e.preventDefault();const pt=toSvg(e);
-  if(DRAG.kind==="draw"){DRAG.st.pts.push({x:pt.x,y:pt.y});renderAll();return;}
-  if(DRAG.kind==="obj"){DRAG.o.x=pt.x;DRAG.o.y=pt.y;}
-  else if(DRAG.kind==="anchor"){SEL.route[DRAG.i].x=pt.x;SEL.route[DRAG.i].y=pt.y;}
-  else if(DRAG.kind==="ctrl"){SEL.route[DRAG.i].cx=pt.x;SEL.route[DRAG.i].cy=pt.y;}
-  renderAll();}
+ if(DRAG.kind==="draw"){DRAG.st.pts.push({x:pt.x,y:pt.y});renderAll();return;}
+ if(DRAG.kind==="obj"){DRAG.o.x=pt.x;DRAG.o.y=pt.y;}
+ else if(DRAG.kind==="anchor"){SEL.route[DRAG.i].x=pt.x;SEL.route[DRAG.i].y=pt.y;}
+ else if(DRAG.kind==="ctrl"){SEL.route[DRAG.i].cx=pt.x;SEL.route[DRAG.i].cy=pt.y;}
+ renderAll();}
 function onUp(){DRAG=null;}
 
 /* ---- library ---- */
 function migrateLib(arr){
-  if(!Array.isArray(arr)) return [];
-  const norm=raw=>{
-    const p=Object.assign({}, raw);
-    if(!p.id) p.id=uuid();
-    if(!Array.isArray(p.tags)) p.tags=p.tags?[].concat(p.tags):[];
-    if(p.group==null) p.group="";
-    if(!p.updatedAt) p.updatedAt=0;
-    p.key=nfKey(p);
-    return p;
-  };
-  const prefer=(a,b)=>{
-    const keep=((a.updatedAt||0)>=(b.updatedAt||0))?a:b;
-    const drop=keep===a?b:a;
-    if(drop.cid&&!keep.cid) keep.cid=drop.cid;
-    keep.tags=Array.from(new Set([].concat(keep.tags||[],drop.tags||[])));
-    if(!keep.thumbSvg&&drop.thumbSvg) keep.thumbSvg=drop.thumbSvg;
-    if(!keep.group&&drop.group) keep.group=drop.group;
-    return keep;
-  };
-  let list=arr.map(norm);
-  /* same cloud row ? one local row */
-  const byCid=new Map(), noCid=[];
-  list.forEach(p=>{
-    if(p.cid){ if(byCid.has(p.cid)) byCid.set(p.cid, prefer(byCid.get(p.cid), p)); else byCid.set(p.cid, p); }
-    else noCid.push(p);
-  });
-  list=Array.from(byCid.values()).concat(noCid);
-  /* legacy local dups (no cid): collapse identical name|formation */
-  const byNf=new Map(), withCid=[];
-  list.forEach(p=>{
-    if(p.cid){ withCid.push(p); return; }
-    const k=nfKey(p);
-    if(byNf.has(k)) byNf.set(k, prefer(byNf.get(k), p));
-    else byNf.set(k, p);
-  });
-  const out=withCid.concat(Array.from(byNf.values()));
-  const seen=new Set();
-  return out.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
+ if(!Array.isArray(arr)) return [];
+ const norm=raw=>{
+ const p=Object.assign({}, raw);
+ if(!p.id) p.id=uuid();
+ if(!Array.isArray(p.tags)) p.tags=p.tags?[].concat(p.tags):[];
+ if(p.group==null) p.group="";
+ if(!p.updatedAt) p.updatedAt=0;
+ p.key=nfKey(p);
+ return p;
+ };
+ const prefer=(a,b)=>{
+ const keep=((a.updatedAt||0)>=(b.updatedAt||0))?a:b;
+ const drop=keep===a?b:a;
+ if(drop.cid&&!keep.cid) keep.cid=drop.cid;
+ keep.tags=Array.from(new Set([].concat(keep.tags||[],drop.tags||[])));
+ if(!keep.thumbSvg&&drop.thumbSvg) keep.thumbSvg=drop.thumbSvg;
+ if(!keep.group&&drop.group) keep.group=drop.group;
+ return keep;
+ };
+ let list=arr.map(norm);
+ /* same cloud row ? one local row */
+ const byCid=new Map(), noCid=[];
+ list.forEach(p=>{
+ if(p.cid){ if(byCid.has(p.cid)) byCid.set(p.cid, prefer(byCid.get(p.cid), p)); else byCid.set(p.cid, p); }
+ else noCid.push(p);
+ });
+ list=Array.from(byCid.values()).concat(noCid);
+ /* legacy local dups (no cid): collapse identical name|formation */
+ const byNf=new Map(), withCid=[];
+ list.forEach(p=>{
+ if(p.cid){ withCid.push(p); return; }
+ const k=nfKey(p);
+ if(byNf.has(k)) byNf.set(k, prefer(byNf.get(k), p));
+ else byNf.set(k, p);
+ });
+ const out=withCid.concat(Array.from(byNf.values()));
+ const seen=new Set();
+ return out.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
 }
 function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a)){LIB=migrateLib(a); try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}}}}catch(e){}}
 function saveLib(){try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){} try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(e){}}
@@ -681,360 +681,360 @@ function set(id,v){const el=document.getElementById(id);if(el)el.value=v||"";}
 function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
 function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();}
 function renderTagChips(){
-  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
-  const tags=Array.isArray(STATE.tags)?STATE.tags:[];
-  host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">ï¿½</button></span>`).join("");
-  host.querySelectorAll("button[data-i]").forEach(b=>{ b.onclick=()=>{ STATE.tags.splice(+b.dataset.i,1); renderTagChips(); scheduleDraft(); }; });
+ const host=document.getElementById("tagChips"); if(!host||!STATE) return;
+ const tags=Array.isArray(STATE.tags)?STATE.tags:[];
+ host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">ï¿½</button></span>`).join("");
+ host.querySelectorAll("button[data-i]").forEach(b=>{ b.onclick=()=>{ STATE.tags.splice(+b.dataset.i,1); renderTagChips(); scheduleDraft(); }; });
 }
 function addTagFromInput(){
-  if(!STATE) return; const inp=document.getElementById("m-tagIn"); if(!inp) return;
-  const t=inp.value.trim().replace(/\s+/g," "); if(!t) return;
-  if(!Array.isArray(STATE.tags)) STATE.tags=[];
-  if(STATE.tags.map(x=>x.toLowerCase()).indexOf(t.toLowerCase())<0) STATE.tags.push(t);
-  inp.value=""; renderTagChips(); scheduleDraft();
+ if(!STATE) return; const inp=document.getElementById("m-tagIn"); if(!inp) return;
+ const t=inp.value.trim().replace(/\s+/g," "); if(!t) return;
+ if(!Array.isArray(STATE.tags)) STATE.tags=[];
+ if(STATE.tags.map(x=>x.toLowerCase()).indexOf(t.toLowerCase())<0) STATE.tags.push(t);
+ inp.value=""; renderTagChips(); scheduleDraft();
 }
 function leanThumb(st){
-  if(!st||!st.players) return "";
-  const players=st.players||[], defs=st.defs||[];
-  let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640"><rect width="1000" height="640" fill="#1f7a3d"/>';
-  for(let y=380;y>=80;y-=106) s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;
-  s+=`<line x1="20" y1="380" x2="980" y2="380" stroke="#ffd24a" stroke-width="3"/>`;
-  players.forEach(p=>{
-    if(p.route&&p.route.length){ let d=`M ${p.x} ${p.y}`; p.route.forEach(a=>{ d+=(a.cx!=null?` Q ${a.cx} ${a.cy} ${a.x} ${a.y}`:` L ${a.x} ${a.y}`); }); s+=`<path d="${d}" fill="none" stroke="#bfe3ff" stroke-width="5"/>`; }
-  });
-  players.forEach(p=>{
-    if(p.type==="block"||p.ol) s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2"/>`;
-    else { const fill=p.type==="qb"?"#13294B":"#c8102e"; s+=`<circle cx="${p.x}" cy="${p.y}" r="13" fill="${fill}"/><text x="${p.x}" y="${p.y+4}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab||"")}</text>`; }
-  });
-  defs.forEach(d=>{ s+=`<circle cx="${d.x}" cy="${d.y}" r="10" fill="#13294B"/>`; });
-  s+="</svg>";
-  return s.length>12000?"":s;
+ if(!st||!st.players) return "";
+ const players=st.players||[], defs=st.defs||[];
+ let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640"><rect width="1000" height="640" fill="#1f7a3d"/>';
+ for(let y=380;y>=80;y-=106) s+=`<line x1="20" y1="${y}" x2="980" y2="${y}" stroke="rgba(255,255,255,.28)" stroke-width="2"/>`;
+ s+=`<line x1="20" y1="380" x2="980" y2="380" stroke="#ffd24a" stroke-width="3"/>`;
+ players.forEach(p=>{
+ if(p.route&&p.route.length){ let d=`M ${p.x} ${p.y}`; p.route.forEach(a=>{ d+=(a.cx!=null?` Q ${a.cx} ${a.cy} ${a.x} ${a.y}`:` L ${a.x} ${a.y}`); }); s+=`<path d="${d}" fill="none" stroke="#bfe3ff" stroke-width="5"/>`; }
+ });
+ players.forEach(p=>{
+ if(p.type==="block"||p.ol) s+=`<rect x="${p.x-11}" y="${p.y-11}" width="22" height="22" rx="4" fill="#9aa4b2"/>`;
+ else { const fill=p.type==="qb"?"#13294B":"#c8102e"; s+=`<circle cx="${p.x}" cy="${p.y}" r="13" fill="${fill}"/><text x="${p.x}" y="${p.y+4}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab||"")}</text>`; }
+ });
+ defs.forEach(d=>{ s+=`<circle cx="${d.x}" cy="${d.y}" r="10" fill="#13294B"/>`; });
+ s+="</svg>";
+ return s.length>12000?"":s;
 }
 function savePlay(){
-  readMeta();
-  if(!STATE.name){msg("Give the play a name first.");return;}
-  if(!STATE.id) STATE.id=uuid();
-  const copy=JSON.parse(JSON.stringify(STATE));
-  copy.bg=null; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
-  copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
-  try{ copy.thumbSvg=leanThumb(copy); }catch(e){ copy.thumbSvg=""; }
-  const i=LIB.findIndex(p=>p.id===copy.id);
-  if(i>=0){ copy.cid=LIB[i].cid||copy.cid; LIB[i]=copy; }
-  else LIB.push(copy);
-  STATE.updatedAt=copy.updatedAt; STATE.thumbSvg=copy.thumbSvg;
-  saveLib(); refreshLibUI(); clearDraft();
-  msg((i>=0?"Updated ":"Saved ")+STATE.name+".");
+ readMeta();
+ if(!STATE.name){msg("Give the play a name first.");return;}
+ if(!STATE.id) STATE.id=uuid();
+ const copy=JSON.parse(JSON.stringify(STATE));
+ copy.bg=null; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
+ copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
+ try{ copy.thumbSvg=leanThumb(copy); }catch(e){ copy.thumbSvg=""; }
+ const i=LIB.findIndex(p=>p.id===copy.id);
+ if(i>=0){ copy.cid=LIB[i].cid||copy.cid; LIB[i]=copy; }
+ else LIB.push(copy);
+ STATE.updatedAt=copy.updatedAt; STATE.thumbSvg=copy.thumbSvg;
+ saveLib(); refreshLibUI(); clearDraft();
+ msg((i>=0?"Updated ":"Saved ")+STATE.name+".");
 }
 function loadPlayId(id){
-  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
-  STATE=JSON.parse(JSON.stringify(LIB[i]));
-  if(!STATE.id) STATE.id=uuid();
-  if(!Array.isArray(STATE.tags)) STATE.tags=[];
-  SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim(); writeMeta(); renderAll();
-  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ï¿½ don't rewrite blank/identical draft */
-  msg("Loaded "+STATE.name+".");
+ const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+ STATE=JSON.parse(JSON.stringify(LIB[i]));
+ if(!STATE.id) STATE.id=uuid();
+ if(!Array.isArray(STATE.tags)) STATE.tags=[];
+ SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim(); writeMeta(); renderAll();
+ restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ï¿½ don't rewrite blank/identical draft */
+ msg("Loaded "+STATE.name+".");
 }
 function loadPlay(i){ if(LIB[i]) loadPlayId(LIB[i].id); }
 function dupPlayId(id){
-  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
-  const c=JSON.parse(JSON.stringify(LIB[i]));
-  c.id=uuid(); delete c.cid; c.name=(c.name||"Play")+" (copy)"; c.key=nfKey(c); c.updatedAt=Date.now();
-  try{ c.thumbSvg=leanThumb(c); }catch(e){}
-  LIB.push(c); saveLib(); refreshLibUI(); msg("Duplicated "+LIB[i].name+".");
+ const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+ const c=JSON.parse(JSON.stringify(LIB[i]));
+ c.id=uuid(); delete c.cid; c.name=(c.name||"Play")+" (copy)"; c.key=nfKey(c); c.updatedAt=Date.now();
+ try{ c.thumbSvg=leanThumb(c); }catch(e){}
+ LIB.push(c); saveLib(); refreshLibUI(); msg("Duplicated "+LIB[i].name+".");
 }
 function dupPlay(i){ if(LIB[i]) dupPlayId(LIB[i].id); }
 function delPlayId(id){
-  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
-  const n=LIB[i].name;
-  LIB.splice(i,1); saveLib(); refreshLibUI(); msg("Deleted "+n+".");
+ const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
+ const n=LIB[i].name;
+ LIB.splice(i,1); saveLib(); refreshLibUI(); msg("Deleted "+n+".");
 }
 function delPlay(i){ if(LIB[i]) delPlayId(LIB[i].id); }
 function uniqOpts(field){
-  const s=new Set(); LIB.forEach(p=>{ const v=(p[field]||"").trim(); if(v) s.add(v); });
-  return Array.from(s).sort((a,b)=>a.localeCompare(b));
+ const s=new Set(); LIB.forEach(p=>{ const v=(p[field]||"").trim(); if(v) s.add(v); });
+ return Array.from(s).sort((a,b)=>a.localeCompare(b));
 }
 function fillLibFilters(){
-  const fill=(id,vals,allLbl)=>{
-    const el=document.getElementById(id); if(!el) return;
-    const cur=el.value; el.innerHTML=`<option value="">${allLbl}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
-    if(vals.indexOf(cur)>=0) el.value=cur;
-  };
-  fill("libForm",uniqOpts("formation"),"All formations");
-  fill("libFam",uniqOpts("family"),"All families");
-  fill("libSer",uniqOpts("series"),"All series");
-  fill("libPers",uniqOpts("personnel"),"All personnel");
-  const tags=new Set(); LIB.forEach(p=>((p.tags)||[]).forEach(t=>tags.add(t)));
-  fill("libTag",Array.from(tags).sort((a,b)=>a.localeCompare(b)),"All tags");
+ const fill=(id,vals,allLbl)=>{
+ const el=document.getElementById(id); if(!el) return;
+ const cur=el.value; el.innerHTML=`<option value="">${allLbl}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+ if(vals.indexOf(cur)>=0) el.value=cur;
+ };
+ fill("libForm",uniqOpts("formation"),"All formations");
+ fill("libFam",uniqOpts("family"),"All families");
+ fill("libSer",uniqOpts("series"),"All series");
+ fill("libPers",uniqOpts("personnel"),"All personnel");
+ const tags=new Set(); LIB.forEach(p=>((p.tags)||[]).forEach(t=>tags.add(t)));
+ fill("libTag",Array.from(tags).sort((a,b)=>a.localeCompare(b)),"All tags");
 }
 function filteredLib(){
-  const q=(_libFilt.q||"").toLowerCase().trim();
-  let list=LIB.slice();
-  list=list.filter(p=>{
-    if(_libFilt.form && (p.formation||"")!==_libFilt.form) return false;
-    if(_libFilt.fam && (p.family||"")!==_libFilt.fam) return false;
-    if(_libFilt.ser && (p.series||"")!==_libFilt.ser) return false;
-    if(_libFilt.pers && (p.personnel||"")!==_libFilt.pers) return false;
-    if(_libFilt.tag && !(p.tags||[]).includes(_libFilt.tag)) return false;
-    if(!q) return true;
-    const hay=[p.name,p.formation,p.family,p.series,p.personnel,p.group,(p.tags||[]).join(" ")].join(" ").toLowerCase();
-    return hay.indexOf(q)>=0;
-  });
-  if(_libFilt.sort==="name") list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
-  else list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  return list;
+ const q=(_libFilt.q||"").toLowerCase().trim();
+ let list=LIB.slice();
+ list=list.filter(p=>{
+ if(_libFilt.form && (p.formation||"")!==_libFilt.form) return false;
+ if(_libFilt.fam && (p.family||"")!==_libFilt.fam) return false;
+ if(_libFilt.ser && (p.series||"")!==_libFilt.ser) return false;
+ if(_libFilt.pers && (p.personnel||"")!==_libFilt.pers) return false;
+ if(_libFilt.tag && !(p.tags||[]).includes(_libFilt.tag)) return false;
+ if(!q) return true;
+ const hay=[p.name,p.formation,p.family,p.series,p.personnel,p.group,(p.tags||[]).join(" ")].join(" ").toLowerCase();
+ return hay.indexOf(q)>=0;
+ });
+ if(_libFilt.sort==="name") list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+ else list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+ return list;
 }
 function renderLib(){
-  document.getElementById("playCount").textContent=LIB.length;
-  const host=document.getElementById("playList");
-  if(!LIB.length){host.innerHTML='<p class="hint">No plays saved yet. Draw one, name it, and Save.</p>';return;}
-  const list=filteredLib();
-  if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
-  host.innerHTML=list.map(p=>{
-    const th=p.thumbSvg?`<span class="th">${p.thumbSvg}</span>`:`<span class="th"></span>`;
-    const tags=(p.tags&&p.tags.length)?` ï¿½ ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
-    const grp=p.group?` ï¿½ ${esc(p.group)}`:"";
-    return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" ï¿½ ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">?</button></div>`;
-  }).join("");
-  host.querySelectorAll("button[data-act]").forEach(b=>{
-    b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
-  });
+ document.getElementById("playCount").textContent=LIB.length;
+ const host=document.getElementById("playList");
+ if(!LIB.length){host.innerHTML='<p class="hint">No plays saved yet. Draw one, name it, and Save.</p>';return;}
+ const list=filteredLib();
+ if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
+ host.innerHTML=list.map(p=>{
+ const th=p.thumbSvg?`<span class="th">${p.thumbSvg}</span>`:`<span class="th"></span>`;
+ const tags=(p.tags&&p.tags.length)?` ï¿½ ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
+ const grp=p.group?` ï¿½ ${esc(p.group)}`:"";
+ return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.family,p.personnel].filter(Boolean).map(esc).join(" ï¿½ ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">?</button></div>`;
+ }).join("");
+ host.querySelectorAll("button[data-act]").forEach(b=>{
+ b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
+ });
 }
 function refreshLibUI(){ fillLibFilters(); renderLib(); }
 function buildInstall(){ if(!LIB.length){msg("Save some plays first to build an install.");return;}
-  const groups={}; LIB.forEach(p=>{const k=(p.series||p.family||"Unsorted");(groups[k]=groups[k]||[]).push(p);});
-  const order=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
-  let html="",day=1,count=0;const perDay=6;
-  order.forEach(g=>{ html+=`<div class="lbl" style="margin-top:12px">${esc(g)} <span style="color:var(--muted)">(${groups[g].length})</span></div>`;
-    groups[g].forEach(p=>{ if(count>0&&count%perDay===0)day++; count++;
-      const th=p.thumbSvg?`<span class="insth">${p.thumbSvg}</span>`:"";
-      html+=`<div class="playrow">${th}<span class="nm" style="min-width:54px">Day ${day}</span><span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.personnel,p.protection].filter(Boolean).map(esc).join(" \u00b7 ")}</span></div>`; }); });
-  document.getElementById("installBody").innerHTML=html; document.getElementById("installModal").classList.add("show"); }
+ const groups={}; LIB.forEach(p=>{const k=(p.series||p.family||"Unsorted");(groups[k]=groups[k]||[]).push(p);});
+ const order=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+ let html="",day=1,count=0;const perDay=6;
+ order.forEach(g=>{ html+=`<div class="lbl" style="margin-top:12px">${esc(g)} <span style="color:var(--muted)">(${groups[g].length})</span></div>`;
+ groups[g].forEach(p=>{ if(count>0&&count%perDay===0)day++; count++;
+ const th=p.thumbSvg?`<span class="insth">${p.thumbSvg}</span>`:"";
+ html+=`<div class="playrow">${th}<span class="nm" style="min-width:54px">Day ${day}</span><span class="nm">${esc(p.name)}</span><span class="tag">${[p.formation,p.personnel,p.protection].filter(Boolean).map(esc).join(" \u00b7 ")}</span></div>`; }); });
+ document.getElementById("installBody").innerHTML=html; document.getElementById("installModal").classList.add("show"); }
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));}
 function msg(t){document.getElementById("saveMsg").textContent=t;}
 
 /* ---- PNG export ---- */
 function exportPNG(){
-  const svg=document.getElementById("field");const clone=svg.cloneNode(true);clone.setAttribute("width",W);clone.setAttribute("height",H);
-  const xml=new XMLSerializer().serializeToString(clone);
-  const url="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(xml)));
-  const img=new Image();img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const ctx=c.getContext("2d");ctx.scale(2,2);ctx.drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(STATE&&STATE.name?STATE.name:"play")+".png";a.click();URL.revokeObjectURL(u);});};img.src=url;
+ const svg=document.getElementById("field");const clone=svg.cloneNode(true);clone.setAttribute("width",W);clone.setAttribute("height",H);
+ const xml=new XMLSerializer().serializeToString(clone);
+ const url="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(xml)));
+ const img=new Image();img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const ctx=c.getContext("2d");ctx.scale(2,2);ctx.drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(STATE&&STATE.name?STATE.name:"play")+".png";a.click();URL.revokeObjectURL(u);});};img.src=url;
 }
 
 /* ---- modes ---- */
 function setMode(m){MODE=m;document.querySelectorAll(".btn[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));const hints={move:"Drag players, defenders, or route handles to reposition.",route:"Tap a player OR defender to select, then tap the field to draw their path/drop. Drag green dots to adjust, gray dots to curve. A drawn path overrides the coverage drop on the snap.",block:"Tap a lineman/back to toggle to a blocker (square).",motion:"Select a player, tap to draw a pre-snap motion path. It fires first on Play.",def:"Tap to drop an extra defender. To give ANY defender a movement/drop, use the Route tool: tap him, then tap where he goes.",text:"Tap the field to add a text label (tap an existing one to edit). Drag in Move.",draw:"Free-hand draw with finger/pencil. Use Erase to remove a stroke.",blitz:"Tap a defender to send him on a blitz (red rush arrow). Tap again to drop him into coverage.",erase:"Tap a player to clear its route & motion; tap a defender to remove it."};document.getElementById("hint").innerHTML=hints[m]||"";}
 /* ---------- starter playbook ï¿½ no blank page (coach onboarding) ---------- */
 function starterLib(){
-  const out=[];
-  const P=lab=>STATE.players.find(p=>p.lab===lab);
-  const R=(lab,rt)=>{ const p=P(lab); if(p) rebuildRoute(p,rt); };
-  const runBlk=dir=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.runblk={type:"base",dir:dir}; p.blk=null; }); };
-  const rbPath=pts=>{ const p=P("RB"); if(p) p.route=pts.map(q=>({x:q.x,y:q.y,cx:null,cy:null})); };
-  const mk=(name,family,series,pers,form,prot,build)=>{
-    newPlay(form);
-    STATE.name=name; STATE.family=family; STATE.series=series; STATE.personnel=pers; STATE.formation=form;
-    if(prot && prot!=="none"){ STATE.protection=prot; try{ applyProtection(prot); }catch(e){} }
-    try{ if(build) build(); }catch(e){}
-    const copy=JSON.parse(JSON.stringify(STATE)); copy.bg=null;
-    copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
-    if(!copy.id) copy.id=uuid();
-    copy.tags=copy.tags||[]; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
-    try{ copy.thumbSvg=leanThumb(copy); }catch(e){}
-    out.push(copy);
-  };
-  /* quick game */
-  mk("Stick","Quick Game","Quick","10","Trips Rt (Gun)","BOB",()=>applyConcept("Stick"));
-  mk("Hitches","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ ["X","H","Y","Z"].forEach(l=>R(l,"Hitch")); const rb=P("RB"); if(rb){ rb.type="block"; rb.blk="set"; rb.runblk=null; rb.route=[]; } });
-  mk("Slant-Flat","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ R("X","Slant"); R("Z","Slant"); R("H","Flat"); R("Y","Flat"); R("RB","Screen"); });
-  /* dropback */
-  mk("Smash","Dropback","Smash","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Smash"));
-  mk("Flood Rt","Dropback","Flood","10","Trips Rt (Gun)","Slide L",()=>applyConcept("Flood"));
-  mk("Mesh","Dropback","Mesh","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Mesh"));
-  mk("Four Verts","Dropback","Verts","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Four Verts"));
-  mk("Curl-Flat","Dropback","Curl","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Curl-Flat"));
-  /* screen */
-  mk("RB Screen Rt","Screen","Screen","10","2x2 Doubles (Gun)","none",()=>{ R("X","Go"); R("Z","Go"); R("H","Slant"); R("Y","Slant"); R("RB","Screen"); });
-  /* run game */
-  mk("Inside Zone Rt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(1); rbPath([{x:560,y:430},{x:575,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
-  mk("Inside Zone Lt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(-1); rbPath([{x:440,y:430},{x:425,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
-  mk("Power Lt","Run","Power","10","2x2 Doubles (Gun)","none",()=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.blk=null; p.runblk={type:"down",dir:-1}; }); const rg=P("RG"); if(rg) rg.runblk={type:"pull",dir:-1}; rbPath([{x:455,y:435},{x:420,y:300}]); });
-  return out;
+ const out=[];
+ const P=lab=>STATE.players.find(p=>p.lab===lab);
+ const R=(lab,rt)=>{ const p=P(lab); if(p) rebuildRoute(p,rt); };
+ const runBlk=dir=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.runblk={type:"base",dir:dir}; p.blk=null; }); };
+ const rbPath=pts=>{ const p=P("RB"); if(p) p.route=pts.map(q=>({x:q.x,y:q.y,cx:null,cy:null})); };
+ const mk=(name,family,series,pers,form,prot,build)=>{
+ newPlay(form);
+ STATE.name=name; STATE.family=family; STATE.series=series; STATE.personnel=pers; STATE.formation=form;
+ if(prot && prot!=="none"){ STATE.protection=prot; try{ applyProtection(prot); }catch(e){} }
+ try{ if(build) build(); }catch(e){}
+ const copy=JSON.parse(JSON.stringify(STATE)); copy.bg=null;
+ copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
+ if(!copy.id) copy.id=uuid();
+ copy.tags=copy.tags||[]; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
+ try{ copy.thumbSvg=leanThumb(copy); }catch(e){}
+ out.push(copy);
+ };
+ /* quick game */
+ mk("Stick","Quick Game","Quick","10","Trips Rt (Gun)","BOB",()=>applyConcept("Stick"));
+ mk("Hitches","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ ["X","H","Y","Z"].forEach(l=>R(l,"Hitch")); const rb=P("RB"); if(rb){ rb.type="block"; rb.blk="set"; rb.runblk=null; rb.route=[]; } });
+ mk("Slant-Flat","Quick Game","Quick","10","2x2 Doubles (Gun)","BOB",()=>{ R("X","Slant"); R("Z","Slant"); R("H","Flat"); R("Y","Flat"); R("RB","Screen"); });
+ /* dropback */
+ mk("Smash","Dropback","Smash","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Smash"));
+ mk("Flood Rt","Dropback","Flood","10","Trips Rt (Gun)","Slide L",()=>applyConcept("Flood"));
+ mk("Mesh","Dropback","Mesh","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Mesh"));
+ mk("Four Verts","Dropback","Verts","10","2x2 Doubles (Gun)","Slide R",()=>applyConcept("Four Verts"));
+ mk("Curl-Flat","Dropback","Curl","10","2x2 Doubles (Gun)","BOB",()=>applyConcept("Curl-Flat"));
+ /* screen */
+ mk("RB Screen Rt","Screen","Screen","10","2x2 Doubles (Gun)","none",()=>{ R("X","Go"); R("Z","Go"); R("H","Slant"); R("Y","Slant"); R("RB","Screen"); });
+ /* run game */
+ mk("Inside Zone Rt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(1); rbPath([{x:560,y:430},{x:575,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
+ mk("Inside Zone Lt","Run","Zone","10","2x2 Doubles (Gun)","none",()=>{ runBlk(-1); rbPath([{x:440,y:430},{x:425,y:300}]); R("X","Hitch"); R("Z","Hitch"); });
+ mk("Power Lt","Run","Power","10","2x2 Doubles (Gun)","none",()=>{ STATE.players.filter(p=>p.ol).forEach(p=>{ p.type="block"; p.blk=null; p.runblk={type:"down",dir:-1}; }); const rg=P("RG"); if(rg) rg.runblk={type:"pull",dir:-1}; rbPath([{x:455,y:435},{x:420,y:300}]); });
+ return out;
 }
 /* Starter prompt keys off the saved LIBRARY (=1 play), not the empty designer canvas.
-   Defer until cloud hydrate can populate LIB so existing programs never get nagged. */
+ Defer until cloud hydrate can populate LIB so existing programs never get nagged. */
 let _starterTimer=null;
 function dismissStarterPrompt(){
-  try{ localStorage.setItem("offgrd_pb_starter","1"); }catch(e){}
-  if(_starterTimer){ try{ clearTimeout(_starterTimer); }catch(e){} _starterTimer=null; }
-  const ov=document.getElementById("pbStarterOv"); if(ov) ov.remove();
+ try{ localStorage.setItem("offgrd_pb_starter","1"); }catch(e){}
+ if(_starterTimer){ try{ clearTimeout(_starterTimer); }catch(e){} _starterTimer=null; }
+ const ov=document.getElementById("pbStarterOv"); if(ov) ov.remove();
 }
 function libraryHasPlays(){
-  if(LIB && LIB.length) return true;
-  try{
-    const s=localStorage.getItem(STORE);
-    if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) return true; }
-  }catch(e){}
-  return false;
+ if(LIB && LIB.length) return true;
+ try{
+ const s=localStorage.getItem(STORE);
+ if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) return true; }
+ }catch(e){}
+ return false;
 }
 function offerStarter(opts){
-  opts=opts||{};
-  if(libraryHasPlays()){ dismissStarterPrompt(); return; }
-  let done=null; try{ done=localStorage.getItem("offgrd_pb_starter"); }catch(e){}
-  if(done) return;
-  /* Wait for cloud merge before deciding the library is truly empty */
-  if(!opts.force){
-    if(_starterTimer) clearTimeout(_starterTimer);
-    _starterTimer=setTimeout(function(){ offerStarter({ force:true }); }, 1400);
-    return;
-  }
-  if(libraryHasPlays()){ dismissStarterPrompt(); return; }
-  if(document.getElementById("pbStarterOv")) return;
-  const ov=document.createElement("div"); ov.id="pbStarterOv"; ov.className="ov show"; ov.style.zIndex=9998;
-  ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
-   +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book ï¿½ <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you donï¿½t run. If youï¿½re signed in, they sync to your whole program automatically.</p>'
-   +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
-  document.body.appendChild(ov);
-  ov.querySelector("#stSkip").onclick=function(){ dismissStarterPrompt(); };
-  ov.querySelector("#stGo").onclick=function(){
-    if(libraryHasPlays()){ dismissStarterPrompt(); msg("Your team playbook already loaded from the cloud."); return; }
-    LIB=starterLib(); saveLib(); refreshLibUI();
-    newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
-    msg("Starter playbook loaded ï¿½ 12 plays. Open any play, rename it, make it yours.");
-    dismissStarterPrompt();
-  };
+ opts=opts||{};
+ if(libraryHasPlays()){ dismissStarterPrompt(); return; }
+ let done=null; try{ done=localStorage.getItem("offgrd_pb_starter"); }catch(e){}
+ if(done) return;
+ /* Wait for cloud merge before deciding the library is truly empty */
+ if(!opts.force){
+ if(_starterTimer) clearTimeout(_starterTimer);
+ _starterTimer=setTimeout(function(){ offerStarter({ force:true }); }, 1400);
+ return;
+ }
+ if(libraryHasPlays()){ dismissStarterPrompt(); return; }
+ if(document.getElementById("pbStarterOv")) return;
+ const ov=document.createElement("div"); ov.id="pbStarterOv"; ov.className="ov show"; ov.style.zIndex=9998;
+ ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
+ +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book ï¿½ <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you donï¿½t run. If youï¿½re signed in, they sync to your whole program automatically.</p>'
+ +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
+ document.body.appendChild(ov);
+ ov.querySelector("#stSkip").onclick=function(){ dismissStarterPrompt(); };
+ ov.querySelector("#stGo").onclick=function(){
+ if(libraryHasPlays()){ dismissStarterPrompt(); msg("Your team playbook already loaded from the cloud."); return; }
+ LIB=starterLib(); saveLib(); refreshLibUI();
+ newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
+ msg("Starter playbook loaded ï¿½ 12 plays. Open any play, rename it, make it yours.");
+ dismissStarterPrompt();
+ };
 }
 
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 window.loadPlayId=loadPlayId;window.delPlayId=delPlayId;window.dupPlayId=dupPlayId;
 /* Expose the sync bridge IMMEDIATELY ï¿½ OFFGRD-account.js (a deferred module) reads
-   window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
-   DOMContentLoaded handler meant the Playbook page never synced plays at all. */
+ window.OFFGRD_APP before DOMContentLoaded fires. Registering it inside the
+ DOMContentLoaded handler meant the Playbook page never synced plays at all. */
 window.OFFGRD_APP={
-  kind:"playbook",
-  get:()=>LIB,
-  set:a=>{
-    if(!Array.isArray(a)) return;
-    const next=migrateLib(a);
-    LIB=next;
-    try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
-    /* One UI refresh after merge ï¿½ never per-row, never sync-push from set (avoids pull?push loops). */
-    refreshLibUI();
-    /* Cloud hydrate landed with plays ï¿½ never nag with the starter prompt. */
-    if(LIB && LIB.length) dismissStarterPrompt();
-  },
-  /* After push only updates cids ï¿½ persist without rebuilding filter DOM if list identity unchanged. */
-  touch:a=>{
-    if(Array.isArray(a)) LIB=a;
-    try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
-    if(LIB && LIB.length) dismissStarterPrompt();
-  }
+ kind:"playbook",
+ get:()=>LIB,
+ set:a=>{
+ if(!Array.isArray(a)) return;
+ const next=migrateLib(a);
+ LIB=next;
+ try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
+ /* One UI refresh after merge ï¿½ never per-row, never sync-push from set (avoids pull?push loops). */
+ refreshLibUI();
+ /* Cloud hydrate landed with plays ï¿½ never nag with the starter prompt. */
+ if(LIB && LIB.length) dismissStarterPrompt();
+ },
+ /* After push only updates cids ï¿½ persist without rebuilding filter DOM if list identity unchanged. */
+ touch:a=>{
+ if(Array.isArray(a)) LIB=a;
+ try{ localStorage.setItem(STORE, JSON.stringify(LIB)); }catch(e){}
+ if(LIB && LIB.length) dismissStarterPrompt();
+ }
 };
 
 document.addEventListener("DOMContentLoaded",()=>{
-  const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
-  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();refreshLibUI();setMode("route");syncUndo();offerStarter();offerRestoreDraft();
-  try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
-  const wireLib=()=>{
-    const sync=()=>{
-      _libFilt.q=(document.getElementById("libSearch").value||"");
-      _libFilt.form=document.getElementById("libForm").value||"";
-      _libFilt.fam=document.getElementById("libFam").value||"";
-      _libFilt.ser=document.getElementById("libSer").value||"";
-      _libFilt.pers=document.getElementById("libPers").value||"";
-      _libFilt.tag=document.getElementById("libTag").value||"";
-      _libFilt.sort=document.getElementById("libSort").value||"updated";
-      renderLib();
-    };
-    ["libSearch","libForm","libFam","libSer","libPers","libTag","libSort"].forEach(id=>{
-      const el=document.getElementById(id); if(!el) return;
-      el.addEventListener(id==="libSearch"?"input":"change", sync);
-    });
-  };
-  wireLib();
-  const tagAdd=document.getElementById("m-tagAdd"); if(tagAdd) tagAdd.onclick=addTagFromInput;
-  const tagIn=document.getElementById("m-tagIn"); if(tagIn) tagIn.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addTagFromInput(); } });
-  ["m-name","m-family","m-series","m-pers","m-form","m-prot","m-group"].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.addEventListener("input",()=>scheduleDraft());
-  });
-  const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
-  const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
-  const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
-  const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
-  const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
-  const loadFormation=()=>{newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);};document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
-  document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
-  document.getElementById("addWR").onclick=()=>{snap();const id=Math.max(0,...STATE.players.map(p=>p.id))+1;STATE.players.push({id,lab:"A",x:500,y:545,type:"route",color:null,ol:0,blk:null,route:[],motion:[]});renderAll();};
-  document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
-  document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();scheduleDraft();};
-  document.getElementById("imgBtn").onclick=()=>document.getElementById("imgFile").click();
-  document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded ï¿½ trace it, then Clear when done.");};rd.readAsDataURL(f);};
-  document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
-  document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
-  document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
-  const asnT=document.getElementById("asnToggle"), asnB=document.getElementById("asnBody");
-  const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ?":"Show ?"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
-  asnT.onclick=()=>asnSet(asnB.style.display==="none");
-  let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
-  document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); scheduleDraft(); } };
-  document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-  const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
-  document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value)));};
-  dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
-  dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
-  sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();scheduleDraft();};
-  document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
-  const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
-  document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
-  document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
-  document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
-  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
-  document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
-  document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only â€” coaches save plays."); return; } savePlay(); };
-  document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only â€” coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
-  document.getElementById("pngBtn").onclick=exportPNG;
-  document.getElementById("printBtn").onclick=()=>window.print();
-  document.getElementById("installBtn").onclick=buildInstall;
-  const scBtn=document.getElementById("scoutCardsBtn");
-  if(scBtn){
-    const show=!(window.OFFGRD_SCOUTCARDS)||OFFGRD_SCOUTCARDS.isScoutcards();
-    scBtn.style.display=show?"":"none";
-    scBtn.onclick=()=>{
-      if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off â€” set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
-      let games=[]; try{ games=JSON.parse(localStorage.getItem("offgrd_season_v2")||"[]"); }catch(e){}
-      const playerRo=!!window.OFFGRD_PLAYER_READONLY;
-      OFFGRD_SCOUTCARDS.openModal({
-        installLib:LIB,
-        games:playerRo?[]:(Array.isArray(games)?games:[]),
-        selectedIds:STATE&&STATE.id?[STATE.id]:[],
-        format:"install",
-        viewOnly:playerRo,
-        onMsg:msg
-      });
-    };
-  }
-  const telBtn=document.getElementById("telestrateBtn");
-  if(telBtn){
-    const show=!(window.OFFGRD_TELESTRATE)||OFFGRD_TELESTRATE.isTelestrate();
-    telBtn.style.display=show?"":"none";
-    telBtn.onclick=()=>{
-      if(!(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.isTelestrate())){ msg("Film telestration is off ï¿½ set localStorage.offgrd_film_telestrate=1 or remove ?telestrate=0."); return; }
-      OFFGRD_TELESTRATE.openModal({ onBlocked:msg });
-    };
-  }
-  document.getElementById("installClose").onclick=()=>document.getElementById("installModal").classList.remove("show");
-  document.getElementById("installModal").onclick=e=>{if(e.target.id==="installModal")e.currentTarget.classList.remove("show");};
-  document.getElementById("wizBtn").onclick=wizOpen;
-  document.getElementById("wizX").onclick=wizClose;
-  document.getElementById("wizBack").onclick=()=>wizNav(-1);
-  document.getElementById("wizNext").onclick=()=>wizNav(1);
-  document.getElementById("wizModal").onclick=e=>{if(e.target.id==="wizModal")wizClose();};
-  document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
-  document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
-  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
+ const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
+ loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();refreshLibUI();setMode("route");syncUndo();offerStarter();offerRestoreDraft();
+ try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
+ const wireLib=()=>{
+ const sync=()=>{
+ _libFilt.q=(document.getElementById("libSearch").value||"");
+ _libFilt.form=document.getElementById("libForm").value||"";
+ _libFilt.fam=document.getElementById("libFam").value||"";
+ _libFilt.ser=document.getElementById("libSer").value||"";
+ _libFilt.pers=document.getElementById("libPers").value||"";
+ _libFilt.tag=document.getElementById("libTag").value||"";
+ _libFilt.sort=document.getElementById("libSort").value||"updated";
+ renderLib();
+ };
+ ["libSearch","libForm","libFam","libSer","libPers","libTag","libSort"].forEach(id=>{
+ const el=document.getElementById(id); if(!el) return;
+ el.addEventListener(id==="libSearch"?"input":"change", sync);
+ });
+ };
+ wireLib();
+ const tagAdd=document.getElementById("m-tagAdd"); if(tagAdd) tagAdd.onclick=addTagFromInput;
+ const tagIn=document.getElementById("m-tagIn"); if(tagIn) tagIn.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addTagFromInput(); } });
+ ["m-name","m-family","m-series","m-pers","m-form","m-prot","m-group"].forEach(id=>{
+ const el=document.getElementById(id); if(el) el.addEventListener("input",()=>scheduleDraft());
+ });
+ const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
+ const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
+ const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
+ const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
+ const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
+ const loadFormation=()=>{newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);};document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
+ document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
+ document.getElementById("addWR").onclick=()=>{snap();const id=Math.max(0,...STATE.players.map(p=>p.id))+1;STATE.players.push({id,lab:"A",x:500,y:545,type:"route",color:null,ol:0,blk:null,route:[],motion:[]});renderAll();};
+ document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
+ document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();scheduleDraft();};
+ document.getElementById("imgBtn").onclick=()=>document.getElementById("imgFile").click();
+ document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded ï¿½ trace it, then Clear when done.");};rd.readAsDataURL(f);};
+ document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
+ document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
+ document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
+ const asnT=document.getElementById("asnToggle"), asnB=document.getElementById("asnBody");
+ const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ?":"Show ?"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
+ asnT.onclick=()=>asnSet(asnB.style.display==="none");
+ let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
+ document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); scheduleDraft(); } };
+ document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+ const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
+ document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value)));};
+ dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
+ dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
+ sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();scheduleDraft();};
+ document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
+ const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
+ document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
+ document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
+ document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
+ document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
+ document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
+ document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only â€” coaches save plays."); return; } savePlay(); };
+ document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only â€” coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
+ document.getElementById("pngBtn").onclick=exportPNG;
+ document.getElementById("printBtn").onclick=()=>window.print();
+ document.getElementById("installBtn").onclick=buildInstall;
+ const scBtn=document.getElementById("scoutCardsBtn");
+ if(scBtn){
+ const show=!(window.OFFGRD_SCOUTCARDS)||OFFGRD_SCOUTCARDS.isScoutcards();
+ scBtn.style.display=show?"":"none";
+ scBtn.onclick=()=>{
+ if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off â€” set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
+ let games=[]; try{ games=JSON.parse(localStorage.getItem("offgrd_season_v2")||"[]"); }catch(e){}
+ const playerRo=!!window.OFFGRD_PLAYER_READONLY;
+ OFFGRD_SCOUTCARDS.openModal({
+ installLib:LIB,
+ games:playerRo?[]:(Array.isArray(games)?games:[]),
+ selectedIds:STATE&&STATE.id?[STATE.id]:[],
+ format:"install",
+ viewOnly:playerRo,
+ onMsg:msg
+ });
+ };
+ }
+ const telBtn=document.getElementById("telestrateBtn");
+ if(telBtn){
+ const show=!(window.OFFGRD_TELESTRATE)||OFFGRD_TELESTRATE.isTelestrate();
+ telBtn.style.display=show?"":"none";
+ telBtn.onclick=()=>{
+ if(!(window.OFFGRD_TELESTRATE&&OFFGRD_TELESTRATE.isTelestrate())){ msg("Film telestration is off ï¿½ set localStorage.offgrd_film_telestrate=1 or remove ?telestrate=0."); return; }
+ OFFGRD_TELESTRATE.openModal({ onBlocked:msg });
+ };
+ }
+ document.getElementById("installClose").onclick=()=>document.getElementById("installModal").classList.remove("show");
+ document.getElementById("installModal").onclick=e=>{if(e.target.id==="installModal")e.currentTarget.classList.remove("show");};
+ document.getElementById("wizBtn").onclick=wizOpen;
+ document.getElementById("wizX").onclick=wizClose;
+ document.getElementById("wizBack").onclick=()=>wizNav(-1);
+ document.getElementById("wizNext").onclick=()=>wizNav(1);
+ document.getElementById("wizModal").onclick=e=>{if(e.target.id==="wizModal")wizClose();};
+ document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
+ document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
+ document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=94"></script>
-<script src="OFFGRD-role-gate.js?v=94"></script>
-<script src="OFFGRD-mobile.js?v=94"></script>
+<script type="module" src="OFFGRD-account.js?v=95"></script>
+<script src="OFFGRD-role-gate.js?v=95"></script>
+<script src="OFFGRD-mobile.js?v=95"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
