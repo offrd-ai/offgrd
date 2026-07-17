@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=99"></script>
+<script src="OFFGRD-config.js?v=100"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=99"></script>
-<script src="OFFGRD-render.js?v=99"></script>
-<script src="OFFGRD-autoderive.js?v=99"></script>
-<script src="OFFGRD-redesign.js?v=99"></script>
+<script src="OFFGRD-cache-gate.js?v=100"></script>
+<script src="OFFGRD-render.js?v=100"></script>
+<script src="OFFGRD-autoderive.js?v=100"></script>
+<script src="OFFGRD-redesign.js?v=100"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -878,7 +878,17 @@ function defaultDefPlaybook(){
     {id:"dt-twist", name:"DT Twist", preset:"twistL"},
     {id:"nickel-fire", name:"Nickel Fire", preset:"mike"}
   ];
-  return {v:1, fronts:fronts, coverages:coverages, pressures:pressures};
+  const motions = defaultMotions();
+  return {v:1, fronts:fronts, coverages:coverages, pressures:pressures, motions:motions};
+}
+function defaultMotions(){
+  return [
+    {id:"jet", name:"Jet / Fly", type:"jet", mover:"#1", path:[]},
+    {id:"orbit", name:"Orbit", type:"orbit", mover:"RB", path:[]},
+    {id:"across", name:"Across / Zip", type:"across", mover:"#1", path:[]},
+    {id:"shift", name:"Shift strength", type:"shift", mover:"#2", path:[]},
+    {id:"tight-slot", name:"Tight \u2192 Slot", type:"tight-to-slot", mover:"TE", path:[]}
+  ];
 }
 function mergeDefPlaybook(stored){
   const base = defaultDefPlaybook();
@@ -887,14 +897,15 @@ function mergeDefPlaybook(stored){
     v:1,
     fronts:(stored.fronts&&stored.fronts.length)?stored.fronts:base.fronts,
     coverages:(stored.coverages&&stored.coverages.length)?stored.coverages:base.coverages,
-    pressures:(stored.pressures&&stored.pressures.length)?stored.pressures:base.pressures
+    pressures:(stored.pressures&&stored.pressures.length)?stored.pressures:base.pressures,
+    motions:(stored.motions&&stored.motions.length)?stored.motions:base.motions
   };
 }
 function normalizeAssignEntry(a, path){
   if(!a && !(path&&path.length)) return null;
   if(typeof a==="string") return {resp:a, move:(path&&path.length)?{path:path, kind:"rush"}:undefined};
   if(a&&typeof a==="object"){
-    const out={resp:a.resp||a.answer||null, align:a.align||null, move:a.move||null};
+    const out={resp:a.resp||a.answer||null, align:a.align||null, move:a.move||null, motion_move:a.motion_move||null};
     if(!out.move && path&&path.length) out.move={path:path, kind:"rush"};
     return out;
   }
@@ -1181,7 +1192,7 @@ async function editDefense(){
   cur.assigns=cur.assigns||{};
   cur.stunt=cur.stunt||{};
   cur.align_by_family=cur.align_by_family||{};
-  cur.adjusters=cur.adjusters||{motion:"stub"}; /* Phase 5 hook */
+  cur.adjusters=normalizeAdjusters(cur.adjusters); let PREVIEW_MOTION=null;
   cur.coverage=cur.coverage||"Cover 3";
   cur.pressure=cur.pressure||"none";
   let SELDI=null, PREVIEW=previewFormationLooks()[0];
@@ -1291,10 +1302,12 @@ async function editDefense(){
     +'<div class="lbl" style="margin-top:8px">Coverage</div><div class="chips" id="bzCovs" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:8px">Pressure</div><div class="chips" id="bzPress" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:8px;font-size:11px">Rules / adjust — preview vs formation family (confirm align per look)</div><div class="chips" id="bzForms" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:8px;font-size:11px">Motion (pre-snap adjust)</div><div class="chips" id="bzMotions" style="margin:4px 0"></div>'
+    +'<div id="bzMotionRules" class="chips" style="margin:4px 0"></div>'
     +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="tag" id="bzCur"></span>'
     +'<span><button class="btn" id="authUndoBtn" title="Undo (Ctrl/Cmd+Z)" disabled>&#8630; Undo</button> <button class="btn" id="authRedoBtn" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>&#8631; Redo</button> <button class="btn" id="bzReseed">Re-seed assigns</button> <button class="btn" id="bzPreview">Preview animate</button></span></div>'
     +'<div id="bzAssign" style="margin:4px 0;min-height:28px"></div>'
-    +'<p class="tag" style="margin:2px 0 0">Drag a defender to move him; tap (no drag) to edit job / Direct a path.</p>'
+    +'<p class="tag" style="margin:2px 0 0">Drag a defender to move him; tap (no drag) to edit job / Direct a path. With a Motion selected, field-tap draws that defender\u2019s carry/bump path.</p>'
     +'<div class="field-wrap"><svg id="bzField" viewBox="0 0 1000 640"></svg></div>'
     +'<div class="row" style="margin-top:10px"><input id="bzName" class="btn" style="flex:1;min-width:140px" placeholder="call name" value="">'
     +'<input id="bzNote" class="btn" style="flex:1;min-width:120px" placeholder="note (optional)" value="">'
@@ -1306,13 +1319,15 @@ async function editDefense(){
   if(noteEl) noteEl.value=cur.note||"";
   const hist=makeAuthHistory();
   AUTH_HIST=hist;
-  const snapshot=function(){ return {cur:cloneJson(cur), SELDI:SELDI, previewId:PREVIEW&&PREVIEW.id}; };
+  const snapshot=function(){ return {cur:cloneJson(cur), SELDI:SELDI, previewId:PREVIEW&&PREVIEW.id, motionId:PREVIEW_MOTION&&PREVIEW_MOTION.id}; };
   const restore=function(s){
     cur=s.cur||cur;
     cur.assigns=cur.assigns||{};
     cur.stunt=cur.stunt||{};
     SELDI=(s.SELDI!=null)?s.SELDI:null;
     PREVIEW=previewFormationLooks().find(function(f){ return f.id===s.previewId; })||PREVIEW;
+    cur.adjusters=normalizeAdjusters(cur.adjusters);
+    PREVIEW_MOTION=(s.motionId&&(book.motions||[]).find(function(m){return m.id===s.motionId;}))||null;
     if(nameEl) nameEl.value=cur.name||callName();
     if(noteEl) noteEl.value=cur.note||"";
     paint();
@@ -1458,13 +1473,54 @@ async function editDefense(){
       b.onclick=function(){ persistFamilyAligns(); PREVIEW=f; applyFamilyAligns(); paint(); };
       fh.appendChild(b);
     });
-    const composed=composeDefense(PREVIEW||{state:{players:STDFORM.players}}, defCallToPlay(cur));
+    const mh=document.getElementById("bzMotions");
+    if(mh){
+      mh.innerHTML="";
+      const none=document.createElement("button"); none.className="chip"+(!PREVIEW_MOTION?" on":""); none.textContent="No motion";
+      none.onclick=function(){ hist.snap(snapshot()); PREVIEW_MOTION=null; paint(); }; mh.appendChild(none);
+      (book.motions||defaultMotions()).forEach(function(m){
+        const b=document.createElement("button"); b.className="chip"+(PREVIEW_MOTION&&PREVIEW_MOTION.id===m.id?" on":""); b.textContent=m.name;
+        b.onclick=function(){
+          hist.snap(snapshot());
+          PREVIEW_MOTION=m;
+          cur.adjusters=normalizeAdjusters(cur.adjusters);
+          const t=m.type||m.id;
+          if(!cur.adjusters.motion[t]){
+            cur.adjusters.motion[t]={rule:seedMotionRule(cur.coverage, t), note:""};
+          }
+          paint();
+        };
+        mh.appendChild(b);
+      });
+    }
+    const rh=document.getElementById("bzMotionRules");
+    if(rh){
+      rh.innerHTML="";
+      if(PREVIEW_MOTION){
+        const t=PREVIEW_MOTION.type||PREVIEW_MOTION.id;
+        cur.adjusters=normalizeAdjusters(cur.adjusters);
+        const curRule=(cur.adjusters.motion[t]&&cur.adjusters.motion[t].rule)||cur.adjusters.motion.default||"bump";
+        const tip=document.createElement("span"); tip.className="tag"; tip.style.alignSelf="center"; tip.textContent="Adjust rule:"; rh.appendChild(tip);
+        ["bump","spin","lock","check","stay"].forEach(function(rule){
+          const b=document.createElement("button"); b.className="chip"+(curRule===rule?" on":""); b.textContent=rule;
+          b.onclick=function(){
+            hist.snap(snapshot());
+            cur.adjusters=normalizeAdjusters(cur.adjusters);
+            cur.adjusters.motion[t]={rule:rule, note:(cur.adjusters.motion[t]&&cur.adjusters.motion[t].note)||""};
+            paint();
+          };
+          rh.appendChild(b);
+        });
+      }
+    }
+    const composed=composeDefense(PREVIEW||{state:{players:STDFORM.players}}, defCallToPlay(cur), PREVIEW_MOTION);
     const svg=document.getElementById("bzField");
     svg.innerHTML=olField(composed.state, null, SELDI, null, true, composed.ol&&composed.ol.stunt);
     const curEl=document.getElementById("bzCur");
     if(curEl){
       const n=Object.keys(cur.assigns).length;
-      curEl.textContent=(cur.name||callName())+" \u2014 "+n+" defender job"+(n===1?"":"s")+" \u00b7 vs "+((PREVIEW&&PREVIEW.name)||"formation");
+      const mot=PREVIEW_MOTION?((" \u00b7 "+PREVIEW_MOTION.name+" \u2192 "+((composed.motionRule&&composed.motionRule.rule)||"bump"))):"";
+      curEl.textContent=(cur.name||callName())+" \u2014 "+n+" defender job"+(n===1?"":"s")+" \u00b7 vs "+((PREVIEW&&PREVIEW.name)||"formation")+mot;
     }
     paintAssign();
   };
@@ -1476,12 +1532,19 @@ async function editDefense(){
     const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null;
     if(!p) return;
     hist.snap(snapshot());
+    const pt={x:Math.max(24,Math.min(976,Math.round(p.x))),y:Math.max(44,Math.min(600,Math.round(p.y)))};
+    const a0=normalizeAssignEntry(cur.assigns[SELDI])||{resp:null,align:null,move:null};
+    if(PREVIEW_MOTION){
+      a0.motion_move={path:[pt], kind:"adjust"};
+      cur.assigns[SELDI]=a0;
+      paint(); return;
+    }
     cur.stunt=cur.stunt||{};
-    cur.stunt[SELDI]=[{x:Math.max(24,Math.min(976,Math.round(p.x))),y:Math.max(44,Math.min(600,Math.round(p.y)))}];
+    cur.stunt[SELDI]=[pt];
     const st=stateOf();
     const pressureResp=blitzAssignFor({state:st,ol:{stunt:cur.stunt,assigns:{}}}, SELDI);
     const d=(st.defs||[])[SELDI]||{};
-    const a=normalizeAssignEntry(cur.assigns[SELDI])||{resp:(d.group==="DB"||d.group==="LB")?coverageRespForDef(st,SELDI):pressureResp,align:{x:d.x,y:d.y}};
+    const a=a0.resp?a0:{resp:(d.group==="DB"||d.group==="LB")?coverageRespForDef(st,SELDI):pressureResp,align:{x:d.x,y:d.y}};
     const gap=pressureResp==="Rush A-gap"?"A":pressureResp==="Rush B-gap"?"B":pressureResp==="Rush C-gap / edge"?"edge":undefined;
     a.move={path:cloneJson(cur.stunt[SELDI]),kind:pressureResp==="Loop / twist"?"stunt":(d.group==="LB"?"blitz":"rush"),gap:gap};
     if(d.group==="DL") a.resp=pressureResp;
@@ -1506,7 +1569,18 @@ async function editDefense(){
   });
   document.getElementById("bzReseed").onclick=function(){ hist.snap(snapshot()); cur.assigns={}; SELDI=null; paint({repressure:true, forceSeed:true}); };
   document.getElementById("bzPreview").onclick=function(){
-    const composed=composeDefense(PREVIEW||{state:{players:STDFORM.players}}, defCallToPlay(cur));
+    const baseLook=PREVIEW||{state:{players:STDFORM.players}};
+    if(PREVIEW_MOTION){
+      const pre=composeDefense(baseLook, defCallToPlay(cur), null);
+      const post=composeDefense(baseLook, defCallToPlay(cur), PREVIEW_MOTION);
+      document.getElementById("bzField").innerHTML=olField(pre.state, null, SELDI, null, true, null);
+      animateOffenseMotion(post.state, function(){
+        document.getElementById("bzField").innerHTML=olField(post.state, null, SELDI, null, true, post.ol&&post.ol.stunt);
+        animateOlStunts(post.state, null, "bzField", post.ol&&post.ol.stunt);
+      }, "bzField");
+      return;
+    }
+    const composed=composeDefense(baseLook, defCallToPlay(cur));
     document.getElementById("bzField").innerHTML=olField(composed.state, null, SELDI, null, true, composed.ol&&composed.ol.stunt);
     animateOlStunts(composed.state, null, "bzField", composed.ol&&composed.ol.stunt);
   };
@@ -1544,7 +1618,7 @@ async function editDefense(){
       stunt:cur.stunt||{},
       assigns:cur.assigns||{},
       align_by_family:cur.align_by_family||{},
-      adjusters:cur.adjusters||{motion:"stub"},
+      adjusters:normalizeAdjusters(cur.adjusters),
       v:2
     };
     try{
@@ -2295,19 +2369,207 @@ async function loadBlitzPlays(){
   }catch(e){}
   try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
 }
+
+/* ---------- Phase 5: motion / shift adjusters ---------- */
+const MOTION_RULES=["bump","spin","lock","check","stay"];
+function normalizeAdjusters(adj){
+  if(!adj) return {motion:{default:"bump"}};
+  if(adj.motion==="stub"||typeof adj.motion==="string"){
+    return {motion:{default:(adj.motion==="stub"?"bump":adj.motion)}};
+  }
+  if(adj.motion&&typeof adj.motion==="object"){
+    const m=Object.assign({default:"bump"}, adj.motion);
+    return {motion:m};
+  }
+  return {motion:{default:"bump"}};
+}
+function seedMotionRule(coverage, motionType){
+  const cov=String(coverage||"");
+  const t=String(motionType||"");
+  if(cov.indexOf("Cover 0")>=0||cov.indexOf("Cover 1")>=0||cov.indexOf("2-Man")>=0) return "lock";
+  if(t==="orbit") return "check";
+  if(t==="shift") return "spin";
+  if(t==="across"||t==="jet"||t==="tight-to-slot") return "bump";
+  return "bump";
+}
+function motionRuleFor(call, motion){
+  const adj=normalizeAdjusters(call&&call.adjusters);
+  const m=adj.motion||{};
+  const type=(motion&&(motion.type||motion.id))||"";
+  let entry=m[type]||m[motion&&motion.id]||null;
+  if(typeof entry==="string") entry={rule:entry};
+  if(entry&&entry.rule) return {rule:entry.rule, note:entry.note||""};
+  return {rule:m.default||seedMotionRule(call&&call.coverage, type), note:""};
+}
+function findMoverPlayer(players, moverKey){
+  const skill=(players||[]).filter(function(p){ return p&&(p.type==="route"||p.type==="rb"); }).slice().sort(function(a,b){ return (a.x||0)-(b.x||0); });
+  const key=String(moverKey||"#1").toUpperCase();
+  if(key==="RB"||key==="HB") return (players||[]).find(function(p){ return p&&(p.type==="rb"||p.lab==="RB"||p.lab==="HB"); })||null;
+  if(key==="TE"||key==="Y") return (players||[]).find(function(p){ return p&&(p.lab==="Y"||p.lab==="TE"||p.type==="te"); })||null;
+  const n=parseInt(String(moverKey).replace("#",""),10)||1;
+  if(!skill.length) return null;
+  /* #1 = widest, #2 = next, #3 = next (by distance from ball). */
+  const byWide=skill.slice().sort(function(a,b){ return Math.abs((b.x||0)-500)-Math.abs((a.x||0)-500); });
+  return byWide[Math.min(n-1, byWide.length-1)]||null;
+}
+function motionEndFor(mover, type, customPath){
+  if(customPath&&customPath.length){
+    const e=customPath[customPath.length-1];
+    return {x:e.x, y:e.y!=null?e.y:mover.y};
+  }
+  const x=mover.x||500, y=mover.y||380;
+  if(type==="across"||type==="jet") return {x:Math.max(80,Math.min(920,1000-x)), y:y};
+  if(type==="orbit") return {x:x<500?Math.min(920,x+200):Math.max(80,x-200), y:y};
+  if(type==="shift") return {x:x<500?Math.max(80,x-55):Math.min(920,x+55), y:y};
+  if(type==="tight-to-slot") return {x:x<500?290:710, y:380};
+  return {x:Math.max(80,Math.min(920,1000-x)), y:y};
+}
+function applyOffenseMotion(look, motion){
+  if(!look||!motion) return look;
+  const out=cloneJson(look);
+  out.state=out.state||{players:[]};
+  const players=out.state.players||[];
+  const mover=findMoverPlayer(players, motion.mover);
+  if(!mover){ out._motion=motion; return out; }
+  const start={x:mover.x, y:mover.y};
+  const end=motionEndFor(mover, motion.type, motion.path);
+  const path=(motion.path&&motion.path.length)?cloneJson(motion.path):[end];
+  mover._motionFrom=start;
+  mover._motionPath=path;
+  mover.x=end.x; mover.y=end.y;
+  if(mover.route&&mover.route.length){ /* keep routes relative-ish */ }
+  out._preMotionFamily=formationFamily(look);
+  out.formation=formationFamily({state:{players:players}, name:out.name, formation:out.formation});
+  out._postMotionFamily=out.formation;
+  out._motion=motion;
+  out._motionLabel=(motion.name||motion.type||"motion")+" ("+(motion.mover||"?")+")";
+  out.name=(look.name||look.formation||"Formation")+" + "+(motion.name||"motion");
+  return out;
+}
+function applyMotionRuleToDefs(defs, players, rule, motion, call){
+  defs=defs||[];
+  const mover=findMoverPlayer(players, motion&&motion.mover);
+  const endX=mover?mover.x:500;
+  const startX=(mover&&mover._motionFrom&&mover._motionFrom.x!=null)?mover._motionFrom.x:endX;
+  const dx=endX-startX;
+  (defs||[]).forEach(function(d,i){
+    if(!d) return;
+    const a=normalizeAssignEntry(call&&call.assigns&&call.assigns[i]);
+    if(a&&a.motion_move&&a.motion_move.path&&a.motion_move.path.length){
+      const e=a.motion_move.path[a.motion_move.path.length-1];
+      if(e&&e.x!=null){ d.x=e.x; d.y=(e.y!=null?e.y:d.y); d._motionAdj=true; }
+      return;
+    }
+  });
+  const r=String(rule||"bump").toLowerCase();
+  if(r==="stay"||r==="check"||r==="check-me"||r==="check-we"||r==="mable"||r==="meg"){
+    /* post-family align already applied; check = soft hold */
+    return defs;
+  }
+  if(r==="lock"){
+    /* nearest DB/LB to motion start carries to end */
+    let best=-1, bestDist=1e9;
+    defs.forEach(function(d,i){
+      if(!d||(d.group!=="DB"&&d.group!=="LB")) return;
+      if(d._motionAdj) return;
+      const dist=Math.hypot((d.x||0)-startX,(d.y||380)-380);
+      if(dist<bestDist){ bestDist=dist; best=i; }
+    });
+    if(best>=0&&mover){
+      defs[best].x=endX+(endX<500?14:-14);
+      defs[best].y=Math.min((defs[best].y||300), 340);
+      defs[best]._motionAdj=true;
+    }
+    return defs;
+  }
+  if(r==="spin"){
+    const saf=defs.map(function(d,i){return {d:d,i:i};}).filter(function(o){
+      if(!o.d||o.d.group!=="DB") return false;
+      const lab=String(o.d.lab||o.d.pos||"");
+      return /FS|SS|^S$|SAF/i.test(lab)||(o.d.y!=null&&o.d.y<280);
+    });
+    if(saf.length>=2){
+      const a=saf[0].d, b=saf[1].d, tx=a.x; a.x=b.x; b.x=tx; a._motionAdj=b._motionAdj=true;
+    } else {
+      defs.forEach(function(d){
+        if(!d||d.group!=="DB"||d._motionAdj) return;
+        d.x=Math.max(40,Math.min(960,(d.x||500)+Math.sign(dx||1)*60));
+        d._motionAdj=true;
+      });
+    }
+    return defs;
+  }
+  /* bump / bump-roll / default: slide coverage toward motion destination */
+  defs.forEach(function(d){
+    if(!d||d._motionAdj) return;
+    if(d.group!=="DB"&&d.group!=="LB") return;
+    const lab=String(d.lab||d.pos||"");
+    const isKey=/FS|SS|NB|N|MIKE|WILL|SAM|LB/i.test(lab)||d.group==="LB"||(d.group==="DB"&&(d.y||0)<300);
+    if(!isKey) return;
+    const shift=Math.sign(dx||1)*Math.min(90, Math.max(28, Math.abs(dx)*0.4));
+    d.x=Math.max(40,Math.min(960,(d.x||500)+shift));
+    d._motionAdj=true;
+  });
+  return defs;
+}
+function animateOffenseMotion(state, done, svgId){
+  svgId=svgId||"field";
+  const svg=document.getElementById(svgId);
+  const players=(state&&state.players)||[];
+  const mover=players.find(function(p){ return p&&p._motionFrom&&p._motionPath; });
+  if(!mover||!svg){ if(done) done(); return; }
+  const from=mover._motionFrom;
+  const path=[{x:from.x,y:from.y}].concat(mover._motionPath||[]);
+  const t0=performance.now(), dur=900;
+  function frame(now){
+    const e=Math.min(1,(now-t0)/dur);
+    const ease=e<0.5?2*e*e:1-Math.pow(-2*e+2,2)/2;
+    /* approximate along polyline */
+    let tot=0, segs=[];
+    for(let i=1;i<path.length;i++){ const L=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y); segs.push(L); tot+=L; }
+    let target=ease*tot, acc=0, pt=path[path.length-1];
+    for(let i=0;i<segs.length;i++){
+      if(acc+segs[i]>=target){ const t=segs[i]?(target-acc)/segs[i]:1; pt={x:path[i].x+(path[i+1].x-path[i].x)*t,y:path[i].y+(path[i+1].y-path[i].y)*t}; break; }
+      acc+=segs[i];
+    }
+    /* redraw lightly: update circle for mover lab */
+    const texts=svg.querySelectorAll("text");
+    texts.forEach(function(tx){
+      if((tx.textContent||"")===String(mover.lab||"")){
+        const circ=tx.previousSibling;
+        if(circ&&circ.setAttribute){ circ.setAttribute("cx",pt.x); circ.setAttribute("cy",pt.y); }
+        tx.setAttribute("x",pt.x); tx.setAttribute("y",(pt.y||0)+4);
+      }
+    });
+    if(e<1) requestAnimationFrame(frame); else if(done) done();
+  }
+  requestAnimationFrame(frame);
+}
+
 /* composeDefense(formation, call) — the single defensive composer behind every defensive
  view/test. Input: an offensive FORMATION (opponent-scouted or standard) + our CALL
  (front + coverage + pressure + assigns). Output: all defenders placed with the call's
  movement/assignments attached as the answer key. Blitz was the first consumer;
  composeBlitzPlay is kept as a thin alias so existing callers keep working. */
-function composeDefense(look, call){
-  /* Accept either a play-shaped call (state+ol) or a raw def_call (via defCallToPlay). */
+function composeDefense(look, call, motion){
+  /* Accept either a play-shaped call (state+ol) or a raw def_call (via defCallToPlay).
+     Optional motion: apply pre-snap motion to offense, recompose vs post-motion family, apply adjuster rule. */
   const play = (call && call.state) ? call : (call && call.front ? defCallToPlay(call) : call);
+  const defCall = play && play._defCall;
+  let activeLook = look;
+  let appliedMotion = null;
+  if(motion){
+    appliedMotion = (typeof motion === "string")
+      ? ((mergeDefPlaybook(WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.def_playbook).motions||[]).find(function(m){ return m.id===motion||m.type===motion; })||null)
+      : motion;
+    if(appliedMotion) activeLook = applyOffenseMotion(look, appliedMotion);
+  }
   const our=cloneJson((play&&play.state)||{});
-  const players=cloneJson(((look.state&&look.state.players)||[]).length?(look.state.players):((STDFORM&&STDFORM.players)||[]));
+  const players=cloneJson(((activeLook.state&&activeLook.state.players)||[]).length?(activeLook.state.players):((STDFORM&&STDFORM.players)||[]));
   const savedDefs=cloneJson(our.defs||[]);
   let defs=savedDefs;
-  /* Recompose coverage roles against every formation, then layer authored align overrides. */
+  const lookForAlign={state:{players:players}, formation:(activeLook&&(activeLook.formation||activeLook.name)), name:(activeLook&&activeLook.name), id:(activeLook&&activeLook.id)};
+  /* Recompose coverage roles against (post-motion) formation, then layer authored align overrides. */
   if(play && window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn){
     const callFront=(our.front&&our.front!=="none")?our.front:(play.front||"4-3");
     const tmp={players:players, defs:[], front:callFront};
@@ -2315,7 +2577,7 @@ function composeDefense(look, call){
       OFFGRD_RENDER.placeDefenseOn(tmp, callFront, play.coverage||(play.ol&&play.ol.coverage)||"Cover 3");
       defs=(tmp.defs||[]).map(function(base,i){
         const saved=savedDefs[i]||{};
-        const align=resolveDefAlign(play._defCall, i, {state:{players:players}, formation:(look&&(look.formation||look.name)), name:(look&&look.name), id:(look&&look.id)});
+        const align=resolveDefAlign(defCall, i, lookForAlign);
         return Object.assign({},base,saved,{
           x:align&&align.x!=null?align.x:(saved.x!=null?saved.x:base.x),
           y:align&&align.y!=null?align.y:(saved.y!=null?saved.y:base.y),
@@ -2325,37 +2587,45 @@ function composeDefense(look, call){
       });
     }catch(e){}
   }
+  let motionRule=null;
+  if(appliedMotion&&defCall){
+    motionRule=motionRuleFor(defCall, appliedMotion);
+    defs=applyMotionRuleToDefs(defs, players, motionRule.rule, appliedMotion, defCall);
+  }
   const front=(our.front&&our.front!=="none")?our.front:((play&&play.state&&play.state.front)||(play&&play.front)||"our front");
-  const oppName=look.name||look.formation||"Opp look";
+  const oppName=(activeLook&&(activeLook.name||activeLook.formation))||(look&&(look.name||look.formation))||"Opp look";
   const oppTag=(WEEKPLAN&&WEEKPLAN.opponent)?WEEKPLAN.opponent:"";
   const ol=cloneJson((play&&play.ol)||{});
-  /* Prefer authored assigns on the def_call object when present. */
-  if(play&&play._defCall&&play._defCall.assigns){
+  if(defCall&&defCall.assigns){
     const flat={}; const stunt=Object.assign({}, ol.stunt||{});
-    Object.keys(play._defCall.assigns).forEach(function(k){
-      const a=normalizeAssignEntry(play._defCall.assigns[k]);
+    Object.keys(defCall.assigns).forEach(function(k){
+      const a=normalizeAssignEntry(defCall.assigns[k]);
       if(!a) return;
       const blitzAnswer=blitzAnswerFromAssign(a, {defs:defs}, +k);
       if(blitzAnswer) flat[k]=blitzAnswer;
       if(a.move&&a.move.path&&a.move.path.length) stunt[k]=a.move.path;
+      if(appliedMotion&&a.motion_move&&a.motion_move.path&&a.motion_move.path.length) stunt[k]=a.motion_move.path;
     });
     ol.assigns=Object.assign({}, flat, ol.assigns||{});
     ol.stunt=stunt;
   }
   return {
-    id:(look.id||"opp")+"+"+((play&&play.id)||"d"),
+    id:(look&&look.id||"opp")+"+"+((play&&play.id)||"d")+(appliedMotion?("+"+(appliedMotion.id||"m")):""),
     name:oppName,
     oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
     ourCall:(play&&play.name)||"Defense",
     coverage:(play&&(play.coverage||(play.ol&&play.ol.coverage)))||"",
     state:{ players:players, defs:defs, front:front },
     ol:ol,
-    _defCall:play&&play._defCall,
-    formationFamily:formationFamily(look),
-    look:look
+    _defCall:defCall,
+    formationFamily:formationFamily(lookForAlign),
+    look:activeLook,
+    preLook:look,
+    motion:appliedMotion,
+    motionRule:motionRule
   };
 }
-function composeBlitzPlay(look, call){ return composeDefense(look, call); }
+function composeBlitzPlay(look, call, motion){ return composeDefense(look, call, motion); }
 function blitzPathFor(play,i){
  const d=((play.state&&play.state.defs)||[])[i]||{};
  return (play.ol&&play.ol.stunt&&play.ol.stunt[i]) || (d.route&&d.route.length?d.route:null);
@@ -2398,16 +2668,41 @@ function blitzTargets(play){
  olBackers(state).forEach(o=>{ if(idx.indexOf(o.i)<0) idx.push(o.i); });
  return idx;
 }
+
+function callHasMotionAdjusters(call){
+  const dc=(call&&call._defCall)||call;
+  if(!dc) return false;
+  const adj=normalizeAdjusters(dc.adjusters);
+  const m=adj.motion||{};
+  /* Only when coach authored a per-motion rule (not the bare default). */
+  return Object.keys(m).some(function(k){
+    if(k==="default") return false;
+    const e=m[k];
+    return !!(e&&(typeof e==="string"||e.rule));
+  });
+}
+function maybePickMotion(call){
+  if(!callHasMotionAdjusters(call)) return null;
+  if(Math.random()>0.5) return null; /* ~half of eligible reps include motion */
+  const book=mergeDefPlaybook(WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.def_playbook);
+  const motions=book.motions||defaultMotions();
+  const adj=normalizeAdjusters(((call&&call._defCall)||call).adjusters).motion||{};
+  const preferred=motions.filter(function(m){ return adj[m.type]||adj[m.id]; });
+  const pool=preferred.length?preferred:motions;
+  return pool[Math.floor(Math.random()*pool.length)]||null;
+}
+
 function pickBlitzRep(){
  if(!BLITZCALLS.length || !OPPLOOKS.length) return null;
  for(let tries=0;tries<40;tries++){
  const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
  const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
- const p=composeBlitzPlay(look, call);
+ const mot=maybePickMotion(call);
+ const p=composeBlitzPlay(look, call, mot);
  const tg=blitzTargets(p); if(!tg.length) continue;
  const i=tg[Math.floor(Math.random()*tg.length)];
  const d=((p.state&&p.state.defs)||[])[i]; if(!d) continue;
- return {blitz:true, play:p, di:i, defLab:(d.lab||"defender"), answer:blitzAssignFor(p,i)};
+ return {blitz:true, play:p, di:i, defLab:(d.lab||"defender"), answer:blitzAssignFor(p,i), motion:mot||null};
  }
  return null;
 }function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
@@ -2420,7 +2715,9 @@ function blitzSnap(){
  if(SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("prompt").textContent="Front's moving — call "+rep.defLab+"'s job.";
- animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt);
+ const go=function(){ animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt); };
+ if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
+ else go();
 }
 function showBlitzChoices(){
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
@@ -2459,13 +2756,18 @@ function pickDefCoverageRep(positions){
     const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
     if(!call._defCall) continue;
     const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
-    const p=composeDefense(look,call);
+    const mot=maybePickMotion(call);
+    const p=composeDefense(look,call,mot);
     const targets=coverageTargets(p,positions); if(!targets.length) continue;
     const i=targets[Math.floor(Math.random()*targets.length)], d=(p.state.defs||[])[i];
     const authored=p._defCall&&p._defCall.assigns&&assignRespOf(p._defCall.assigns[i]);
-    const answer=authored||coverageRespForDef(p.state,i);
+    let answer=authored||coverageRespForDef(p.state,i);
+    if(mot&&p.motionRule&&(p.motionRule.rule==="bump"||p.motionRule.rule==="spin")&&d.group==="DB"&&answer&&answer.indexOf("Deep")>=0){
+      /* soft enrichment: bump often lands flat / hook for the adjusted defender */
+      if(Math.random()<0.35) answer=(d.y&&d.y>300)?"Flat":answer;
+    }
     if(!answer) continue;
-    return {defCoverage:true,play:p,di:i,defLab:d.lab||d.pos||"defender",answer:answer};
+    return {defCoverage:true,play:p,di:i,defLab:d.lab||d.pos||"defender",answer:answer,motion:mot||null};
   }
   return null;
 }
@@ -2492,7 +2794,9 @@ function defCoverageSnap(){
   if(SNAPPED)return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
   document.getElementById("prompt").textContent="Coverage rotating — track "+rep.defLab+" to the landmark.";
-  animateOlStunts(rep.play.state,function(){showDefCoverageChoices();},"field",defenderCoveragePaths(rep.play));
+  const go=function(){ animateOlStunts(rep.play.state,function(){showDefCoverageChoices();},"field",defenderCoveragePaths(rep.play)); };
+  if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
+  else go();
 }
 function showDefCoverageChoices(){
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
@@ -2541,20 +2845,25 @@ function pickAlignRep(positions){
   for(let tries=0;tries<60;tries++){
     const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
     const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
-    const p=composeDefense(look, call);
+    const mot=maybePickMotion(call);
+    const pre=composeDefense(look, call, null);
+    const p=composeDefense(look, call, mot);
     const targets=alignTargets(p, positions); if(!targets.length) continue;
     const i=targets[Math.floor(Math.random()*targets.length)];
     const d=(p.state.defs||[])[i]; if(!d) continue;
-    const al=resolveDefAlign(p._defCall, i, look)||{x:d.x,y:d.y};
+    const al={x:d.x,y:d.y,leverage:(resolveDefAlign(p._defCall,i,p.look)||{}).leverage||"head-up",depth:(resolveDefAlign(p._defCall,i,p.look)||{}).depth};
     const depth=al.depth!=null?al.depth:Math.max(0, Math.round((380-(al.y||380))/PPY));
     const leverage=al.leverage||"head-up";
+    const motLabel=mot?((mot.name||mot.type)+" → "+((p.motionRule&&p.motionRule.rule)||"bump")):"";
     return {
-      align:true, play:p, di:i, defLab:d.lab||d.pos||"defender",
+      align:true, play:p, prePlay:pre, di:i, defLab:d.lab||d.pos||"defender",
       targetAlign:Object.assign({}, al, {x:al.x, y:al.y, leverage:leverage, depth:depth}),
       formationLabel:look.name||look.formation||p.name||"formation",
       ourCall:p.ourCall||p.coverage||"our call",
       askLeverage:!!(al.leverage),
-      mc:preferAlignMc()
+      mc:preferAlignMc(),
+      motion:mot||null,
+      motionLabel:motLabel
     };
   }
   return null;
@@ -2579,9 +2888,17 @@ function alignMcOptions(r){
 }
 function renderAlignField(r){
   const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
-  /* Offense + other defenders; hide the tested defender so the player places him. */
-  svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
   olClearRings();
+  if(r.motion&&r.prePlay){
+    svg.innerHTML=olField(r.prePlay.state, null, null, null, false, null, r.di);
+    r._motionAnimating=true;
+    animateOffenseMotion(r.play.state, function(){
+      r._motionAnimating=false;
+      svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
+    }, "field");
+    return;
+  }
+  svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
 }
 function showAlignMc(){
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
@@ -2637,7 +2954,7 @@ function answerAlignMc(opt){
   finishAlignAnswer(correct, opt.label);
 }
 function answerAlignTap(p){
-  if(answered||!isAlignTest()||!p) return;
+  if(answered||!isAlignTest()||!p||(rep&&rep._motionAnimating)) return;
   const key=rep.targetAlign;
   if(rep.askLeverage&&!rep.pickedLeverage){
     rep._tap=p;
@@ -2695,7 +3012,7 @@ function showRep(r){
  }
  if(r.blitz){
  SNAPPED=false;
- document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"} \u2014 you're the ${r.defLab}. Snap, then call your job.`;
+ document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"}`+(r.motion?(" \u2014 "+(r.motion.name||"motion")):"")+` \u2014 you're the ${r.defLab}. Snap, then call your job.`;
  cancelQB(); renderBlitzField(r);
  const fbb=document.getElementById("fb"); fbb.className="fb"; fbb.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -2706,7 +3023,7 @@ function showRep(r){
  }
  if(r.align){
  SNAPPED=true; /* pre-snap placement — no snap needed */
- document.getElementById("prompt").textContent="vs their "+(r.formationLabel||"formation")+", our "+(r.ourCall||"call")+" \u2014 you're the "+r.defLab+". Line up.";
+ document.getElementById("prompt").textContent="vs their "+(r.formationLabel||"formation")+", our "+(r.ourCall||"call")+(r.motion?(" \u2014 "+(r.motionLabel||r.motion.name||"motion")):"")+" \u2014 you're the "+r.defLab+". "+(r.motion?"Re-align.":"Line up.");
  cancelQB(); renderAlignField(r);
  const fba=document.getElementById("fb"); fba.className="fb"; fba.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -2732,7 +3049,7 @@ function showRep(r){
  }
  if(r.defCoverage){
    SNAPPED=false;
-   document.getElementById("prompt").textContent=(r.play.oppLabel||r.play.name)+" vs our "+(r.play.ourCall||r.play.coverage||"coverage")+" — you're the "+r.defLab+". What's your job?";
+   document.getElementById("prompt").textContent=(r.play.oppLabel||r.play.name)+" vs our "+(r.play.ourCall||r.play.coverage||"coverage")+(r.motion?(" — "+(r.motion.name||"motion")):"")+" — you're the "+r.defLab+". What's your job?";
    cancelQB(); renderDefCoverageField(r);
    const fbc=document.getElementById("fb"); fbc.className="fb"; fbc.innerHTML="";
    document.getElementById("nextBtn").classList.add("hidden");
@@ -3150,12 +3467,12 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=99"></script>
-<script src="OFFGRD-scoutcards.js?v=99"></script>
-<script src="OFFGRD-week-autotest.js?v=99"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=99"></script>
-<script type="module" src="OFFGRD-account.js?v=99"></script>
-<script src="OFFGRD-role-gate.js?v=99"></script>
+<script src="OFFGRD-mobile.js?v=100"></script>
+<script src="OFFGRD-scoutcards.js?v=100"></script>
+<script src="OFFGRD-week-autotest.js?v=100"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=100"></script>
+<script type="module" src="OFFGRD-account.js?v=100"></script>
+<script src="OFFGRD-role-gate.js?v=100"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
