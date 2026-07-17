@@ -233,7 +233,11 @@
   function kindBuildable(kind, planPlays, playbook, coverages, ctx) {
     ctx = ctx || {};
     const rows = planPlays.map(function (c) { return resolvePlayRow(c, playbook); }).filter(Boolean);
-    if (!rows.length) return { ok: false, reason: "no plays" };
+    const authoredBlitz = !!(ctx.blitzCalls && ctx.blitzCalls.defs && ctx.blitzCalls.defs.length);
+    /* Blitz can be fully authored on the week plan without plan-play stunts. */
+    if (!rows.length && !(kind === "blitz" && authoredBlitz)) {
+      return { ok: false, reason: "no plays" };
+    }
     if (kind === "reads") {
       const n = rows.filter(function (p) { return p.qb_reads && Object.keys(p.qb_reads).length; }).length;
       return n ? { ok: true } : { ok: false, reason: "no reads on plan plays" };
@@ -253,9 +257,8 @@
       return n ? { ok: true } : { ok: false, reason: "no OL keys on plan plays" };
     }
     if (kind === "blitz") {
-      /* Buildable when (a) our week has a drawn front + blitz/stunt AND (b) the opponent
-         has offensive looks (drawn scout cards or charted formations). Picture = opponent
-         offense; overlay/answer = our defensive call. Don't fabricate either side. */
+      /* Buildable when (a) coach-authored blitz_calls OR playbook front+stunt AND
+         (b) the opponent has offensive looks. */
       const calls = rows.filter(function (p) {
         const st = (p.data && p.data.players) ? p.data : (p.data || p);
         const defs = (st && st.defs) || [];
@@ -265,7 +268,7 @@
         const hasBlitzPath = defs.some(function (d) { return d && d.route && d.route.length; });
         return !!(hasStunt || hasBlitzPath);
       }).length;
-      if (!calls) return { ok: false, reason: "no fronts with a blitz/stunt on plan plays" };
+      if (!calls && !authoredBlitz) return { ok: false, reason: "no fronts with a blitz/stunt (Author > Blitz or Playbook)" };
       const looks = opponentOffenseLookCount(ctx.games, ctx.opponent || "");
       if (!looks) return { ok: false, reason: "no opponent offensive looks (scout cards / charted formations)" };
       return { ok: true };
@@ -348,7 +351,11 @@
     const planPlays = planPlayList(week);
     const players = (roster || []).filter(function (m) { return m && m.role === "player"; });
     const positions = {};
-    const blitzCtx = { games: games || [], opponent: (week && week.opponent) || "" };
+    const blitzCtx = {
+      games: games || [],
+      opponent: (week && week.opponent) || "",
+      blitzCalls: (week && week.gen && week.gen.blitz_calls) || null
+    };
     players.forEach(function (m) {
       parseMemberPositions(m).forEach(function (pos) {
         positions[pos] = positions[pos] || { kinds: POSKINDS[pos].slice(), minTests: READY_MIN_TESTS, minAvg: READY_AVG, incomplete: false, missing: [] };
@@ -650,6 +657,7 @@
     buildDefAligns: buildDefAligns,
     onApprove: onApprove,
     completionForPlayer: completionForPlayer,
+    kindBuildable: kindBuildable,
     quizKindFromLabel: quizKindFromLabel,
     normPos: normPos,
     parseMemberPositions: parseMemberPositions,

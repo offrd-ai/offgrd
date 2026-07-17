@@ -70,6 +70,10 @@ window.QB = {
   async saveWeekDef(planId, defAligns){
     return Cloud.saveWeekPlan(planId, { def_aligns: defAligns });
   },
+  async saveBlitzCalls(planId, blitzCalls, genBase){
+    const gen = Object.assign({}, genBase || {}, { blitz_calls: blitzCalls || null });
+    return Cloud.saveWeekPlan(planId, { gen: gen });
+  },
   /* Phase B: active week plan + observed coverage distribution for its opponent */
   async weekContext(){
     const t = await activeTeam(); if(!t) return null;
