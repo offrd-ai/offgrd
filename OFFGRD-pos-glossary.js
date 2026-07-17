@@ -113,14 +113,14 @@
     const g = ren ? ren.getPosGlossary()[side] : {};
     let html = "";
     groups.forEach(function (grp) {
-      html += '<div class="lbl" style="margin:12px 0 6px">' + grp.title + '</div>';
+      html += '<div class="lbl" style="margin:12px 0 6px;color:#cbd5e1">' + grp.title + '</div>';
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
       grp.keys.forEach(function (k) {
         const val = (g && g[k]) || k;
         const tip = k === val ? k : (k + " → " + val);
-        html += '<label style="display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;color:#5b626e" title="' + tip + '">'
-          + '<span>' + k + (k !== val ? ' <span style="font-weight:600;color:#9aa4b2">(' + val + ')</span>' : "") + "</span>"
-          + '<input data-pg-side="' + side + '" data-pg-key="' + k + '" value="' + String(val).replace(/"/g, "&quot;") + '" maxlength="10" style="padding:8px;border:1px solid #e2e5ea;border-radius:8px;font-weight:800;font-size:14px;color:#16181d">'
+        html += '<label style="display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;color:#cbd5e1" title="' + tip + '">'
+          + '<span>' + k + (k !== val ? ' <span style="font-weight:600;color:#94a3b8">(' + val + ')</span>' : "") + "</span>"
+          + '<input data-pg-side="' + side + '" data-pg-key="' + k + '" value="' + String(val).replace(/"/g, "&quot;") + '" maxlength="10" placeholder="' + k + '" style="padding:8px;border:1px solid #e2e5ea;border-radius:8px;font-weight:800;font-size:14px;background:#fff;color:#16181d;caret-color:#16181d">'
           + "</label>";
       });
       html += "</div>";
@@ -134,17 +134,17 @@
     if (!host) return null;
     function paint() {
       host.innerHTML = ""
-        + '<p class="hint" style="margin:0 0 10px">What does your staff call each position? This shows on the field, in the wizard, and on player tests. Engine keys stay the same.</p>'
-        + '<div class="row" style="justify-content:space-between;align-items:center"><b style="color:var(--navy,#13294B)">Offense</b>'
+        + '<p class="hint" style="margin:0 0 10px;color:#94a3b8">What does your staff call each position? This shows on the field, in the wizard, and on player tests. Engine keys stay the same.</p>'
+        + '<div class="row" style="justify-content:space-between;align-items:center"><b style="color:#e6ebf2">Offense</b>'
         + '<button type="button" class="btn" data-pg-reset="off">Reset offense</button></div>'
         + '<div data-pg-off>' + gridHTML("off", OFF_GROUPS) + "</div>"
-        + '<div class="row" style="justify-content:space-between;align-items:center;margin-top:16px"><b style="color:var(--navy,#13294B)">Defense</b>'
+        + '<div class="row" style="justify-content:space-between;align-items:center;margin-top:16px"><b style="color:#e6ebf2">Defense</b>'
         + '<button type="button" class="btn" data-pg-reset="def">Reset defense</button></div>'
         + '<div data-pg-def>' + gridHTML("def", DEF_GROUPS) + "</div>"
         + '<div class="row" style="margin-top:14px;gap:8px">'
         + '<button type="button" class="btn go" data-pg-save>Save position names</button>'
         + (opts.showSkip ? '<button type="button" class="btn" data-pg-skip>Skip for now</button>' : "")
-        + '<span class="hint" data-pg-msg style="margin:0"></span></div>';
+        + '<span class="hint" data-pg-msg style="margin:0;color:#94a3b8"></span></div>';
       const saveBtn = host.querySelector("[data-pg-save]");
       if (saveBtn) saveBtn.onclick = function () {
         saveFromEditor(host);
