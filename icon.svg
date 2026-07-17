@@ -1,7 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#13294B"/>
-  <rect x="26" y="26" width="460" height="460" rx="92" fill="none" stroke="#2f568c" stroke-width="8"/>
-  <text x="256" y="238" font-family="Arial, Helvetica, sans-serif" font-size="128" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="6">OFF</text>
-  <rect x="150" y="266" width="212" height="12" rx="6" fill="#7BAFD4"/>
-  <text x="256" y="392" font-family="Arial, Helvetica, sans-serif" font-size="128" font-weight="900" fill="#7BAFD4" text-anchor="middle" letter-spacing="6">GRD</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OFFGRD">
+  <rect width="512" height="512" rx="112" fill="#0a1220"/>
+
+  <!-- LEFT HALF: royal-blue bracket -->
+  <path d="M214 150 L256 150 L256 432 L168 340 L168 172 Q168 150 190 150 Z" fill="#2f6bff"/>
+
+  <!-- RIGHT HALF: white 'G' -->
+  <g fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 150 L346 150 L346 326 L256 432"/>
+    <path d="M346 290 L298 290"/>
+  </g>
+  <line x1="256" y1="152" x2="256" y2="428" stroke="#0a1220" stroke-width="6"/>
+
+  <!-- hash marks -->
+  <g stroke="#ffffff" stroke-width="6" stroke-linecap="round">
+    <line x1="186" y1="196" x2="212" y2="196"/><line x1="186" y1="216" x2="212" y2="216"/>
+    <line x1="186" y1="236" x2="212" y2="236"/><line x1="186" y1="256" x2="212" y2="256"/>
+  </g>
+
+  <!-- dashed cyan routes -->
+  <g fill="none" stroke="#3bd0f2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 13">
+    <path d="M226 300 C222 244 250 232 258 196"/>
+    <path d="M226 300 C232 348 244 366 250 378"/>
+  </g>
+  <!-- prominent horizontal arrow -->
+  <line x1="226" y1="300" x2="270" y2="300" stroke="#3bd0f2" stroke-width="9" stroke-linecap="round"/>
+  <path d="M266 288 L288 300 L266 312 Z" fill="#3bd0f2"/>
+  <!-- up-route arrowhead -->
+  <path d="M250 194 L270 198 L256 214 Z" fill="#3bd0f2"/>
+
+  <!-- solid play dots (O) -->
+  <g fill="#0a1220" stroke="#eaf6ff" stroke-width="4">
+    <circle cx="240" cy="192" r="12"/><circle cx="226" cy="300" r="12"/><circle cx="250" cy="382" r="12"/>
+  </g>
+
+  <!-- cyan X markers -->
+  <g stroke="#3bd0f2" stroke-width="8" stroke-linecap="round">
+    <path d="M262 226 l18 18 M280 226 l-18 18"/>
+    <path d="M234 330 l18 18 M252 330 l-18 18"/>
+  </g>
 </svg>

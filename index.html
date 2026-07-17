@@ -10,7 +10,7 @@
 <meta property="og:description" content="Predict their next call, teach your whole roster, and call the game offline from the sideline." />
 <meta property="og:type" content="website" />
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg">
+<link rel="icon" href="logo-mark.png">
 <script src="OFFGRD-config.js?v=108"></script>
 <script src="OFFGRD-cache-gate.js?v=108"></script>
 <script src="supabase.js?v=108"></script>
@@ -71,11 +71,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:50;transition:.3s ease}
 header.scrolled{background:rgba(10,18,32,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--stroke)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:72px}
 .nav-right{display:flex;align-items:center;gap:26px}
-.brand{display:flex;align-items:center;gap:11px;font-family:"Chakra Petch",sans-serif;font-style:italic;font-weight:700;text-transform:uppercase;font-size:23px;letter-spacing:.01em}
-.brand img{width:30px;height:30px}
-.wm-off{color:#fff}
-.wm-grd{color:var(--blue)}
-.brand .sub{font-family:"Barlow Condensed",sans-serif;font-style:normal;font-size:11px;letter-spacing:.24em;color:var(--muted-2);font-weight:600;margin-left:6px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-logo{height:38px;width:auto;display:block}
+.brand .sub{font-family:"Barlow Condensed",sans-serif;font-style:normal;font-size:11px;letter-spacing:.24em;color:var(--muted-2);font-weight:600;align-self:center}
+@media(max-width:520px){.brand .sub{display:none}.brand-logo{height:32px}}
 .nav-links{display:flex;align-items:center;gap:30px}
 .nav-links a{font-size:14.5px;font-weight:500;color:var(--muted);transition:.15s}
 .nav-links a:hover{color:var(--text)}
@@ -187,7 +186,7 @@ footer{border-top:1px solid var(--stroke);padding:50px 0 60px}
 <body>
 <header id="hdr">
   <div class="wrap nav">
-    <a class="brand" href="index.html"><img src="icon.svg" alt="OFFGRD" /><span class="wm-off">OFF</span><span class="wm-grd">GRD</span><span class="sub">PROGRAM SUITE</span></a>
+    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" /><span class="sub">SCOUT · TEACH · WIN</span></a>
     <div class="nav-right">
       <nav class="nav-links">
         <a href="#suite">Features</a>
@@ -320,7 +319,7 @@ footer{border-top:1px solid var(--stroke);padding:50px 0 60px}
 </section>
 <footer>
   <div class="wrap">
-    <div class="foot"><a class="brand" href="index.html"><img src="icon.svg" alt="OFFGRD" style="width:24px;height:24px" /><span class="wm-off">OFF</span><span class="wm-grd">GRD</span></a><div class="foot-links"><a href="#suite">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div></div>
+    <div class="foot"><a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" style="height:30px" /></a><div class="foot-links"><a href="#suite">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div></div>
     <div class="copy">OFFGRD — Scout, predict, teach &amp; call. Never off guard. &nbsp;·&nbsp; © 2026 OFFGRD</div>
   </div>
 </footer>
