@@ -47,7 +47,7 @@
       "#telScrub{flex:1;min-width:120px}",
       "#telStatus{margin:8px 0 0;font-size:12px;opacity:.85;line-height:1.45}",
       "#telEmpty{padding:48px 16px;text-align:center;color:#9aa4b2;font-weight:700}",
-      "@media (max-width:560px){#telBox{padding:10px 10px 14px;border-radius:12px;max-height:100dvh}#telBox .tel-head b{font-size:15px}#telStage{max-height:42dvh;min-height:140px}#telStage video{max-height:42dvh}#telTools .tel-btn,#telTransport .tel-btn{padding:8px 10px;font-size:12px}}"
+      "@media (max-width:560px){#telOv{padding:6px!important;align-items:stretch!important}#telBox{padding:10px 10px 14px;border-radius:10px;max-width:100vw!important;width:100%!important;max-height:100vh!important;max-height:100svh!important;height:auto!important}#telBox .tel-head{position:sticky;top:0;background:var(--panel,#fff);z-index:2}#telBox .tel-head b{font-size:15px}#telStage{max-height:42vh!important;max-height:38svh!important;min-height:120px}#telStage video,#telCanvas{max-width:100%!important;max-height:42vh!important;max-height:38svh!important}#telTools,#telTransport{flex-wrap:wrap!important}#telTools .tel-btn,#telTransport .tel-btn{padding:8px 10px;font-size:12px}#telScrub{min-width:0!important;flex:1 1 100%!important;order:5}#telSwatch{flex-wrap:wrap!important}}"
     ].join("");
   }
 
