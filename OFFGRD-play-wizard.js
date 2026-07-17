@@ -316,6 +316,11 @@
         if (WZ.scheme) st.family = st.family || WZ.scheme.replace(/ (Rt|Lt)$/, "");
         delete st.qb_reads;
       } else {
+        if (WZ.concept) {
+          WZ.family = WZ.concept;
+          st.family = WZ.concept;
+          st.concept = WZ.concept;
+        }
         const readsRow = rows.find(function (r) { return r.k === "reads"; });
         const olRow = rows.find(function (r) { return r.k === "protect"; });
         if (readsRow && readsRow.data) {
@@ -479,8 +484,10 @@
   }
 
   function syncMetaPartial() {
+    if (WZ.playType === "pass" && WZ.concept) WZ.family = WZ.concept;
+    if (WZ.playType === "run" && WZ.scheme) WZ.family = WZ.scheme.replace(/ (Rt|Lt)$/, "");
     if (WZ.name) H.set("m-name", WZ.name);
-    if (WZ.family) H.set("m-family", WZ.family);
+    H.set("m-family", WZ.family || "");
     if (WZ.series) H.set("m-series", WZ.series);
     if (WZ.personnel) H.set("m-pers", WZ.personnel);
     if (WZ.formation) H.set("m-form", WZ.formation);
@@ -775,7 +782,12 @@
       note(body, "Routes get assigned to your receivers. Or Custom to draw yourself in the tweak step.");
       body.appendChild(chips([["", "Custom (I'll draw)"]].concat(concepts().map(function (c) { return [c, c]; })), WZ.concept, function (v) {
         WZ.concept = v;
+        if (v) {
+          WZ.family = v;
+          WZ.series = WZ.series || "Dropback";
+        }
         liveApplyOffenseBase();
+        syncMetaPartial();
         render();
       }));
     } else if (id === "tweak") {
@@ -1003,9 +1015,16 @@
     if (!WZ.confirmed) confirmTests();
     const st = H.getState();
     if (WZ.track === "offense") {
+      if (WZ.playType === "pass" && WZ.concept) WZ.family = WZ.concept;
+      if (WZ.playType === "run" && WZ.scheme) WZ.family = WZ.scheme.replace(/ (Rt|Lt)$/, "");
+      if (st) {
+        st.type = WZ.playType || st.type || "pass";
+        if (WZ.family) st.family = WZ.family;
+        if (WZ.concept) st.concept = WZ.concept;
+      }
       if (WZ.name) {
         H.set("m-name", WZ.name);
-        if (WZ.family) H.set("m-family", WZ.family);
+        H.set("m-family", WZ.family || "");
         if (WZ.series) H.set("m-series", WZ.series);
         H.readMeta();
       }

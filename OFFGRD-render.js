@@ -149,32 +149,118 @@
       d.role = "zone"; d.manId = null; d.dx = d.x; d.dy = Math.max(150, d.y - 110);
     });
     const dbs = defs.filter(d => d.group === "DB");
-    let cbs = dbs.filter(d => d.y > 300).sort((a, b) => a.x - b.x);
-    const nbs = cbs.length > 2 ? cbs.splice(1, cbs.length - 2) : [];
-    const safs = dbs.filter(d => d.y <= 300).sort((a, b) => a.x - b.x);
-    const lbs = defs.filter(d => d.group === "LB").sort((a, b) => a.x - b.x);
-    const Z = (d, k) => { if (!d) return; d.role = "zone"; d.dx = DLAND[k].x; d.dy = DLAND[k].y; };
-    const M = (d) => { if (!d) return; d.role = "man"; };
-    const under = arr => {
-      const u = { "Cover 3": ["CL", "HKM", "HKR", "FR", "FL"], "Cover 2": ["CL", "HKM", "CR", "HKL", "HKR"], "Cover 4": ["HKL", "HKM", "HKR", "CL", "CR"], "Cover 6": ["CL", "HKM", "HKR", "HKL", "CR"] }[cov] || ["HKM", "CL", "CR", "HKL", "HKR"];
-      arr.forEach((d, i) => Z(d, u[i % u.length]));
+    const isCB = d => {
+      const pos = String(d.pos || "");
+      const lab = String(d.lab || "").toUpperCase();
+      return pos === "LCB" || pos === "RCB" || lab === "CB";
     };
-    if (cov === "Cover 3") { Z(cbs[0], "L3"); Z(cbs[cbs.length - 1], "R3"); Z(safs[0], "M3"); Z(safs[1], "CR"); under(lbs.concat(nbs)); }
-    else if (cov === "Cover 2") { Z(cbs[0], "FL"); Z(cbs[cbs.length - 1], "FR"); Z(safs[0], "HL"); Z(safs[1], "HR"); under(lbs.concat(nbs)); }
-    else if (cov === "Cover 4") { Z(cbs[0], "Q1"); Z(cbs[cbs.length - 1], "Q4"); Z(safs[0], "Q2"); Z(safs[1], "Q3"); under(lbs.concat(nbs)); }
-    else if (cov === "Cover 6") { Z(cbs[0], "Q1"); Z(safs[0], "Q2"); Z(cbs[cbs.length - 1], "FR"); Z(safs[1], "HR"); under(lbs.concat(nbs)); }
-    else if (cov === "Tampa 2") { Z(cbs[0], "FL"); Z(cbs[cbs.length - 1], "FR"); Z(safs[0], "HL"); Z(safs[1], "HR"); const mid = lbs.slice().sort((a, b) => Math.abs(a.x - 500) - Math.abs(b.x - 500))[0]; if (mid) Z(mid, "MID"); lbs.filter(d => d !== mid).concat(nbs).forEach((d, i) => Z(d, ["CL", "CR", "HKL", "HKR"][i % 4])); }
-    else if (cov === "Cover 1") { cbs.forEach(M); nbs.forEach(M); M(safs[1]); lbs.forEach(M); Z(safs[0], "MID"); }
-    else if (cov === "Cover 0") { cbs.forEach(M); nbs.forEach(M); safs.forEach(M); lbs.forEach(M); }
-    else if (cov === "2-Man") { cbs.forEach(M); nbs.forEach(M); lbs.forEach(M); Z(safs[0], "HL"); Z(safs[1], "HR"); }
+    const isNB = d => {
+      const pos = String(d.pos || "");
+      const lab = String(d.lab || "").toUpperCase();
+      return pos === "NB" || lab === "N" || lab === "NB";
+    };
+    const isSaf = d => {
+      const pos = String(d.pos || "");
+      const lab = String(d.lab || "").toUpperCase();
+      return pos === "FS" || pos === "SS" || lab === "FS" || lab === "SS" || lab === "S" || lab === "F";
+    };
+    let cbs = dbs.filter(isCB).sort((a, b) => a.x - b.x);
+    let nbs = dbs.filter(isNB).sort((a, b) => a.x - b.x);
+    let safs = dbs.filter(isSaf).sort((a, b) => a.x - b.x);
+    const classified = new Set([...cbs, ...nbs, ...safs]);
+    dbs.filter(d => !classified.has(d)).forEach(d => {
+      if (d.y <= 280) safs.push(d);
+      else if (d.y > 320) cbs.push(d);
+      else nbs.push(d);
+    });
+    cbs.sort((a, b) => a.x - b.x);
+    nbs.sort((a, b) => a.x - b.x);
+    safs.sort((a, b) => a.x - b.x);
+    const lbs = defs.filter(d => d.group === "LB").sort((a, b) => a.x - b.x);
+    const Z = (d, k) => { if (!d || !DLAND[k]) return; d.role = "zone"; d.dx = DLAND[k].x; d.dy = DLAND[k].y; };
+    const M = (d) => { if (!d) return; d.role = "man"; };
+    const nearestLand = (d, keys) => {
+      let best = keys[0], bd = 1e9;
+      keys.forEach(k => {
+        const L = DLAND[k]; if (!L) return;
+        const dd = Math.hypot((L.x - d.x), (L.y - d.y) * 0.55);
+        if (dd < bd) { bd = dd; best = k; }
+      });
+      return best;
+    };
+    const assignNearest = (arr, keys) => {
+      const pool = keys.slice();
+      arr.slice().sort((a, b) => a.x - b.x).forEach(d => {
+        if (!pool.length) { Z(d, keys[keys.length - 1]); return; }
+        let bestI = 0, bd = 1e9;
+        pool.forEach((k, i) => {
+          const L = DLAND[k]; if (!L) return;
+          const dd = Math.hypot((L.x - d.x), (L.y - d.y) * 0.5);
+          if (dd < bd) { bd = dd; bestI = i; }
+        });
+        Z(d, pool.splice(bestI, 1)[0]);
+      });
+    };
+    const deepAndRotate = (deepKey, rotKeys) => {
+      if (!safs.length) return;
+      const deep = safs.slice().sort((a, b) => a.y - b.y)[0];
+      Z(deep, deepKey);
+      safs.filter(s => s !== deep).forEach(s => Z(s, nearestLand(s, rotKeys)));
+    };
+    const underKeys = {
+      "Cover 3": ["FL", "CL", "HKM", "CR", "FR"],
+      "Cover 2": ["CL", "HKL", "HKM", "HKR", "CR"],
+      "Cover 4": ["CL", "HKL", "HKM", "HKR", "CR"],
+      "Cover 6": ["CL", "HKL", "HKM", "HKR", "CR"]
+    };
+    const under = arr => assignNearest(arr, underKeys[cov] || ["HKM", "CL", "CR", "HKL", "HKR"]);
+    if (cov === "Cover 3") {
+      if (cbs[0]) Z(cbs[0], "L3");
+      if (cbs.length) Z(cbs[cbs.length - 1], "R3");
+      if (cbs.length > 2) under(cbs.slice(1, -1));
+      deepAndRotate("M3", ["CL", "CR", "HKL", "HKR"]);
+      under(lbs.concat(nbs));
+    } else if (cov === "Cover 2") {
+      if (cbs[0]) Z(cbs[0], "FL");
+      if (cbs.length) Z(cbs[cbs.length - 1], "FR");
+      assignNearest(safs, ["HL", "HR"]);
+      under(lbs.concat(nbs));
+    } else if (cov === "Cover 4") {
+      if (cbs[0]) Z(cbs[0], "Q1");
+      if (cbs.length) Z(cbs[cbs.length - 1], "Q4");
+      assignNearest(safs, ["Q2", "Q3"]);
+      under(lbs.concat(nbs));
+    } else if (cov === "Cover 6") {
+      if (cbs[0]) Z(cbs[0], "Q1");
+      if (cbs.length) Z(cbs[cbs.length - 1], "FR");
+      const leftSaf = safs.slice().sort((a, b) => a.x - b.x)[0];
+      const rightSaf = safs.filter(s => s !== leftSaf).sort((a, b) => a.y - b.y)[0];
+      if (leftSaf) Z(leftSaf, "Q2");
+      if (rightSaf) Z(rightSaf, "HR");
+      under(lbs.concat(nbs));
+    } else if (cov === "Tampa 2") {
+      if (cbs[0]) Z(cbs[0], "FL");
+      if (cbs.length) Z(cbs[cbs.length - 1], "FR");
+      assignNearest(safs, ["HL", "HR"]);
+      const mid = lbs.slice().sort((a, b) => Math.abs(a.x - 500) - Math.abs(b.x - 500))[0];
+      if (mid) Z(mid, "MID");
+      assignNearest(lbs.filter(d => d !== mid).concat(nbs), ["CL", "CR", "HKL", "HKR"]);
+    } else if (cov === "Cover 1") {
+      cbs.forEach(M); nbs.forEach(M); lbs.forEach(M);
+      if (safs.length) {
+        const deep = safs.slice().sort((a, b) => a.y - b.y)[0];
+        Z(deep, "MID");
+        safs.filter(s => s !== deep).forEach(M);
+      }
+    } else if (cov === "Cover 0") {
+      cbs.forEach(M); nbs.forEach(M); safs.forEach(M); lbs.forEach(M);
+    } else if (cov === "2-Man") {
+      cbs.forEach(M); nbs.forEach(M); lbs.forEach(M);
+      assignNearest(safs, ["HL", "HR"]);
+    }
     assignManMatchups(defs, skillPlayers || []);
   }
 
-  /**
-   * One-to-one man assignment: CBs → #1 (outside-in), Nickel → #2/slot,
-   * man safeties → #3/TE, LBs → remaining / backs. Never double-covers.
-   * Leftover man defender becomes a rat/robber (manId null + hole landmark).
-   */
   function assignManMatchups(defs, skillPlayers) {
     const skill = (skillPlayers || []).filter(function (p) { return p && (p.type === "route" || p.type === "rb"); });
     skill.forEach(function (p, i) { if (p.id == null) p.id = "sk-" + i; });
