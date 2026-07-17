@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=87"></script>
+<script src="OFFGRD-config.js?v=88"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=87"></script>
-<script src="OFFGRD-render.js?v=87"></script>
-<script src="OFFGRD-autoderive.js?v=87"></script>
-<script src="OFFGRD-redesign.js?v=87"></script>
+<script src="OFFGRD-cache-gate.js?v=88"></script>
+<script src="OFFGRD-render.js?v=88"></script>
+<script src="OFFGRD-autoderive.js?v=88"></script>
+<script src="OFFGRD-redesign.js?v=88"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -109,6 +109,7 @@
         <button data-kind="coverage">Coverage ID</button>
         <button data-kind="routes">Routes</button>
         <button data-kind="protect">Protection</button>
+        <button data-kind="blitz">Blitz</button>
       </div>
       <div class="tag" id="kindNote" style="margin-top:6px"></div>
       <div id="rqWrap" class="hidden">
@@ -1394,6 +1395,97 @@ function finalizeOl(overallCorrect, post, job){
   if(test) test.results.push({concept:rep.play.name+" — "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
   if(test){ test.i++; setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, overallCorrect?1400:2600); }
 }
+/* ---------- Blitz drill — front-seven rush lane / stunt path / drop assignment (defender POV) ----------
+   Reuses the OL front + stunt render (olField) and post-snap animation (animateOlStunts), inverted to
+   the defender: show the front, Snap to run the stunt, then ask THIS defender's job as a multiple-choice
+   call (same scaffold as the Coverage-ID drill). Assignments are derived from the authored front + stunt
+   geometry (ol_keys.stunt / drawn blitz paths). */
+const BLITZ_OPTS=["Rush A-gap","Rush B-gap","Rush C-gap / edge","Loop / twist","Drop to hook"];
+let BLITZPLAYS=[];
+async function loadBlitzPlays(){
+  BLITZPLAYS=[];
+  if(!(window.QB&&window.QB.ready)) return;
+  try{
+    const rows=await window.QB.plays();
+    BLITZPLAYS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
+      .filter(p=>((p.state&&p.state.defs)||[]).length && olHasStunts(p.state, p.ol&&p.ol.stunt));
+    if(WEEKMODE) BLITZPLAYS=BLITZPLAYS.filter(p=>weekPlayMatch(p));
+  }catch(e){ BLITZPLAYS=[]; }
+}
+function blitzPathFor(play,i){
+  const d=((play.state&&play.state.defs)||[])[i]||{};
+  return (play.ol&&play.ol.stunt&&play.ol.stunt[i]) || (d.route&&d.route.length?d.route:null);
+}
+function blitzGapForX(state,x){
+  const cx=olCenterX(state), dx=Math.abs(x-cx);
+  if(dx<36) return "Rush A-gap";
+  if(dx<80) return "Rush B-gap";
+  return "Rush C-gap / edge";
+}
+function blitzAssignFor(play,i){
+  const state=play.state, defs=(state&&state.defs)||[], d=defs[i]||{};
+  const path=blitzPathFor(play,i);
+  const isBacker=olBackers(state).some(o=>o.i===i);
+  if(path&&path.length){
+    const cx=olCenterX(state), end=path[path.length-1];
+    const ex=(end&&end.x!=null)?end.x:d.x;
+    const startSide=Math.sign(d.x-cx)||1, endSide=Math.sign(ex-cx)||startSide;
+    /* a looper crosses center or bends around a control point -> twist/loop;
+       a straight penetrator long-sticks into the gap it ends in */
+    if(startSide!==endSide || path.some(p=>p&&p.cx!=null)) return "Loop / twist";
+    return blitzGapForX(state,ex);
+  }
+  if(isBacker) return "Drop to hook";      /* off-ball LB with no blitz path -> coverage drop */
+  return blitzGapForX(state,d.x);          /* DL rushing his aligned gap */
+}
+function blitzTargets(play){
+  const state=play.state, defs=(state&&state.defs)||[], stunt=(play.ol&&play.ol.stunt)||{}, idx=[];
+  Object.keys(stunt).forEach(k=>{ const i=+k; if(defs[i]&&idx.indexOf(i)<0) idx.push(i); });
+  defs.forEach((d,i)=>{ if(d&&d.route&&d.route.length&&idx.indexOf(i)<0) idx.push(i); });
+  olRushers(state).forEach(o=>{ if(idx.indexOf(o.i)<0) idx.push(o.i); });
+  olBackers(state).forEach(o=>{ if(idx.indexOf(o.i)<0) idx.push(o.i); });
+  return idx;
+}
+function pickBlitzRep(){
+  if(!BLITZPLAYS.length) return null;
+  for(let tries=0;tries<40;tries++){
+    const p=BLITZPLAYS[Math.floor(Math.random()*BLITZPLAYS.length)];
+    const tg=blitzTargets(p); if(!tg.length) continue;
+    const i=tg[Math.floor(Math.random()*tg.length)];
+    const d=((p.state&&p.state.defs)||[])[i]; if(!d) continue;
+    return {blitz:true, play:p, di:i, defLab:(d.lab||"defender"), answer:blitzAssignFor(p,i)};
+  }
+  return null;
+}
+function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
+function renderBlitzField(r){
+  const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
+  svg.innerHTML=olField(r.play.state, null, null, null, false);
+  olClearRings(); olRing(r.di, "#ffd24a");   /* neutral highlight on the defender we're asking about */
+}
+function blitzSnap(){
+  if(SNAPPED) return; SNAPPED=true;
+  document.getElementById("snapBtn").classList.add("hidden");
+  document.getElementById("prompt").textContent="Front's moving — call "+rep.defLab+"'s job.";
+  animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt);
+}
+function showBlitzChoices(){
+  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
+  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
+  lbl.textContent="You're "+rep.defLab+" — what's your assignment on this call?"; cc.appendChild(lbl);
+  BLITZ_OPTS.forEach(o=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=o; b.onclick=()=>answerBlitz(o); cc.appendChild(b); });
+}
+function answerBlitz(opt){
+  if(answered || !SNAPPED || !isBlitzTest()) return; answered=true;
+  const correct = opt===rep.answer;
+  olClearRings(); olRing(rep.di, correct?"#19c37d":"#e23b2e");
+  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
+  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" — "+esc(rep.defLab)+": "+esc(rep.answer)+"</h4>"
+    +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
+  test.results.push({concept:(rep.play.name||"Blitz")+" — "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
+  test.i++;
+  setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?1300:2200);
+}
 /* ===================== game state ===================== */
 let MODE="train";
 const enabledConcepts=new Set(CONCEPTS.map(c=>c.id));
@@ -1437,6 +1529,17 @@ function showRep(r){
     const cc0=document.getElementById("covChoices"); cc0.classList.add("hidden"); cc0.innerHTML="";
     return;
   }
+  if(r.blitz){
+    SNAPPED=false;
+    document.getElementById("prompt").textContent=`—${r.play.name}— vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} — you're the ${r.defLab}. ▶ Snap, then call your job.`;
+    cancelQB(); renderBlitzField(r);
+    const fbb=document.getElementById("fb"); fbb.className="fb"; fbb.innerHTML="";
+    document.getElementById("nextBtn").classList.add("hidden");
+    document.getElementById("snapBtn").classList.remove("hidden");
+    document.getElementById("replayBtn").classList.add("hidden");
+    const ccb=document.getElementById("covChoices"); ccb.classList.add("hidden"); ccb.innerHTML="";
+    return;
+  }
   document.getElementById("prompt").textContent = isCovTest()
     ? `What's the coverage?  (${r.concept.name}) — read the defense, then snap`
     : `Where's the throw vs ${r.coverage}?  (${r.concept.name})`;
@@ -1458,6 +1561,7 @@ function showRep(r){
 }
 function snapPlay(){
   if(isOlTest()){ olSnap(); return; }
+  if(isBlitzTest()){ blitzSnap(); return; }
   if(!SCENE || SNAPPED) return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
   document.getElementById("replayBtn").classList.remove("hidden");
@@ -1541,6 +1645,17 @@ async function startTest(){
     }
     swap("play"); showRep(test.queue[0]); updateProgress(); return;
   }
+  if(TESTKIND==="blitz"){
+    await loadBlitzPlays();
+    for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickBlitzRep(); if(r) test.queue.push(r); }
+    if(!test.queue.length){
+      empty(WEEKMODE?"This week’s blitz install isn’t ready":"No blitz/stunt looks yet",
+        WEEKMODE?"None of this week’s plan plays have a drawn front with a blitz/stunt yet. Your coach places the front and adds Blitz / Direct stunt paths in the Playbook, then keys it under Author → OL keys."
+          :"No plays with a drawn front + stunt yet. A coach places the opponent’s front on a play in the Playbook, adds stunt/blitz paths, and keys it under Author → OL keys.");
+      return;
+    }
+    swap("play"); showRep(test.queue[0]); updateProgress(); return;
+  }
   for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
   if(!test.queue.length){
     empty(WEEKMODE?"This week\u2019s reads aren\u2019t ready":"No reps match your filters",
@@ -1569,7 +1684,7 @@ async function finishTest(){
       const ctx=await window.QB.context();
       if(ctx && ctx.user && ctx.team){
         const wkPrefix=test.week?("Week vs "+(test.week.opp||"—")+" — "):"";
-        await window.QB.save({quiz:wkPrefix+(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":"Reads test"), score:got, total:tot, detail:test.results, week_plan_id:(test.week&&WEEKPLAN&&WEEKPLAN.id)||null});
+        await window.QB.save({quiz:wkPrefix+(test.kind==="coverage"?"Coverage ID test":test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":"Reads test"), score:got, total:tot, detail:test.results, week_plan_id:(test.week&&WEEKPLAN&&WEEKPLAN.id)||null});
         saveMsg=`Saved to ${ctx.team.name} ? — your coaches can see it under Results.`+(test.week?(" This one counts toward the week"+(test.week.due?(" (game "+test.week.due+")"):"")+"."):"");
       } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
     }
@@ -1711,7 +1826,7 @@ function buildChips(){
 }
 
 /* ---------- position drill-down ---------- */
-const POSKINDS={QB:["reads","coverage","routes","protect"],RB:["routes","protect"],WR:["routes","coverage"],TE:["routes","protect"],OL:["protect"],DL:["protect"],LB:["coverage","protect"],DB:["coverage","routes"],ALL:["reads","coverage","routes","protect"]};
+const POSKINDS={QB:["reads","coverage","routes","protect"],RB:["routes","protect"],WR:["routes","coverage"],TE:["routes","protect"],OL:["protect"],DL:["blitz","protect"],LB:["coverage","blitz","protect"],DB:["coverage","routes"],ALL:["reads","coverage","routes","protect","blitz"]};
 const POSLIST=["QB","RB","WR","TE","OL","DL","LB","DB"];
 let POSFILTER="ALL";
 function selectKind(kind){
@@ -1719,7 +1834,7 @@ function selectKind(kind){
   [].forEach.call(document.querySelectorAll("#kindSeg button"),x=>x.classList.toggle("on",x.dataset.kind===kind));
   const rq=(kind==="routes");
   const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
-  const NOTES={reads:"Where's the throw — read the coverage, snap, then pick the target.",coverage:"Name the coverage after you snap and read it.",routes:"Your Playbook plays — which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author ? OL keys. (Filters don't apply.)"};
+  const NOTES={reads:"Where's the throw — read the coverage, snap, then pick the target.",coverage:"Name the coverage after you snap and read it.",routes:"Your Playbook plays — which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author ? OL keys. (Filters don't apply.)",blitz:"You're the rusher/backer — snap, read the front, then call your job: rush gap, loop/twist, or drop. (Filters don't apply.)"};
   const kn=document.getElementById("kindNote"); if(kn) kn.textContent=NOTES[kind]||"";
   if(rq){ loadRoutePlays().then(buildPosChips); }
 }
@@ -1764,11 +1879,11 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=87"></script>
-<script src="OFFGRD-week-autotest.js?v=87"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=87"></script>
-<script type="module" src="OFFGRD-account.js?v=87"></script>
-<script src="OFFGRD-role-gate.js?v=87"></script>
+<script src="OFFGRD-mobile.js?v=88"></script>
+<script src="OFFGRD-week-autotest.js?v=88"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=88"></script>
+<script type="module" src="OFFGRD-account.js?v=88"></script>
+<script src="OFFGRD-role-gate.js?v=88"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

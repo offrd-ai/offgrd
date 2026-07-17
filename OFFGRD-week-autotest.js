@@ -12,7 +12,7 @@
     WR: ["routes"],
     TE: ["routes", "protect"],
     OL: ["protect"],
-    /* blitz kind ships in follow-up; until then DL/LB show incomplete nudge for blitz */
+    /* blitz kind: DL/LB front-seven rush lane / stunt path / drop assignment (built) */
     DL: ["blitz"],
     LB: ["coverage", "blitz"],
     DB: ["coverage"],
@@ -224,8 +224,21 @@
       return n ? { ok: true } : { ok: false, reason: "no OL keys on plan plays" };
     }
     if (kind === "blitz") {
-      /* Part 3 follow-up: blitz/stunt test not built yet — keep assigned + incomplete nudge */
-      return { ok: false, reason: "blitz test coming soon" };
+      /* Buildable when a plan play carries a drawn defensive front with an assignable
+         rush/blitz/stunt structure (authored stunt paths, or a rushing/blitzing defender
+         with a drawn path). Mirrors the OL "protect" gate, inverted to the defender POV —
+         the blitz drill reuses the same front + stunt geometry. No blitz/stunt authored =>
+         incomplete "needs coach keys" nudge (don't fabricate). */
+      const n = rows.filter(function (p) {
+        const st = (p.data && p.data.players) ? p.data : (p.data || p);
+        const defs = (st && st.defs) || [];
+        if (!defs.length) return false;
+        const stunt = p.ol_keys && p.ol_keys.stunt;
+        const hasStunt = stunt && Object.keys(stunt).length;
+        const hasBlitzPath = defs.some(function (d) { return d && d.route && d.route.length; });
+        return !!(hasStunt || hasBlitzPath);
+      }).length;
+      return n ? { ok: true } : { ok: false, reason: "no fronts with a blitz/stunt on plan plays" };
     }
     return { ok: false, reason: "unknown kind" };
   }
