@@ -30,7 +30,13 @@ function defCallAsLegacyBlitz(call){
   Object.keys(call.assigns || {}).forEach(function(k){
     const a = call.assigns[k];
     if(a && typeof a === "object"){
-      assigns[k] = a.resp || a;
+      const m=a.move||{};
+      assigns[k] = m.kind==="stunt"||m.kind==="blitz" ? "Loop / twist"
+        : m.gap==="A" ? "Rush A-gap"
+        : m.gap==="B" ? "Rush B-gap"
+        : (m.gap==="C"||m.gap==="edge") ? "Rush C-gap / edge"
+        : m.kind==="drop" ? "Drop to hook"
+        : (/^(Rush |Loop \/ twist|Drop to hook)/.test(String(a.resp||"")) ? a.resp : null);
       if(a.move && a.move.path && a.move.path.length) stunt[k] = a.move.path;
     } else if(a) assigns[k] = a;
   });

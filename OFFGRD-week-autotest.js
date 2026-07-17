@@ -241,13 +241,33 @@
     if (ctx.blitzCalls && ctx.blitzCalls.defs && ctx.blitzCalls.defs.length) return ctx.blitzCalls;
     return null;
   }
+  function defenderCoverageBuildable(ctx) {
+    const pos = normPos(ctx && ctx.position);
+    if (pos !== "DB" && pos !== "LB") return null;
+    const call = authoredDefCallFromCtx(ctx);
+    if (!call) return { ok: false, reason: "no authored defensive call" };
+    const defs = call.defs || [];
+    const assigns = call.assigns || {};
+    const n = Object.keys(assigns).filter(function (k) {
+      const d = defs[+k] || {};
+      if (d.group !== pos) return false;
+      const a = assigns[k];
+      const resp = typeof a === "string" ? a : a && (a.resp || a.answer);
+      return !!resp && !/^Rush |^Loop \/ twist$/.test(String(resp));
+    }).length;
+    if (!n) return { ok: false, reason: "no " + pos + " coverage responsibilities in Author > Defense" };
+    const looks = opponentOffenseLookCount((ctx && ctx.games) || [], (ctx && ctx.opponent) || "");
+    if (!looks) return { ok: false, reason: "no opponent offensive looks" };
+    return { ok: true };
+  }
 
   function kindBuildable(kind, planPlays, playbook, coverages, ctx) {
     ctx = ctx || {};
     const rows = planPlays.map(function (c) { return resolvePlayRow(c, playbook); }).filter(Boolean);
     const authoredBlitz = !!authoredDefCallFromCtx(ctx);
+    const defenderCoverage = kind === "coverage" ? defenderCoverageBuildable(ctx) : null;
     /* Blitz can be fully authored on the week plan without plan-play stunts. */
-    if (!rows.length && !(kind === "blitz" && authoredBlitz)) {
+    if (!rows.length && !(kind === "blitz" && authoredBlitz) && !defenderCoverage) {
       return { ok: false, reason: "no plays" };
     }
     if (kind === "reads") {
@@ -255,6 +275,7 @@
       return n ? { ok: true } : { ok: false, reason: "no reads on plan plays" };
     }
     if (kind === "coverage") {
+      if (defenderCoverage) return defenderCoverage;
       return (coverages && coverages.length) ? { ok: true } : { ok: false, reason: "no opponent coverages" };
     }
     if (kind === "routes") {
@@ -379,7 +400,7 @@
       const missing = [];
       const okKinds = [];
       (spec.kinds || []).forEach(function (k) {
-        const b = kindBuildable(k, planPlays, playbook, coverages, blitzCtx);
+        const b = kindBuildable(k, planPlays, playbook, coverages, Object.assign({}, blitzCtx, { position: pos }));
         if (b.ok) okKinds.push(k);
         else missing.push(k + ": " + b.reason);
       });
