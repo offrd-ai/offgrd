@@ -12,12 +12,12 @@
     WR: ["routes"],
     TE: ["routes", "protect"],
     OL: ["protect"],
-    /* blitz kind: DL/LB front-seven rush lane / stunt path / drop assignment (built) */
-    DL: ["blitz"],
-    LB: ["coverage", "blitz"],
-    DB: ["coverage"],
-    S: ["coverage"],
-    CB: ["coverage"],
+    /* align first (line up), then job kinds — Phase 4 */
+    DL: ["align", "blitz"],
+    LB: ["align", "coverage", "blitz"],
+    DB: ["align", "coverage"],
+    S: ["align", "coverage"],
+    CB: ["align", "coverage"],
     FB: ["routes", "protect", "coverage"]
   };
   const READY_MIN_TESTS = 2;
@@ -27,7 +27,16 @@
     coverage: "Coverage ID test",
     routes: "Route quiz",
     protect: "OL test",
-    blitz: "Blitz test"
+    blitz: "Blitz test",
+    align: "Alignment test"
+  };
+  const KIND_LABELS = {
+    reads: "Reads",
+    coverage: "Coverage",
+    routes: "Routes",
+    protect: "Protection",
+    blitz: "Blitz",
+    align: "Alignment"
   };
 
   function flagParam(name) {
@@ -266,8 +275,8 @@
     const rows = planPlays.map(function (c) { return resolvePlayRow(c, playbook); }).filter(Boolean);
     const authoredBlitz = !!authoredDefCallFromCtx(ctx);
     const defenderCoverage = kind === "coverage" ? defenderCoverageBuildable(ctx) : null;
-    /* Blitz can be fully authored on the week plan without plan-play stunts. */
-    if (!rows.length && !(kind === "blitz" && authoredBlitz) && !defenderCoverage) {
+    /* Blitz / align can be fully authored on the week plan without plan-play stunts. */
+    if (!rows.length && !(kind === "blitz" && authoredBlitz) && !(kind === "align" && authoredBlitz) && !defenderCoverage) {
       return { ok: false, reason: "no plays" };
     }
     if (kind === "reads") {
@@ -301,6 +310,26 @@
         return !!(hasStunt || hasBlitzPath);
       }).length;
       if (!calls && !authoredBlitz) return { ok: false, reason: "no fronts with a blitz/stunt (Author > Defense or Playbook)" };
+      const looks = opponentOffenseLookCount(ctx.games, ctx.opponent || "");
+      if (!looks) return { ok: false, reason: "no opponent offensive looks (scout cards / charted formations)" };
+      return { ok: true };
+    }
+    if (kind === "align") {
+      const call = authoredDefCallFromCtx(ctx);
+      if (!call) return { ok: false, reason: "no authored defensive call (Author > Defense)" };
+      const assigns = call.assigns || {};
+      const byFam = call.align_by_family || {};
+      const hasAlign = Object.keys(assigns).some(function (k) {
+        const a = assigns[k];
+        return a && typeof a === "object" && a.align && a.align.x != null && a.align.y != null;
+      }) || Object.keys(byFam).some(function (fam) {
+        const map = byFam[fam] || {};
+        return Object.keys(map).some(function (k) {
+          const a = map[k];
+          return a && a.x != null && a.y != null;
+        });
+      }) || !!(call.defs && call.defs.length);
+      if (!hasAlign) return { ok: false, reason: "no defender alignments in Author > Defense" };
       const looks = opponentOffenseLookCount(ctx.games, ctx.opponent || "");
       if (!looks) return { ok: false, reason: "no opponent offensive looks (scout cards / charted formations)" };
       return { ok: true };
@@ -453,6 +482,7 @@
 
   function quizKindFromLabel(quiz) {
     const q = String(quiz || "");
+    if (q.indexOf("Alignment") >= 0 || q.indexOf("align") >= 0) return "align";
     if (q.indexOf("Coverage") >= 0) return "coverage";
     if (q.indexOf("Route") >= 0) return "routes";
     if (q.indexOf("OL test") >= 0 || q.indexOf("protect") >= 0) return "protect";
@@ -684,6 +714,7 @@
     isWeekAutotest: isWeekAutotest,
     POSKINDS: POSKINDS,
     KIND_QUIZ: KIND_QUIZ,
+    KIND_LABELS: KIND_LABELS,
     READY_MIN_TESTS: READY_MIN_TESTS,
     READY_AVG: READY_AVG,
     buildTestSpec: buildTestSpec,
