@@ -242,6 +242,92 @@
     };
   }
 
+  /** Local playbook def-call cache (offline backup). */
+  function persistDefCallLocal(call) {
+    try {
+      const raw = lsGet(DEF_CALLS_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      const arr = Array.isArray(list) ? list : [];
+      const i = arr.findIndex(function (c) { return c && (c.id === call.id || c.name === call.name); });
+      if (i >= 0) arr[i] = call; else arr.push(call);
+      lsSet(DEF_CALLS_KEY, JSON.stringify(arr));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /** Author-parity: merge into active week gen.def_calls + cloud sync. */
+  function persistDefCallToWeek(call) {
+    return Promise.resolve().then(function () {
+      persistDefCallLocal(call);
+      const Cloud = root.Cloud;
+      if (!Cloud || !Cloud.activeWeekPlan || !Cloud.saveWeekPlan) {
+        return { ok: false, local: true, reason: "no-cloud" };
+      }
+      let teamId = (root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.teamId) || null;
+      if (!teamId) {
+        try { teamId = localStorage.getItem("offgrd_team"); } catch (e) {}
+      }
+      if (!teamId) return { ok: false, local: true, reason: "no-team" };
+
+      return Cloud.activeWeekPlan(teamId).then(function (wp) {
+        if (!wp || !wp.id) return { ok: false, local: true, reason: "no-week" };
+        const genBase = Object.assign({}, wp.gen || {});
+        let list = [];
+        if (Array.isArray(genBase.def_calls) && genBase.def_calls.length) {
+          list = genBase.def_calls.slice();
+        } else if (genBase.blitz_calls) {
+          list = [genBase.blitz_calls];
+        }
+        const idx = list.findIndex(function (c) {
+          return c && (c.id === call.id || (c.name && call.name && c.name === call.name));
+        });
+        if (idx >= 0) list[idx] = call; else list.push(call);
+
+        /* Legacy blitz_calls shim (same shape Author writes) for older clients. */
+        let legacy = null;
+        try {
+          const primary = list[0] || call;
+          legacy = {
+            v: 1,
+            front: primary.front,
+            note: primary.note || "",
+            defs: primary.defs || [],
+            stunt: primary.stunt || {},
+            assigns: {},
+            coverage: primary.coverage || "",
+            pressure: primary.pressure || null,
+            name: primary.name || ""
+          };
+          Object.keys(primary.assigns || {}).forEach(function (k) {
+            const a = primary.assigns[k];
+            if (a && typeof a === "object" && a.resp) legacy.assigns[k] = a.resp;
+            else if (a) legacy.assigns[k] = a;
+          });
+        } catch (e) { legacy = genBase.blitz_calls || null; }
+
+        const gen = Object.assign({}, genBase, { def_calls: list, blitz_calls: legacy });
+        return Cloud.saveWeekPlan(wp.id, { gen: gen }).then(function () {
+          return { ok: true, local: true, week: true, count: list.length, name: call.name };
+        });
+      });
+    }).catch(function (e) {
+      return { ok: false, local: true, reason: (e && e.message) || "save-failed" };
+    });
+  }
+
+  function defCallSaveMsg(res, call) {
+    if (res && res.ok && res.week) {
+      return "Defense call saved to this week: " + call.name + " (live under Test \u2192 Alignment / Blitz / Coverage)";
+    }
+    if (res && res.reason === "no-week") {
+      return "Defense saved locally \u2014 start a week plan (Scout) to use it in Reps Lab Week mode.";
+    }
+    if (res && res.reason === "no-team") {
+      return "Defense saved locally \u2014 sign in to a program to sync to this week.";
+    }
+    return "Defense call saved locally: " + (call && call.name ? call.name : "call");
+  }
+
   function seedOffenseReview() {
     const st = H.getState();
     const playType = (WZ && WZ.playType) || (st && st.type) || "pass";
@@ -341,15 +427,10 @@
       st.coverage = call.coverage;
       st.test_seeded = true;
       WZ.confirmed = true;
-      try {
-        const raw = lsGet(DEF_CALLS_KEY);
-        const list = raw ? JSON.parse(raw) : [];
-        const arr = Array.isArray(list) ? list : [];
-        const i = arr.findIndex(function (c) { return c && c.name === call.name; });
-        if (i >= 0) arr[i] = call; else arr.push(call);
-        lsSet(DEF_CALLS_KEY, JSON.stringify(arr));
-      } catch (e) {}
-      H.msg("Defense tests confirmed — call saved to local def library.");
+      H.msg("Defense tests confirmed — syncing call to this week\u2026");
+      persistDefCallToWeek(call).then(function (res) {
+        H.msg(defCallSaveMsg(res, call));
+      });
     }
     render();
   }
@@ -1044,17 +1125,16 @@
       }
       H.renderAll();
       if (WZ.save) {
-        try {
-          const call = st.def_call || buildDefCall();
-          const raw = lsGet(DEF_CALLS_KEY);
-          const list = raw ? JSON.parse(raw) : [];
-          const arr = Array.isArray(list) ? list : [];
-          arr.push(call);
-          lsSet(DEF_CALLS_KEY, JSON.stringify(arr));
-          H.msg("Defense call saved: " + call.name);
-        } catch (e) {
-          H.msg("Defense built on the field.");
-        }
+        const call = (st && st.def_call) || buildDefCall();
+        if (WZ.name) call.name = WZ.name;
+        call.front = WZ.front || call.front;
+        call.coverage = WZ.cov || call.coverage;
+        call.pressure = WZ.pressure || call.pressure;
+        if (st) st.def_call = call;
+        H.msg("Saving defense call to this week\u2026");
+        persistDefCallToWeek(call).then(function (res) {
+          H.msg(defCallSaveMsg(res, call));
+        });
       } else {
         H.msg("Defense built — edit on the field.");
       }

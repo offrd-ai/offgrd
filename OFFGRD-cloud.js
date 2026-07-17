@@ -149,11 +149,17 @@ export const Cloud = {
   },
   async savePlay(teamId, play) {
     // play.id optional; data holds the full play state from the designer
+    const payload = play.data || play;
     const row = {
       team_id: teamId, name: play.name, family: play.family, series: play.series,
       personnel: play.personnel, formation: play.formation, protection: play.protection,
-      data: play.data || play
+      data: payload
     };
+    /* Wizard Confirm / Author seeds live on the play — persist columns so Reps Lab "Our plays" can attribute by name. */
+    const reads = play.qb_reads || (payload && payload.qb_reads);
+    const ol = play.ol_keys || (payload && payload.ol_keys);
+    if (reads && typeof reads === "object" && Object.keys(reads).length) row.qb_reads = reads;
+    if (ol && typeof ol === "object") row.ol_keys = ol;
     if (play.id) row.id = play.id;
     const { data, error } = await OG.from("plays").upsert(row).select().single();
     if (error) throw error; return data;
