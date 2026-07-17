@@ -10,13 +10,17 @@
   const DEF_CALLS_KEY = "offgrd_pb_def_calls_v1";
 
   const OFF_TEMPLATES = [
-    { name: "2x2 Smash", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Smash", protection: "Slide R", family: "Smash", series: "Dropback" },
-    { name: "2x2 Mesh", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Mesh", protection: "BOB", family: "Mesh", series: "Dropback" },
-    { name: "2x2 Four Verts", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Four Verts", protection: "Slide R", family: "Verts", series: "Dropback" },
-    { name: "2x2 Curl-Flat", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Curl-Flat", protection: "BOB", family: "Curl", series: "Dropback" },
-    { name: "Trips Stick", formation: "Trips Rt (Gun)", personnel: "10", concept: "Stick", protection: "BOB", family: "Quick Game", series: "Quick" },
-    { name: "Trips Flood", formation: "Trips Rt (Gun)", personnel: "10", concept: "Flood", protection: "Slide L", family: "Flood", series: "Dropback" },
-    { name: "Empty Four Verts", formation: "Empty 3x2 (Gun)", personnel: "00", concept: "Four Verts", protection: "BOB", family: "Verts", series: "Dropback" }
+    { name: "2x2 Smash", type: "pass", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Smash", protection: "Slide R", family: "Smash", series: "Dropback" },
+    { name: "2x2 Mesh", type: "pass", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Mesh", protection: "BOB", family: "Mesh", series: "Dropback" },
+    { name: "2x2 Four Verts", type: "pass", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Four Verts", protection: "Slide R", family: "Verts", series: "Dropback" },
+    { name: "2x2 Curl-Flat", type: "pass", formation: "2x2 Doubles (Gun)", personnel: "10", concept: "Curl-Flat", protection: "BOB", family: "Curl", series: "Dropback" },
+    { name: "Trips Stick", type: "pass", formation: "Trips Rt (Gun)", personnel: "10", concept: "Stick", protection: "BOB", family: "Quick Game", series: "Quick" },
+    { name: "Trips Flood", type: "pass", formation: "Trips Rt (Gun)", personnel: "10", concept: "Flood", protection: "Slide L", family: "Flood", series: "Dropback" },
+    { name: "Empty Four Verts", type: "pass", formation: "Empty 3x2 (Gun)", personnel: "00", concept: "Four Verts", protection: "BOB", family: "Verts", series: "Dropback" },
+    { name: "2x2 Inside Zone Rt", type: "run", formation: "2x2 Doubles (Gun)", personnel: "10", scheme: "Inside Zone Rt", family: "Zone", series: "Run" },
+    { name: "2x2 Power Lt", type: "run", formation: "2x2 Doubles (Gun)", personnel: "10", scheme: "Power Lt", family: "Power", series: "Run" },
+    { name: "2x2 Outside Zone Rt", type: "run", formation: "2x2 Doubles (Gun)", personnel: "10", scheme: "Outside Zone Rt", family: "Zone", series: "Run" },
+    { name: "2x2 Counter Lt", type: "run", formation: "2x2 Doubles (Gun)", personnel: "10", scheme: "Counter Lt", family: "Counter", series: "Run" }
   ];
 
   const DEF_TEMPLATES = [
@@ -47,6 +51,8 @@
   const PROTS = ["none", "BOB", "Slide R", "Slide L", "Half-Slide R", "Half-Slide L", "6-Man (RB)"];
   const FRONTS = ["4-3", "3-4", "4-2-5", "Nickel", "Bear (46)", "3-3-5 (Tite)", "Dime (4-1-6)"];
   const COVS = ["Cover 0", "Cover 1", "2-Man", "Cover 2", "Cover 3", "Cover 4", "Cover 6", "Tampa 2"];
+  const RUN_SCHEMES = ["Inside Zone Rt","Inside Zone Lt","Outside Zone Rt","Outside Zone Lt","Power Rt","Power Lt","Counter Rt","Counter Lt","Trap Rt","Trap Lt","Sweep Rt","Sweep Lt","Draw"];
+  const BLOCK_OPTS = [["base","Base",0],["reach","Reach ◀",-1],["reach","Reach ▶",1],["down","Down",0],["kick","Kick",0],["pull","Pull ◀",-1],["pull","Pull ▶",1],["combo","Combo ◀",-1],["combo","Combo ▶",1]];
 
   let H = null; /* host hooks */
   let WZ = null;
@@ -84,7 +90,7 @@
     const dock = document.getElementById("wizDock");
     if (dock) {
       if (skill === "guided") {
-        dock.style.display = "";
+        dock.style.display = "block";
         if (!WZ) open({ quiet: true });
         else render();
       } else {
@@ -238,20 +244,48 @@
 
   function seedOffenseReview() {
     const st = H.getState();
+    const playType = (WZ && WZ.playType) || (st && st.type) || "pass";
+    if (st) st.type = playType;
+    const playAction = !!(WZ && WZ.playAction) || !!(st && st.playAction);
+
+    if (playType === "run" && !playAction) {
+      const ol = (st.players || []).filter(function (p) { return p && p.ol; });
+      const hasBlocks = ol.some(function (p) { return p.runblk || p.blk; });
+      const rb = (st.players || []).find(function (p) { return p && (p.type === "rb" || p.lab === "RB" || p.lab === "FB"); });
+      const qbKeep = (st.players || []).find(function (p) { return p && p.type === "qb" && p.route && p.route.length; });
+      const carrier = (WZ && WZ.carrierLab)
+        ? (st.players || []).find(function (p) { return p && p.lab === WZ.carrierLab; })
+        : (rb || qbKeep);
+      const hasTrack = !!(carrier && carrier.route && carrier.route.length);
+      const runKeys = {};
+      ol.forEach(function (p) {
+        if (p.runblk) runKeys[p.lab] = { t: "rule", r: p.runblk.type, dir: p.runblk.dir || 0 };
+        else if (p.blk) runKeys[p.lab] = { t: "rule", r: String(p.blk) };
+      });
+      return [
+        { k: "run_ol", label: "OL run keys / blocks", ok: hasBlocks, data: { keys: runKeys, scheme: (WZ && WZ.scheme) || null }, hint: hasBlocks ? ((WZ && WZ.scheme) || "Blocks set") : "Pick a run scheme" },
+        { k: "run_rb", label: "RB track / read", ok: hasTrack, data: carrier ? { lab: carrier.lab, route: carrier.route } : null, hint: hasTrack ? ((carrier && carrier.lab) + " track set") : "Set ball-carrier aiming point" }
+      ];
+    }
+
     const AD = root.OFFGRD_AUTODERIVE;
     let reads = null, ol = null;
     if (AD) {
-      try { reads = AD.deriveReads(st, { playName: WZ.name || st.name }); } catch (e) {}
+      try { reads = AD.deriveReads(st, { playName: (WZ && WZ.name) || st.name }); } catch (e) {}
       try { ol = AD.deriveOlKeys(st); } catch (e) {}
     }
     const hasRoutes = (st.players || []).some(function (p) { return p && ((p.route && p.route.length) || p.rname); });
     const hasProt = !!(st.protection && st.protection !== "none");
-    return [
+    const rows = [
       { k: "reads", label: "QB reads", ok: !!(reads && reads.reads && Object.keys(reads.reads).length), data: reads, hint: "Progression vs Cover 0–4 from routes" },
       { k: "protect", label: "OL keys / protection", ok: !!(ol && ol.keys && Object.keys(ol.keys).length) || hasProt, data: ol, hint: st.protection || "Set protection" },
       { k: "routes", label: "Receiver routes", ok: hasRoutes, data: null, hint: hasRoutes ? "Routes drawn" : "Assign routes first" },
       { k: "coverage", label: "Coverage ID (vs look)", ok: !!(st.coverage && st.coverage !== "none"), data: st.coverage, hint: st.coverage && st.coverage !== "none" ? st.coverage : "Optional — place a defense to ID vs" }
     ];
+    if (playType === "run" && playAction) {
+      rows.unshift({ k: "run_ol", label: "OL run keys (PA)", ok: true, data: null, hint: "Play-action — pass tests + run look" });
+    }
+    return rows;
   }
 
   function seedDefenseReview() {
@@ -272,15 +306,26 @@
     if (!st) return;
     if (WZ.track === "offense") {
       const rows = seedOffenseReview();
-      const readsRow = rows.find(function (r) { return r.k === "reads"; });
-      const olRow = rows.find(function (r) { return r.k === "protect"; });
-      if (readsRow && readsRow.data) {
-        st.qb_reads = readsRow.data.reads || readsRow.data;
-        if (readsRow.data.concept) st.concept = readsRow.data.concept;
-        if (readsRow.data.prog) st.qb_prog = readsRow.data.prog;
+      st.type = WZ.playType || st.type || "pass";
+      st.playAction = !!WZ.playAction;
+      if (st.type === "run" && !st.playAction) {
+        const olRow = rows.find(function (r) { return r.k === "run_ol"; });
+        const rbRow = rows.find(function (r) { return r.k === "run_rb"; });
+        st.ol_keys = (olRow && olRow.data) || { keys: {}, scheme: WZ.scheme || null };
+        st.rb_track = (rbRow && rbRow.data) || null;
+        if (WZ.scheme) st.family = st.family || WZ.scheme.replace(/ (Rt|Lt)$/, "");
+        delete st.qb_reads;
+      } else {
+        const readsRow = rows.find(function (r) { return r.k === "reads"; });
+        const olRow = rows.find(function (r) { return r.k === "protect"; });
+        if (readsRow && readsRow.data) {
+          st.qb_reads = readsRow.data.reads || readsRow.data;
+          if (readsRow.data.concept) st.concept = readsRow.data.concept;
+          if (readsRow.data.prog) st.qb_prog = readsRow.data.prog;
+        }
+        if (olRow && olRow.data) st.ol_keys = olRow.data;
+        else if (st.protection) st.ol_keys = st.ol_keys || { keys: {}, protection: st.protection };
       }
-      if (olRow && olRow.data) st.ol_keys = olRow.data;
-      else if (st.protection) st.ol_keys = st.ol_keys || { keys: {}, protection: st.protection };
       st.test_seeded = true;
       WZ.confirmed = true;
       H.msg("Tests confirmed — save the play to lock answer keys.");
@@ -308,8 +353,16 @@
     if (!WZ) return [];
     if (!WZ.mode) return ["entry"];
     if (WZ.track === "offense") {
-      if (WZ.mode === "template") return ["entry", "template", "tweak", "name", "tests"];
-      return ["entry", "formation", "personnel", "concept", "tweak", "protection", "name", "tests"];
+      if (WZ.mode === "template") {
+        const base = ["entry", "template", "playType"];
+        if (!WZ.playType) return base;
+        if (WZ.playType === "run") return base.concat(["carrier", "assigns", "name", "tests"]);
+        return base.concat(["tweak", "name", "tests"]);
+      }
+      const base = ["entry", "formation", "personnel", "playType"];
+      if (!WZ.playType) return base;
+      if (WZ.playType === "run") return base.concat(["scheme", "carrier", "assigns", "name", "tests"]);
+      return base.concat(["concept", "tweak", "protection", "name", "tests"]);
     }
     if (WZ.mode === "template") return ["entry", "template", "align", "motion", "name", "tests"];
     return ["entry", "front", "coverage", "pressure", "align", "motion", "name", "tests"];
@@ -320,9 +373,63 @@
     H.snap();
     H.newPlay(WZ.formation);
     if (WZ.personnel) H.placePersonnel(WZ.personnel);
-    if (WZ.concept) H.applyConcept(WZ.concept);
-    if (WZ.protection && WZ.protection !== "none") H.applyProtection(WZ.protection);
+    const st = H.getState();
+    if (st) st.type = WZ.playType || st.type || "pass";
+    if (WZ.playType === "run") {
+      if (WZ.scheme && H.applyRunScheme) H.applyRunScheme(WZ.scheme);
+    } else {
+      if (WZ.concept) H.applyConcept(WZ.concept);
+      if (WZ.protection && WZ.protection !== "none") H.applyProtection(WZ.protection);
+    }
     syncMetaPartial();
+    H.renderAll();
+  }
+
+  function setPlayType(v) {
+    WZ.playType = v;
+    const st = H.getState();
+    if (st) st.type = v;
+    if (v === "run") {
+      WZ.concept = "";
+      WZ.protection = "none";
+      if (WZ.scheme && H.applyRunScheme) {
+        H.snap();
+        H.applyRunScheme(WZ.scheme);
+        H.renderAll();
+      } else if (WZ.formation) {
+        liveApplyOffenseBase();
+      }
+    } else {
+      WZ.scheme = "";
+      if (WZ.formation) liveApplyOffenseBase();
+    }
+  }
+
+  function setCarrierAim(kind) {
+    const st = H.getState();
+    if (!st) return;
+    let carrier = (st.players || []).find(function (p) { return p && p.lab === (WZ.carrierLab || "RB"); });
+    if (!carrier) carrier = (st.players || []).find(function (p) { return p && p.type === "rb"; });
+    if (!carrier && WZ.carrierLab === "QB") carrier = (st.players || []).find(function (p) { return p && p.type === "qb"; });
+    if (!carrier) { H.msg("No ball carrier on the field."); return; }
+    H.snap();
+    const ol = (st.players || []).filter(function (p) { return p.ol; }).sort(function (a, b) { return a.x - b.x; });
+    const C = ol[2] || { x: 500, y: 380 };
+    const dir = /Lt|L$/.test(kind) ? -1 : 1;
+    const outside = /Outside|Sweep/.test(kind);
+    const aimX = outside ? (C.x + dir * 150) : (C.x + dir * 55);
+    const aimY = 380 - 72;
+    if (carrier.type === "qb") { /* keep */ }
+    else carrier.type = "rb";
+    carrier.blk = null;
+    carrier.runblk = null;
+    carrier.rname = null;
+    carrier.route = [
+      { x: C.x + dir * 12, y: carrier.y - 6, cx: null, cy: null },
+      { x: aimX, y: aimY, cx: null, cy: null }
+    ];
+    WZ.carrierLab = carrier.lab;
+    H.selectPlayer(carrier);
     H.renderAll();
   }
 
@@ -346,11 +453,13 @@
       WZ.personnel = t.personnel || "";
       WZ.concept = t.concept || "";
       WZ.protection = t.protection || "none";
+      WZ.scheme = t.scheme || "";
+      WZ.playType = t.type || (t.scheme ? "run" : "pass");
       WZ.name = t.name || "";
       WZ.family = t.family || "";
       WZ.series = t.series || "";
       liveApplyOffenseBase();
-      H.msg("Template: " + t.name);
+      H.msg("Template: " + t.name + " (" + WZ.playType + ")");
     } else {
       WZ.front = t.front;
       WZ.cov = t.cov;
@@ -379,7 +488,12 @@
       i: 0,
       formation: formations()[0] || "2x2 Doubles (Gun)",
       personnel: "",
+      playType: null,
       concept: "",
+      scheme: "",
+      carrierLab: "RB",
+      playAction: false,
+      assignIdx: 0,
       protection: "none",
       name: "",
       family: "",
@@ -418,7 +532,11 @@
       template: WZ.track === "offense" ? "Pick an offense template" : "Pick a defense template",
       formation: "Formation",
       personnel: "Personnel",
+      playType: "Run or Pass?",
       concept: "Concept / base",
+      scheme: "Run scheme",
+      carrier: "Ball carrier / track",
+      assigns: "Assignments / blocks",
       tweak: "Per-player tweak",
       protection: "Protection",
       front: "Front",
@@ -510,6 +628,116 @@
         liveApplyOffenseBase();
         render();
       }));
+
+    } else if (id === "playType") {
+      note(body, "First decision about the play — this forks the rest of the wizard and which tests get seeded.");
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.cssText = "gap:12px;flex-wrap:wrap;align-items:stretch";
+      [
+        ["pass", "Pass", "Drop back — set routes & protection"],
+        ["run", "Run", "Hand it off — set the blocking & ball carrier"]
+      ].forEach(function (pair) {
+        const v = pair[0], lbl = pair[1], hint = pair[2];
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "btn" + (WZ.playType === v ? " go" : "");
+        card.style.cssText = "min-width:180px;min-height:78px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px 16px";
+        card.innerHTML = "<b style=\"font-size:17px\">" + lbl + "</b><span class=\"hint\" style=\"margin:0;font-weight:600;line-height:1.35\">" + hint + "</span>";
+        card.onclick = function () { setPlayType(v); render(); };
+        row.appendChild(card);
+      });
+      body.appendChild(row);
+      if (WZ.mode === "template" && WZ.playType) {
+        note(body, "Pre-selected from the template — tap the other chip to switch.");
+      }
+    } else if (id === "scheme") {
+      note(body, "Pick the run concept — OL blocks and a starter RB track fill in automatically.");
+      body.appendChild(chips(RUN_SCHEMES, WZ.scheme, function (v) {
+        WZ.scheme = v;
+        WZ.family = v.replace(/ (Rt|Lt)$/, "");
+        WZ.series = "Run";
+        H.snap();
+        if (H.applyRunScheme) H.applyRunScheme(v);
+        const st = H.getState();
+        if (st) st.type = "run";
+        H.renderAll();
+        render();
+      }));
+    } else if (id === "carrier") {
+      note(body, "Who carries it, and where are they aiming? You can also draw the track on the field (Route tool).");
+      H.setMode("route");
+      const st = H.getState();
+      const opts = [["RB", "RB"], ["FB", "FB"], ["QB", "QB keep"]];
+      const have = {};
+      (st.players || []).forEach(function (p) { if (p && p.lab) have[p.lab] = true; if (p && p.type === "qb") have.QB = true; });
+      body.appendChild(chips(opts.filter(function (o) { return o[0] === "RB" || o[0] === "QB" || have[o[0]]; }), WZ.carrierLab || "RB", function (v) {
+        WZ.carrierLab = v;
+        render();
+      }));
+      note(body, "Aiming point:");
+      body.appendChild(chips(
+        [["Inside Rt", "Inside Rt"], ["Inside Lt", "Inside Lt"], ["Outside Rt", "Outside Rt"], ["Outside Lt", "Outside Lt"], ["Sweep Rt", "Sweep Rt"], ["Sweep Lt", "Sweep Lt"]],
+        "",
+        function (v) { setCarrierAim(v); render(); }
+      ));
+    } else if (id === "assigns") {
+      note(body, "Confirm each lineman's block (auto-filled from the scheme). Tap to change an exception.");
+      const st = H.getState();
+      const ol = (st.players || []).filter(function (p) { return p && p.ol; }).sort(function (a, b) { return a.x - b.x; });
+      if (!ol.length) {
+        note(body, "No offensive line — go back and pick a formation.");
+      } else {
+        if (WZ.assignIdx >= ol.length) WZ.assignIdx = 0;
+        const p = ol[WZ.assignIdx];
+        H.selectPlayer(p);
+        const cur = p.runblk ? (p.runblk.type + (p.runblk.dir < 0 ? " ◀" : p.runblk.dir > 0 ? " ▶" : "")) : (p.blk || "—");
+        note(body, "<b>" + p.lab + "</b> block: " + cur + " (" + (WZ.assignIdx + 1) + " of " + ol.length + ")");
+        const brow = document.createElement("div");
+        brow.className = "row";
+        brow.style.flexWrap = "wrap";
+        BLOCK_OPTS.forEach(function (opt) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "btn" + (p.runblk && p.runblk.type === opt[0] && (p.runblk.dir || 0) === opt[2] ? " go" : "");
+          b.textContent = opt[1];
+          b.onclick = function () {
+            H.snap();
+            p.type = "block";
+            p.route = [];
+            p.motion = [];
+            p.rname = null;
+            p.blk = null;
+            p.runblk = { type: opt[0], dir: opt[2] };
+            H.renderAll();
+            render();
+          };
+          brow.appendChild(b);
+        });
+        body.appendChild(brow);
+        const nav = document.createElement("div");
+        nav.className = "row";
+        nav.style.marginTop = "10px";
+        const prev = document.createElement("button");
+        prev.className = "btn";
+        prev.textContent = "Prev OL";
+        prev.disabled = WZ.assignIdx === 0;
+        prev.onclick = function () { WZ.assignIdx--; render(); };
+        const nextP = document.createElement("button");
+        nextP.className = "btn";
+        nextP.textContent = "Next OL";
+        nextP.disabled = WZ.assignIdx >= ol.length - 1;
+        nextP.onclick = function () { WZ.assignIdx++; render(); };
+        const confAll = document.createElement("button");
+        confAll.className = "btn go";
+        confAll.textContent = "Confirm all blocks ✓";
+        confAll.onclick = function () { WZ.assignIdx = ol.length - 1; H.msg("OL blocks confirmed."); render(); };
+        nav.appendChild(prev);
+        nav.appendChild(nextP);
+        nav.appendChild(confAll);
+        body.appendChild(nav);
+      }
+
     } else if (id === "concept") {
       note(body, "Routes get assigned to your receivers. Or Custom to draw yourself in the tweak step.");
       body.appendChild(chips([["", "Custom (I'll draw)"]].concat(concepts().map(function (c) { return [c, c]; })), WZ.concept, function (v) {
@@ -704,6 +932,14 @@
       H.msg("Pick a template.");
       return;
     }
+    if (d > 0 && id === "playType" && !WZ.playType) {
+      H.msg("Pick Run or Pass.");
+      return;
+    }
+    if (d > 0 && id === "scheme" && !WZ.scheme) {
+      H.msg("Pick a run scheme.");
+      return;
+    }
     const ni = WZ.i + d;
     if (ni < 0) return;
     if (ni >= order.length) {
@@ -797,6 +1033,8 @@
       WZ = {
         track: "offense", mode: "scratch", i: 0, name: st.name || "", concept: st.concept || "",
         formation: st.formation, personnel: st.personnel, protection: st.protection || "none",
+        playType: st.type || ((st.players || []).some(function (p) { return p && p.runblk; }) ? "run" : "pass"),
+        scheme: st.scheme || "", playAction: !!st.playAction, carrierLab: "RB",
         confirmed: false, save: false, align_by_family: {}, adjusters: { motion: { default: "bump" } }
       };
       confirmTests();

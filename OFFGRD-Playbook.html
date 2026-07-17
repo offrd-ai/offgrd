@@ -63,6 +63,7 @@
  .skillSeg .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
  body.skill-guided .expert-only{display:none!important}
  #wizDock{display:none;border:2px solid var(--accent);background:linear-gradient(180deg,#f7fbff,#fff)}
+ body.skill-guided #wizDock{display:block}
  #wizDock .wizDockNav{display:flex;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
 
 </style>
@@ -72,7 +73,7 @@
 <script src="OFFGRD-render.js?v=102"></script>
 <script src="OFFGRD-autoderive.js?v=103"></script>
 <script src="OFFGRD-week-autotest.js?v=103"></script>
-<script src="OFFGRD-play-wizard.js?v=103"></script>
+<script src="OFFGRD-play-wizard.js?v=104"></script>
 <script src="OFFGRD-scoutcards.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
 <script src="OFFGRD-redesign.js?v=97"></script>
@@ -418,7 +419,7 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
  STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
  STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write Ã¯Â¿Â½ blank canvas must not nag on reopen */}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",type:"pass",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write Ã¯Â¿Â½ blank canvas must not nag on reopen */}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
  (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
  (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
@@ -435,6 +436,8 @@ function applyRunScheme(name){ if(!STATE)return; snap();
  if(/Zone/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
  else if(/Power/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3); if(bsG) setb(p,"pull",dir); else setb(p,"down",0); }); }
  else if(/Counter/.test(name)){ ol.forEach((p,i)=>{ const bsG=(dir>0?i===1:i===3), bsT=(dir>0?i===0:i===4); if(bsG) setb(p,"pull",dir); else if(bsT) setb(p,"kick",dir); else setb(p,"down",0); }); }
+ else if(/Trap/.test(name)){ ol.forEach((p,i)=>{ const kick=(dir>0?i===4:i===0); if(kick) setb(p,"kick",dir); else setb(p,"down",0); }); }
+ else if(/Sweep/.test(name)){ ol.forEach(p=>setb(p,"reach",dir)); }
  else if(/Draw/.test(name)){ ol.forEach(p=>setb(p,"set",0)); }
  if(rb){ rb.type="rb"; rb.blk=null; rb.runblk=null; rb.rname=null;
  const aimX=/Outside/.test(name)?(C.x+dir*150):(C.x+dir*55);
@@ -443,7 +446,7 @@ function applyRunScheme(name){ if(!STATE)return; snap();
  renderAll(); }
 
 const WFORMS=Object.keys(FORMS), WPERS=Object.keys(PERS);
-const WRUN=["Inside Zone Rt","Inside Zone Lt","Outside Zone Rt","Outside Zone Lt","Power Rt","Power Lt","Counter Rt","Counter Lt","Draw"];
+const WRUN=["Inside Zone Rt","Inside Zone Lt","Outside Zone Rt","Outside Zone Lt","Power Rt","Power Lt","Counter Rt","Counter Lt","Trap Rt","Trap Lt","Sweep Rt","Sweep Lt","Draw"];
 const WSTEPS=["formation","personnel","kind","scheme","protection","defense","name"];
 let WZ=null;
 function wizVis(id){ if(id==="scheme") return WZ.kind!=="Custom"; if(id==="protection") return WZ.kind==="Pass"; return true; }
@@ -451,7 +454,7 @@ function wizOrder(){ return WSTEPS.filter(wizVis); }
 function wizOpen(){
  if(window.OFFGRD_PLAY_WIZARD){
   OFFGRD_PLAY_WIZARD.open();
-  const dock=document.getElementById("wizDock"); if(dock){ dock.style.display=""; try{ dock.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(e){} }
+  const dock=document.getElementById("wizDock"); if(dock){ dock.style.display="block"; try{ dock.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(e){} }
   return;
  }
  WZ={i:0,formation:WFORMS[0],personnel:"",kind:"Pass",concept:"",scheme:"",protection:"none",front:"none",cov:"none",name:"",family:"",series:"",save:true}; document.getElementById("wizModal").classList.add("show"); wizRender();
