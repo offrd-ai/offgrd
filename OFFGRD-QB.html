@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD — Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=95"></script>
+<script src="OFFGRD-config.js?v=96"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=95"></script>
-<script src="OFFGRD-render.js?v=95"></script>
-<script src="OFFGRD-autoderive.js?v=95"></script>
-<script src="OFFGRD-redesign.js?v=95"></script>
+<script src="OFFGRD-cache-gate.js?v=96"></script>
+<script src="OFFGRD-render.js?v=96"></script>
+<script src="OFFGRD-autoderive.js?v=96"></script>
+<script src="OFFGRD-redesign.js?v=96"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -787,17 +787,17 @@ async function loadAuthor(){
  +'<button data-ak="reads"'+(AUTHKIND==="reads"?' class="on"':'')+'>QB reads</button>'
  +'<button data-ak="ol"'+(AUTHKIND==="ol"?' class="on"':'')+'>OL keys</button>'
  +'<button data-ak="weekd"'+(AUTHKIND==="weekd"?' class="on"':'')+'>This week\u2019s D</button>'
- +'<button data-ak="blitz"'+(AUTHKIND==="blitz"?' class="on"':'')+'>Blitz</button></div>';
- const wireSeg=()=>{ [].forEach.call(document.querySelectorAll("#authSeg button"),b=>{ b.onclick=()=>{ AUTHKIND=b.dataset.ak; loadAuthor(); }; }); };
- const hub=await authorHubHTML();
- if(AUTHKIND==="weekd"){
- ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg+'<div id="weekdBody"></div>';
- wireSeg(); editWeekDef(); return;
- }
- if(AUTHKIND==="blitz"){
- ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg+'<div id="blitzBody"></div>';
- wireSeg(); editBlitz(); return;
- }
+    +'<button data-ak="blitz"'+(AUTHKIND==="blitz"?' class="on"':'')+'>Defense</button></div>';
+  const wireSeg=()=>{ [].forEach.call(document.querySelectorAll("#authSeg button"),b=>{ b.onclick=()=>{ AUTHKIND=b.dataset.ak; loadAuthor(); }; }); };
+  const hub=await authorHubHTML();
+  if(AUTHKIND==="weekd"){
+    ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg+'<div id="weekdBody"></div>';
+    wireSeg(); editWeekDef(); return;
+  }
+  if(AUTHKIND==="blitz"){
+    ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg+'<div id="blitzBody"></div>';
+    wireSeg(); editDefense(); return;
+  }
  let rows; try{ rows=await window.QB.plays(); }catch(e){ ap.innerHTML='<p class="tag">Couldn\u2019t load plays: '+(e.message||e)+'</p>'; return; }
  if(!rows.length){ ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg+'<p class="tag">No saved plays yet. Build and save plays in the Playbook, then author here.</p>'; wireSeg(); return; }
  ap.innerHTML='<h3 style="margin:0 0 4px;color:var(--navy)">Author</h3>'+hub+seg
@@ -817,18 +817,23 @@ async function authorHubHTML(){
  {k:"protect",label:"Protect (OL)",where:"OL keys tab (per play)"},
  {k:"coverage",label:"Coverage",where:"This week\u2019s D tab (opponent fronts/coverages)"},
  {k:"routes",label:"Routes",where:"drawn routes on Playbook plays"},
- {k:"blitz",label:"Blitz",where:"Blitz tab (front + per-defender gap/stunt/drop)"}
- ];
- let status={};
- try{
- const AT=window.OFFGRD_WEEK_AUTOTEST;
- if(AT&&AT.kindBuildable&&WEEKPLAN){
- const plays=await window.QB.plays().catch(()=>[]);
- const games=(window.QB.games)?(await window.QB.games().catch(()=>[])):[];
- const planPlays=[];
- (WEEKPLAN.buckets||[]).forEach(b=>{(b.plays||[]).forEach(p=>planPlays.push(p));});
- const covs=(WEEKCOVS&&WEEKCOVS.length)?WEEKCOVS.slice():Object.keys(WEEKDEF||{});
- const ctx={games:games,opponent:WEEKPLAN.opponent||"",blitzCalls:(WEEKPLAN.gen&&WEEKPLAN.gen.blitz_calls)||null};
+    {k:"blitz",label:"Blitz / Defense",where:"Defense tab (front + coverage + pressure call)"}
+  ];
+  let status={};
+  try{
+    const AT=window.OFFGRD_WEEK_AUTOTEST;
+    if(AT&&AT.kindBuildable&&WEEKPLAN){
+      const plays=await window.QB.plays().catch(()=>[]);
+      const games=(window.QB.games)?(await window.QB.games().catch(()=>[])):[];
+      const planPlays=[];
+      (WEEKPLAN.buckets||[]).forEach(b=>{(b.plays||[]).forEach(p=>planPlays.push(p));});
+      const covs=(WEEKCOVS&&WEEKCOVS.length)?WEEKCOVS.slice():Object.keys(WEEKDEF||{});
+      const ctx={
+        games:games,
+        opponent:WEEKPLAN.opponent||"",
+        blitzCalls:(WEEKPLAN.gen&&WEEKPLAN.gen.blitz_calls)||null,
+        defCalls:(WEEKPLAN.gen&&WEEKPLAN.gen.def_calls)||null
+      };
  map.forEach(row=>{
  try{ status[row.k]=AT.kindBuildable(row.k, planPlays, plays, covs, ctx); }
  catch(e){ status[row.k]={ok:false,reason:"check failed"}; }
@@ -850,119 +855,335 @@ async function authorHubHTML(){
  h+='</div>';
  return h;
 }
-function editBlitz(){
- const body=document.getElementById("blitzBody");
- if(!body) return;
- if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet \u2014 start one in <b>Scout \u2192 Game Plan \u2192 This Week</b>, then author the blitz call here.</p>'; return; }
- const fronts=Object.keys((window.OFFGRD_RENDER&&OFFGRD_RENDER.DFRONTS)||{"4-3":1,"3-4":1,"Nickel":1,"4-2-5":1,"Bear (46)":1,"3-3-5 (Tite)":1,"Dime (4-1-6)":1});
- let cur=null;
- try{ cur=(WEEKPLAN.gen&&WEEKPLAN.gen.blitz_calls)?JSON.parse(JSON.stringify(WEEKPLAN.gen.blitz_calls)):null; }catch(e){ cur=null; }
- if(!cur||!cur.defs||!cur.defs.length){
- cur={v:1,front:fronts[0]||"4-3",note:"",defs:[],stunt:{},assigns:{}};
- }
- cur.assigns=cur.assigns||{};
- cur.stunt=cur.stunt||{};
- let SELDI=null;
- const stateOf=()=>{
- const st={players:cloneJson((STDFORM&&STDFORM.players)||[]),defs:[],front:cur.front||"none"};
- if(window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn){
- try{ OFFGRD_RENDER.placeDefenseOn(st, cur.front||"4-3", "Cover 3"); }catch(e){}
- }
- if(cur.defs&&cur.defs.length===((st.defs)||[]).length){
- st.defs=cur.defs.map((d,i)=>Object.assign({}, d, {lab:d.lab||((st.defs[i]||{}).lab)||("D"+(i+1))}));
- } else {
- cur.defs=(st.defs||[]).map(d=>({lab:d.lab,x:d.x,y:d.y,color:d.color,pos:d.pos,group:d.group}));
- }
- return st;
- };
- const seedAssigns=(st)=>{
- const fake={state:st,ol:{stunt:cur.stunt}};
- (st.defs||[]).forEach((d,i)=>{
- if(!cur.assigns[i]) cur.assigns[i]=blitzAssignFor(fake,i);
- });
- };
- body.innerHTML='<p class="tag" style="margin-top:8px">Set <b>our</b> front + each front-seven defender\u2019s job for the week blitz. Auto-seeded from geometry \u2014 tap a defender to edit, tap the field to Direct their path. Saved call becomes the DL/LB answer key.</p>'
- +'<div class="lbl" style="margin-top:8px">Front</div><div class="chips" id="bzFronts" style="margin:4px 0"></div>'
- +'<div class="lbl" style="margin-top:8px;font-size:11px">Stunt preset (optional)</div><div class="chips" id="bzStunts" style="margin:4px 0"></div>'
- +'<div class="row" style="margin:6px 0;justify-content:space-between"><span class="tag" id="bzCur"></span><button class="btn" id="bzReseed">Re-seed from geometry</button></div>'
- +'<div id="bzAssign" style="margin:4px 0;min-height:28px"></div>'
- +'<div class="field-wrap"><svg id="bzField" viewBox="0 0 1000 640"></svg></div>'
- +'<div class="row" style="margin-top:10px"><input id="bzNote" class="btn" style="flex:1;min-width:160px" placeholder="note for the room (optional)" value="'+esc(cur.note||"")+'">'
- +'<button class="btn go" id="bzSave">Save blitz call</button><span id="bzMsg" class="tag"></span></div>';
- const paintAssign=()=>{
- const el=document.getElementById("bzAssign"); if(!el) return;
- if(SELDI==null){ el.innerHTML='<span class="tag">Tap a defender, then set Rush / Loop / Drop.</span>'; return; }
- const lab=((cur.defs[SELDI]||{}).lab)||("D"+(SELDI+1));
- el.innerHTML='<span class="tag" style="font-weight:800">'+esc(lab)+' assignment:</span> '
- +BLITZ_OPTS.map(o=>{
- const on=cur.assigns[SELDI]===o;
- return '<button class="chip'+(on?' on':'')+'" data-as="'+esc(o)+'">'+esc(o)+'</button>';
- }).join(" ");
- [].forEach.call(el.querySelectorAll("button[data-as]"),b=>{
- b.onclick=()=>{
- const as=b.getAttribute("data-as");
- cur.assigns[SELDI]=as;
- /* When Loop is chosen without a path, seed a simple Direct-style endpoint so the strip shows. */
- if(as==="Loop / twist" && !(cur.stunt&&cur.stunt[SELDI]&&cur.stunt[SELDI].length)){
- const st=stateOf(), d=(st.defs||[])[SELDI];
- if(d){
- const cx=olCenterX(st), los=olLosY(st);
- cur.stunt=cur.stunt||{};
- cur.stunt[SELDI]=[{x:cx+(d.x<cx?22:-22),y:los+34,cx:d.x+(d.x<cx?18:-18),cy:d.y-12}];
- }
- }
- paint();
- };
- });
- };
- const paint=()=>{
- const st=stateOf();
- seedAssigns(st);
- cur.defs=(st.defs||[]).map(d=>({lab:d.lab,x:d.x,y:d.y,color:d.color,pos:d.pos,group:d.group}));
- const host=document.getElementById("bzFronts"); host.innerHTML="";
- fronts.forEach(f=>{ const b=document.createElement("button"); b.className="chip"+(cur.front===f?" on":""); b.textContent=f; b.onclick=()=>{ cur.front=f; cur.defs=[]; cur.assigns={}; cur.stunt={}; SELDI=null; paint(); }; host.appendChild(b); });
- const sh=document.getElementById("bzStunts"); sh.innerHTML="";
- OL_STUNTS.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=pair[1]; b.onclick=()=>{ const tmp={stunt:{}}; applyStunt(st,tmp,pair[0]); cur.stunt=tmp.stunt||{}; Object.keys(cur.assigns).forEach(k=>delete cur.assigns[k]); paint(); }; sh.appendChild(b); });
- const svg=document.getElementById("bzField");
- svg.innerHTML=olField(st, null, SELDI, null, true, cur.stunt);
- const curEl=document.getElementById("bzCur");
- if(curEl){
- const n=Object.keys(cur.assigns).length;
- curEl.textContent=(cur.front||"Front")+" \u2014 "+n+" defender job"+(n===1?"":"s")+" set";
- }
- paintAssign();
- };
- /* Tap defender to select; tap empty field to Direct their path (same idea as Playbook Direct). */
- document.getElementById("bzField").addEventListener("click",e=>{
- const g=e.target.closest("[data-lab]");
- if(g){
- const L=g.dataset.lab; if(!(L&&L.indexOf("ol_")==0)) return;
- SELDI=parseInt(L.slice(3),10); paint(); return;
- }
- if(SELDI==null) return;
- const svg=document.getElementById("bzField");
- const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null;
- if(!p) return;
- cur.stunt=cur.stunt||{};
- cur.stunt[SELDI]=[{x:Math.max(24,Math.min(976,Math.round(p.x))),y:Math.max(44,Math.min(600,Math.round(p.y)))}];
- const st=stateOf();
- cur.assigns[SELDI]=blitzAssignFor({state:st,ol:{stunt:cur.stunt,assigns:{}}}, SELDI);
- paint();
- });
- document.getElementById("bzReseed").onclick=()=>{ cur.assigns={}; SELDI=null; paint(); };
- document.getElementById("bzSave").onclick=async()=>{
- const msg=document.getElementById("bzMsg"); msg.textContent="Saving\u2026";
- cur.note=(document.getElementById("bzNote").value||"").trim();
- const payload={v:1,front:cur.front,note:cur.note,defs:cur.defs,stunt:cur.stunt||{},assigns:cur.assigns||{}};
- try{
- const genBase=Object.assign({}, WEEKPLAN.gen||{});
- await window.QB.saveBlitzCalls(WEEKPLAN.id, payload, genBase);
- WEEKPLAN.gen=Object.assign({}, genBase, {blitz_calls:payload});
- msg.textContent="Saved \u2713 \u2014 live under Test \u2192 Blitz (Week mode).";
- }catch(e){ msg.textContent=e.message||"Save failed"; }
- };
- paint();
+/* ---------- Phase 2: defensive call + libraries ---------- */
+function defaultDefPlaybook(){
+  const frontNames = Object.keys((window.OFFGRD_RENDER&&OFFGRD_RENDER.DFRONTS)||{"4-3":1,"3-4":1,"Nickel":1,"4-2-5":1,"Bear (46)":1,"3-3-5 (Tite)":1,"Dime (4-1-6)":1});
+  const fronts = frontNames.map(function(n){ return {id:n, name:n, slots:[]}; });
+  const coverages = [
+    {id:"Cover 0", name:"Cover 0", roles:{}},
+    {id:"Cover 1", name:"Cover 1", roles:{}},
+    {id:"Cover 2", name:"Cover 2", roles:{}},
+    {id:"Cover 3", name:"Cover 3", roles:{}},
+    {id:"Cover 4", name:"Cover 4", roles:{}},
+    {id:"Cover 6", name:"Cover 6", roles:{}},
+    {id:"Tampa 2", name:"Tampa 2", roles:{}}
+  ];
+  const pressures = [
+    {id:"none", name:"No pressure", preset:null},
+    {id:"mike-a", name:"Mike A-gap", preset:"mike"},
+    {id:"de-loop", name:"DE Loop", preset:"twistR"},
+    {id:"will-cross", name:"Will Cross-Dog", preset:"crossdog"},
+    {id:"dt-twist", name:"DT Twist", preset:"twistL"},
+    {id:"nickel-fire", name:"Nickel Fire", preset:"mike"}
+  ];
+  return {v:1, fronts:fronts, coverages:coverages, pressures:pressures};
 }
+function mergeDefPlaybook(stored){
+  const base = defaultDefPlaybook();
+  if(!stored) return base;
+  return {
+    v:1,
+    fronts:(stored.fronts&&stored.fronts.length)?stored.fronts:base.fronts,
+    coverages:(stored.coverages&&stored.coverages.length)?stored.coverages:base.coverages,
+    pressures:(stored.pressures&&stored.pressures.length)?stored.pressures:base.pressures
+  };
+}
+function normalizeAssignEntry(a, path){
+  if(!a && !(path&&path.length)) return null;
+  if(typeof a==="string") return {resp:a, move:(path&&path.length)?{path:path, kind:"rush"}:undefined};
+  if(a&&typeof a==="object"){
+    const out={resp:a.resp||a.answer||null, align:a.align||null, move:a.move||null};
+    if(!out.move && path&&path.length) out.move={path:path, kind:"rush"};
+    return out;
+  }
+  if(path&&path.length) return {resp:null, move:{path:path, kind:"rush"}};
+  return null;
+}
+function assignRespOf(a){
+  const n=normalizeAssignEntry(a);
+  return n&&n.resp?n.resp:null;
+}
+function legacyBlitzToDefCall(bc){
+  if(!bc) return null;
+  if(bc.v>=2 && bc.front && (bc.coverage||bc.pressure!=null||bc.assigns)) return cloneJson(bc);
+  const assigns={};
+  Object.keys(bc.assigns||{}).forEach(function(k){
+    const ent=normalizeAssignEntry(bc.assigns[k], bc.stunt&&bc.stunt[k]);
+    if(ent) assigns[k]=ent;
+  });
+  return {
+    id:bc.id||"legacy-blitz",
+    name:bc.name||((bc.front||"Week")+" blitz"),
+    front:bc.front||"4-3",
+    coverage:bc.coverage||"Cover 3",
+    pressure:bc.pressure||null,
+    note:bc.note||"",
+    defs:cloneJson(bc.defs||[]),
+    stunt:cloneJson(bc.stunt||{}),
+    assigns:assigns,
+    v:2
+  };
+}
+function weekDefCalls(){
+  const gen=(WEEKPLAN&&WEEKPLAN.gen)||{};
+  let list=[];
+  if(Array.isArray(gen.def_calls)&&gen.def_calls.length){
+    list=gen.def_calls.map(function(c){ return legacyBlitzToDefCall(c)||c; }).filter(Boolean);
+  } else if(gen.blitz_calls){
+    const one=legacyBlitzToDefCall(gen.blitz_calls);
+    if(one) list=[one];
+  }
+  return list;
+}
+function defCallToPlay(call){
+  const stunt=cloneJson(call.stunt||{});
+  const assignsFlat={};
+  Object.keys(call.assigns||{}).forEach(function(k){
+    const a=normalizeAssignEntry(call.assigns[k]);
+    if(!a) return;
+    if(a.resp) assignsFlat[k]=a.resp;
+    if(a.move&&a.move.path&&a.move.path.length) stunt[k]=a.move.path;
+  });
+  return {
+    id:call.id||"def-call",
+    name:call.name||((call.front||"Call")+" "+(call.coverage||"")),
+    state:{ front:call.front||"our front", defs:cloneJson(call.defs||[]), players:[] },
+    ol:{ stunt:stunt, assigns:assignsFlat, note:call.note||"", coverage:call.coverage||"", pressure:call.pressure||null },
+    coverage:call.coverage||"",
+    _defCall:call
+  };
+}
+function previewFormationLooks(){
+  const two={id:"form-2x2", name:"2x2", formation:"2x2", state:{players:cloneJson((STDFORM&&STDFORM.players)||[])}};
+  const tripsPlayers=cloneJson((STDFORM&&STDFORM.players)||[]);
+  tripsPlayers.forEach(function(p){
+    if(p.lab==="H"){ p.x=780; p.y=380; p.route=[{x:780,y:300}]; }
+    if(p.lab==="Y"){ p.x=860; p.y=380; p.route=[{x:860,y:300}]; }
+    if(p.lab==="Z"){ p.x=940; p.y=380; p.route=[{x:940,y:250}]; }
+    if(p.lab==="X"){ p.x=100; p.y=380; p.route=[{x:100,y:250}]; }
+  });
+  const trips={id:"form-3x1", name:"3x1 / Trips", formation:"3x1", state:{players:tripsPlayers}};
+  const looks=[two, trips];
+  (OPPLOOKS||[]).slice(0,6).forEach(function(l){ looks.push(l); });
+  return looks;
+}
+async function editDefense(){
+  const body=document.getElementById("blitzBody");
+  if(!body) return;
+  if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet \u2014 start one in <b>Scout \u2192 Game Plan \u2192 This Week</b>, then author our defensive call here.</p>'; return; }
+  let teamId=null;
+  try{ const ctx=await window.QB.context(); teamId=ctx&&ctx.team&&ctx.team.id; }catch(e){}
+  let book=mergeDefPlaybook(WEEKPLAN.gen&&WEEKPLAN.gen.def_playbook);
+  try{
+    if(window.QB&&window.QB.loadDefPlaybook){
+      const stored=await window.QB.loadDefPlaybook(teamId);
+      if(stored) book=mergeDefPlaybook(Object.assign({}, book, stored));
+    }
+  }catch(e){}
+  const calls=weekDefCalls();
+  let cur=calls[0]?cloneJson(calls[0]):null;
+  if(!cur){
+    cur={id:"call-"+Date.now(), name:"", front:(book.fronts[0]&&book.fronts[0].id)||"4-3", coverage:"Cover 3", pressure:"none", note:"", defs:[], stunt:{}, assigns:{}, v:2};
+  }
+  cur.assigns=cur.assigns||{};
+  cur.stunt=cur.stunt||{};
+  cur.coverage=cur.coverage||"Cover 3";
+  cur.pressure=cur.pressure||"none";
+  let SELDI=null, PREVIEW=previewFormationLooks()[0];
+  const stateOf=function(){
+    const cov=cur.coverage||"Cover 3";
+    const st={players:cloneJson((PREVIEW&&PREVIEW.state&&PREVIEW.state.players)||((STDFORM&&STDFORM.players)||[])), defs:[], front:cur.front||"none"};
+    if(window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn){
+      try{ OFFGRD_RENDER.placeDefenseOn(st, cur.front||"4-3", cov); }catch(e){}
+    }
+    if(cur.defs&&cur.defs.length===((st.defs)||[]).length){
+      st.defs=cur.defs.map(function(d,i){ return Object.assign({}, d, {lab:d.lab||((st.defs[i]||{}).lab)||("D"+(i+1))}); });
+    } else {
+      cur.defs=(st.defs||[]).map(function(d){ return {lab:d.lab,x:d.x,y:d.y,color:d.color,pos:d.pos,group:d.group}; });
+    }
+    return st;
+  };
+  const applyPressure=function(st){
+    const p=(book.pressures||[]).find(function(x){ return x.id===cur.pressure; });
+    if(!p||!p.preset){ return; }
+    const tmp={stunt:{}};
+    try{ applyStunt(st, tmp, p.preset); }catch(e){}
+    cur.stunt=tmp.stunt||{};
+  };
+  const seedAssigns=function(st, force){
+    const fake={state:st, ol:{stunt:cur.stunt}};
+    (st.defs||[]).forEach(function(d,i){
+      if(force||!cur.assigns[i]){
+        const resp=blitzAssignFor(fake,i);
+        const path=(cur.stunt&&cur.stunt[i])||null;
+        cur.assigns[i]=normalizeAssignEntry(resp, path)||{resp:resp};
+      } else {
+        cur.assigns[i]=normalizeAssignEntry(cur.assigns[i], cur.stunt&&cur.stunt[i]);
+      }
+    });
+  };
+  const callName=function(){
+    const p=(book.pressures||[]).find(function(x){ return x.id===cur.pressure; });
+    const bits=[cur.front, cur.coverage];
+    if(p&&p.id&&p.id!=="none") bits.push(p.name);
+    return bits.filter(Boolean).join(" ");
+  };
+  body.innerHTML='<p class="tag" style="margin-top:8px">Build <b>our</b> defensive call: pick Front \u00b7 Coverage \u00b7 Pressure from the library, auto-seed assigns, edit any defender (Direct path + job). Preview vs a formation; save becomes the DL/LB answer key.</p>'
+    +'<div class="lbl" style="margin-top:8px">Front</div><div class="chips" id="bzFronts" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:8px">Coverage</div><div class="chips" id="bzCovs" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:8px">Pressure</div><div class="chips" id="bzPress" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:8px;font-size:11px">Preview vs formation</div><div class="chips" id="bzForms" style="margin:4px 0"></div>'
+    +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px"><span class="tag" id="bzCur"></span>'
+    +'<span><button class="btn" id="bzReseed">Re-seed assigns</button> <button class="btn" id="bzPreview">Preview animate</button></span></div>'
+    +'<div id="bzAssign" style="margin:4px 0;min-height:28px"></div>'
+    +'<div class="field-wrap"><svg id="bzField" viewBox="0 0 1000 640"></svg></div>'
+    +'<div class="row" style="margin-top:10px"><input id="bzName" class="btn" style="flex:1;min-width:140px" placeholder="call name" value="">'
+    +'<input id="bzNote" class="btn" style="flex:1;min-width:120px" placeholder="note (optional)" value="">'
+    +'<button class="btn go" id="bzSave">Save defensive call</button><span id="bzMsg" class="tag"></span></div>'
+    +'<p class="tag" style="margin-top:8px"><button class="btn" id="bzLibSave" type="button">Save libraries to program</button> <span id="bzLibMsg"></span> \u2014 presets ship built-in; clone/rename comes in later phases.</p>';
+  const nameEl=document.getElementById("bzName");
+  const noteEl=document.getElementById("bzNote");
+  if(nameEl) nameEl.value=cur.name||callName();
+  if(noteEl) noteEl.value=cur.note||"";
+  const paintAssign=function(){
+    const el=document.getElementById("bzAssign"); if(!el) return;
+    if(SELDI==null){ el.innerHTML='<span class="tag">Tap a defender to set Rush / Loop / Drop, then tap the field to Direct their path.</span>'; return; }
+    const lab=((cur.defs[SELDI]||{}).lab)||("D"+(SELDI+1));
+    const resp=assignRespOf(cur.assigns[SELDI]);
+    el.innerHTML='<span class="tag" style="font-weight:800">'+esc(lab)+' job:</span> '
+      +BLITZ_OPTS.map(function(o){
+        const on=resp===o;
+        return '<button class="chip'+(on?' on':'')+'" data-as="'+esc(o)+'">'+esc(o)+'</button>';
+      }).join(" ");
+    [].forEach.call(el.querySelectorAll("button[data-as]"), function(b){
+      b.onclick=function(){
+        const as=b.getAttribute("data-as");
+        const path=(cur.stunt&&cur.stunt[SELDI])||null;
+        if(as==="Loop / twist" && !(path&&path.length)){
+          const st=stateOf(), d=(st.defs||[])[SELDI];
+          if(d){
+            const cx=olCenterX(st), los=olLosY(st);
+            cur.stunt=cur.stunt||{};
+            cur.stunt[SELDI]=[{x:cx+(d.x<cx?22:-22),y:los+34,cx:d.x+(d.x<cx?18:-18),cy:d.y-12}];
+          }
+        }
+        cur.assigns[SELDI]=normalizeAssignEntry(as, cur.stunt&&cur.stunt[SELDI]);
+        paint();
+      };
+    });
+  };
+  const paint=function(opts){
+    opts=opts||{};
+    const st=stateOf();
+    if(opts.repressure){ applyPressure(st); }
+    seedAssigns(st, !!opts.forceSeed);
+    cur.defs=(st.defs||[]).map(function(d){ return {lab:d.lab,x:d.x,y:d.y,color:d.color,pos:d.pos,group:d.group}; });
+    const host=document.getElementById("bzFronts"); host.innerHTML="";
+    (book.fronts||[]).forEach(function(f){
+      const b=document.createElement("button"); b.className="chip"+(cur.front===f.id?" on":""); b.textContent=f.name;
+      b.onclick=function(){ cur.front=f.id; cur.defs=[]; cur.assigns={}; cur.stunt={}; SELDI=null; if(nameEl&&!(cur.name&&cur.name.trim())) nameEl.value=callName(); paint({repressure:true, forceSeed:true}); };
+      host.appendChild(b);
+    });
+    const ch=document.getElementById("bzCovs"); ch.innerHTML="";
+    (book.coverages||[]).forEach(function(c){
+      const b=document.createElement("button"); b.className="chip"+(cur.coverage===c.id?" on":""); b.textContent=c.name;
+      b.onclick=function(){ cur.coverage=c.id; cur.defs=[]; SELDI=null; if(nameEl&&!(cur.name&&cur.name.trim())) nameEl.value=callName(); paint({forceSeed:true}); };
+      ch.appendChild(b);
+    });
+    const ph=document.getElementById("bzPress"); ph.innerHTML="";
+    (book.pressures||[]).forEach(function(p){
+      const b=document.createElement("button"); b.className="chip"+(cur.pressure===p.id?" on":""); b.textContent=p.name;
+      b.onclick=function(){ cur.pressure=p.id; cur.assigns={}; SELDI=null; if(nameEl&&!(cur.name&&cur.name.trim())) nameEl.value=callName(); paint({repressure:true, forceSeed:true}); };
+      ph.appendChild(b);
+    });
+    const fh=document.getElementById("bzForms"); fh.innerHTML="";
+    previewFormationLooks().forEach(function(f){
+      const b=document.createElement("button"); b.className="chip"+((PREVIEW&&PREVIEW.id)===f.id?" on":""); b.textContent=f.name;
+      b.onclick=function(){ PREVIEW=f; paint(); };
+      fh.appendChild(b);
+    });
+    const composed=composeDefense(PREVIEW||{state:{players:STDFORM.players}}, defCallToPlay(cur));
+    const svg=document.getElementById("bzField");
+    svg.innerHTML=olField(composed.state, null, SELDI, null, true, composed.ol&&composed.ol.stunt);
+    const curEl=document.getElementById("bzCur");
+    if(curEl){
+      const n=Object.keys(cur.assigns).length;
+      curEl.textContent=(cur.name||callName())+" \u2014 "+n+" defender job"+(n===1?"":"s")+" \u00b7 vs "+((PREVIEW&&PREVIEW.name)||"formation");
+    }
+    paintAssign();
+  };
+  document.getElementById("bzField").addEventListener("click", function(e){
+    const g=e.target.closest("[data-lab]");
+    if(g){
+      const L=g.dataset.lab; if(!(L&&L.indexOf("ol_")==0)) return;
+      SELDI=parseInt(L.slice(3),10); paint(); return;
+    }
+    if(SELDI==null) return;
+    const svg=document.getElementById("bzField");
+    const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null;
+    if(!p) return;
+    cur.stunt=cur.stunt||{};
+    cur.stunt[SELDI]=[{x:Math.max(24,Math.min(976,Math.round(p.x))),y:Math.max(44,Math.min(600,Math.round(p.y)))}];
+    const st=stateOf();
+    const resp=blitzAssignFor({state:st,ol:{stunt:cur.stunt,assigns:{}}}, SELDI);
+    cur.assigns[SELDI]=normalizeAssignEntry(resp, cur.stunt[SELDI]);
+    paint();
+  });
+  document.getElementById("bzReseed").onclick=function(){ cur.assigns={}; SELDI=null; paint({repressure:true, forceSeed:true}); };
+  document.getElementById("bzPreview").onclick=function(){
+    const composed=composeDefense(PREVIEW||{state:{players:STDFORM.players}}, defCallToPlay(cur));
+    document.getElementById("bzField").innerHTML=olField(composed.state, null, SELDI, null, true, composed.ol&&composed.ol.stunt);
+    animateOlStunts(composed.state, null, "bzField", composed.ol&&composed.ol.stunt);
+  };
+  document.getElementById("bzLibSave").onclick=async function(){
+    const msg=document.getElementById("bzLibMsg"); msg.textContent="Saving\u2026";
+    try{
+      if(window.QB&&window.QB.saveDefPlaybook) await window.QB.saveDefPlaybook(teamId, book);
+      const genBase=Object.assign({}, WEEKPLAN.gen||{}, {def_playbook:book});
+      const existing=weekDefCalls();
+      await window.QB.saveDefCalls(WEEKPLAN.id, existing.length?existing:[cur], genBase);
+      WEEKPLAN.gen=Object.assign({}, WEEKPLAN.gen||{}, {def_playbook:book});
+      msg.textContent="Libraries saved \u2713";
+    }catch(e){ msg.textContent=e.message||"Save failed"; }
+  };
+  document.getElementById("bzSave").onclick=async function(){
+    const msg=document.getElementById("bzMsg"); msg.textContent="Saving\u2026";
+    cur.note=(noteEl&&noteEl.value||"").trim();
+    cur.name=(nameEl&&nameEl.value||"").trim()||callName();
+    const st=stateOf();
+    seedAssigns(st, false);
+    cur.defs=(st.defs||[]).map(function(d){ return {lab:d.lab,x:d.x,y:d.y,color:d.color,pos:d.pos,group:d.group}; });
+    Object.keys(cur.stunt||{}).forEach(function(k){
+      cur.assigns[k]=normalizeAssignEntry(cur.assigns[k]||assignRespOf(cur.assigns[k]), cur.stunt[k]);
+    });
+    const payload={
+      id:cur.id||("call-"+Date.now()),
+      name:cur.name,
+      front:cur.front,
+      coverage:cur.coverage,
+      pressure:cur.pressure,
+      note:cur.note,
+      defs:cur.defs,
+      stunt:cur.stunt||{},
+      assigns:cur.assigns||{},
+      v:2
+    };
+    try{
+      const genBase=Object.assign({}, WEEKPLAN.gen||{}, {def_playbook:book});
+      const list=[payload];
+      await window.QB.saveDefCalls(WEEKPLAN.id, list, genBase);
+      WEEKPLAN.gen=Object.assign({}, genBase, {def_calls:list});
+      try{
+        const legacy={v:1,front:payload.front,note:payload.note,defs:payload.defs,stunt:payload.stunt,assigns:{},coverage:payload.coverage,pressure:payload.pressure,name:payload.name};
+        Object.keys(payload.assigns||{}).forEach(function(k){ const r=assignRespOf(payload.assigns[k]); if(r) legacy.assigns[k]=r; });
+        WEEKPLAN.gen.blitz_calls=legacy;
+      }catch(e){}
+      msg.textContent="Saved \u2713 \u2014 live under Test \u2192 Blitz (Week mode).";
+    }catch(e){ msg.textContent=e.message||"Save failed"; }
+  };
+  paint({repressure:!Object.keys(cur.stunt||{}).length, forceSeed:!Object.keys(cur.assigns||{}).length});
+}
+function editBlitz(){ return editDefense(); }
 const STDFORM={front:"none",players:[
  {type:"route",lab:"X",x:120,y:380,route:[{x:120,y:250}]},{type:"route",lab:"H",x:290,y:380,route:[{x:290,y:300}]},
  {type:"route",lab:"Y",x:710,y:380,route:[{x:710,y:300}]},{type:"route",lab:"Z",x:880,y:380,route:[{x:880,y:250}]},
@@ -1644,27 +1865,35 @@ async function loadOpponentOffenseLooks(){
  return looks.filter(l=>((l.state&&l.state.players)||[]).length);
 }
 async function loadBlitzPlays(){
- BLITZCALLS=[]; OPPLOOKS=[];
- if(!(window.QB&&window.QB.ready)) return;
- try{
- const rows=await window.QB.plays();
- BLITZCALLS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
- .filter(p=>((p.state&&p.state.defs)||[]).length && olHasStunts(p.state, p.ol&&p.ol.stunt));
- if(WEEKMODE) BLITZCALLS=BLITZCALLS.filter(p=>weekPlayMatch(p));
- }catch(e){ BLITZCALLS=[]; }
- /* Prefer coach-authored week blitz call when present (Author ? Blitz). */
- try{
- const bc=WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.blitz_calls;
- if(bc&&bc.defs&&bc.defs.length){
- BLITZCALLS.unshift({
- id:"week-blitz",
- name:(bc.front||"Week blitz"),
- state:{ front:bc.front||"our front", defs:cloneJson(bc.defs), players:[] },
- ol:{ stunt:bc.stunt||{}, assigns:bc.assigns||{}, note:bc.note||"" }
- });
- }
- }catch(e){}
- try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
+  BLITZCALLS=[]; OPPLOOKS=[];
+  if(!(window.QB&&window.QB.ready)) return;
+  try{
+    const rows=await window.QB.plays();
+    BLITZCALLS=(rows||[]).map(r=>({id:r.id,name:r.name||"Play",state:(r.data&&r.data.players)?r.data:(r.data||r),ol:r.ol_keys}))
+      .filter(p=>((p.state&&p.state.defs)||[]).length && olHasStunts(p.state, p.ol&&p.ol.stunt));
+    if(WEEKMODE) BLITZCALLS=BLITZCALLS.filter(p=>weekPlayMatch(p));
+  }catch(e){ BLITZCALLS=[]; }
+  /* Prefer coach-authored week def_calls (Phase 2); fall back to legacy blitz_calls. */
+  try{
+    const authored=weekDefCalls();
+    if(authored&&authored.length){
+      authored.slice().reverse().forEach(function(c){
+        BLITZCALLS.unshift(defCallToPlay(c));
+      });
+    } else {
+      const bc=WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.blitz_calls;
+      if(bc&&bc.defs&&bc.defs.length){
+        BLITZCALLS.unshift({
+          id:"week-blitz",
+          name:(bc.front||"Week blitz"),
+          state:{ front:bc.front||"our front", defs:cloneJson(bc.defs), players:[] },
+          ol:{ stunt:bc.stunt||{}, assigns:bc.assigns||{}, note:bc.note||"", coverage:bc.coverage||"" },
+          coverage:bc.coverage||""
+        });
+      }
+    }
+  }catch(e){}
+  try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
 }
 /* composeDefense(formation, call) — the single defensive composer behind every defensive
  view/test. Input: an offensive FORMATION (opponent-scouted or standard) + our CALL
@@ -1672,21 +1901,42 @@ async function loadBlitzPlays(){
  movement/assignments attached as the answer key. Blitz was the first consumer;
  composeBlitzPlay is kept as a thin alias so existing callers keep working. */
 function composeDefense(look, call){
- const our=cloneJson(call.state||{});
- const players=cloneJson(((look.state&&look.state.players)||[]).length?(look.state.players):((STDFORM&&STDFORM.players)||[]));
- const defs=cloneJson(our.defs||[]);
- const front=(our.front&&our.front!=="none")?our.front:((call.state&&call.state.front)||"our front");
- const oppName=look.name||look.formation||"Opp look";
- const oppTag=(WEEKPLAN&&WEEKPLAN.opponent)?WEEKPLAN.opponent:"";
- return {
- id:(look.id||"opp")+"+"+(call.id||"d"),
- name:oppName,
- oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
- ourCall:call.name||"Blitz",
- coverage:(call.coverage||(call.ol&&call.ol.coverage)||""),
- state:{ players:players, defs:defs, front:front },
- ol:call.ol||{}
- };
+  /* Accept either a play-shaped call (state+ol) or a raw def_call (via defCallToPlay). */
+  const play = (call && call.state) ? call : (call && call.front ? defCallToPlay(call) : call);
+  const our=cloneJson((play&&play.state)||{});
+  const players=cloneJson(((look.state&&look.state.players)||[]).length?(look.state.players):((STDFORM&&STDFORM.players)||[]));
+  let defs=cloneJson(our.defs||[]);
+  /* If the call has no defs yet, place from front+coverage libraries. */
+  if((!defs||!defs.length) && play && play.front && window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn){
+    const tmp={players:players, defs:[], front:play.front};
+    try{ OFFGRD_RENDER.placeDefenseOn(tmp, play.front, play.coverage||"Cover 3"); defs=tmp.defs||[]; }catch(e){}
+  }
+  const front=(our.front&&our.front!=="none")?our.front:((play&&play.state&&play.state.front)||(play&&play.front)||"our front");
+  const oppName=look.name||look.formation||"Opp look";
+  const oppTag=(WEEKPLAN&&WEEKPLAN.opponent)?WEEKPLAN.opponent:"";
+  const ol=cloneJson((play&&play.ol)||{});
+  /* Prefer authored assigns on the def_call object when present. */
+  if(play&&play._defCall&&play._defCall.assigns){
+    const flat={}; const stunt=Object.assign({}, ol.stunt||{});
+    Object.keys(play._defCall.assigns).forEach(function(k){
+      const a=normalizeAssignEntry(play._defCall.assigns[k]);
+      if(!a) return;
+      if(a.resp) flat[k]=a.resp;
+      if(a.move&&a.move.path&&a.move.path.length) stunt[k]=a.move.path;
+    });
+    ol.assigns=Object.assign({}, flat, ol.assigns||{});
+    ol.stunt=stunt;
+  }
+  return {
+    id:(look.id||"opp")+"+"+((play&&play.id)||"d"),
+    name:oppName,
+    oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
+    ourCall:(play&&play.name)||"Defense",
+    coverage:(play&&(play.coverage||(play.ol&&play.ol.coverage)))||"",
+    state:{ players:players, defs:defs, front:front },
+    ol:ol,
+    _defCall:play&&play._defCall
+  };
 }
 function composeBlitzPlay(look, call){ return composeDefense(look, call); }
 function blitzPathFor(play,i){
@@ -1700,19 +1950,28 @@ function blitzGapForX(state,x){
  return "Rush C-gap / edge";
 }
 function blitzAssignFor(play,i){
- if(play&&play.ol&&play.ol.assigns&&play.ol.assigns[i]) return play.ol.assigns[i];
- const state=play.state, defs=(state&&state.defs)||[], d=defs[i]||{};
- const path=blitzPathFor(play,i);
- const isBacker=olBackers(state).some(o=>o.i===i);
- if(path&&path.length){
- const cx=olCenterX(state), end=path[path.length-1];
- const ex=(end&&end.x!=null)?end.x:d.x;
- const startSide=Math.sign(d.x-cx)||1, endSide=Math.sign(ex-cx)||startSide;
- if(startSide!==endSide || path.some(p=>p&&p.cx!=null)) return "Loop / twist";
- return blitzGapForX(state,ex);
- }
- if(isBacker) return "Drop to hook";
- return blitzGapForX(state,d.x);
+  /* Prefer authored call.assigns (string or {resp,move}); geometry is fallback. */
+  if(play&&play._defCall&&play._defCall.assigns&&play._defCall.assigns[i]!=null){
+    const r=assignRespOf(play._defCall.assigns[i]);
+    if(r) return r;
+  }
+  if(play&&play.ol&&play.ol.assigns&&play.ol.assigns[i]!=null){
+    const a=play.ol.assigns[i];
+    const r=(typeof a==="string")?a:assignRespOf(a);
+    if(r) return r;
+  }
+  const state=play.state, defs=(state&&state.defs)||[], d=defs[i]||{};
+  const path=blitzPathFor(play,i);
+  const isBacker=olBackers(state).some(o=>o.i===i);
+  if(path&&path.length){
+    const cx=olCenterX(state), end=path[path.length-1];
+    const ex=(end&&end.x!=null)?end.x:d.x;
+    const startSide=Math.sign(d.x-cx)||1, endSide=Math.sign(ex-cx)||startSide;
+    if(startSide!==endSide || path.some(p=>p&&p.cx!=null)) return "Loop / twist";
+    return blitzGapForX(state,ex);
+  }
+  if(isBacker) return "Drop to hook";
+  return blitzGapForX(state,d.x);
 }
 function blitzTargets(play){
  const state=play.state, defs=(state&&state.defs)||[], stunt=(play.ol&&play.ol.stunt)||{}, idx=[];
@@ -2198,12 +2457,12 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=95"></script>
-<script src="OFFGRD-scoutcards.js?v=95"></script>
-<script src="OFFGRD-week-autotest.js?v=95"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=95"></script>
-<script type="module" src="OFFGRD-account.js?v=95"></script>
-<script src="OFFGRD-role-gate.js?v=95"></script>
+<script src="OFFGRD-mobile.js?v=96"></script>
+<script src="OFFGRD-scoutcards.js?v=96"></script>
+<script src="OFFGRD-week-autotest.js?v=96"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=96"></script>
+<script type="module" src="OFFGRD-account.js?v=96"></script>
+<script src="OFFGRD-role-gate.js?v=96"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

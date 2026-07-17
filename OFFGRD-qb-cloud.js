@@ -1,5 +1,52 @@
 ﻿/* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
 import { Cloud } from "./OFFGRD-cloud.js?v=80";
+
+function legacyBlitzAsDefCall(bc){
+  if(!bc) return null;
+  if(bc.front && (bc.coverage || bc.pressure || bc.assigns) && bc.id) return bc;
+  const assigns = {};
+  Object.keys(bc.assigns || {}).forEach(function(k){
+    const v = bc.assigns[k];
+    if(v && typeof v === "object") assigns[k] = v;
+    else if(v) assigns[k] = { resp: String(v), move: (bc.stunt && bc.stunt[k]) ? { path: bc.stunt[k], kind: "rush" } : undefined };
+  });
+  return {
+    id: bc.id || "legacy-blitz",
+    name: bc.name || (bc.front ? (bc.front + " blitz") : "Week blitz"),
+    front: bc.front || "4-3",
+    coverage: bc.coverage || "Cover 3",
+    pressure: bc.pressure || null,
+    note: bc.note || "",
+    defs: bc.defs || [],
+    stunt: bc.stunt || {},
+    assigns: assigns,
+    v: 2
+  };
+}
+function defCallAsLegacyBlitz(call){
+  if(!call) return null;
+  const assigns = {};
+  const stunt = Object.assign({}, call.stunt || {});
+  Object.keys(call.assigns || {}).forEach(function(k){
+    const a = call.assigns[k];
+    if(a && typeof a === "object"){
+      assigns[k] = a.resp || a;
+      if(a.move && a.move.path && a.move.path.length) stunt[k] = a.move.path;
+    } else if(a) assigns[k] = a;
+  });
+  return {
+    v: 1,
+    front: call.front,
+    note: call.note || "",
+    defs: call.defs || [],
+    stunt: stunt,
+    assigns: assigns,
+    coverage: call.coverage || "",
+    pressure: call.pressure || null,
+    name: call.name || ""
+  };
+}
+
 async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
@@ -71,8 +118,29 @@ window.QB = {
     return Cloud.saveWeekPlan(planId, { def_aligns: defAligns });
   },
   async saveBlitzCalls(planId, blitzCalls, genBase){
-    const gen = Object.assign({}, genBase || {}, { blitz_calls: blitzCalls || null });
+    /* Legacy shim — prefer saveDefCalls. Still writes blitz_calls for older clients. */
+    return this.saveDefCalls(planId, blitzCalls ? [legacyBlitzAsDefCall(blitzCalls)] : [], genBase, blitzCalls);
+  },
+  async saveDefCalls(planId, defCalls, genBase, legacyBlitz){
+    const list = Array.isArray(defCalls) ? defCalls : (defCalls ? [defCalls] : []);
+    const primary = list[0] || null;
+    const legacy = legacyBlitz != null ? legacyBlitz : (primary ? defCallAsLegacyBlitz(primary) : null);
+    const gen = Object.assign({}, genBase || {}, {
+      def_calls: list.length ? list : null,
+      blitz_calls: legacy
+    });
     return Cloud.saveWeekPlan(planId, { gen: gen });
+  },
+  async loadDefPlaybook(teamId){
+    try{
+      const raw = localStorage.getItem("offgrd_def_playbook_" + (teamId || "local"));
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return null;
+  },
+  async saveDefPlaybook(teamId, book){
+    try{ localStorage.setItem("offgrd_def_playbook_" + (teamId || "local"), JSON.stringify(book || {})); }catch(e){}
+    return book;
   },
   /* Phase B: active week plan + observed coverage distribution for its opponent */
   async weekContext(){

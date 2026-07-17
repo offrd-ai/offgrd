@@ -230,10 +230,22 @@
     return Object.keys(forms).length;
   }
 
+  function authoredDefCallFromCtx(ctx) {
+    ctx = ctx || {};
+    if (ctx.defCalls && ctx.defCalls.length) {
+      const hit = ctx.defCalls.find(function (c) {
+        return c && ((c.defs && c.defs.length) || (c.assigns && Object.keys(c.assigns).length));
+      });
+      if (hit) return hit;
+    }
+    if (ctx.blitzCalls && ctx.blitzCalls.defs && ctx.blitzCalls.defs.length) return ctx.blitzCalls;
+    return null;
+  }
+
   function kindBuildable(kind, planPlays, playbook, coverages, ctx) {
     ctx = ctx || {};
     const rows = planPlays.map(function (c) { return resolvePlayRow(c, playbook); }).filter(Boolean);
-    const authoredBlitz = !!(ctx.blitzCalls && ctx.blitzCalls.defs && ctx.blitzCalls.defs.length);
+    const authoredBlitz = !!authoredDefCallFromCtx(ctx);
     /* Blitz can be fully authored on the week plan without plan-play stunts. */
     if (!rows.length && !(kind === "blitz" && authoredBlitz)) {
       return { ok: false, reason: "no plays" };
@@ -257,8 +269,7 @@
       return n ? { ok: true } : { ok: false, reason: "no OL keys on plan plays" };
     }
     if (kind === "blitz") {
-      /* Buildable when (a) coach-authored blitz_calls OR playbook front+stunt AND
-         (b) the opponent has offensive looks. */
+      /* Prefer gen.def_calls (Phase 2); fall back to legacy blitz_calls / playbook stunts. */
       const calls = rows.filter(function (p) {
         const st = (p.data && p.data.players) ? p.data : (p.data || p);
         const defs = (st && st.defs) || [];
@@ -268,7 +279,7 @@
         const hasBlitzPath = defs.some(function (d) { return d && d.route && d.route.length; });
         return !!(hasStunt || hasBlitzPath);
       }).length;
-      if (!calls && !authoredBlitz) return { ok: false, reason: "no fronts with a blitz/stunt (Author > Blitz or Playbook)" };
+      if (!calls && !authoredBlitz) return { ok: false, reason: "no fronts with a blitz/stunt (Author > Defense or Playbook)" };
       const looks = opponentOffenseLookCount(ctx.games, ctx.opponent || "");
       if (!looks) return { ok: false, reason: "no opponent offensive looks (scout cards / charted formations)" };
       return { ok: true };
@@ -354,7 +365,8 @@
     const blitzCtx = {
       games: games || [],
       opponent: (week && week.opponent) || "",
-      blitzCalls: (week && week.gen && week.gen.blitz_calls) || null
+      blitzCalls: (week && week.gen && week.gen.blitz_calls) || null,
+      defCalls: (week && week.gen && week.gen.def_calls) || null
     };
     players.forEach(function (m) {
       parseMemberPositions(m).forEach(function (pos) {
@@ -658,6 +670,7 @@
     onApprove: onApprove,
     completionForPlayer: completionForPlayer,
     kindBuildable: kindBuildable,
+    authoredDefCallFromCtx: authoredDefCallFromCtx,
     quizKindFromLabel: quizKindFromLabel,
     normPos: normPos,
     parseMemberPositions: parseMemberPositions,
