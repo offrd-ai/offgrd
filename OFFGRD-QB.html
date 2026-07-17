@@ -18,12 +18,12 @@
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD � Reps Lab</title>
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=93"></script>
+<script src="OFFGRD-config.js?v=94"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=93"></script>
-<script src="OFFGRD-render.js?v=93"></script>
-<script src="OFFGRD-autoderive.js?v=93"></script>
-<script src="OFFGRD-redesign.js?v=93"></script>
+<script src="OFFGRD-cache-gate.js?v=94"></script>
+<script src="OFFGRD-render.js?v=94"></script>
+<script src="OFFGRD-autoderive.js?v=94"></script>
+<script src="OFFGRD-redesign.js?v=94"></script>
 <style>
   :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
   *{box-sizing:border-box}
@@ -1041,13 +1041,15 @@ function editOlKeys(row){
   cur.front=(state.front&&state.front!=="none")?state.front:(cur.front||""); cur.n=defs.length;
   const blockers=olBlockers(state);
   if(!blockers.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No linemen/blockers on this play.</p>'; return; }
-  let SELB=blockers[0].lab, PHASE="pre";
+  let SELB=blockers[0].lab, PHASE="pre", OLTOOL="key", SELDEF=null;
   cur.stunt=cur.stunt||{};
   ed.innerHTML=autoOlNote+'<div class="lbl" style="margin-top:16px">'+esc(row.name||"Play")+' � vs '+esc(cur.front||"drawn defense")+(cur.auto?' <span class="tag">auto</span>':'')+'</div>'
+    +'<div class="seg" id="olToolSeg" style="margin:6px 0"><button class="on" data-tl="key">Key a blocker</button><button data-tl="direct">Direct a rusher</button></div>'
     +'<div class="chips" id="olBlk" style="margin:6px 0"></div>'
-    +'<div class="lbl" style="margin-top:8px;font-size:11px">This week�s stunt (auto-draws on the front)</div>'
+    +'<div class="lbl" style="margin-top:8px;font-size:11px">Quick stunt presets (auto-draws on the front)</div>'
     +'<div class="chips" id="olStunts" style="margin:4px 0"></div>'
-    +'<div class="seg" id="olPhaseSeg" style="margin:4px 0"><button class="on" data-ph="pre">Pre-snap picture</button><button data-ph="post">After the stunt</button></div><button class="btn" id="olPreview" style="margin:2px 0 6px">Preview stunt</button>'
+    +'<div class="chips" id="olDirectActions" style="margin:4px 0;display:none"><button class="chip go" id="olSeedRush">Auto-seed straight rush</button><button class="chip" id="olClearPaths">Clear drawn paths</button></div>'
+    +'<div class="seg" id="olPhaseSeg" style="margin:4px 0"><button class="on" data-ph="pre">Pre-snap picture</button><button data-ph="post">After the stunt</button></div><button class="btn" id="olPreview" style="margin:2px 0 6px">Preview movement</button>'
     +'<div class="field-wrap"><svg id="olAuthField" viewBox="0 0 1000 640"></svg></div>'
     +'<p class="tag" id="olKeyPrompt" style="margin-top:6px">Tap his man on the field � or pick a rule:</p>'
     +'<div class="chips" id="olRules"></div>'
@@ -1058,17 +1060,48 @@ function editOlKeys(row){
     const host=document.getElementById("olBlk"); host.innerHTML="";
     blockers.forEach(p=>{ const b=document.createElement("button"); b.className="chip"+(SELB===p.lab?" on":""); b.innerHTML=esc(p.lab)+keyTxt(p.lab); b.onclick=()=>{ SELB=p.lab; paint(); }; host.appendChild(b); });
     const k=cur.keys[SELB]&&cur.keys[SELB][PHASE];
-    document.getElementById("olAuthField").innerHTML=olField(state, SELB, (k&&k.t==="def")?+k.di:null, null, true, cur.stunt);
-    const pr=document.getElementById("olKeyPrompt"); if(pr) pr.textContent=(PHASE==="post")?("After the stunt develops � tap who "+SELB+" ends up on (or a rule):"):("Pre-snap � tap "+SELB+"'s man on the field (or a rule):");
+    const directMode=(OLTOOL==="direct");
+    const revealDi=directMode?(SELDEF!=null?SELDEF:null):((k&&k.t==="def")?+k.di:null);
+    document.getElementById("olAuthField").innerHTML=olField(state, directMode?null:SELB, revealDi, null, true, cur.stunt);
+    const pr=document.getElementById("olKeyPrompt");
+    if(pr){
+      if(directMode){
+        const dl=(state.defs||[])[SELDEF];
+        pr.textContent = SELDEF==null
+          ? "Direct a rusher: tap a defender, then tap the field to draw where he goes (twist, loop, added blitz). Auto-seed the straight rush, then draw only the exceptions."
+          : ("Drawing "+((dl&&dl.lab)||("D"+(SELDEF+1)))+"\u2019s path \u2014 tap points along his route; tap another defender to switch. \u201cClear drawn paths\u201d to reset.");
+      } else {
+        pr.textContent=(PHASE==="post")?("After the stunt develops \u2014 tap who "+SELB+" ends up on (or a rule):"):("Pre-snap \u2014 tap "+SELB+"'s man on the field (or a rule):");
+      }
+    }
+    const da=document.getElementById("olDirectActions"); if(da) da.style.display=directMode?"":"none";
     const rl=document.getElementById("olRules"); rl.innerHTML="";
-    OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"rule",r:pair[0]}; delete cur.keys[SELB].auto; paint(); }; rl.appendChild(b); });
+    if(!directMode) OLRULES.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+((k&&k.t==="rule"&&k.r===pair[0])?" on":""); b.textContent=pair[1]; b.onclick=()=>{ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"rule",r:pair[0]}; delete cur.keys[SELB].auto; paint(); }; rl.appendChild(b); });
   };
   const preview=()=>{ paint(); animateOlStunts(state, null, "olAuthField", cur.stunt); };
   const stHost=document.getElementById("olStunts");
   OL_STUNTS.forEach(pair=>{ const b=document.createElement("button"); b.className="chip"+(pair[0]==="clear"?"":" go"); b.textContent=pair[1]; b.onclick=()=>{ applyStunt(state, cur, pair[0]); if(pair[0]!=="clear"){ PHASE="post"; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x.dataset.ph==="post")); } preview(); }; stHost.appendChild(b); });
+  [].forEach.call(document.querySelectorAll("#olToolSeg button"),b=>b.onclick=()=>{ OLTOOL=b.dataset.tl; SELDEF=null; [].forEach.call(document.querySelectorAll("#olToolSeg button"),x=>x.classList.toggle("on",x===b)); paint(); });
   [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),b=>b.onclick=()=>{ PHASE=b.dataset.ph; [].forEach.call(document.querySelectorAll("#olPhaseSeg button"),x=>x.classList.toggle("on",x===b)); paint(); });
   document.getElementById("olPreview").onclick=preview;
-  document.getElementById("olAuthField").addEventListener("click",e=>{ const g=e.target.closest("[data-lab]"); if(!g||!SELB) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"def",di:parseInt(L.slice(3),10)}; delete cur.keys[SELB].auto; paint(); } });
+  const seedBtn=document.getElementById("olSeedRush"); if(seedBtn) seedBtn.onclick=()=>{ const los=olLosY(state); olRushers(state).forEach(o=>{ if(!(cur.stunt[o.i]&&cur.stunt[o.i].length)){ cur.stunt=cur.stunt||{}; cur.stunt[o.i]=[{x:o.d.x,y:Math.round(los+30)}]; } }); preview(); };
+  const clearBtn=document.getElementById("olClearPaths"); if(clearBtn) clearBtn.onclick=()=>{ cur.stunt={}; SELDEF=null; paint(); };
+  document.getElementById("olAuthField").addEventListener("click",e=>{
+    const svg=document.getElementById("olAuthField");
+    const g=e.target.closest("[data-lab]");
+    if(OLTOOL==="direct"){
+      if(g){ const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ SELDEF=parseInt(L.slice(3),10); paint(); return; } }
+      if(SELDEF==null) return;
+      const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null; if(!p) return;
+      cur.stunt=cur.stunt||{}; cur.stunt[SELDEF]=cur.stunt[SELDEF]||[];
+      cur.stunt[SELDEF].push({x:Math.max(24,Math.min(976,Math.round(p.x))),y:Math.max(44,Math.min(600,Math.round(p.y)))});
+      paint();
+      return;
+    }
+    if(!g||!SELB) return;
+    const L=g.dataset.lab;
+    if(L&&L.indexOf("ol_")===0){ cur.keys[SELB]=cur.keys[SELB]||{}; cur.keys[SELB][PHASE]={t:"def",di:parseInt(L.slice(3),10)}; delete cur.keys[SELB].auto; paint(); }
+  });
   document.getElementById("olSave").onclick=async()=>{
     cur.note=document.getElementById("olNote").value.trim();
     const msg=document.getElementById("olSaveMsg");
@@ -1633,7 +1666,12 @@ async function loadBlitzPlays(){
   }catch(e){}
   try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
 }
-function composeBlitzPlay(look, call){
+/* composeDefense(formation, call) � the single defensive composer behind every defensive
+   view/test. Input: an offensive FORMATION (opponent-scouted or standard) + our CALL
+   (front + coverage + pressure + assigns). Output: all defenders placed with the call's
+   movement/assignments attached as the answer key. Blitz was the first consumer;
+   composeBlitzPlay is kept as a thin alias so existing callers keep working. */
+function composeDefense(look, call){
   const our=cloneJson(call.state||{});
   const players=cloneJson(((look.state&&look.state.players)||[]).length?(look.state.players):((STDFORM&&STDFORM.players)||[]));
   const defs=cloneJson(our.defs||[]);
@@ -1645,10 +1683,12 @@ function composeBlitzPlay(look, call){
     name:oppName,
     oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
     ourCall:call.name||"Blitz",
+    coverage:(call.coverage||(call.ol&&call.ol.coverage)||""),
     state:{ players:players, defs:defs, front:front },
     ol:call.ol||{}
   };
 }
+function composeBlitzPlay(look, call){ return composeDefense(look, call); }
 function blitzPathFor(play,i){
   const d=((play.state&&play.state.defs)||[])[i]||{};
   return (play.ol&&play.ol.stunt&&play.ol.stunt[i]) || (d.route&&d.route.length?d.route:null);
@@ -2158,12 +2198,12 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=93"></script>
-<script src="OFFGRD-scoutcards.js?v=93"></script>
-<script src="OFFGRD-week-autotest.js?v=93"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=93"></script>
-<script type="module" src="OFFGRD-account.js?v=93"></script>
-<script src="OFFGRD-role-gate.js?v=93"></script>
+<script src="OFFGRD-mobile.js?v=94"></script>
+<script src="OFFGRD-scoutcards.js?v=94"></script>
+<script src="OFFGRD-week-autotest.js?v=94"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=94"></script>
+<script type="module" src="OFFGRD-account.js?v=94"></script>
+<script src="OFFGRD-role-gate.js?v=94"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
