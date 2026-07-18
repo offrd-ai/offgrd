@@ -474,6 +474,10 @@
     if (t === "combo") return P([[x, y - 13], [x, y - 30], [x + dir * 16, y - 48]]);
     return "";
   }
+  function wrapAnimToken(inner, animId, x, y) {
+    if (!animId) return inner;
+    return `<g data-anim-id="${esc(String(animId))}" data-rest-x="${x}" data-rest-y="${y}">${inner}</g>`;
+  }
   function playerNode(p, pos, opts) {
     opts = opts || {};
     const x = pos ? pos.x : p.x, y = pos ? pos.y : p.y;
@@ -482,6 +486,7 @@
     const shown = POSLABEL(p.lab, "off");
     const tip = POSLABELtip(p.lab, "off");
     const fs = tokenFontSize(shown, 12);
+    let inner;
     if (p.type === "block") {
       let g = "";
       if (p.runblk) g = blockGlyph(p, x, y);
@@ -489,10 +494,12 @@
         const a = (p.blk === "L" ? -0.6 : p.blk === "R" ? 0.6 : 0);
         g = `<line x1="${x}" y1="${y - 13}" x2="${x + 18 * a}" y2="${y - 31}" stroke="#fff" stroke-width="3"/>`;
       }
-      return ring + g + `<rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="5" fill="${pColor(p)}" stroke="#fff" stroke-width="2"><title>${esc(tip)}</title></rect><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text>`;
+      inner = ring + g + `<rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="5" fill="${pColor(p)}" stroke="#fff" stroke-width="2"><title>${esc(tip)}</title></rect><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text>`;
+    } else {
+      const tap = opts.quiz ? ` data-lab="${esc(p.lab || "")}" style="cursor:pointer"` : "";
+      inner = ring + `<g${tap}><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text></g>`;
     }
-    const tap = opts.quiz ? ` data-lab="${esc(p.lab || "")}" style="cursor:pointer"` : "";
-    return ring + `<g${tap}><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="16" fill="${pColor(p)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "")}</text></g>`;
+    return wrapAnimToken(inner, opts.animId, x, y);
   }
   function defNode(d, pos, opts) {
     opts = opts || {};
@@ -503,7 +510,8 @@
     const shown = POSLABEL(d.lab || d.pos, "def");
     const tip = POSLABELtip(d.lab || d.pos, "def");
     const fs = tokenFontSize(shown, 10.5);
-    return ar + ring + `<g><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "D")}</text></g>`;
+    const inner = ar + ring + `<g><title>${esc(tip)}</title><circle cx="${x}" cy="${y}" r="14" fill="${d.color || "#13294B"}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 4}" font-size="${fs}" font-weight="800" fill="#fff" text-anchor="middle">${esc(shown || "D")}</text></g>`;
+    return wrapAnimToken(inner, opts.animId, x, y);
   }
   function textNode(t) {
     return `<text x="${t.x}" y="${t.y}" font-size="${t.size}" font-weight="800" fill="${t.color}" stroke="rgba(255,255,255,.5)" stroke-width="0.6" paint-order="stroke" text-anchor="middle">${esc(t.text)}</text>`;
@@ -552,6 +560,7 @@
     if (showZ && cov && cov !== "none") s += zoneShapes(cov);
     if (state.draws) state.draws.forEach(d => { if (d.pts && d.pts.length > 1) s += drawNode(d); });
     const anim = !!opts.anim;
+    const tokenAnim = !!opts.tokenAnim;
     const op = anim ? 0.35 : 1;
     const players = state.players || [], defs = state.defs || [];
     s += `<g opacity="${op}">`;
@@ -562,10 +571,17 @@
     if (showZ && !anim && cov && (cov === "Cover 0" || cov === "Cover 1" || cov === "2-Man")) {
       s += manConnectors(defs, players);
     }
-    defs.forEach(d => { const pos = anim ? (d._ap || { x: d.x, y: d.y }) : null; s += defNode(d, pos, { sel: opts.sel, selId: opts.selId }); });
-    players.forEach(p => {
-      const pos = anim ? (p._ap || { x: p.x, y: p.y }) : null;
-      s += playerNode(p, pos, { sel: opts.sel, selId: opts.selId, quiz: !!opts.quiz && !anim });
+    /* tokenAnim: paint at rest; play() moves via transform (never rebuilds SVG per frame). */
+    defs.forEach((d, i) => {
+      const pos = (!tokenAnim && anim) ? (d._ap || { x: d.x, y: d.y }) : null;
+      s += defNode(d, pos, { sel: opts.sel, selId: opts.selId, animId: tokenAnim ? ("d_" + i) : null });
+    });
+    players.forEach((p, i) => {
+      const pos = (!tokenAnim && anim) ? (p._ap || { x: p.x, y: p.y }) : null;
+      s += playerNode(p, pos, {
+        sel: opts.sel, selId: opts.selId, quiz: !!opts.quiz && !anim,
+        animId: tokenAnim ? ("p_" + (p.id != null ? p.id : i)) : null
+      });
     });
     if (!anim && opts.sel && opts.showHandles !== false) s += handles(opts.sel);
     if (state.texts) state.texts.forEach(t => { s += textNode(t); });
@@ -624,18 +640,53 @@
 
   /**
    * Designer-identical animation: motion → snap hold → route run with man/zone/rush.
-   * opts: { targetId, onFrame, onDone, quiz, hideCov, revealLab }
+   * Renders the SVG once, then moves tokens via transform (no per-frame innerHTML).
+   * Caps paint to ~30fps. opts: { targetId, onFrame, onDone, quiz, hideCov, revealLab }
    */
   function play(state, opts) {
     opts = opts || {};
     if (!state) return;
     cancelAnim();
     const players = state.players || [], defs = state.defs || [];
+    players.forEach(p => { try { delete p._ap; } catch (e) { p._ap = null; } });
+    defs.forEach(d => { try { delete d._ap; } catch (e) { d._ap = null; } });
+
+    /* Static scene once — routes faded; tokens at rest with data-anim-id wrappers. */
+    renderState(state, Object.assign({}, opts, { anim: true, tokenAnim: true }));
+
+    const targetId = opts.targetId || "field";
+    const svg = typeof targetId === "string" ? document.getElementById(targetId) : targetId;
+    const pTok = players.map((p, i) => {
+      const id = "p_" + (p.id != null ? p.id : i);
+      const g = svg ? svg.querySelector('[data-anim-id="' + id + '"]') : null;
+      return { p: p, g: g, x: p.x, y: p.y };
+    });
+    const dTok = defs.map((d, i) => {
+      const g = svg ? svg.querySelector('[data-anim-id="d_' + i + '"]') : null;
+      return { d: d, g: g, x: d.x, y: d.y };
+    });
+
     const hasM = players.some(p => p.motion && p.motion.length);
     const tMo = hasM ? 900 : 0, tSnap = 220, tRun = 1600, total = tMo + tSnap + tRun;
     const mp = players.find(p => p.motion && p.motion.length);
     const qb = players.find(p => p.type === "qb");
+    const FRAME_MS = 1000 / 30;
+    let lastPaint = 0;
     const start = performance.now();
+
+    function applyTransforms() {
+      for (let i = 0; i < pTok.length; i++) {
+        const t = pTok[i], cur = t.p._ap;
+        if (!t.g || !cur) continue;
+        t.g.setAttribute("transform", "translate(" + (cur.x - t.x) + " " + (cur.y - t.y) + ")");
+      }
+      for (let i = 0; i < dTok.length; i++) {
+        const t = dTok[i], cur = t.d._ap;
+        if (!t.g || !cur) continue;
+        t.g.setAttribute("transform", "translate(" + (cur.x - t.x) + " " + (cur.y - t.y) + ")");
+      }
+    }
+
     function frame(now) {
       const e = now - start, opos = {};
       players.forEach(p => {
@@ -673,12 +724,17 @@
         }
         d._ap = cur;
       });
-      renderState(state, Object.assign({}, opts, { anim: true }));
-      if (typeof opts.onFrame === "function") opts.onFrame(e / total);
+      if (now - lastPaint >= FRAME_MS || e >= total) {
+        lastPaint = now;
+        applyTransforms();
+        if (typeof opts.onFrame === "function") opts.onFrame(Math.min(1, e / total));
+      }
       if (e < total) _anim = requestAnimationFrame(frame);
       else {
         _anim = null;
-        if (opts.quiz) renderState(state, Object.assign({}, opts, { anim: false }));
+        applyTransforms();
+        /* One final paint for quiz targets / full opacity routes — not per-frame. */
+        if (opts.quiz) renderState(state, Object.assign({}, opts, { anim: false, tokenAnim: false }));
         if (typeof opts.onDone === "function") opts.onDone();
       }
     }

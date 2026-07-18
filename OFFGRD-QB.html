@@ -17,12 +17,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v115: OUR CALL chip contrast + resolved front/coverage; teaching line secondary -->
+<!-- v116: snap anim token transforms + ungated answer options -->
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=112"></script>
 <script src="supabase.js?v=31"></script>
 <script src="OFFGRD-cache-gate.js?v=111"></script>
-<script src="OFFGRD-render.js?v=108"></script>
+<script src="OFFGRD-render.js?v=116"></script>
 <script src="OFFGRD-pos-glossary.js?v=107"></script>
 <script src="OFFGRD-autoderive.js?v=100"></script>
 <script src="OFFGRD-redesign.js?v=100"></script>
@@ -2008,7 +2008,13 @@ function positionTokens(scene,t){
  scene.off.forEach((o,i)=>{ const g=document.getElementById("o_"+i); if(g) g.setAttribute("transform",`translate(${offPos[i].x} ${offPos[i].y})`); });
  scene.defs.forEach((d,i)=>{ const p=defPos(d,t,scene.los,offPos); const g=document.getElementById("d_"+i); if(g) g.setAttribute("transform",`translate(${p.x} ${p.y})`); });
 }
-function cancelQB(){ if(QBANIM){ cancelAnimationFrame(QBANIM); QBANIM=null; } if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; } try{ if(window.OFFGRD_RENDER) OFFGRD_RENDER.cancelAnim(); }catch(e){} }
+let MOTANIM=null;
+function cancelQB(){
+ if(QBANIM){ cancelAnimationFrame(QBANIM); QBANIM=null; }
+ if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; }
+ if(MOTANIM){ cancelAnimationFrame(MOTANIM); MOTANIM=null; }
+ try{ if(window.OFFGRD_RENDER) OFFGRD_RENDER.cancelAnim(); }catch(e){}
+}
 function animateScene(scene){ cancelQB(); const dur=1700, start=performance.now(); positionTokens(scene,0);
  function frame(now){ let t=(now-start)/dur; if(t>1)t=1; positionTokens(scene,t); if(t<1) QBANIM=requestAnimationFrame(frame); else QBANIM=null; }
  QBANIM=requestAnimationFrame(frame);
@@ -2194,8 +2200,9 @@ function olField(state, ringLab, revealDi, wrongDi, paths, stunt, hideDi){
  s+=`<rect x="${p.x-12}" y="${p.y-12}" width="24" height="24" rx="4" fill="#9aa4b2" stroke="#fff" stroke-width="1.5"/><text x="${p.x}" y="${p.y+4}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab)}</text>`;
  });
  players.filter(p=>!(p.ol||p.type==="block")).forEach(p=>{
- if(p.lab===ringLab) s+=`<circle cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="#ffd24a" stroke-width="3.5"/>`;
- s+=`<circle cx="${p.x}" cy="${p.y}" r="12" fill="${p.type==="qb"?"#0e1f3a":"#c8102e"}" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab)}</text>`;
+ const ring=(p.lab===ringLab)?`<circle cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="#ffd24a" stroke-width="3.5"/>`:"";
+ s+=`<g data-off-lab="${esc(p.lab||"")}" data-rest-x="${p.x}" data-rest-y="${p.y}">${ring}`
+ +`<circle cx="${p.x}" cy="${p.y}" r="12" fill="${p.type==="qb"?"#0e1f3a":"#c8102e"}" stroke="#fff" stroke-width="2"/><text x="${p.x}" y="${p.y+4}" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">${esc(p.lab)}</text></g>`;
  });
  defs.forEach((d,i)=>{
  if(hideDi!=null&&i===+hideDi) return;
@@ -2203,7 +2210,7 @@ function olField(state, ringLab, revealDi, wrongDi, paths, stunt, hideDi){
  const sr=(stunt&&stunt[i])||null;
  if(sr) path=`<path d="${routeD(d.x,d.y,sr)}" fill="none" stroke="rgba(255,120,120,.95)" stroke-width="2.8" stroke-dasharray="6 5"/>`;
  else if(paths&&d.route&&d.route.length) path=`<path d="${customRouteD(d)}" fill="none" stroke="rgba(255,120,120,.85)" stroke-width="2.5" stroke-dasharray="6 5"/>`;
- s+=path+`<g data-lab="ol_${i}" style="cursor:pointer">`
+ s+=path+`<g data-lab="ol_${i}" data-rest-x="${d.x}" data-rest-y="${d.y}" style="cursor:pointer">`
  +((revealDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#19c37d" stroke-width="4"/>`:"")
  +((wrongDi===i)?`<circle cx="${d.x}" cy="${d.y}" r="22" fill="none" stroke="#e23b2e" stroke-width="4"/>`:"")
  +`<circle cx="${d.x}" cy="${d.y}" r="15" fill="${d.color||"#13294B"}" stroke="#fff" stroke-width="2"/><text x="${d.x}" y="${d.y+4}" font-size="10.5" font-weight="800" fill="#fff" text-anchor="middle" style="pointer-events:none">${esc(d.lab||"D")}</text></g>`;
@@ -2236,12 +2243,30 @@ let OLANIM=null;
 function animateOlStunts(state, onDone, svgId, stunt){
  svgId=svgId||"field";
  if(OLANIM){ cancelAnimationFrame(OLANIM); OLANIM=null; }
+ const svg=document.getElementById(svgId);
  const defs=(state&&state.defs)||[];
- const paths=defs.map((d,i)=>{ const r=(stunt&&stunt[i])||d.route; return (r&&r.length)?flattenRoute(d.x,d.y,r):null; });
- const dur=1500, start=performance.now();
- function frame(now){ let t=(now-start)/dur; if(t>1)t=1; const e=easeIO(t);
- defs.forEach((d,i)=>{ if(!paths[i]) return; const pt=along(paths[i],e); const g=document.querySelector('#'+svgId+' g[data-lab="ol_'+i+'"]'); if(g) g.setAttribute("transform","translate("+(pt.x-d.x)+" "+(pt.y-d.y)+")"); });
- if(t<1) OLANIM=requestAnimationFrame(frame); else { OLANIM=null; if(onDone) onDone(); } }
+ const toks=defs.map(function(d,i){
+   const r=(stunt&&stunt[i])||d.route;
+   const path=(r&&r.length)?flattenRoute(d.x,d.y,r):null;
+   const g=svg?svg.querySelector('g[data-lab="ol_'+i+'"]'):null;
+   return { d:d, path:path, g:g, x:d.x, y:d.y };
+ });
+ const dur=1500, start=performance.now(), FRAME_MS=1000/30;
+ let lastPaint=0;
+ function frame(now){
+   let t=(now-start)/dur; if(t>1)t=1;
+   if(now-lastPaint>=FRAME_MS||t>=1){
+     lastPaint=now;
+     const e=easeIO(t);
+     for(let i=0;i<toks.length;i++){
+       const tk=toks[i]; if(!tk.path||!tk.g) continue;
+       const pt=along(tk.path,e);
+       tk.g.setAttribute("transform","translate("+(pt.x-tk.x)+" "+(pt.y-tk.y)+")");
+     }
+   }
+   if(t<1) OLANIM=requestAnimationFrame(frame);
+   else { OLANIM=null; if(onDone) onDone(); }
+ }
  OLANIM=requestAnimationFrame(frame);
 }
 function olSnap(){
@@ -2526,17 +2551,27 @@ function applyMotionRuleToDefs(defs, players, rule, motion, call){
 }
 function animateOffenseMotion(state, done, svgId){
   svgId=svgId||"field";
+  if(MOTANIM){ cancelAnimationFrame(MOTANIM); MOTANIM=null; }
   const svg=document.getElementById(svgId);
   const players=(state&&state.players)||[];
   const mover=players.find(function(p){ return p&&p._motionFrom&&p._motionPath; });
   if(!mover||!svg){ if(done) done(); return; }
   const from=mover._motionFrom;
   const path=[{x:from.x,y:from.y}].concat(mover._motionPath||[]);
-  const t0=performance.now(), dur=900;
+  const labKey=String(mover.lab||"");
+  let g=null;
+  try{ g=svg.querySelector('g[data-off-lab="'+labKey.replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"]'); }catch(e){ g=null; }
+  if(!g){
+    const nodes=svg.querySelectorAll("g[data-off-lab]");
+    for(let i=0;i<nodes.length;i++){ if((nodes[i].getAttribute("data-off-lab")||"")===labKey){ g=nodes[i]; break; } }
+  }
+  const restX=+(g&&g.getAttribute("data-rest-x"))||from.x;
+  const restY=+(g&&g.getAttribute("data-rest-y"))||from.y;
+  const t0=performance.now(), dur=900, FRAME_MS=1000/30;
+  let lastPaint=0;
   function frame(now){
     const e=Math.min(1,(now-t0)/dur);
     const ease=e<0.5?2*e*e:1-Math.pow(-2*e+2,2)/2;
-    /* approximate along polyline */
     let tot=0, segs=[];
     for(let i=1;i<path.length;i++){ const L=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y); segs.push(L); tot+=L; }
     let target=ease*tot, acc=0, pt=path[path.length-1];
@@ -2544,18 +2579,14 @@ function animateOffenseMotion(state, done, svgId){
       if(acc+segs[i]>=target){ const t=segs[i]?(target-acc)/segs[i]:1; pt={x:path[i].x+(path[i+1].x-path[i].x)*t,y:path[i].y+(path[i+1].y-path[i].y)*t}; break; }
       acc+=segs[i];
     }
-    /* redraw lightly: update circle for mover lab */
-    const texts=svg.querySelectorAll("text");
-    texts.forEach(function(tx){
-      if((tx.textContent||"")===String(mover.lab||"")){
-        const circ=tx.previousSibling;
-        if(circ&&circ.setAttribute){ circ.setAttribute("cx",pt.x); circ.setAttribute("cy",pt.y); }
-        tx.setAttribute("x",pt.x); tx.setAttribute("y",(pt.y||0)+4);
-      }
-    });
-    if(e<1) requestAnimationFrame(frame); else if(done) done();
+    if(now-lastPaint>=FRAME_MS||e>=1){
+      lastPaint=now;
+      if(g) g.setAttribute("transform","translate("+(pt.x-restX)+" "+(pt.y-restY)+")");
+    }
+    if(e<1) MOTANIM=requestAnimationFrame(frame);
+    else { MOTANIM=null; if(done) done(); }
   }
-  requestAnimationFrame(frame);
+  MOTANIM=requestAnimationFrame(frame);
 }
 
 /* composeDefense(formation, call) — the single defensive composer behind every defensive
@@ -2850,9 +2881,14 @@ function blitzSnap(){
  if(SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
  setDefenderPrompt("Front's moving \u2014 call "+PL(rep.defLab,"def")+"'s job.");
- const go=function(){ animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt); };
- if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
- else go();
+ /* Options ungated — animation teaches, does not block answering. */
+ showBlitzChoices();
+ const go=function(){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); };
+ /* Defer anim one frame so choices paint before rAF work starts. */
+ requestAnimationFrame(function(){
+   if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
+   else go();
+ });
 }
 function showBlitzChoices(){
  setOurCallChip(rep);
@@ -2932,9 +2968,13 @@ function defCoverageSnap(){
   document.getElementById("snapBtn").classList.add("hidden");
   /* Teaching line is additive — OUR CALL chip + premise stay on screen. */
   setDefenderPrompt("Coverage rotating \u2014 track "+PL(rep.defLab,"def")+" to the landmark.");
-  const go=function(){ animateOlStunts(rep.play.state,function(){showDefCoverageChoices();},"field",defenderCoveragePaths(rep.play)); };
-  if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
-  else go();
+  /* Options ungated — player can answer while motion/coverage animates. */
+  showDefCoverageChoices();
+  const go=function(){ animateOlStunts(rep.play.state,null,"field",defenderCoveragePaths(rep.play)); };
+  requestAnimationFrame(function(){
+    if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
+    else go();
+  });
 }
 function showDefCoverageChoices(){
   setOurCallChip(rep);
@@ -3229,9 +3269,12 @@ function snapPlay(){
  if(!SCENE || SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("replayBtn").classList.remove("hidden");
- if(SCENE.unified){ animateUnified(); }
- else animateScene(SCENE);
  if(isCovTest()) showCovChoices();
+ /* Defer anim so Coverage ID chips paint before the play loop starts. */
+ requestAnimationFrame(function(){
+   if(SCENE.unified){ animateUnified(); }
+   else animateScene(SCENE);
+ });
 }
 function showCovChoices(){
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
