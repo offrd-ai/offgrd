@@ -20,6 +20,28 @@ export const Cloud = {
   sb,
 
   /* ---------- auth ---------- */
+  /**
+   * Cross-origin SSO hand-off (offops.app → getoffrd.com).
+   * Reads #at= & #rt= from the hash fragment, setSession, then strips the hash.
+   * Call once, early, before any session()/onUser boot.
+   */
+  async consumeAuthHandOff() {
+    if (!sb || typeof location === "undefined") return false;
+    try {
+      const raw = (location.hash || "").replace(/^#/, "");
+      if (!raw) return false;
+      const h = new URLSearchParams(raw);
+      const at = h.get("at");
+      const rt = h.get("rt");
+      if (!at || !rt) return false;
+      const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      return !error;
+    } catch (e) {
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e2) {}
+      return false;
+    }
+  },
   async signUp(email, password, fullName) {
     return sb.auth.signUp({ email, password, options: { data: { full_name: fullName || "" } } });
   },

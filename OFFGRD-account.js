@@ -1,7 +1,7 @@
 ﻿/* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=109";
+import { Cloud } from "./OFFGRD-cloud.js?v=110";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -868,6 +868,8 @@ Cloud.onAuth(u=>{
 });
 (async()=>{
   try{
+    /* offops.app → getoffrd.com hash hand-off (#at= / #rt=) before first session read */
+    try{ await Cloud.consumeAuthHandOff(); }catch(e){}
     const u = await Cloud.session();
     _sessionResolved = true;
     onUser(u);
