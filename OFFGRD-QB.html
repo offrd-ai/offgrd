@@ -17,6 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
+<!-- v114: OUR CALL chip persists on defender reps (coverage/align/blitz) -->
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=112"></script>
 <script src="supabase.js?v=31"></script>
@@ -49,6 +50,9 @@
  .field-wrap{background:#1a7a3c;border-radius:14px;overflow:hidden}
  svg#field{display:block;width:100%;height:auto;background:#1e8a44}
  .prompt{font-size:17px;font-weight:800;margin:0 0 10px;color:var(--navy)}
+ .our-call-chip{display:none;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);font-size:13px;font-weight:800;color:var(--navy);line-height:1.35}
+ .our-call-chip.show{display:block}
+ .our-call-chip .k{display:inline-block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted,#6b7280);font-weight:900;margin-right:8px}
  .fb{border-radius:12px;padding:14px;margin-top:12px;font-size:15px;display:none}
  .fb.show{display:block}
  .fb.ok{background:#e8f6ee;border:1px solid #b7e0c6}
@@ -129,6 +133,7 @@
 
  <div class="panel hidden" id="playPanel">
  <p class="prompt" id="prompt"></p>
+ <div id="ourCallChip" class="our-call-chip" aria-live="polite"></div>
  <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
  <div class="chips hidden" id="covChoices" style="margin-top:10px"></div>
  <div class="fb" id="fb"></div>
@@ -2708,6 +2713,82 @@ function pickBlitzRep(){
  }
  return null;
 }function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
+
+/* ---------- OUR CALL context (defender reps) — never hide the premise ----------
+   Coverage ID withholds opponent coverage (the picture IS the question).
+   Coverage-as-defender / align / blitz / motion-adjust presuppose OUR call and must keep it on screen pre- and post-snap. */
+function isOurCallDefenderRep(r){
+  r=r||rep;
+  return !!(r&&(r.defCoverage||r.blitz||r.align));
+}
+function ourCallLabel(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  const named=(r&&r.ourCall)||play.ourCall||play.name||"";
+  if(named&&named!=="Defense") return named;
+  const front=(play.state&&play.state.front&&play.state.front!=="none")?play.state.front:"";
+  const cov=play.coverage||"";
+  const bits=[front,cov].filter(Boolean);
+  return bits.length?bits.join(" "):(named||"our call");
+}
+function ourCoverageShort(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  if(play.coverage) return play.coverage;
+  const m=String(ourCallLabel(r)||"").match(/Cover\s*[0-6]|Tampa\s*2|2-Man/i);
+  return m?m[0]:"";
+}
+function ourCallVsLabel(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  return (r&&r.formationLabel)||play.formationFamily||play.oppLabel||play.name||"";
+}
+function ourCallMotionLabel(r){
+  r=r||rep;
+  if(r&&r.motionLabel) return r.motionLabel;
+  const mot=(r&&r.motion)||(r&&r.play&&r.play.motion)||null;
+  if(!mot) return "";
+  const rule=(r.play&&r.play.motionRule&&r.play.motionRule.rule)||"";
+  const name=mot.name||mot.type||"motion";
+  return rule?(name+" \u2192 "+rule):name;
+}
+function formatOurCallChipText(r){
+  let s="OUR CALL: "+ourCallLabel(r);
+  const vs=ourCallVsLabel(r);
+  const mot=ourCallMotionLabel(r);
+  if(vs) s+=" \u00b7 vs "+vs;
+  if(mot) s+=" \u00b7 "+mot;
+  return s;
+}
+function setOurCallChip(r){
+  const el=document.getElementById("ourCallChip");
+  if(!el) return;
+  if(!isOurCallDefenderRep(r)){ clearOurCallChip(); return; }
+  const full=formatOurCallChipText(r);
+  el.innerHTML="";
+  const k=document.createElement("span"); k.className="k"; k.textContent="OUR CALL";
+  el.appendChild(k);
+  el.appendChild(document.createTextNode(full.replace(/^OUR CALL:\s*/i,"")));
+  el.classList.add("show");
+}
+function clearOurCallChip(){
+  const el=document.getElementById("ourCallChip");
+  if(!el) return;
+  el.innerHTML=""; el.classList.remove("show");
+}
+/** Keep call chip + optional teaching line; never wipe the premise. */
+function setDefenderPrompt(teachLine){
+  setOurCallChip(rep);
+  const call=ourCallLabel(rep);
+  const vs=ourCallVsLabel(rep)||((rep.play&&(rep.play.oppLabel||rep.play.name))||"their look");
+  const mot=ourCallMotionLabel(rep);
+  let head="vs "+vs+", our "+call;
+  if(mot) head+=" \u2014 "+mot;
+  head+=" \u2014 you're the "+PL(rep.defLab,"def")+".";
+  if(teachLine) head+=" "+teachLine;
+  document.getElementById("prompt").textContent=head;
+}
+
 function renderBlitzField(r){
  const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
  svg.innerHTML=olField(r.play.state, null, null, null, false);
@@ -2716,15 +2797,17 @@ function renderBlitzField(r){
 function blitzSnap(){
  if(SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
- document.getElementById("prompt").textContent="Front's moving — call "+PL(rep.defLab,"def")+"'s job.";
+ setDefenderPrompt("Front's moving \u2014 call "+PL(rep.defLab,"def")+"'s job.");
  const go=function(){ animateOlStunts(rep.play.state, function(){ showBlitzChoices(); }, "field", rep.play.ol&&rep.play.ol.stunt); };
  if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
  else go();
 }
 function showBlitzChoices(){
+ setOurCallChip(rep);
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
- lbl.textContent="You're "+PL(rep.defLab,"def")+" — what's your assignment on this call?"; cc.appendChild(lbl);
+ const call=ourCallLabel(rep);
+ lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+call+", what's your assignment?"; cc.appendChild(lbl);
  BLITZ_OPTS.forEach(o=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=o; b.onclick=()=>answerBlitz(o); cc.appendChild(b); });
 }
 function answerBlitz(opt){
@@ -2795,15 +2878,18 @@ function renderDefCoverageField(r){
 function defCoverageSnap(){
   if(SNAPPED)return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
-  document.getElementById("prompt").textContent="Coverage rotating — track "+PL(rep.defLab,"def")+" to the landmark.";
+  /* Teaching line is additive — OUR CALL chip + premise stay on screen. */
+  setDefenderPrompt("Coverage rotating \u2014 track "+PL(rep.defLab,"def")+" to the landmark.");
   const go=function(){ animateOlStunts(rep.play.state,function(){showDefCoverageChoices();},"field",defenderCoveragePaths(rep.play)); };
   if(rep.motion&&rep.play&&rep.play.state){ animateOffenseMotion(rep.play.state, go, "field"); }
   else go();
 }
 function showDefCoverageChoices(){
+  setOurCallChip(rep);
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+PL(rep.defLab,"def")+" — what's your coverage responsibility?"; cc.appendChild(lbl);
+  const cov=ourCoverageShort(rep)||ourCallLabel(rep);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+cov+", what's your coverage responsibility?"; cc.appendChild(lbl);
   const opts=DEF_COVERAGE_OPTS.slice();
   if(opts.indexOf(rep.answer)<0) opts.unshift(rep.answer);
   opts.slice(0,14).forEach(function(o){const b=document.createElement("button");b.className="chip";b.textContent=o;b.onclick=function(){answerDefCoverage(o);};cc.appendChild(b);});
@@ -2903,18 +2989,20 @@ function renderAlignField(r){
   svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
 }
 function showAlignMc(){
+  setOurCallChip(rep);
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="Pick your alignment:"; cc.appendChild(lbl);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+ourCallLabel(rep)+", pick your alignment:"; cc.appendChild(lbl);
   alignMcOptions(rep).forEach(function(o){
     const b=document.createElement("button"); b.className="chip"; b.textContent=o.label;
     b.onclick=function(){ answerAlignMc(o); }; cc.appendChild(b);
   });
 }
 function showAlignLeverage(){
+  setOurCallChip(rep);
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="Leverage?"; cc.appendChild(lbl);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+ourCallLabel(rep)+", leverage?"; cc.appendChild(lbl);
   ALIGN_LEV_OPTS.forEach(function(lev){
     const b=document.createElement("button"); b.className="chip"+(rep.pickedLeverage===lev?" on":""); b.textContent=lev;
     b.onclick=function(){
@@ -2993,6 +3081,7 @@ function PL(pos,side){ try{ return (window.OFFGRD_RENDER&&OFFGRD_RENDER.POSLABEL
 function showRep(r){
  rep=r; answered=false; SNAPPED=false;
  if(r.protect){
+ clearOurCallChip();
  SNAPPED=true; OLPHASE="pre"; r._pre=null;
  document.getElementById("prompt").textContent=`—${r.play.name}— vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} — you're the ${PL(r.blocker,"off")}. Who do you block?`;
  cancelQB(); renderOlQuiz(r);
@@ -3003,6 +3092,7 @@ function showRep(r){
  return;
  }
  if(r.routes){
+ clearOurCallChip();
  SNAPPED=true;
  document.getElementById("prompt").textContent=`—${r.play.name}— — which route does ${PL(r.target.lab,"off")} run?`;
  cancelQB(); renderRouteQuiz(r);
@@ -3015,7 +3105,7 @@ function showRep(r){
  }
  if(r.blitz){
  SNAPPED=false;
- document.getElementById("prompt").textContent=`${r.play.oppLabel||r.play.name} vs our ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"front"}`+(r.motion?(" \u2014 "+(r.motion.name||"motion")):"")+` \u2014 you're the ${PL(r.defLab,"def")}. Snap, then call your job.`;
+ setDefenderPrompt("Snap, then call your job.");
  cancelQB(); renderBlitzField(r);
  const fbb=document.getElementById("fb"); fbb.className="fb"; fbb.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3026,7 +3116,7 @@ function showRep(r){
  }
  if(r.align){
  SNAPPED=true; /* pre-snap placement — no snap needed */
- document.getElementById("prompt").textContent="vs their "+(r.formationLabel||"formation")+", our "+(r.ourCall||"call")+(r.motion?(" \u2014 "+(r.motionLabel||r.motion.name||"motion")):"")+" \u2014 you're the "+PL(r.defLab,"def")+". "+(r.motion?"Re-align.":"Line up.");
+ setDefenderPrompt(r.motion?"Re-align.":"Line up.");
  cancelQB(); renderAlignField(r);
  const fba=document.getElementById("fb"); fba.className="fb"; fba.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3035,8 +3125,6 @@ function showRep(r){
  const cca=document.getElementById("covChoices"); cca.classList.add("hidden"); cca.innerHTML="";
  if(r.mc){ showAlignMc(); }
  else if(r.askLeverage){
-   const hint=document.createElement("span"); hint.className="tag"; hint.style.cssText="display:block;margin:6px 0"; hint.textContent="Tap the field where you align"+(r.askLeverage?" (then pick leverage)":"")+".";
-   document.getElementById("prompt").appendChild?null:null;
    cca.classList.remove("hidden");
    const tip=document.createElement("span"); tip.className="tag"; tip.style.alignSelf="center"; tip.textContent="Tap the field to place yourself."; cca.appendChild(tip);
    ALIGN_LEV_OPTS.forEach(function(lev){
@@ -3052,7 +3140,7 @@ function showRep(r){
  }
  if(r.defCoverage){
    SNAPPED=false;
-   document.getElementById("prompt").textContent=(r.play.oppLabel||r.play.name)+" vs our "+(r.play.ourCall||r.play.coverage||"coverage")+(r.motion?(" — "+(r.motion.name||"motion")):"")+" — you're the "+PL(r.defLab,"def")+". What's your job?";
+   setDefenderPrompt("What's your job?");
    cancelQB(); renderDefCoverageField(r);
    const fbc=document.getElementById("fb"); fbc.className="fb"; fbc.innerHTML="";
    document.getElementById("nextBtn").classList.add("hidden");
@@ -3061,6 +3149,8 @@ function showRep(r){
    const ccc=document.getElementById("covChoices"); ccc.classList.add("hidden"); ccc.innerHTML="";
    return;
  }
+ /* Coverage ID / reads — withhold opponent coverage; never show OUR CALL chip. */
+ clearOurCallChip();
  document.getElementById("prompt").textContent = isCovTest()
  ? `What's the coverage? (${r.concept.name}) — read the defense, then snap`
  : `Where's the throw vs ${r.coverage}? (${r.concept.name})`;
