@@ -16,7 +16,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#13294B"/>
-<title>OFFGRD â€” Playbook</title>
+<title>OFFGRD &#8212; Playbook</title>
 <style>
  :root{--bg:#f4f5f7;--panel:#fff;--ink:#16181d;--muted:#5b626e;--line:#e2e5ea;--accent:#4B9CD3;--navy:#13294B;--good:#1d7a45;--bad:#a8112b;--shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06)}
  *{box-sizing:border-box} html,body{margin:0}
@@ -74,8 +74,8 @@
 <script src="OFFGRD-render.js?v=108"></script>
 <script src="OFFGRD-pos-glossary.js?v=107"></script>
 <script src="OFFGRD-autoderive.js?v=105"></script>
-<script src="OFFGRD-week-autotest.js?v=109"></script>
-<script src="OFFGRD-play-wizard.js?v=109"></script>
+<script src="OFFGRD-week-autotest.js?v=113"></script>
+<script src="OFFGRD-play-wizard.js?v=113"></script>
 <script src="OFFGRD-scoutcards.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
 <script src="OFFGRD-redesign.js?v=97"></script>
@@ -1041,8 +1041,8 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
  document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
- document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only Ã¢â‚¬â€ coaches save plays."); return; } savePlay(); };
- document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only Ã¢â‚¬â€ coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
+ document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only ” coaches save plays."); return; } savePlay(); };
+ document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only ” coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
  document.getElementById("pngBtn").onclick=exportPNG;
  document.getElementById("printBtn").onclick=()=>window.print();
  document.getElementById("installBtn").onclick=buildInstall;
@@ -1051,7 +1051,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  const show=!(window.OFFGRD_SCOUTCARDS)||OFFGRD_SCOUTCARDS.isScoutcards();
  scBtn.style.display=show?"":"none";
  scBtn.onclick=()=>{
- if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off Ã¢â‚¬â€ set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
+ if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())){ msg("Scout cards are off ” set localStorage.offgrd_scoutcards=1 or remove ?scoutcards=0."); return; }
  let games=[]; try{ games=JSON.parse(localStorage.getItem("offgrd_season_v2")||"[]"); }catch(e){}
  const playerRo=!!window.OFFGRD_PLAYER_READONLY;
  OFFGRD_SCOUTCARDS.openModal({
@@ -1119,7 +1119,8 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=111"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=113"></script>
+<script type="module" src="OFFGRD-account.js?v=113"></script>
 <script src="OFFGRD-role-gate.js?v=97"></script>
 <script src="OFFGRD-mobile.js?v=97"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>

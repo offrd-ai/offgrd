@@ -16,7 +16,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
-<title>OFFGRD — Reps Lab</title>
+<title>OFFGRD &#8212; Reps Lab</title>
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=112"></script>
 <script src="supabase.js?v=31"></script>
@@ -638,7 +638,7 @@ function setWeekMode(on){
  if(WEEKMODE){
  SOURCE="custom";
  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src==="custom"));
- if(note) note.textContent="Week mode: only this week\u2019s plan plays are used — sourced from your program playbook.";
+ if(note) note.textContent="Week mode: only this week\u2019s plan plays are used \u2014 sourced from your program playbook.";
  RQLABS.clear();
  p=loadCustom().then(()=>{
  rebuildPool();
@@ -2856,7 +2856,7 @@ function pickAlignRep(positions){
     const al={x:d.x,y:d.y,leverage:(resolveDefAlign(p._defCall,i,p.look)||{}).leverage||"head-up",depth:(resolveDefAlign(p._defCall,i,p.look)||{}).depth};
     const depth=al.depth!=null?al.depth:Math.max(0, Math.round((380-(al.y||380))/PPY));
     const leverage=al.leverage||"head-up";
-    const motLabel=mot?((mot.name||mot.type)+" â†’ "+((p.motionRule&&p.motionRule.rule)||"bump")):"";
+    const motLabel=mot?((mot.name||mot.type)+" → "+((p.motionRule&&p.motionRule.rule)||"bump")):"";
     return {
       align:true, play:p, prePlay:pre, di:i, defLab:d.lab||d.pos||"defender",
       targetAlign:Object.assign({}, al, {x:al.x, y:al.y, leverage:leverage, depth:depth}),
@@ -3231,8 +3231,15 @@ async function finishTest(){
  if(window.QB && window.QB.ready){
  const ctx=await window.QB.context();
  if(ctx && ctx.user && ctx.team){
- const wkPrefix=test.week?("Week vs "+(test.week.opp||"—")+" — "):"";
- await window.QB.save({quiz:wkPrefix+(test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":"Reads test"), score:got, total:tot, detail:test.results, week_plan_id:(test.week&&WEEKPLAN&&WEEKPLAN.id)||null});
+ const AT=window.OFFGRD_WEEK_AUTOTEST;
+ const wkPrefix=test.week?("Week vs "+(test.week.opp||"\u2014")+" \u2014 "):"";
+ const quizBase=(AT&&AT.quizLabelForKind)
+  ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
+  : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
+ const quiz=wkPrefix+quizBase;
+ const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
+ const position=(test.positions&&test.positions[0])||null;
+ await window.QB.save({quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position, week_plan_id:(test.week&&WEEKPLAN&&WEEKPLAN.id)||null});
  saveMsg=`Saved to ${ctx.team.name} ? — your coaches can see it under Results.`+(test.week?(" This one counts toward the week"+(test.week.due?(" (game "+test.week.due+")"):"")+"."):"");
  } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
  }
@@ -3472,10 +3479,10 @@ init();
 </script>
 <script src="OFFGRD-mobile.js?v=100"></script>
 <script src="OFFGRD-scoutcards.js?v=100"></script>
-<script src="OFFGRD-week-autotest.js?v=109"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=111"></script>
+<script src="OFFGRD-week-autotest.js?v=113"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=113"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=111"></script>
+<script type="module" src="OFFGRD-account.js?v=113"></script>
 <script src="OFFGRD-role-gate.js?v=100"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>

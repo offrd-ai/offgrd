@@ -288,6 +288,8 @@ export const Cloud = {
       detail: r.detail || []
     };
     if (r.week_plan_id) row.week_plan_id = r.week_plan_id;
+    if (r.kind) row.kind = r.kind;
+    if (r.position) row.position = r.position;
     const { data, error } = await OG.from("qb_results").insert(row).select().single();
     if (error) throw error; return data;
   },

@@ -226,8 +226,11 @@
     const motion = MOTIONS.find(function (m) { return m.id === WZ.motionId; });
     const adjusters = { motion: Object.assign({ default: WZ.motionRule || "bump" }, WZ.adjusters && WZ.adjusters.motion || {}) };
     if (motion) adjusters.motion[motion.type] = WZ.motionRule || seedMotionRule(WZ.cov, motion.type);
+    if (!WZ.callId) {
+      WZ.callId = (st && st.def_call && st.def_call.id) || ("call-" + Date.now());
+    }
     return {
-      id: "call-" + Date.now(),
+      id: WZ.callId,
       name: WZ.name || callName(),
       front: WZ.front,
       coverage: WZ.cov,
@@ -255,63 +258,123 @@
     } catch (e) { return false; }
   }
 
-  /** Author-parity: merge into active week gen.def_calls + cloud sync. */
+  function waitForCloud(ms) {
+    ms = ms || 8000;
+    const start = Date.now();
+    return new Promise(function (resolve) {
+      (function tick() {
+        const Cloud = root.Cloud;
+        if (Cloud && Cloud.ready && Cloud.activeWeekPlan && Cloud.saveWeekPlan) return resolve(Cloud);
+        if (Date.now() - start >= ms) return resolve(Cloud && Cloud.activeWeekPlan ? Cloud : null);
+        setTimeout(tick, 50);
+      })();
+    });
+  }
+
+  function mergeDefCallList(genBase, call) {
+    let list = [];
+    if (Array.isArray(genBase.def_calls) && genBase.def_calls.length) {
+      list = genBase.def_calls.slice();
+    } else if (genBase.blitz_calls) {
+      list = [genBase.blitz_calls];
+    }
+    const idx = list.findIndex(function (c) {
+      return c && (c.id === call.id || (c.name && call.name && c.name === call.name));
+    });
+    if (idx >= 0) list[idx] = call; else list.push(call);
+    return list;
+  }
+
+  function syncWeekplanGen(wpId, genBase, list) {
+    try {
+      if (root.WEEKPLAN && root.WEEKPLAN.id === wpId) {
+        root.WEEKPLAN.gen = Object.assign({}, genBase || {}, { def_calls: list });
+      }
+    } catch (e) {}
+  }
+
+  /** Author-parity: merge into active week gen.def_calls + cloud sync (QB.saveDefCalls when available). */
   function persistDefCallToWeek(call) {
     return Promise.resolve().then(function () {
       persistDefCallLocal(call);
-      const Cloud = root.Cloud;
-      if (!Cloud || !Cloud.activeWeekPlan || !Cloud.saveWeekPlan) {
-        return { ok: false, local: true, reason: "no-cloud" };
-      }
-      let teamId = (root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.teamId) || null;
-      if (!teamId) {
-        try { teamId = localStorage.getItem("offgrd_team"); } catch (e) {}
-      }
-      if (!teamId) return { ok: false, local: true, reason: "no-team" };
-
-      return Cloud.activeWeekPlan(teamId).then(function (wp) {
-        if (!wp || !wp.id) return { ok: false, local: true, reason: "no-week" };
-        const genBase = Object.assign({}, wp.gen || {});
-        let list = [];
-        if (Array.isArray(genBase.def_calls) && genBase.def_calls.length) {
-          list = genBase.def_calls.slice();
-        } else if (genBase.blitz_calls) {
-          list = [genBase.blitz_calls];
+      return waitForCloud(8000).then(function (Cloud) {
+        if (!Cloud || !Cloud.activeWeekPlan || !Cloud.saveWeekPlan) {
+          return { ok: false, local: true, reason: "no-cloud" };
         }
-        const idx = list.findIndex(function (c) {
-          return c && (c.id === call.id || (c.name && call.name && c.name === call.name));
-        });
-        if (idx >= 0) list[idx] = call; else list.push(call);
+        let teamId = (root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.teamId) || null;
+        if (!teamId) {
+          try { teamId = localStorage.getItem("offgrd_team"); } catch (e) {}
+        }
+        if (!teamId) return { ok: false, local: true, reason: "no-team" };
 
-        /* Legacy blitz_calls shim (same shape Author writes) for older clients. */
-        let legacy = null;
-        try {
-          const primary = list[0] || call;
-          legacy = {
-            v: 1,
-            front: primary.front,
-            note: primary.note || "",
-            defs: primary.defs || [],
-            stunt: primary.stunt || {},
-            assigns: {},
-            coverage: primary.coverage || "",
-            pressure: primary.pressure || null,
-            name: primary.name || ""
-          };
-          Object.keys(primary.assigns || {}).forEach(function (k) {
-            const a = primary.assigns[k];
-            if (a && typeof a === "object" && a.resp) legacy.assigns[k] = a.resp;
-            else if (a) legacy.assigns[k] = a;
+        /* Prefer Author path when Reps Lab QB helper is loaded (Playbook loads qb-cloud too). */
+        if (root.QB && typeof root.QB.saveDefCalls === "function" && root.QB.weekContext) {
+          return root.QB.weekContext().then(function (wc) {
+            const wp = wc && wc.plan;
+            if (!wp || !wp.id) {
+              return Cloud.activeWeekPlan(teamId).then(function (wp2) {
+                if (!wp2 || !wp2.id) return { ok: false, local: true, reason: "no-week" };
+                return writeDefCalls(Cloud, wp2, call, true);
+              });
+            }
+            return writeDefCalls(Cloud, wp, call, true);
           });
-        } catch (e) { legacy = genBase.blitz_calls || null; }
+        }
 
-        const gen = Object.assign({}, genBase, { def_calls: list, blitz_calls: legacy });
-        return Cloud.saveWeekPlan(wp.id, { gen: gen }).then(function () {
-          return { ok: true, local: true, week: true, count: list.length, name: call.name };
+        return Cloud.activeWeekPlan(teamId).then(function (wp) {
+          if (!wp || !wp.id) return { ok: false, local: true, reason: "no-week" };
+          return writeDefCalls(Cloud, wp, call, false);
         });
       });
     }).catch(function (e) {
       return { ok: false, local: true, reason: (e && e.message) || "save-failed" };
+    });
+  }
+
+  function legacyBlitzFromCall(primary) {
+    const legacy = {
+      v: 1,
+      front: primary.front,
+      note: primary.note || "",
+      defs: primary.defs || [],
+      stunt: primary.stunt || {},
+      assigns: {},
+      coverage: primary.coverage || "",
+      pressure: primary.pressure || null,
+      name: primary.name || ""
+    };
+    Object.keys(primary.assigns || {}).forEach(function (k) {
+      const a = primary.assigns[k];
+      if (a && typeof a === "object" && a.resp) legacy.assigns[k] = a.resp;
+      else if (a) legacy.assigns[k] = a;
+    });
+    return legacy;
+  }
+
+  function writeDefCalls(Cloud, wp, call, preferQb) {
+    const genBase = Object.assign({}, (wp && wp.gen) || {});
+    const list = mergeDefCallList(genBase, call);
+    let legacy = null;
+    try { legacy = legacyBlitzFromCall(list[0] || call); } catch (e) { legacy = genBase.blitz_calls || null; }
+    const saveP = (preferQb && root.QB && typeof root.QB.saveDefCalls === "function")
+      ? root.QB.saveDefCalls(wp.id, list, genBase, legacy)
+      : Cloud.saveWeekPlan(wp.id, { gen: Object.assign({}, genBase, { def_calls: list, blitz_calls: legacy }) });
+    return Promise.resolve(saveP).then(function () {
+      syncWeekplanGen(wp.id, Object.assign({}, genBase, { blitz_calls: legacy }), list);
+      const teamId = wp.team_id
+        || (root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.teamId)
+        || (function () { try { return localStorage.getItem("offgrd_team"); } catch (e) { return null; } })();
+      if (!teamId) return { ok: true, local: true, week: true, count: list.length, name: call.name };
+      return Cloud.activeWeekPlan(teamId).then(function (again) {
+        const saved = again && again.gen && Array.isArray(again.gen.def_calls) ? again.gen.def_calls : null;
+        const hit = saved && saved.some(function (c) {
+          return c && (c.id === call.id || (c.name && call.name && c.name === call.name));
+        });
+        if (!hit) return { ok: false, local: true, reason: "verify-miss", count: list.length, name: call.name };
+        return { ok: true, local: true, week: true, count: list.length, name: call.name };
+      }).catch(function () {
+        return { ok: true, local: true, week: true, count: list.length, name: call.name };
+      });
     });
   }
 
@@ -324,6 +387,15 @@
     }
     if (res && res.reason === "no-team") {
       return "Defense saved locally \u2014 sign in to a program to sync to this week.";
+    }
+    if (res && res.reason === "no-cloud") {
+      return "Defense saved locally \u2014 sign in to sync to this week.";
+    }
+    if (res && res.reason === "verify-miss") {
+      return "Defense save did not stick on the week plan \u2014 try Author \u2192 Defense Save, or re-save here.";
+    }
+    if (res && res.reason && res.reason !== "save-failed") {
+      return "Defense saved locally (" + res.reason + "): " + (call && call.name ? call.name : "call");
     }
     return "Defense call saved locally: " + (call && call.name ? call.name : "call");
   }
@@ -1004,7 +1076,7 @@
       cb.checked = WZ.save;
       cb.onchange = function (e) { WZ.save = e.target.checked; };
       sv.appendChild(cb);
-      sv.appendChild(document.createTextNode(WZ.track === "defense" ? "Save defense call locally" : "Save to my playbook when finished"));
+      sv.appendChild(document.createTextNode(WZ.track === "defense" ? "Save defense call to this week (cloud)" : "Save to my playbook when finished"));
       body.appendChild(sv);
     } else if (id === "tests") {
       note(body, "Auto-seeded from what you built. Confirm to write answer keys (same pattern as Author).");
@@ -1093,9 +1165,9 @@
   function finish() {
     if (!WZ) return;
     syncMetaPartial();
-    if (!WZ.confirmed) confirmTests();
     const st = H.getState();
     if (WZ.track === "offense") {
+      if (!WZ.confirmed) confirmTests();
       if (WZ.playType === "pass" && WZ.concept) WZ.family = WZ.concept;
       if (WZ.playType === "run" && WZ.scheme) WZ.family = WZ.scheme.replace(/ (Rt|Lt)$/, "");
       if (st) {
@@ -1116,33 +1188,39 @@
       } else {
         H.msg("Play built — edit on the field or Save when ready.");
       }
-    } else {
-      if (st) {
-        st.name = WZ.name || callName();
-        st.def_call = st.def_call || buildDefCall();
-        H.set("m-name", st.name);
-        H.readMeta();
-      }
-      H.renderAll();
-      if (WZ.save) {
-        const call = (st && st.def_call) || buildDefCall();
-        if (WZ.name) call.name = WZ.name;
-        call.front = WZ.front || call.front;
-        call.coverage = WZ.cov || call.coverage;
-        call.pressure = WZ.pressure || call.pressure;
-        if (st) st.def_call = call;
-        H.msg("Saving defense call to this week\u2026");
-        persistDefCallToWeek(call).then(function (res) {
-          H.msg(defCallSaveMsg(res, call));
-        });
-      } else {
-        H.msg("Defense built — edit on the field.");
-      }
+      finishCloseUi();
+      return;
     }
+
+    /* Defense: always persist composed call into gen.def_calls (Author parity). */
+    if (st) {
+      st.name = WZ.name || callName();
+      st.def_call = st.def_call || buildDefCall();
+      H.set("m-name", st.name);
+      H.readMeta();
+    }
+    H.renderAll();
+    const call = (st && st.def_call) || buildDefCall();
+    if (WZ.name) call.name = WZ.name;
+    call.front = WZ.front || call.front;
+    call.coverage = WZ.cov || call.coverage;
+    call.pressure = WZ.pressure || call.pressure;
+    if (st) st.def_call = call;
+    WZ.confirmed = true;
+    H.msg("Saving defense call to this week\u2026");
+    persistDefCallToWeek(call).then(function (res) {
+      H.msg(defCallSaveMsg(res, call));
+      finishCloseUi();
+    });
+  }
+
+  function finishCloseUi() {
     if (skill === "guided") {
-      WZ.mode = null;
-      WZ.i = 0;
-      WZ.confirmed = false;
+      if (WZ) {
+        WZ.mode = null;
+        WZ.i = 0;
+        WZ.confirmed = false;
+      }
       render();
     } else {
       WZ = null;

@@ -366,7 +366,30 @@
     return kinds;
   }
 
-  /** Union test_spec kinds for a player at one or more positions. */
+  /** Collect emphasis weights from test_spec (Phase 5 Daily Focus). */
+  function collectEmphasis(posList, testSpec) {
+    const out = [];
+    const positions = (testSpec && testSpec.positions) || {};
+    const kw = (testSpec && testSpec.kind_weights) || {};
+    Object.keys(kw).forEach(function (k) {
+      out.push({ kind: k, weight: +kw[k] || 2, subskill: null });
+    });
+    (posList || []).forEach(function (pos) {
+      const s = positions[pos];
+      ((s && s.emphasis) || []).forEach(function (e) {
+        if (!e || !e.kind) return;
+        out.push({
+          kind: e.kind,
+          weight: +e.weight || 2,
+          subskill: e.subskill || null,
+          player_id: e.player_id || null
+        });
+      });
+    });
+    return out;
+  }
+
+  /** Union test_spec kinds for a player at one or more positions. Emphasized kinds sort first. */
   function unionSpecForPlayer(posList, testSpec) {
     posList = posList || [];
     const positions = (testSpec && testSpec.positions) || {};
@@ -389,17 +412,23 @@
       if (s.minAvg != null) minAvg = s.minAvg;
     });
     if (!kinds.length && posList.length) {
-      return {
-        kinds: kindsForPositions(posList),
-        minTests: READY_MIN_TESTS,
-        minAvg: minAvg,
-        incomplete: false,
-        missing: [],
-        positions: posList.slice()
-      };
+      kindsForPositions(posList).forEach(function (k) {
+        if (kinds.indexOf(k) < 0) kinds.push(k);
+      });
     }
+    const emphasis = collectEmphasis(posList, testSpec);
+    const weightOf = {};
+    emphasis.forEach(function (e) {
+      weightOf[e.kind] = Math.max(weightOf[e.kind] || 0, e.weight || 2);
+      if (kinds.indexOf(e.kind) < 0) kinds.push(e.kind);
+    });
+    kinds.sort(function (a, b) {
+      return (weightOf[b] || 1) - (weightOf[a] || 1);
+    });
     return {
       kinds: kinds,
+      kindWeights: weightOf,
+      emphasis: emphasis,
       minTests: READY_MIN_TESTS,
       minAvg: minAvg,
       incomplete: incomplete,
@@ -481,14 +510,28 @@
   }
 
   function quizKindFromLabel(quiz) {
-    const q = String(quiz || "");
-    if (q.indexOf("Alignment") >= 0 || q.indexOf("align") >= 0) return "align";
-    if (q.indexOf("Coverage") >= 0) return "coverage";
-    if (q.indexOf("Route") >= 0) return "routes";
-    if (q.indexOf("OL test") >= 0 || q.indexOf("protect") >= 0) return "protect";
-    if (q.indexOf("Blitz") >= 0 || q.indexOf("blitz") >= 0) return "blitz";
-    if (q.indexOf("Reads") >= 0) return "reads";
+    const q = String(quiz || "").toLowerCase();
+    /* Match offgrd.quiz_to_kind precedence so client + cloud agree. */
+    if (q.indexOf("align") >= 0) return "align";
+    if (q.indexOf("blitz") >= 0) return "blitz";
+    if (q.indexOf("route") >= 0) return "routes";
+    if (q.indexOf("ol test") >= 0 || q.indexOf("protect") >= 0 || q.indexOf("protection") >= 0) return "protect";
+    if (q.indexOf("coverage") >= 0) return "coverage";
+    if (q.indexOf("read") >= 0) return "reads";
+    if (q.indexOf("motion") >= 0) return "motion";
     return null;
+  }
+
+  function quizLabelForKind(kind, opts) {
+    opts = opts || {};
+    if (kind === "align") return "Alignment test";
+    if (kind === "coverage") return opts.defenderCoverage ? "Coverage defender test" : "Coverage ID test";
+    if (kind === "routes") return "Route quiz";
+    if (kind === "protect") return "OL test";
+    if (kind === "blitz") return "Blitz test";
+    if (kind === "motion") return "Motion test";
+    if (kind === "reads") return "Reads test";
+    return KIND_QUIZ[kind] || "Reads test";
   }
 
   function completionForPlayer(specPos, rows, weekPlanId, opponent) {
@@ -500,7 +543,7 @@
     });
     const done = {};
     mine.forEach(function (r) {
-      const k = quizKindFromLabel(r.quiz);
+      const k = (r.kind && String(r.kind)) || quizKindFromLabel(r.quiz);
       if (!k) return;
       const pct = r.total ? (r.score / r.total) * 100 : 0;
       if (!done[k] || pct > done[k].pct) done[k] = { pct: pct, row: r };
@@ -724,6 +767,7 @@
     kindBuildable: kindBuildable,
     authoredDefCallFromCtx: authoredDefCallFromCtx,
     quizKindFromLabel: quizKindFromLabel,
+    quizLabelForKind: quizLabelForKind,
     normPos: normPos,
     parseMemberPositions: parseMemberPositions,
     kindsForPositions: kindsForPositions,
