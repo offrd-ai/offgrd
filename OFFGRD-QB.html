@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v114: OUR CALL chip persists on defender reps (coverage/align/blitz) -->
+<!-- v115: OUR CALL chip contrast + resolved front/coverage; teaching line secondary -->
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=112"></script>
 <script src="supabase.js?v=31"></script>
@@ -49,10 +49,14 @@
  .btn.go{background:var(--navy);border-color:var(--navy);color:#fff}
  .field-wrap{background:#1a7a3c;border-radius:14px;overflow:hidden}
  svg#field{display:block;width:100%;height:auto;background:#1e8a44}
- .prompt{font-size:17px;font-weight:800;margin:0 0 10px;color:var(--navy)}
- .our-call-chip{display:none;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);font-size:13px;font-weight:800;color:var(--navy);line-height:1.35}
+ .prompt{font-size:17px;font-weight:800;margin:0 0 6px;color:var(--ink,#16181d)}
+ .prompt-teach{display:none;margin:0 0 10px;font-size:14px;font-weight:600;color:var(--muted,#6b7280);line-height:1.4}
+ .prompt-teach.show{display:block}
+ /* Value uses --ink (maps to --rd-text under night) — never --navy on dark panels. */
+ .our-call-chip{display:none;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);font-size:13px;font-weight:800;color:var(--ink,#e8eef7);line-height:1.35}
  .our-call-chip.show{display:block}
- .our-call-chip .k{display:inline-block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted,#6b7280);font-weight:900;margin-right:8px}
+ .our-call-chip .k{display:inline-block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted,#9AA5B4);font-weight:900;margin-right:8px}
+ .our-call-chip .v{color:var(--ink,#e8eef7);font-weight:800}
  .fb{border-radius:12px;padding:14px;margin-top:12px;font-size:15px;display:none}
  .fb.show{display:block}
  .fb.ok{background:#e8f6ee;border:1px solid #b7e0c6}
@@ -133,6 +137,7 @@
 
  <div class="panel hidden" id="playPanel">
  <p class="prompt" id="prompt"></p>
+ <p class="prompt-teach" id="promptTeach"></p>
  <div id="ourCallChip" class="our-call-chip" aria-live="polite"></div>
  <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
  <div class="chips hidden" id="covChoices" style="margin-top:10px"></div>
@@ -2721,21 +2726,44 @@ function isOurCallDefenderRep(r){
   r=r||rep;
   return !!(r&&(r.defCoverage||r.blitz||r.align));
 }
-function ourCallLabel(r){
+function ourDefCall(r){
   r=r||rep;
   const play=(r&&r.play)||{};
-  const named=(r&&r.ourCall)||play.ourCall||play.name||"";
-  if(named&&named!=="Defense") return named;
-  const front=(play.state&&play.state.front&&play.state.front!=="none")?play.state.front:"";
-  const cov=play.coverage||"";
-  const bits=[front,cov].filter(Boolean);
-  return bits.length?bits.join(" "):(named||"our call");
+  return (play&&play._defCall)||null;
+}
+/** Call name as staff would say it (may be a code word). */
+function ourCallNameOnly(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  const dc=ourDefCall(r);
+  const named=(r&&r.ourCall)||(dc&&dc.name)||play.ourCall||play.name||"";
+  return (named&&named!=="Defense")?named:"";
+}
+function ourResolvedFront(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  const dc=ourDefCall(r);
+  const front=(dc&&dc.front)||(play.state&&play.state.front)||"";
+  return (front&&front!=="none")?String(front):"";
+}
+function ourResolvedCoverage(r){
+  r=r||rep;
+  const play=(r&&r.play)||{};
+  const dc=ourDefCall(r);
+  const cov=(dc&&dc.coverage)||play.coverage||(play.ol&&play.ol.coverage)||"";
+  return cov?String(cov):"";
+}
+/** Display label: name when present, else resolved front+coverage. */
+function ourCallLabel(r){
+  const name=ourCallNameOnly(r);
+  if(name) return name;
+  const bits=[ourResolvedFront(r),ourResolvedCoverage(r)].filter(Boolean);
+  return bits.length?bits.join(" "):"our call";
 }
 function ourCoverageShort(r){
-  r=r||rep;
-  const play=(r&&r.play)||{};
-  if(play.coverage) return play.coverage;
-  const m=String(ourCallLabel(r)||"").match(/Cover\s*[0-6]|Tampa\s*2|2-Man/i);
+  const cov=ourResolvedCoverage(r);
+  if(cov) return cov;
+  const m=String(ourCallNameOnly(r)||"").match(/Cover\s*[0-6]|Tampa\s*2|2-Man/i);
   return m?m[0]:"";
 }
 function ourCallVsLabel(r){
@@ -2752,41 +2780,65 @@ function ourCallMotionLabel(r){
   const name=mot.name||mot.type||"motion";
   return rule?(name+" \u2192 "+rule):name;
 }
+/** Chip value: Name — Front · Coverage · motion (resolved from def_call, not name parsing). */
 function formatOurCallChipText(r){
-  let s="OUR CALL: "+ourCallLabel(r);
-  const vs=ourCallVsLabel(r);
+  const name=ourCallNameOnly(r)||"our call";
+  const front=ourResolvedFront(r);
+  const cov=ourResolvedCoverage(r);
   const mot=ourCallMotionLabel(r);
-  if(vs) s+=" \u00b7 vs "+vs;
-  if(mot) s+=" \u00b7 "+mot;
-  return s;
+  const resolved=[];
+  if(front) resolved.push(front);
+  if(cov) resolved.push(cov);
+  if(mot) resolved.push(mot);
+  if(!resolved.length){
+    const vs=ourCallVsLabel(r);
+    if(vs) return name+" \u00b7 vs "+vs;
+    return name;
+  }
+  return name+" \u2014 "+resolved.join(" \u00b7 ");
 }
 function setOurCallChip(r){
   const el=document.getElementById("ourCallChip");
   if(!el) return;
   if(!isOurCallDefenderRep(r)){ clearOurCallChip(); return; }
-  const full=formatOurCallChipText(r);
+  const value=formatOurCallChipText(r);
   el.innerHTML="";
   const k=document.createElement("span"); k.className="k"; k.textContent="OUR CALL";
+  const v=document.createElement("span"); v.className="v"; v.textContent=value;
   el.appendChild(k);
-  el.appendChild(document.createTextNode(full.replace(/^OUR CALL:\s*/i,"")));
+  el.appendChild(v);
   el.classList.add("show");
 }
 function clearOurCallChip(){
   const el=document.getElementById("ourCallChip");
   if(!el) return;
   el.innerHTML=""; el.classList.remove("show");
+  clearPromptTeach();
 }
-/** Keep call chip + optional teaching line; never wipe the premise. */
+function clearPromptTeach(){
+  const teach=document.getElementById("promptTeach");
+  if(!teach) return;
+  teach.textContent=""; teach.classList.remove("show");
+}
+function setPromptTeach(teachLine){
+  const teach=document.getElementById("promptTeach");
+  if(!teach) return;
+  if(teachLine){ teach.textContent=teachLine; teach.classList.add("show"); }
+  else clearPromptTeach();
+}
+/** Keep call chip + teaching as its own secondary line (never wipe the premise). */
 function setDefenderPrompt(teachLine){
   setOurCallChip(rep);
-  const call=ourCallLabel(rep);
+  const name=ourCallNameOnly(rep)||ourCallLabel(rep);
+  const cov=ourCoverageShort(rep);
   const vs=ourCallVsLabel(rep)||((rep.play&&(rep.play.oppLabel||rep.play.name))||"their look");
   const mot=ourCallMotionLabel(rep);
-  let head="vs "+vs+", our "+call;
+  const callBit=cov?(name+" ("+cov+")"):name;
+  let head="vs "+vs+", our "+callBit;
   if(mot) head+=" \u2014 "+mot;
   head+=" \u2014 you're the "+PL(rep.defLab,"def")+".";
-  if(teachLine) head+=" "+teachLine;
   document.getElementById("prompt").textContent=head;
+  setPromptTeach(teachLine||"");
 }
 
 function renderBlitzField(r){
@@ -2806,7 +2858,7 @@ function showBlitzChoices(){
  setOurCallChip(rep);
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
- const call=ourCallLabel(rep);
+ const call=ourCoverageShort(rep)||ourCallLabel(rep);
  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+call+", what's your assignment?"; cc.appendChild(lbl);
  BLITZ_OPTS.forEach(o=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=o; b.onclick=()=>answerBlitz(o); cc.appendChild(b); });
 }
@@ -2992,7 +3044,7 @@ function showAlignMc(){
   setOurCallChip(rep);
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+ourCallLabel(rep)+", pick your alignment:"; cc.appendChild(lbl);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+(ourCoverageShort(rep)||ourCallLabel(rep))+", pick your alignment:"; cc.appendChild(lbl);
   alignMcOptions(rep).forEach(function(o){
     const b=document.createElement("button"); b.className="chip"; b.textContent=o.label;
     b.onclick=function(){ answerAlignMc(o); }; cc.appendChild(b);
@@ -3002,7 +3054,7 @@ function showAlignLeverage(){
   setOurCallChip(rep);
   const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
   const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+ourCallLabel(rep)+", leverage?"; cc.appendChild(lbl);
+  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+(ourCoverageShort(rep)||ourCallLabel(rep))+", leverage?"; cc.appendChild(lbl);
   ALIGN_LEV_OPTS.forEach(function(lev){
     const b=document.createElement("button"); b.className="chip"+(rep.pickedLeverage===lev?" on":""); b.textContent=lev;
     b.onclick=function(){
