@@ -450,6 +450,14 @@
       return { accent: fb, accentText: relativeLuminance(fb) > 0.45 ? "#0E1116" : "#FFFFFF" };
     }
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    /* Achromatic team color (black / white / gray) has no real hue: rgbToHsl returns
+       h=0, and forcing saturation up below would invent a red. Use the neutral
+       fallback accent instead so black teams don't render as maroon. */
+    if (hsl.s < 0.08) {
+      /* Brand blue for achromatic (black / white / gray) teams — same accent in Day & Night. */
+      const acc = "#2F6BFF";
+      return { accent: acc, accentText: relativeLuminance(acc) > 0.45 ? "#0E1116" : "#FFFFFF" };
+    }
     const s = Math.max(hsl.s, 0.55);
     let l = hsl.l;
     /* Spec bands — ONE PASS. Never iterate lightness. */
