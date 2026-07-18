@@ -15,32 +15,101 @@ const sb = createClient ? createClient(cfg.url || "", cfg.anonKey || "", {
    project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
 const OG = sb ? sb.schema("offgrd") : null;
 
+function projectRefFromUrl(url) {
+  const m = String(url || "").match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i);
+  return m ? m[1] : "";
+}
+function projectRefFromJwt(token) {
+  try {
+    const part = String(token || "").split(".")[1];
+    if (!part || typeof atob !== "function") return "";
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64 + "===".slice((b64.length + 3) % 4);
+    const payload = JSON.parse(atob(pad));
+    if (payload && payload.ref) return String(payload.ref);
+    const iss = String((payload && payload.iss) || "");
+    const m = iss.match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i);
+    return m ? m[1] : "";
+  } catch (e) { return ""; }
+}
+/** Drop leftover auth tokens from other Supabase projects (pre-cutover fwsxg…, etc.). */
+function purgeForeignAuthTokens(expectedRef) {
+  if (!expectedRef || typeof localStorage === "undefined") return 0;
+  const keep = "sb-" + expectedRef + "-auth-token";
+  const kill = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || "";
+      if (/^sb-.*-auth-token$/.test(k) && k !== keep) kill.push(k);
+    }
+    kill.forEach(function (k) { localStorage.removeItem(k); });
+  } catch (e) {}
+  return kill.length;
+}
+const EXPECTED_REF = projectRefFromUrl(cfg.url);
+
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
   sb,
+  expectedProjectRef: EXPECTED_REF,
+  projectRefFromJwt,
+  purgeForeignAuthTokens: function () { return purgeForeignAuthTokens(EXPECTED_REF); },
 
   /* ---------- auth ---------- */
   /**
    * Cross-origin SSO hand-off (offops.app → getoffrd.com).
    * Reads #at= & #rt= from the hash fragment, setSession, then strips the hash.
-   * Call once, early, before any session()/onUser boot.
+   * Fail-safe: wrong-project / failed setSession NEVER clears an existing valid session.
    */
   async consumeAuthHandOff() {
     if (!sb || typeof location === "undefined") return false;
+    const raw = (location.hash || "").replace(/^#/, "");
+    if (!raw) return false;
+    const h = new URLSearchParams(raw);
+    const at = h.get("at");
+    const rt = h.get("rt");
+    /* Always strip tokens from the URL so they never linger in history/Referer. */
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    if (!at || !rt) return false;
+
+    purgeForeignAuthTokens(EXPECTED_REF);
+
+    /* Reject tokens issued for a different Supabase project before touching auth state. */
+    if (EXPECTED_REF) {
+      const tokenRef = projectRefFromJwt(at);
+      if (tokenRef && tokenRef !== EXPECTED_REF) {
+        try { console.warn("[OFFGRD SSO] hand-off ignored: token project", tokenRef, "!=", EXPECTED_REF); } catch (e) {}
+        return false;
+      }
+    }
+
+    let prior = null;
     try {
-      const raw = (location.hash || "").replace(/^#/, "");
-      if (!raw) return false;
-      const h = new URLSearchParams(raw);
-      const at = h.get("at");
-      const rt = h.get("rt");
-      if (!at || !rt) return false;
-      const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
-      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-      return !error;
+      const cur = await sb.auth.getSession();
+      prior = cur && cur.data && cur.data.session ? cur.data.session : null;
+    } catch (e) { prior = null; }
+
+    try {
+      const { data, error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+      if (error || !(data && data.session)) {
+        if (prior && prior.access_token && prior.refresh_token) {
+          try { await sb.auth.setSession({ access_token: prior.access_token, refresh_token: prior.refresh_token }); } catch (e2) {}
+        }
+        return false;
+      }
+      return true;
     } catch (e) {
-      try { history.replaceState(null, "", location.pathname + location.search); } catch (e2) {}
+      if (prior && prior.access_token && prior.refresh_token) {
+        try { await sb.auth.setSession({ access_token: prior.access_token, refresh_token: prior.refresh_token }); } catch (e2) {}
+      }
       return false;
     }
+  },
+  /** True when a session's access token matches this client's project ref. */
+  sessionMatchesProject(session) {
+    if (!session || !session.access_token || !EXPECTED_REF) return !!session;
+    const ref = projectRefFromJwt(session.access_token);
+    return !ref || ref === EXPECTED_REF;
   },
   async signUp(email, password, fullName) {
     return sb.auth.signUp({ email, password, options: { data: { full_name: fullName || "" } } });

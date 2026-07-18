@@ -46,9 +46,21 @@
     } catch (e) {}
   }
 
-  /** Sync heuristic: a persisted Supabase session token exists. */
+  /** Sync heuristic: a persisted Supabase session token exists for THIS project only. */
   function hasLikelySession() {
     try {
+      var expected = "";
+      try {
+        var cfg = window.OFFGRD_CONFIG || {};
+        var m = String(cfg.url || "").match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i);
+        if (m) expected = m[1];
+      } catch (e) {}
+      var prefer = expected ? ("sb-" + expected + "-auth-token") : "";
+      if (prefer) {
+        var pv = localStorage.getItem(prefer);
+        if (pv && pv.length > 20) return true;
+        return false;
+      }
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i) || "";
         if (/^sb-.*-auth-token$/.test(k)) {

@@ -68,9 +68,9 @@
  #wizDock .wizDockNav{display:flex;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
 
 </style>
-<script src="OFFGRD-config.js?v=110"></script>
+<script src="OFFGRD-config.js?v=111"></script>
 <script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=97"></script>
+<script src="OFFGRD-cache-gate.js?v=111"></script>
 <script src="OFFGRD-render.js?v=108"></script>
 <script src="OFFGRD-pos-glossary.js?v=107"></script>
 <script src="OFFGRD-autoderive.js?v=105"></script>
@@ -1118,7 +1118,7 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-account.js?v=110"></script>
+<script type="module" src="OFFGRD-account.js?v=111"></script>
 <script src="OFFGRD-role-gate.js?v=97"></script>
 <script src="OFFGRD-mobile.js?v=97"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
