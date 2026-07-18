@@ -450,14 +450,6 @@
       return { accent: fb, accentText: relativeLuminance(fb) > 0.45 ? "#0E1116" : "#FFFFFF" };
     }
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    /* Achromatic team color (black / white / gray) has no real hue: rgbToHsl returns
-       h=0, and forcing saturation up below would invent a red. Use the neutral
-       fallback accent instead so black teams don't render as maroon. */
-    if (hsl.s < 0.08) {
-      /* Brand blue for achromatic (black / white / gray) teams — same accent in Day & Night. */
-      const acc = "#2F6BFF";
-      return { accent: acc, accentText: relativeLuminance(acc) > 0.45 ? "#0E1116" : "#FFFFFF" };
-    }
     const s = Math.max(hsl.s, 0.55);
     let l = hsl.l;
     /* Spec bands — ONE PASS. Never iterate lightness. */
@@ -548,6 +540,25 @@
       'html.rd-on.rd-player #rdPhases{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:6px;padding:8px 12px;width:100%;}',
       'html.rd-on.rd-player #rdPhases .rd-phase{flex:0 0 auto;padding:8px 12px;font-size:13px;}',
       'html.rd-on.rd-player #rdPhases a.rd-phase{text-decoration:none;display:inline-flex;align-items:center;}',
+      /* Phones: player nav = thumb-reachable bottom tab bar (not a vertical rail). */
+      '@media (max-width:600px){',
+      'html.rd-on.rd-player #rdNavBody{flex-direction:column!important;}',
+      'html.rd-on.rd-player #rdPhases{',
+      'flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;',
+      'align-items:stretch;gap:2px!important;width:auto!important;flex:none!important;',
+      'position:fixed!important;left:0;right:0;bottom:0;top:auto;',
+      'padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))!important;',
+      'border-right:0!important;border-top:1px solid var(--rd-border);',
+      'background:var(--rd-surface);z-index:45;box-shadow:0 -6px 20px rgba(0,0,0,.12);',
+      '}',
+      'html.rd-on.rd-player #rdPhases .rd-phase{',
+      'flex:1 1 0;min-width:0;min-height:48px;padding:6px 2px!important;font-size:10px!important;',
+      'text-align:center;justify-content:center;align-items:center;display:inline-flex;',
+      'line-height:1.15;white-space:normal;border-radius:10px;',
+      '}',
+      'html.rd-on.rd-player #rdPhases a.rd-phase{justify-content:center;}',
+      'html.rd-on.rd-player body{padding-bottom:72px!important;}',
+      '}',
       '#rdContext{display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap;',
       'min-height:52px;}',
       '#rdMark{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit;font-weight:500;font-size:15px;}',

@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v116: snap anim token transforms + ungated answer options -->
+<!-- v117: player polish — glyphs, pre-snap hint, sticky options -->
 <link rel="icon" href="icon.svg">
 <script src="OFFGRD-config.js?v=112"></script>
 <script src="supabase.js?v=31"></script>
@@ -25,7 +25,7 @@
 <script src="OFFGRD-render.js?v=116"></script>
 <script src="OFFGRD-pos-glossary.js?v=107"></script>
 <script src="OFFGRD-autoderive.js?v=100"></script>
-<script src="OFFGRD-redesign.js?v=100"></script>
+<script src="OFFGRD-redesign.js?v=117"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
@@ -52,6 +52,23 @@
  .prompt{font-size:17px;font-weight:800;margin:0 0 6px;color:var(--ink,#16181d)}
  .prompt-teach{display:none;margin:0 0 10px;font-size:14px;font-weight:600;color:var(--muted,#6b7280);line-height:1.4}
  .prompt-teach.show{display:block}
+ .prompt-hint{display:none;margin:0 0 10px;font-size:14px;font-weight:600;color:var(--muted,#6b7280);line-height:1.4}
+ .prompt-hint.show{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
+ .prompt-hint button{appearance:none;border:0;background:transparent;color:var(--muted);font-size:16px;font-weight:800;cursor:pointer;padding:0 4px;line-height:1}
+ /* Phone: keep prompt + field + answers usable without scrolling (390×844). */
+ @media (max-width:600px){
+  #playPanel:not(.hidden){padding-bottom:8px}
+  #playPanel .field-wrap{max-height:45vh}
+  #playPanel svg#field{max-height:45vh}
+  #playPanel .pw-answer-dock{
+   position:sticky;bottom:0;z-index:6;margin-top:8px;padding:8px 0 4px;
+   background:linear-gradient(180deg,rgba(255,255,255,0),#fff 18%);
+  }
+  html.rd-on #playPanel .pw-answer-dock{background:linear-gradient(180deg,transparent,var(--panel,#fff) 18%)}
+  #playPanel #covChoices{margin-top:0!important}
+  #playPanel #covChoices .chip{min-height:44px;padding:10px 14px;font-size:14px}
+  #playPanel .pw-answer-dock .row{margin-top:8px!important}
+ }
  /* Value uses --ink (maps to --rd-text under night) — never --navy on dark panels. */
  .our-call-chip{display:none;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);font-size:13px;font-weight:800;color:var(--ink,#e8eef7);line-height:1.35}
  .our-call-chip.show{display:block}
@@ -78,7 +95,7 @@
 <div class="wrap">
  <div class="topbar">
  <a href="OFFGRD.html" title="OFFGRD — back to home" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:30px;height:30px;border-radius:7px"><b>OFF<span style="color:var(--carolina)">GRD</span></b></a><span class="tag">— Reps Lab</span>
- <a class="btn go" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px;padding:6px 12px;font-size:13px">? OFFGRD</a>
+ <a class="btn go" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px;padding:6px 12px;font-size:13px">← OFFGRD</a>
  <a class="btn" href="OFFGRD-Playbook.html" style="text-decoration:none;padding:6px 12px;font-size:13px">Playbook</a>
  <span style="flex:1"></span>
  <span id="acct"></span>
@@ -138,18 +155,21 @@
  <div class="panel hidden" id="playPanel">
  <p class="prompt" id="prompt"></p>
  <p class="prompt-teach" id="promptTeach"></p>
+ <p class="prompt-hint" id="promptHint" role="note"><span>Tap Snap to see the play, then pick your answer.</span><button type="button" id="promptHintDismiss" aria-label="Dismiss hint">×</button></p>
  <div id="ourCallChip" class="our-call-chip" aria-live="polite"></div>
  <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
+ <div class="pw-answer-dock">
  <div class="chips hidden" id="covChoices" style="margin-top:10px"></div>
  <div class="fb" id="fb"></div>
  <div class="row" style="margin-top:12px;justify-content:space-between">
  <span class="score" id="progressLbl"></span>
  <span class="row">
- <button class="btn go" id="snapBtn">? Snap</button>
- <button class="btn hidden" id="replayBtn">? Replay</button>
+ <button class="btn go" id="snapBtn">▶ Snap</button>
+ <button class="btn hidden" id="replayBtn">↻ Replay</button>
  <button class="btn" id="quitBtn">End</button>
- <button class="btn go hidden" id="nextBtn">Next ?</button>
+ <button class="btn go hidden" id="nextBtn">Next →</button>
  </span>
+ </div>
  </div>
  </div>
 
@@ -2290,9 +2310,10 @@ function answerOl(sel){
  if(rep.postKey && olHasStunts(rep.play.state, rep.play.ol&&rep.play.ol.stunt)){
  OLPHASE="await-snap";
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"? Pre-snap: right man":"? Pre-snap: not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ? Snap — read the stunt and pick up your new man.</div>";
+ fb.innerHTML="<h4>"+(correct?"✓ Pre-snap: right man":"✗ Pre-snap: not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ▶ Snap — read the stunt and pick up your new man.</div>";
  document.getElementById("snapBtn").classList.remove("hidden");
- document.getElementById("prompt").textContent=rep.blocker+" — ? Snap to see the front move.";
+ document.getElementById("prompt").textContent=rep.blocker+" — ▶ Snap to see the front move.";
+ syncPresnapHint(true);
  } else {
  OLPHASE="done"; finalizeOl(correct, {}, job);
  }
@@ -2308,10 +2329,10 @@ function finalizeOl(overallCorrect, post, job){
  const fb=document.getElementById("fb"); fb.className="fb show "+(overallCorrect?"ok":"bad");
  let head, detail="";
  if(single){
- head=(overallCorrect?"? Correct":"? Not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
+ head=(overallCorrect?"✓ Correct":"✗ Not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
  } else {
- head=(overallCorrect?"? Correct":"? Missed the assignment")+" — "+esc(PL(rep.blocker,"off"));
- detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"?":"?")+" ("+esc(rep._pre?rep._pre.answer:"")+") — After stunt: "+(post.postCorrect?"?":"?")+" ("+esc(post.postAnswer)+")";
+ head=(overallCorrect?"✓ Correct":"✗ Missed the assignment")+" — "+esc(PL(rep.blocker,"off"));
+ detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"✓":"✗")+" ("+esc(rep._pre?rep._pre.answer:"")+") — After stunt: "+(post.postCorrect?"✓":"✗")+" ("+esc(post.postAnswer)+")";
  }
  fb.innerHTML="<h4>"+head+"</h4>"
  +(detail?("<div>"+detail+"</div>"):"")
@@ -2857,6 +2878,36 @@ function setPromptTeach(teachLine){
   if(teachLine){ teach.textContent=teachLine; teach.classList.add("show"); }
   else clearPromptTeach();
 }
+/* First-timer pre-snap hint — show ~3 reps or until dismissed. */
+const PRESNAP_HINT_KEY="offgrd_presnap_hint_v1";
+function readPresnapHintState(){
+  try{ return JSON.parse(localStorage.getItem(PRESNAP_HINT_KEY)||"{}")||{}; }catch(e){ return {}; }
+}
+function writePresnapHintState(st){
+  try{ localStorage.setItem(PRESNAP_HINT_KEY, JSON.stringify(st||{})); }catch(e){}
+}
+function shouldShowPresnapHint(){
+  const st=readPresnapHintState();
+  if(st.dismissed) return false;
+  return (st.reps||0)<3;
+}
+function dismissPresnapHint(){
+  writePresnapHintState({dismissed:true, reps:(readPresnapHintState().reps||0)});
+  syncPresnapHint(false);
+}
+function bumpPresnapHint(){
+  const st=readPresnapHintState();
+  if(st.dismissed) return;
+  st.reps=(st.reps||0)+1;
+  if(st.reps>=3) st.dismissed=true;
+  writePresnapHintState(st);
+}
+function syncPresnapHint(want){
+  const el=document.getElementById("promptHint");
+  if(!el) return;
+  const on=!!want && shouldShowPresnapHint();
+  el.classList.toggle("show", on);
+}
 /** Keep call chip + teaching as its own secondary line (never wipe the premise). */
 function setDefenderPrompt(teachLine){
   setOurCallChip(rep);
@@ -3181,6 +3232,7 @@ function showRep(r){
  document.getElementById("nextBtn").classList.add("hidden");
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("replayBtn").classList.add("hidden");
+ syncPresnapHint(false);
  return;
  }
  if(r.routes){
@@ -3193,6 +3245,7 @@ function showRep(r){
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("replayBtn").classList.add("hidden");
  const cc0=document.getElementById("covChoices"); cc0.classList.add("hidden"); cc0.innerHTML="";
+ syncPresnapHint(false);
  return;
  }
  if(r.blitz){
@@ -3204,6 +3257,7 @@ function showRep(r){
  document.getElementById("snapBtn").classList.remove("hidden");
  document.getElementById("replayBtn").classList.add("hidden");
  const ccb=document.getElementById("covChoices"); ccb.classList.add("hidden"); ccb.innerHTML="";
+ syncPresnapHint(true);
  return;
  }
  if(r.align){
@@ -3228,6 +3282,7 @@ function showRep(r){
    cca.classList.remove("hidden");
    const tip=document.createElement("span"); tip.className="tag"; tip.style.alignSelf="center"; tip.textContent="Tap the field where you'd line up."; cca.appendChild(tip);
  }
+ syncPresnapHint(false);
  return;
  }
  if(r.defCoverage){
@@ -3239,6 +3294,7 @@ function showRep(r){
    document.getElementById("snapBtn").classList.remove("hidden");
    document.getElementById("replayBtn").classList.add("hidden");
    const ccc=document.getElementById("covChoices"); ccc.classList.add("hidden"); ccc.innerHTML="";
+   syncPresnapHint(true);
    return;
  }
  /* Coverage ID / reads — withhold opponent coverage; never show OUR CALL chip. */
@@ -3261,12 +3317,14 @@ function showRep(r){
  document.getElementById("snapBtn").classList.remove("hidden");
  document.getElementById("replayBtn").classList.add("hidden");
  const cc=document.getElementById("covChoices"); cc.classList.add("hidden"); cc.innerHTML="";
+ syncPresnapHint(true);
 }
 function snapPlay(){
- if(isOlTest()){ olSnap(); return; }
- if(isBlitzTest()){ blitzSnap(); return; }
- if(isDefCoverageTest()){ defCoverageSnap(); return; }
+ if(isOlTest()){ bumpPresnapHint(); syncPresnapHint(false); olSnap(); return; }
+ if(isBlitzTest()){ bumpPresnapHint(); syncPresnapHint(false); blitzSnap(); return; }
+ if(isDefCoverageTest()){ bumpPresnapHint(); syncPresnapHint(false); defCoverageSnap(); return; }
  if(!SCENE || SNAPPED) return; SNAPPED=true;
+ bumpPresnapHint(); syncPresnapHint(false);
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("replayBtn").classList.remove("hidden");
  if(isCovTest()) showCovChoices();
@@ -3300,7 +3358,7 @@ function answer(lab){
  if(MODE==="train"){
  const fb=document.getElementById("fb");
  fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML=`<h4>${correct?"? Correct":"? Not the best read"} — throw the <b>${ansTxt}</b></h4>`+
+ fb.innerHTML=`<h4>${correct?"✓ Correct":"✗ Not the best read"} — throw the <b>${ansTxt}</b></h4>`+
  `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
  (alts.length?`<div class="prog">Mirrored concept — either side is a correct throw.</div>`:"")+
  (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" ? ")}</div>`:"")+
@@ -3650,6 +3708,7 @@ function init(){
  document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ swap("setup"); showGuide("No reps match your filters","Enable at least one concept and coverage, or switch Source to Built-in if your program plays aren\u2019t authored yet.",'<button type="button" class="btn" id="guideEnableAll">Enable all concepts</button>'); const ea=document.getElementById("guideEnableAll"); if(ea) ea.onclick=()=>{ hideGuide(); rebuildPool(); enabledCoverages.clear(); COVERAGES.forEach(c=>enabledCoverages.add(c)); buildChips(); }; return; } hideGuide(); swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode — read the defense, snap, then tap where the ball should go."; };
  document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
  document.getElementById("snapBtn").onclick=snapPlay;
+ const phd=document.getElementById("promptHintDismiss"); if(phd) phd.onclick=dismissPresnapHint;
  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>b.onclick=()=>selectKind(b.dataset.kind));
  buildPosFilter();
  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); return; } if(SCENE&&SCENE.unified){ animateUnified(); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
@@ -3668,7 +3727,7 @@ init();
 <script type="module" src="OFFGRD-qb-cloud.js?v=113"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
 <script type="module" src="OFFGRD-account.js?v=113"></script>
-<script src="OFFGRD-role-gate.js?v=100"></script>
+<script src="OFFGRD-role-gate.js?v=117"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

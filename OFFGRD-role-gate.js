@@ -38,10 +38,16 @@
     return "margin:0 0 4px;color:var(--ink);"+ (extra || "");
   }
   function rdCalloutCss(){
-    return "background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5";
+    return "background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:16px;line-height:1.5";
   }
   function rdStripCss(){
     return "background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;color:var(--ink)";
+  }
+  function rdBodyCss(){
+    return "font-size:16px;line-height:1.55;color:var(--ink)";
+  }
+  function rdPosAccordCss(){
+    return "margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel,#fff);padding:0 12px 10px;color:var(--ink)";
   }
   function rdMutedCss(){
     return "color:var(--muted)";
@@ -218,14 +224,16 @@
     var stLabel = comp.status === "passed" ? "Ready" : (comp.status === "started" ? "In progress" : "Not started");
     var stCol = comp.status === "passed" ? "#1d7a45" : (comp.status === "started" ? "#b8860b" : "#7a8494");
     var posLabel = positions.join(" + ");
+    var cta = "Start this week's test · "+comp.passed+"/"+comp.assigned+" passed";
     return '<div style="'+rdStripCss()+'">'
       +'<div style="font-size:11px;font-weight:800;'+rdMutedCss()+';text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(posLabel)+'</div>'
       +'<div style="margin-top:6px">'+chips+'</div>'
-      +'<div style="margin-top:8px;font-size:13px"><b style="color:'+stCol+'">'+esc(stLabel)+'</b>'
+      +'<div style="margin-top:8px;font-size:16px"><b style="color:'+stCol+'">'+esc(stLabel)+'</b>'
       +' · '+comp.passed+'/'+comp.assigned+' passed'
       +(spec.incomplete ? ' <span class="foot" style="color:#b8860b"> · some drills need coach keys</span>' : "")
       +'</div>'
-      +'<p class="foot" style="margin:8px 0 0"><a href="OFFGRD-QB.html" style="font-weight:800;color:var(--ink)">Open Testing →</a></p>'
+      +'<a href="OFFGRD-QB.html" class="btn go pw-week-cta" style="display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:48px;margin-top:12px;padding:14px 16px;border-radius:12px;font-weight:800;font-size:16px;text-decoration:none;text-align:center;background:var(--navy,#13294B);border:1px solid var(--navy,#13294B);color:#fff">'
+      +esc(cta)+'</a>'
       +'</div>';
   }
 
@@ -242,15 +250,15 @@
     if(!posNote && g.defense && g.defense.positions) posNote = lookupPosNote(g.defense.positions, pos);
     var h = "";
     if(posNote && String(posNote).trim()){
-      h += '<div style="margin-top:12px"><div class="lbl">Your job this week'+(pos ? (' · '+esc(pos)) : "")+'</div>'
+      h += '<div style="margin-top:10px"><div class="lbl">Your job this week</div>'
         +'<div style="'+rdCalloutCss()+'">'
         +esc(posNote)+'</div></div>';
     }
     var keys = filterKeys(src.keys, pos, side);
     if(keys.length){
-      h += '<div style="margin-top:12px"><div class="lbl">Keys'+(pos ? (' · '+esc(pos)) : "")+'</div>';
+      h += '<div style="margin-top:10px"><div class="lbl">Keys</div>';
       keys.slice(0, 5).forEach(function(k, i){
-        h += '<div style="font-weight:700;font-size:14px;margin:2px 0;color:var(--ink)">'+(i+1)+'. '+esc(k)+'</div>';
+        h += '<div style="font-weight:700;'+rdBodyCss()+';margin:4px 0">'+(i+1)+'. '+esc(k)+'</div>';
       });
       h += '</div>';
     }
@@ -263,21 +271,21 @@
     if(pos === "QB" || pos === "RB" || pos === "LB" || pos === "DB"){
       var covs = coverageList(wp);
       if(covs.length){
-        h += '<div style="margin-top:12px"><div class="lbl">'+(isDefPos(pos) ? "Coverages to play" : "Coverages they show")+'</div>'
-          +'<p style="margin:4px 0 0;font-size:14px;font-weight:700">'+covs.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
+        h += '<div style="margin-top:10px"><div class="lbl">'+(isDefPos(pos) ? "Coverages to play" : "Coverages they show")+'</div>'
+          +'<p style="margin:4px 0 0;'+rdBodyCss()+';font-weight:700">'+covs.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
       }
     }
     if(isOlPos(pos)){
       var fronts = frontList(wp);
       if(fronts.length){
-        h += '<div style="margin-top:12px"><div class="lbl">Fronts this week</div>'
-          +'<p style="margin:4px 0 0;font-size:14px;font-weight:700">'+fronts.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
+        h += '<div style="margin-top:10px"><div class="lbl">Fronts this week</div>'
+          +'<p style="margin:4px 0 0;'+rdBodyCss()+';font-weight:700">'+fronts.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
       }
       if(g.ol && typeof g.ol === "object" && Object.keys(g.ol).length){
-        h += '<div style="margin-top:12px"><div class="lbl">Your protections</div>';
+        h += '<div style="margin-top:10px"><div class="lbl">Your protections</div>';
         Object.keys(g.ol).forEach(function(nm){
           var o = g.ol[nm] || {};
-          h += '<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front ? (" vs "+esc(o.front)) : "")+'</b> — '+esc(o.why || "")
+          h += '<div style="'+rdBodyCss()+';margin:6px 0"><b>'+esc(nm)+(o.front ? (" vs "+esc(o.front)) : "")+'</b> — '+esc(o.why || "")
             +(o.coaching ? ' <span class="foot">'+esc(o.coaching)+'</span>' : "")+'</div>';
         });
         h += '</div>';
@@ -286,28 +294,28 @@
     if(pos === "QB" && g.plays && typeof g.plays === "object"){
       var mine = playsForPos(unique, pos, g);
       var shown = 0;
-      h += '<div style="margin-top:12px"><div class="lbl">Your reads / why these calls</div>';
+      h += '<div style="margin-top:10px"><div class="lbl">Your reads / why these calls</div>';
       mine.forEach(function(u){
         var p = g.plays[u.name];
         if(!p) return;
         shown++;
-        h += '<div style="font-size:13px;margin:4px 0"><b>'+esc(u.name)+'</b> — '+esc(p.why || "")
+        h += '<div style="'+rdBodyCss()+';margin:6px 0"><b>'+esc(u.name)+'</b> — '+esc(p.why || "")
           +(p.coaching ? ' <span class="foot">'+esc(p.coaching)+'</span>' : "")+'</div>';
       });
-      if(!shown) h += '<p class="foot">Open Testing for coverage ID + reads drills.</p>';
+      if(!shown) h += '<p class="foot" style="font-size:16px">Open Testing for coverage ID + reads drills.</p>';
       h += '</div>';
     }
     if((pos === "WR" || pos === "TE" || pos === "RB" || pos === "FB") && g.plays && typeof g.plays === "object"){
       var skill = playsForPos(unique, pos, g);
       var n = 0;
-      h += '<div style="margin-top:12px"><div class="lbl">Concepts you\'re in</div>';
+      h += '<div style="margin-top:10px"><div class="lbl">Concepts you\'re in</div>';
       skill.forEach(function(u){
         var p = g.plays[u.name];
         if(!p) return;
         n++;
-        h += '<div style="font-size:13px;margin:4px 0"><b>'+esc(u.name)+'</b> — '+esc(p.why || p.coaching || "Run your route; know the concept.")+'</div>';
+        h += '<div style="'+rdBodyCss()+';margin:6px 0"><b>'+esc(u.name)+'</b> — '+esc(p.why || p.coaching || "Run your route; know the concept.")+'</div>';
       });
-      if(!n) h += '<p class="foot">See Plays to know below, then drill routes in Testing.</p>';
+      if(!n) h += '<p class="foot" style="font-size:16px">See Plays to know below, then drill routes in Testing.</p>';
       h += '</div>';
     }
     if(isDefPos(pos)){
@@ -315,11 +323,11 @@
       if(d.situations && typeof d.situations === "object"){
         var sitKeys = Object.keys(d.situations).slice(0, 4);
         if(sitKeys.length){
-          h += '<div style="margin-top:12px"><div class="lbl">Situation answers</div>';
+          h += '<details style="margin-top:10px"><summary class="lbl" style="cursor:pointer;list-style:none;font-weight:800">Situation answers</summary>';
           sitKeys.forEach(function(nm){
-            if(d.situations[nm]) h += '<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(d.situations[nm])+'</div>';
+            if(d.situations[nm]) h += '<div style="'+rdBodyCss()+';margin:6px 0"><b>'+esc(nm)+'</b> — '+esc(d.situations[nm])+'</div>';
           });
-          h += '</div>';
+          h += '</details>';
         }
       }
     }
@@ -330,14 +338,14 @@
     positions = positions || [];
     if(!positions.length || positions.every(isDefPos)) return "";
     if(!unique || !unique.length) return "";
-    var h = '<div style="margin-top:12px"><div class="lbl">Plays to know</div><ul style="margin:6px 0 0;padding-left:18px">';
+    var h = '<div style="margin-top:12px"><div class="lbl">Plays to know</div><ul style="margin:6px 0 0;padding-left:18px;'+rdBodyCss()+'">';
     unique.forEach(function(u){
       var tag = u.situations && u.situations.length
         ? (' <span class="foot">· '+esc(u.situations.slice(0, 3).join(", "))+(u.situations.length > 3 ? "…" : "")+'</span>')
         : "";
-      h += '<li><b>'+esc(u.name)+'</b>'+tag+'</li>';
+      h += '<li style="margin:4px 0"><b>'+esc(u.name)+'</b>'+tag+'</li>';
     });
-    h += '</ul><p class="foot" style="margin:6px 0 0">'+unique.length+' unique play'+(unique.length === 1 ? "" : "s")+'</p></div>';
+    h += '</ul><p class="foot" style="margin:6px 0 0;font-size:16px">'+unique.length+' unique play'+(unique.length === 1 ? "" : "s")+'</p></div>';
     return h;
   }
 
@@ -387,11 +395,20 @@
       h += renderAssignedStripHtml(wp, positions, rows);
 
       if(wp.gen){
-        positions.forEach(function(pos){
-          h += renderPlayerNoteHtml(wp, pos);
-          h += renderPosTeachingHtml(wp, pos, allUnique);
-        });
-        if(!positions.length) h += renderPlayerNoteHtml(wp, "");
+        if(positions.length){
+          positions.forEach(function(pos, idx){
+            var open = idx === 0 ? " open" : "";
+            h += '<details class="pw-pos"'+open+' style="'+rdPosAccordCss()+'">'
+              +'<summary style="cursor:pointer;font-weight:800;font-size:16px;padding:12px 0;list-style:none;color:var(--ink)">'
+              +esc(pos)+(idx === 0 ? ' <span class="foot" style="font-weight:600">· primary</span>' : "")
+              +'</summary>'
+              + renderPlayerNoteHtml(wp, pos)
+              + renderPosTeachingHtml(wp, pos, allUnique)
+              +'</details>';
+          });
+        } else {
+          h += renderPlayerNoteHtml(wp, "");
+        }
       }
 
       if(wp.buckets && wp.buckets.length){
