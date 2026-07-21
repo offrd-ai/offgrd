@@ -116,4 +116,40 @@ const rates = O.liveRates(folded.log);
 if (rates.pending !== 1) throw new Error("rates.pending");
 if (rates.successRate !== 1) throw new Error("drop counts as concept success in rate");
 
-console.log("OK caller outcome model + fold + pending + learning");
+/* 9) Infer next situation */
+const adv = O.inferNextSituation(
+  { dn: 1, db: "10+", hash: "L", zone: "ANY" },
+  O.finalizeOutcome({ result: "explosive" }, { dn: 1, db: "10+" })
+);
+/* explosive 18 on 1st&10 → first down */
+if (!adv.inferred || adv.dn !== 1 || adv.db !== "10+") {
+  throw new Error("explosive on 1st&10 should first-down infer " + JSON.stringify(adv));
+}
+const advSolid = O.inferNextSituation(
+  { dn: 1, db: "10+", hash: "L", zone: "ANY" },
+  O.finalizeOutcome({ result: "solid" }, { dn: 1, db: "10+" })
+);
+/* solid gain 6 → 2nd & 6 → db 4-6 */
+if (!advSolid.inferred || advSolid.dn !== 2 || advSolid.db !== "4-6") {
+  throw new Error("solid advance want 2nd&4-6 got " + JSON.stringify(advSolid));
+}
+const adv2 = O.inferNextSituation(
+  { dn: 1, db: "10+", hash: "L", zone: "ANY" },
+  O.finalizeOutcome({ result: "short" }, { dn: 1, db: "10+" })
+);
+/* short gain 2 → 2nd & 10 → db 10+ */
+if (!adv2.inferred || adv2.dn !== 2 || adv2.db !== "10+") {
+  throw new Error("short advance want 2nd&10+ got " + JSON.stringify(adv2));
+}
+const noPen = O.inferNextSituation(
+  { dn: 1, db: "10+" },
+  O.finalizeOutcome({ result: "explosive", flag: "pen_us" }, { dn: 1, db: "10+" })
+);
+if (!noPen.needsInput || noPen.inferred) throw new Error("penalty must not infer");
+const noTo = O.inferNextSituation(
+  { dn: 2, db: "4-6" },
+  O.finalizeOutcome({ result: "turnover" }, { dn: 2, db: "4-6" })
+);
+if (!noTo.needsInput) throw new Error("turnover must need input");
+
+console.log("OK caller outcome model + fold + pending + learning + infer");

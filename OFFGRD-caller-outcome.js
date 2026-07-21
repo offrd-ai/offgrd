@@ -228,6 +228,59 @@
     return parts.join(" — ");
   }
 
+  function yardsToDb(yardsToGo) {
+    var y = Math.max(1, Math.ceil(+yardsToGo || 1));
+    if (y <= 3) return "1-3";
+    if (y <= 6) return "4-6";
+    if (y <= 9) return "7-9";
+    return "10+";
+  }
+
+  /**
+   * Suggest next down/distance after a graded call.
+   * Turnovers / negated penalties / TD / turnover-on-downs → no infer, needsInput.
+   */
+  function inferNextSituation(sit, outcome) {
+    sit = sit || {};
+    outcome = outcome || {};
+    if (!outcome.result) return { skip: true, reason: "ungraded" };
+    if (outcome.result === "turnover") {
+      return { skip: true, needsInput: true, reason: "turnover" };
+    }
+    if (outcome.negated || isPenaltyFlag(outcome.flag)) {
+      return { skip: true, needsInput: true, reason: "penalty" };
+    }
+    if (outcome.result === "td") {
+      return { skip: true, needsInput: true, reason: "td" };
+    }
+    var gain = outcome.gain;
+    if (gain == null || isNaN(+gain)) return { skip: true, reason: "no_gain" };
+    gain = +gain;
+    var dist = dbToNum(sit.db);
+    if (dist == null) dist = 10;
+    var dn = +sit.dn || 1;
+    var hash = sit.hash != null ? sit.hash : "ANY";
+    var zone = sit.zone != null ? sit.zone : "ANY";
+
+    if (gain >= dist) {
+      return { dn: 1, db: "10+", hash: hash, zone: zone, inferred: true, reason: "first_down" };
+    }
+    var left = dist - gain;
+    if (left < 1) left = 1;
+    var nextDn = dn + 1;
+    if (nextDn > 4) {
+      return { skip: true, needsInput: true, reason: "turnover_on_downs" };
+    }
+    return {
+      dn: nextDn,
+      db: yardsToDb(left),
+      hash: hash,
+      zone: zone,
+      inferred: true,
+      reason: "advance",
+    };
+  }
+
   function liveRates(log) {
     log = log || [];
     var graded = log.filter(isGraded);
@@ -271,5 +324,7 @@
     comebackEntries: comebackEntries,
     comebackReason: comebackReason,
     liveRates: liveRates,
+    yardsToDb: yardsToDb,
+    inferNextSituation: inferNextSituation,
   };
 })(typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this);

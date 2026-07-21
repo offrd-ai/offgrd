@@ -151,13 +151,46 @@
       }
       /* observation = front/pressure about the snap; correction may also carry those fields.
        * Precedence: explicit beats carried regardless of timestamp; LWW only among equals.
-       * Protects a human amend from a later offline sticky-carry sync. */
+       * Protects a human amend from a later offline sticky-carry sync.
+       * correction also LWW-patches call situation/play (dn/db/hash/zone/play) — never mutates events. */
       if (e.type === "observation" || e.type === "correction") {
-        slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, undone: false };
-        if (e.type === "correction" && e.payload && e.payload.result !== undefined) {
-          slot.outcome = e; /* outcome-style correction still LWW-grades */
-        }
+        slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
+        if (e.type === "correction") {
+          var sitKeys = ["dn", "db", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType"];
+          var hasSit = false;
+          var sk;
+          for (sk = 0; sk < sitKeys.length; sk++) {
+            if (pl[sitKeys[sk]] !== undefined) {
+              hasSit = true;
+              break;
+            }
+          }
+          if (hasSit) {
+            slot.sitPatch = slot.sitPatch || {};
+            for (sk = 0; sk < sitKeys.length; sk++) {
+              if (pl[sitKeys[sk]] !== undefined) slot.sitPatch[sitKeys[sk]] = pl[sitKeys[sk]];
+            }
+          }
+          if (pl.result !== undefined || pl.flag !== undefined || pl.conceptOverride !== undefined) {
+            var prevOut = (slot.outcome && slot.outcome.payload) || {};
+            slot.outcome = {
+              eventId: e.eventId,
+              playIndex: e.playIndex,
+              type: "outcome",
+              payload: Object.assign({}, prevOut, {
+                result: pl.result !== undefined ? pl.result : prevOut.result,
+                flag: pl.flag !== undefined ? pl.flag : prevOut.flag,
+                conceptOverride:
+                  pl.conceptOverride !== undefined ? pl.conceptOverride : prevOut.conceptOverride,
+              }),
+              deviceId: e.deviceId,
+              actorId: e.actorId,
+              clientTs: e.clientTs,
+              seq: e.seq,
+            };
+          }
+        }
         if (pl.front !== undefined || pl.pressure !== undefined) {
           slot.obs = slot.obs || {
             front: null,
@@ -222,7 +255,16 @@
       slot = byPlay[pi];
       if (!slot || !slot.call || slot.undone) return;
       if (superseded[slot.call.eventId]) return;
-      var p = slot.call.payload || {};
+      var base = slot.call.payload || {};
+      var patch = slot.sitPatch || {};
+      var p = Object.assign({}, base, patch);
+      if (patch.sitTxt === undefined && (patch.dn !== undefined || patch.db !== undefined || patch.hash !== undefined)) {
+        var dnL = p.dn != null ? p.dn : base.dn;
+        var dbL = p.db != null ? p.db : base.db;
+        var hashL = p.hash != null ? p.hash : base.hash;
+        var ord = ["", "1st", "2nd", "3rd", "4th"][+dnL] || String(dnL || "");
+        p.sitTxt = ord + " & " + (dbL || "") + (hashL && hashL !== "ANY" ? " " + hashL : "");
+      }
       var obs = slot.obs || null;
       var front = obs && obs.front != null && obs.front !== "" ? obs.front : null;
       var pressure = obs && obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
@@ -239,6 +281,10 @@
           else if (fin.result === "miss") fin.success = 0;
         }
       }
+      var sitInf =
+        p.situationInferred === true || p.situationInferred === false
+          ? !!p.situationInferred
+          : false;
       var entry = {
         id: slot.call.eventId,
         playIndex: pi,
@@ -255,6 +301,7 @@
         db: p.db,
         hash: p.hash,
         zone: p.zone,
+        situationInferred: sitInf,
         coverage: p.coverage,
         playType: p.playType,
         opponent: p.opponent,

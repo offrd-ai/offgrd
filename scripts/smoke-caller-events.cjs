@@ -267,4 +267,58 @@ const miss = C.wouldDedupCall(fg.log, "HOUSTON", fg.log[fg.log.length - 1].ts + 
 if (miss) throw new Error("wouldDedupCall should miss outside window");
 console.log("OK onCallFromLog + wouldDedupCall");
 
+// 11) Correction patches situation into gamesRows distance bucket (append-only; reorder-safe)
+const corrBase = [
+  ev({
+    eventId: "corrC",
+    playIndex: 9,
+    payload: { play: "HOUSTON", dn: 3, db: "1-3", hash: "L", zone: "ANY", situationInferred: false },
+    deviceId: "devA",
+    clientTs: 9000,
+    seq: 1,
+  }),
+  ev({
+    eventId: "corrO",
+    type: "outcome",
+    playIndex: 9,
+    payload: { result: "short" },
+    deviceId: "devA",
+    clientTs: 9100,
+    seq: 2,
+  }),
+  ev({
+    eventId: "corrX",
+    type: "correction",
+    playIndex: 9,
+    payload: {
+      dn: 3,
+      db: "7-9",
+      hash: "L",
+      zone: "ANY",
+      sitTxt: "3rd & 7-9 L",
+      situationInferred: false,
+      play: "HOUSTON",
+    },
+    deviceId: "devB",
+    clientTs: 9200,
+    seq: 1,
+  }),
+];
+const fCorr = C.foldCallerEvents(corrBase);
+const fCorrR = C.foldCallerEvents(corrBase.slice().reverse());
+if (fCorr.log.length !== 1 || fCorr.log[0].db !== "7-9" || +fCorr.log[0].dn !== 3) {
+  throw new Error("correction should move to 3rd&7-9: " + JSON.stringify(fCorr.log[0]));
+}
+if (fCorr.log[0].play !== "HOUSTON" || fCorr.log[0].result !== "short") {
+  throw new Error("correction must keep play/result: " + JSON.stringify(fCorr.log[0]));
+}
+if (fCorr.log[0].db !== fCorrR.log[0].db || fCorr.log[0].result !== fCorrR.log[0].result) {
+  throw new Error("correction fold not deterministic on reorder");
+}
+/* original call event still present */
+if (!corrBase.find((e) => e.eventId === "corrC" && e.type === "call" && e.payload.db === "1-3")) {
+  throw new Error("original call event must remain in the event set");
+}
+console.log("OK correction: sit patch → 7-9 bucket; original event retained; reorder-safe");
+
 console.log("ALL PASS");

@@ -267,10 +267,10 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=141"></script>
+<script src="OFFGRD-redesign.js?v=142"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
-<script src="OFFGRD-caller-outcome.js?v=141"></script>
-<script src="OFFGRD-caller-log.js?v=141"></script>
+<script src="OFFGRD-caller-outcome.js?v=142"></script>
+<script src="OFFGRD-caller-log.js?v=142"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1353,7 +1353,12 @@ let CALLER_FLASH_UNTIL=0;
 let _callerFlashT=null;
 const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot — migrated once into events */
 let CALLER_SESSION=null; /* {opp, week, gameId} */
-let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false};
+let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false};
+/** playIndex being edited via Edit last play (correction), or null */
+let CALLER_EDIT_PI=null;
+function callerSitDefaults(){
+  return {dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false,inferred:false,needsInput:false};
+}
 let _callerSyncT=null;
 let _callerChan=null;
 function fmtPct(x){return Math.round(x*100)+"%";}
@@ -2080,6 +2085,7 @@ function callerEntryToRow(l){
     flag: l.flag||null,
     negated: !!l.negated,
     concept: l.conceptOverride||l.concept||null,
+    situationInferred: !!l.situationInferred,
     source: "live_call",
     signal: (l.signal!=null?l.signal:null),
     callId: l.id||l.eventId||null,
@@ -2360,7 +2366,7 @@ function loadCallerSession(){
   if(E&&E.loadStore) loaded=E.loadStore();
   if(loaded&&Array.isArray(loaded.events)){
     CALLER_SESSION=loaded.session||null;
-    if(loaded.sit) callerSit=Object.assign({dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false}, loaded.sit);
+    if(loaded.sit) callerSit=Object.assign(callerSitDefaults(), loaded.sit);
     CALLER_EVENTS=loaded.events;
     CALLER_SEQ=loaded.seq||0;
     callerRefold();
@@ -2372,7 +2378,7 @@ function loadCallerSession(){
     if(!x) return;
     const o=JSON.parse(x);
     if(o.session&&o.session.opp) CALLER_SESSION=o.session;
-    if(o.sit) callerSit=Object.assign({dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false}, o.sit);
+    if(o.sit) callerSit=Object.assign(callerSitDefaults(), o.sit);
     if(Array.isArray(o.log)&&o.log.length&&E&&E.migrateV1Log){
       const actor=callerActor();
       const mig=E.migrateV1Log(o.log, CALLER_SESSION, callerDeviceId(), actor.id);
@@ -2442,14 +2448,119 @@ function callerMarkPersisted(eventId){
 }
 function callerOnCallBarHtml(){
   const on=callerOnCall();
-  /* Empty: muted placeholder (never gold live chrome) + no Undo. Live bar only when onCallFromLog has a play. */
+  /* Empty: muted placeholder (never gold live chrome). Live bar only when onCallFromLog has a play. */
   if(!on||!on.play){
     return `<div class="caller-oncall caller-oncall-empty no-print" role="status" aria-live="polite" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px"><div class="caller-oncall-idle" style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px dashed var(--line,#c5c9d1);border-radius:8px;background:transparent"><span class="caller-oncall-lbl" style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.55">ON CALL</span><span class="caller-oncall-play muted" style="font-size:15px;font-weight:600;opacity:.65">No call yet \u2014 tap a play</span></div></div>`;
   }
   let h=`<div class="caller-oncall no-print" role="status" aria-live="polite" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px">`;
   h+=`<div class="caller-oncall-live" style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FFD24A;border:2px solid #13294B;border-radius:8px;color:#0E1116"><span class="caller-oncall-lbl" style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">ON CALL</span><span class="caller-oncall-play" style="font-size:22px;font-weight:800">${esc(on.play)}</span></div>`;
-  h+=`<button type="button" class="caller-undo" style="min-width:88px;min-height:56px;font-weight:700;font-size:15px" onclick="callerUndoLast()">Undo</button>`;
+  h+=`<button type="button" class="caller-edit-last" style="min-width:88px;min-height:56px;font-weight:700;font-size:13px;line-height:1.15" onclick="callerOpenEditLast()" title="Keep the call, fix situation/play/result">Edit last play</button>`;
+  h+=`<button type="button" class="caller-undo" style="min-width:88px;min-height:56px;font-weight:700;font-size:13px;line-height:1.15" onclick="callerUndoLast()" title="Remove the call entirely">Undo call</button>`;
   h+=`</div>`;
+  return h;
+}
+function callerConfirmSit(){
+  callerSit.inferred=false;
+  callerSit.needsInput=false;
+  callerSaveLocal();
+  renderCaller();
+}
+/** After grading — suggest next D&D as inferred, or flag needs-input (turnover/penalty). */
+function callerMaybeAdvanceAfterGrade(entry){
+  const O=callerOut();
+  if(!O||!O.inferNextSituation||!entry||!entry.result) return;
+  const next=O.inferNextSituation(
+    { dn:entry.dn, db:entry.db, hash:entry.hash, zone:entry.zone },
+    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated }
+  );
+  if(next.needsInput){
+    callerSit.needsInput=true;
+    callerSit.inferred=false;
+    callerSaveLocal();
+    return;
+  }
+  if(next.skip||!next.inferred) return;
+  callerSit.dn=next.dn;
+  callerSit.db=next.db;
+  if(next.hash!=null) callerSit.hash=next.hash;
+  if(next.zone!=null) callerSit.zone=next.zone;
+  callerSit.inferred=true;
+  callerSit.needsInput=false;
+  callerSaveLocal();
+}
+function callerOpenEditLast(){
+  const on=callerOnCall();
+  if(!on||on.playIndex==null) return;
+  CALLER_EDIT_PI=on.playIndex;
+  renderCaller();
+}
+function callerCloseEdit(){
+  CALLER_EDIT_PI=null;
+  renderCaller();
+}
+function callerSubmitEdit(playIndex){
+  const entry=CALLER_LOG.find(l=>l.playIndex===playIndex);
+  if(!entry){ CALLER_EDIT_PI=null; renderCaller(); return; }
+  const playEl=document.getElementById("callerEditPlay");
+  const dnEl=document.getElementById("callerEditDn");
+  const dbEl=document.getElementById("callerEditDb");
+  const hashEl=document.getElementById("callerEditHash");
+  const zoneEl=document.getElementById("callerEditZone");
+  const resEl=document.getElementById("callerEditResult");
+  const flagEl=document.getElementById("callerEditFlag");
+  const play=(playEl&&playEl.value||"").trim()||entry.play;
+  const dn=dnEl?+dnEl.value:+entry.dn;
+  const db=dbEl?dbEl.value:entry.db;
+  const hash=hashEl?hashEl.value:entry.hash;
+  const zone=zoneEl?zoneEl.value:entry.zone;
+  const result=resEl? (resEl.value||null) : entry.result;
+  const flag=flagEl? (flagEl.value||null) : entry.flag;
+  const sitTxt=ordinal(dn)+" & "+db+(hash&&hash!=="ANY"?" "+hash:"");
+  callerAppend("correction", playIndex, {
+    play: play,
+    dn: dn,
+    db: db,
+    hash: hash,
+    zone: zone,
+    sitTxt: sitTxt,
+    situationInferred: false,
+    result: result,
+    flag: flag,
+    conceptOverride: entry.conceptOverride||null,
+    front: entry.front,
+    frontCarried: false,
+    pressure: entry.pressure,
+    pressureCarried: false
+  });
+  CALLER_EDIT_PI=null;
+  renderCaller();
+}
+function callerEditPanelHtml(){
+  if(CALLER_EDIT_PI==null) return "";
+  const entry=CALLER_LOG.find(l=>l.playIndex===CALLER_EDIT_PI);
+  if(!entry){ CALLER_EDIT_PI=null; return ""; }
+  const O=callerOut();
+  const buckets=O?O.RESULT_BUCKETS:[];
+  const flags=O?O.FLAGS:[];
+  let h=`<div class="caller-edit-panel no-print" role="dialog" aria-label="Edit last play">`;
+  h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px"><span class="pl"><b>Edit last play</b> — keeps the call, fixes details</span>`;
+  h+=`<button type="button" class="ghost" style="margin-left:auto" onclick="callerCloseEdit()">Close</button></div>`;
+  h+=`<p class="foot" style="margin:0 0 8px">Appends a correction (original stays in the log). Not the same as Undo call.</p>`;
+  h+=`<div class="grid" style="gap:8px">`;
+  h+=`<div><div class="lbl">Play</div><input id="callerEditPlay" type="text" value="${esc(entry.play||"")}" style="width:100%;min-height:44px;padding:8px 10px;font-size:16px;font-weight:700"/></div>`;
+  h+=`<div><div class="lbl">Down</div><select id="callerEditDn" style="width:100%;min-height:44px">`+[1,2,3,4].map(d=>`<option value="${d}"${+entry.dn===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
+  h+=`<div><div class="lbl">Distance</div><select id="callerEditDb" style="width:100%;min-height:44px">`+["1-3","4-6","7-9","10+"].map(d=>`<option value="${d}"${entry.db===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
+  h+=`<div><div class="lbl">Hash</div><select id="callerEditHash" style="width:100%;min-height:44px">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([v,l])=>`<option value="${v}"${entry.hash===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
+  h+=`<div><div class="lbl">Field</div><select id="callerEditZone" style="width:100%;min-height:44px">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([v,l])=>`<option value="${v}"${entry.zone===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
+  if(buckets.length){
+    h+=`<div><div class="lbl">Result</div><select id="callerEditResult" style="width:100%;min-height:44px"><option value="">—</option>`+buckets.map(b=>`<option value="${b.id}"${entry.result===b.id?" selected":""}>${b.label}</option>`).join("")+`</select></div>`;
+    h+=`<div><div class="lbl">Flag</div><select id="callerEditFlag" style="width:100%;min-height:44px"><option value="">—</option>`+flags.map(f=>`<option value="${f.id}"${entry.flag===f.id?" selected":""}>${f.label}</option>`).join("")+`</select></div>`;
+  }
+  h+=`</div>`;
+  h+=`<div style="display:flex;gap:8px;margin-top:12px">`;
+  h+=`<button type="button" class="caller-edit-save" style="flex:1;min-height:48px;font-weight:800" onclick="callerSubmitEdit(${entry.playIndex})">Save correction</button>`;
+  h+=`<button type="button" class="ghost" style="min-height:48px" onclick="callerCloseEdit()">Cancel</button>`;
+  h+=`</div></div>`;
   return h;
 }
 function callerOut(){ return window.OFFGRD_CALLER_OUTCOME||null; }
@@ -2457,22 +2568,36 @@ function callerOut(){ return window.OFFGRD_CALLER_OUTCOME||null; }
 function callerGrade(i, resultId){
   const entry=CALLER_LOG[i]; if(!entry) return;
   const next=(entry.result===resultId?null:resultId);
-  callerAppend("outcome", entry.playIndex, {
+  const pi=entry.playIndex;
+  callerAppend("outcome", pi, {
     result: next,
     flag: next? (entry.flag||null) : null,
     conceptOverride: next? (entry.conceptOverride||null) : null
   });
+  if(next){
+    const graded=CALLER_LOG.find(l=>l.playIndex===pi);
+    if(graded) callerMaybeAdvanceAfterGrade(graded);
+  }
   renderCaller();
 }
 /** Optional flag — only when result misleads. Toggle off if same. */
 function callerSetFlag(i, flagId){
   const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
   const next=(entry.flag===flagId?null:flagId);
-  callerAppend("outcome", entry.playIndex, {
+  const pi=entry.playIndex;
+  callerAppend("outcome", pi, {
     result: entry.result,
     flag: next,
     conceptOverride: entry.conceptOverride||null
   });
+  const graded=CALLER_LOG.find(l=>l.playIndex===pi);
+  if(graded&&graded.negated){
+    callerSit.needsInput=true;
+    callerSit.inferred=false;
+    callerSaveLocal();
+  } else if(graded){
+    callerMaybeAdvanceAfterGrade(graded);
+  }
   renderCaller();
 }
 function callerSetConcept(i, conceptId){
@@ -2581,6 +2706,7 @@ function callerCallItemHtml(l, i, opts){
 function callerUiChrome(){
   let h="";
   h+=callerOnCallBarHtml();
+  h+=callerEditPanelHtml();
   if(CALLER_PEERS.length){
     h+=`<p class="foot caller-presence no-print" style="margin:0 0 8px">${CALLER_PEERS.map(p=>esc(p.label||"Coach")+" · active").join(" · ")}</p>`;
   }
@@ -2613,6 +2739,7 @@ function callerResolveCollision(ix, which){
 function callerUndoLast(){
   const on=callerOnCall();
   if(!on||on.playIndex==null) return;
+  if(CALLER_EDIT_PI===on.playIndex) CALLER_EDIT_PI=null;
   callerAppend("undo", on.playIndex, {});
   CALLER_FLASH_ID=null;
   CALLER_FLASH_UNTIL=0;
@@ -2648,8 +2775,15 @@ function renderCaller(){
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ✓":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
-    /* Situation always expanded (Booth + redesign): changes every snap — never behind <details>. */
-    h+=`<div class="rd-gd-sit"><div class="rd-gd-sit-txt">${esc(sitTxt)}</div>`;
+    /* Situation always expanded — never behind <details>. Inferred advance is visually distinct. */
+    const sitInf=!!cs.inferred;
+    const sitNeed=!!cs.needsInput;
+    h+=`<div class="rd-gd-sit${sitInf?" rd-gd-sit-inferred":""}${sitNeed?" rd-gd-sit-needs":""}">`;
+    h+=`<div class="rd-gd-sit-txt">${esc(sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">set situation</span>':""}</div>`;
+    if(sitInf){
+      h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">Suggested from last result — confirm or tap a chip</span>`;
+      h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm</button></div>`;
+    }
     h+=`<div class="rd-gd-sit-grid">`;
     h+=`<div><div class="lbl">Down</div><div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
@@ -2736,7 +2870,16 @@ function renderCaller(){
   h+=`</div>`;
   host.innerHTML=h;
 }
-function callerSet(k,v){ callerSit[k]=v; callerSaveLocal(); renderCaller(); }
+function callerSet(k,v){
+  callerSit[k]=v;
+  /* Any situation chip confirms inferred / clears needs-input */
+  if(k==="dn"||k==="db"||k==="hash"||k==="zone"){
+    callerSit.inferred=false;
+    callerSit.needsInput=false;
+  }
+  callerSaveLocal();
+  renderCaller();
+}
 function callerLog(play){
   const E=callerEngine();
   callerEnsureSession();
@@ -2750,6 +2893,8 @@ function callerLog(play){
     }
   }
   const cs=callerSit;
+  /* Confirmed-by-use: calling accepts current situation. Row still records if it was system-suggested. */
+  const wasInferred=!!cs.inferred;
   const expect=callerExpectSample();
   let signal=null;
   try{ const m=callerSignalMap(); if(m&&m[play]!=null) signal=m[play]; }catch(e){}
@@ -2763,6 +2908,7 @@ function callerLog(play){
     db: cs.db,
     hash: cs.hash,
     zone: cs.zone,
+    situationInferred: wasInferred,
     coverage: expect.target||null,
     playType: callerPlayType(play),
     opponent: callerSessionOpp(),
@@ -2770,6 +2916,9 @@ function callerLog(play){
     signal: signal,
     actorLabel: actor.label
   });
+  callerSit.inferred=false;
+  callerSit.needsInput=false;
+  callerSaveLocal();
   /* Confirm only after fold + local persist. Attach sticky obs to the surviving call. */
   const on=callerOnCall();
   if(on&&on.play===play){
