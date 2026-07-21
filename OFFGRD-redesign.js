@@ -1066,6 +1066,9 @@
       'html.rd-on #covChoices .chip{',
       'padding:14px 18px!important;font-size:16px!important;min-width:120px;text-align:center;',
       '}',
+      'html.rd-on #alignZoneDock .chip,html.rd-on #alignZoneDock [data-align-choice]{',
+      'min-height:48px!important;padding:12px 16px!important;font-size:15px!important;border-radius:12px!important;',
+      '}',
       'html.rd-on .fb.ok{background:color-mix(in srgb,#1d7a45 16%,var(--rd-surface))!important;border-color:var(--rd-border)!important;color:var(--rd-text);}',
       'html.rd-on .fb.bad{background:var(--rd-warn-bg)!important;border-color:var(--rd-border)!important;color:var(--rd-text);}',
       'html.rd-on .fb h4{color:var(--rd-text)!important;}',
@@ -1259,6 +1262,55 @@
       'html.rd-on #view-caller .rd-gd-calllog .callitem{',
       'display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 0;border-bottom:1px solid var(--rd-border);',
       '}',
+      /* Slice 3 — ON CALL bar, selection, flash, undo (sunlight / booth) */
+      'html.rd-on #view-caller .caller-oncall{',
+      'display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px;',
+      '}',
+      'html.rd-on #view-caller .caller-oncall-live,html.rd-on #view-caller .caller-oncall-idle{',
+      'flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;',
+      'border-radius:var(--radius-ctl);border:2px solid var(--rd-border);background:var(--rd-surface-2);',
+      '}',
+      'html.rd-on #view-caller .caller-oncall-live{',
+      'background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;',
+      '}',
+      'html.rd-on #view-caller .caller-oncall-lbl{',
+      'font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.85;',
+      '}',
+      'html.rd-on #view-caller .caller-oncall-play{',
+      'font-size:22px;font-weight:800;letter-spacing:.02em;line-height:1.1;',
+      '}',
+      'html.rd-on.rd-booth #view-caller .caller-oncall-play{font-size:28px;}',
+      'html.rd-on #view-caller .caller-oncall-play.muted{opacity:.45;font-weight:600;}',
+      'html.rd-on #view-caller .caller-undo{',
+      'min-width:88px;min-height:56px!important;padding:10px 14px!important;',
+      'background:var(--rd-surface)!important;border:2px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;',
+      'font-weight:700!important;font-size:15px;',
+      '}',
+      'html.rd-on #view-caller .caller-undo:disabled{opacity:.4;}',
+      'html.rd-on #view-caller .rd-gd-hero-oncall{',
+      'background:#13294B!important;border:3px solid #FFD24A!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-hero-oncall .rd-gd-hero-name{color:#FFD24A!important;}',
+      'html.rd-on #view-caller .rd-gd-called{',
+      'margin:0 0 10px;font-size:14px;font-weight:800;letter-spacing:.04em;color:#FFD24A;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-btn-oncall{',
+      'background:#FFD24A!important;color:#0E1116!important;border-color:#FFD24A!important;font-weight:800!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-backup-oncall{',
+      'background:#13294B!important;border-color:#FFD24A!important;color:#FFD24A!important;',
+      '}',
+      'html.rd-on #view-caller .callitem-oncall{',
+      'background:rgba(255,210,74,.18);border-left:4px solid #FFD24A;padding-left:8px!important;',
+      '}',
+      'html.rd-on #view-caller .callitem-flash{',
+      'animation:callerFlashIn 2s ease-out 1;',
+      'background:#FFD24A!important;color:#0E1116!important;',
+      '}',
+      'html.rd-on #view-caller .callitem-flash .cn,html.rd-on #view-caller .callitem-flash div{color:#0E1116!important;}',
+      '@keyframes callerFlashIn{0%{background:#FFD24A;transform:scale(1.02);}70%{background:#FFD24A;}100%{background:transparent;transform:none;}}',
+      'html.rd-on #view-caller .caller-collision{font-size:15px;}',
       'html.rd-on #view-caller .foot{color:var(--rd-muted);}',
       'html.rd-on #view-caller .ghost{',
       'min-height:44px;background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
@@ -1588,7 +1640,15 @@
       if (isPlayerRole()) { sync.textContent = ""; }
       else {
         const t = (stat && (stat.textContent || "").trim()) || "";
-        sync.textContent = t || "LOCAL";
+        if (t) { sync.textContent = t; return; }
+        /* QB kind is not SYNCABLE — never lie with LOCAL when a program session exists. */
+        const prog = root.OFFGRD_PROGRAM;
+        if (prog && prog.ready && prog.teamId) { sync.textContent = "PROGRAM"; return; }
+        const acct = document.getElementById("acct");
+        const signedIn = !!(acct && /Sign out/i.test(acct.textContent || ""));
+        if (signedIn) { sync.textContent = prog && !prog.ready ? "NO TEAM" : "SIGNED IN"; return; }
+        if (root.OFFGRD_SESSION_GATED) { sync.textContent = "SIGNED OUT"; return; }
+        sync.textContent = "LOCAL";
       }
     }
   }

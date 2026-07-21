@@ -17,6 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
+<!-- v134: obs fold — explicit beats carried (protect amend from offline sticky) -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -268,6 +269,7 @@
 <script src="OFFGRD-telestrate.js?v=97"></script>
 <script src="OFFGRD-redesign.js?v=117"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
+<script src="OFFGRD-caller-log.js?v=138"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -557,7 +559,15 @@ const sit = {down:1, dist:"10+", zone:"ANY", hash:"ANY", pers:"ANY", form:"ANY",
 
 /* ---------- helpers ---------- */
 function uniq(a){return [...new Set(a.filter(x=>x!==undefined&&x!==null&&x!==""))].sort();}
-function distBucket(n){ n=+n; if(n<=3)return"1-3"; if(n<=6)return"4-6"; if(n<=9)return"7-9"; return"10+"; }
+function distBucket(n){
+  if(n==null||n==="") return null;
+  n=+n;
+  if(!isFinite(n)) return null;
+  if(n<=3) return "1-3";
+  if(n<=6) return "4-6";
+  if(n<=9) return "7-9";
+  return "10+";
+}
 function scoreCat(m){ m=+m; if(m<=-10)return"trail2"; if(m<0)return"trail"; if(Math.abs(m)<=3)return"tied"; return "lead"; }
 function ordinal(d){return ({1:"1st",2:"2nd",3:"3rd",4:"4th"})[d]||d;}
 function zlbl(z){return z==="REDZONE"?"RZ":(z||"");}
@@ -1157,7 +1167,12 @@ function loadGames(){ try{ const s=localStorage.getItem(STORE_KEY); if(s){ const
 function upsertGame(opp,week,side,source,rows){
   const k=gameKey(opp,week,side); const existed=GAMES.some(g=>g.key===k);
   GAMES=GAMES.filter(g=>g.key!==k);
-  rows.forEach(r=>{ r.opponent=opp; r.gameWeek=week; if(!r.date) r.date=week; });
+  const rowSrc=(source==="live_call")?"live_call":"scout_import";
+  rows.forEach(r=>{
+    r.opponent=opp; r.gameWeek=week; if(!r.date) r.date=week;
+    /* Additive source tag — bestCallsFor / gamesRows stay one dataset */
+    if(!r.source) r.source=rowSrc;
+  });
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
   saveGames(); rebuildActive(); return existed;
 }
@@ -1323,8 +1338,23 @@ let CURRENT_VIEW="scout";
 let PLAN_BUCKETS=null;
 let PENDING=null;
 let PLAN_SIDE="off"; let LIVE_SNAPS=[]; const LIVE_KEY="offgrd_live_v1";
+/* Call log: append-only events (OFFGRD-caller-log.js). Fold → CALLER_LOG + gamesRows.
+   Multi-device: no claim/lock — any coach on the team appends to the same gameId. */
 let CALLER_LOG=[];
-let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY"};
+let CALLER_EVENTS=[];
+let CALLER_COLLISIONS=[];
+let CALLER_ACTIVITY=[];
+let CALLER_PEERS=[];
+let CALLER_SEQ=0;
+/** Slice 3: flash newly persisted call row (~2s). Set only after fold+local save. */
+let CALLER_FLASH_ID=null;
+let CALLER_FLASH_UNTIL=0;
+let _callerFlashT=null;
+const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot — migrated once into events */
+let CALLER_SESSION=null; /* {opp, week, gameId} */
+let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false};
+let _callerSyncT=null;
+let _callerChan=null;
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
 /* Opponent + Games(scope) + This-season ? same pool Scout grids / Report / Package use. */
@@ -1366,6 +1396,7 @@ function setView(v){
   });
   const nv=document.getElementById("navbar"); if(nv) [].forEach.call(nv.querySelectorAll("button"),b=>{ if(b.dataset.view===v)b.classList.add("on"); else b.classList.remove("on"); });
   refreshView();
+  try{ if(v==="caller") callerPresenceStart(); else callerPresenceStop(); }catch(e){}
   try{ if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI(); }catch(e){}
 }
 function printActive(){ window.print(); }
@@ -1374,7 +1405,9 @@ function printActive(){ window.print(); }
 function playKind(pl){ let run=0,pass=0; gamesRows("ours").forEach(r=>{ if(r.play===pl){ if(/run/i.test(r.playType))run++; else pass++; } }); return run>pass?"Run":(pass>run?"Pass":(run>0?"Run":"Pass")); }
 function bestCallsFor(target,dn,db,kind){
   const ours=gamesRows("ours"); let plays=uniq(ours.map(r=>r.play)); if(kind) plays=plays.filter(pl=>playKind(pl)===kind); const res=[];
-  const mD=r=>(dn==="ANY"||r.down===+dn), mB=r=>(db==="ANY"||distBucket(r.distance)===db);
+  const mD=r=>(dn==="ANY"||r.down===+dn);
+  /* Null/unbucketed distance never matches a specific db (was silent 10+ via dbToNum/distBucket). */
+  const mB=r=>(db==="ANY"||(r.distance!=null&&distBucket(r.distance)===db));
   plays.forEach(pl=>{ if(!pl) return;
     let pool=ours.filter(r=>r.play===pl&&r.coverage===target&&mD(r)&&mB(r)&&r.success!=null);
     if(pool.length<2) pool=ours.filter(r=>r.play===pl&&r.coverage===target&&r.success!=null);
@@ -1790,7 +1823,15 @@ function wirePractice(host){
   [].forEach.call(host.querySelectorAll("[data-pdel]"),el=>{ el.onclick=()=>{ const a=el.dataset.pdel.split(":").map(Number); WEEK.practice.periods[a[0]].plays.splice(a[1],1); practiceSave(); renderPractice(); }; });
   [].forEach.call(host.querySelectorAll(".paddsel"),el=>{ el.onchange=()=>{ const v=el.value; if(!v) return; const p=(PBOOK||[]).find(x=>String(x.id||x.name)===v); if(p){ WEEK.practice.periods[+el.dataset.pi].plays.push({id:p.id||null,name:p.name,reps:2,good:0,needs:0}); practiceSave(); renderPractice(); } }; });
 }
-function dbToNum(db){ return db==="1-3"?2:db==="4-6"?5:db==="7-9"?8:12; }
+/** Caller / plan distance label → representative yards. Null if unrecognised (never invent 10+). */
+const CALLER_DB_BUCKETS=["1-3","4-6","7-9","10+"];
+function dbToNum(db){
+  if(db==="1-3") return 2;
+  if(db==="4-6") return 5;
+  if(db==="7-9") return 8;
+  if(db==="10+") return 12;
+  return null;
+}
 function suggestDef(off,dn,db){
   const run=runShare(off);
   const dir=weightedDist(off.filter(r=>/run/i.test(r.playType)&&r.direction),"direction",false).arr[0];
@@ -1952,19 +1993,517 @@ function callerSignalMap(){
   }catch(e){}
   return map;
 }
-function renderCaller(){
-  const host=document.getElementById("view-caller"); if(!host)return;
-  const opp=sit.opp, def=oppRows("def"), cs=callerSit;
-  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+/* ----- LIVE CALLER — event log → fold → gamesRows (Slice 1 multi-device) ----- */
+function callerEngine(){ return window.OFFGRD_CALLER||null; }
+function callerBridge(){ return window.OFFGRD_CALLER_BRIDGE||null; }
+function callerSessionDate(){
+  if(WEEK&&WEEK.game_date) return String(WEEK.game_date).slice(0,10);
+  return new Date().toISOString().slice(0,10);
+}
+function callerSessionOppRaw(){
+  if(sit.opp&&sit.opp!=="ANY") return sit.opp;
+  if(WEEK&&WEEK.opponent) return WEEK.opponent;
+  return "Live";
+}
+function callerSessionWeekRaw(){ return "Live "+callerSessionDate(); }
+function callerDeviceId(){ const E=callerEngine(); return E?E.deviceId():"dev_anon"; }
+function callerActor(){
+  const b=callerBridge();
+  return { id: b&&b.getUserId?b.getUserId():null, label: b&&b.getUserLabel?b.getUserLabel():"Coach" };
+}
+function callerEnsureSession(){
+  if(!CALLER_SESSION){
+    const E=callerEngine();
+    CALLER_SESSION={ opp:callerSessionOppRaw(), week:callerSessionWeekRaw(), gameId:(E&&E.uuid)?E.uuid():("g"+Date.now().toString(36)) };
+  }
+  if(!CALLER_SESSION.gameId){
+    const E=callerEngine();
+    CALLER_SESSION.gameId=(E&&E.uuid)?E.uuid():("g"+Date.now().toString(36));
+  }
+  return CALLER_SESSION;
+}
+function callerSessionOpp(){ return (CALLER_SESSION&&CALLER_SESSION.opp)||callerSessionOppRaw(); }
+function callerSessionWeek(){ return (CALLER_SESSION&&CALLER_SESSION.week)||callerSessionWeekRaw(); }
+function callerPlayType(pl){
+  try{ if(typeof PASSPLAYS!=="undefined" && PASSPLAYS.indexOf(pl)>=0) return "Pass"; }catch(e){}
+  try{ if(typeof OFFPLAYS!=="undefined" && OFFPLAYS[pl] && typeof PASSPLAYS!=="undefined" && PASSPLAYS.indexOf(pl)<0) return "Run"; }catch(e){}
+  return playKind(pl);
+}
+function callerExpectSample(){
+  const def=oppRows("def"), cs=callerSit;
   const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
   const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
   const gc=g.filter(r=>r.coverage&&r.coverage!=="?");
   const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
+  return {g:g, cov:cov, target:cov?cov.k:null, def:def};
+}
+/** Fold output entry → offense row (identical shape to parseOffense / Hudl ours). */
+function callerEntryToRow(l){
+  const down=+l.dn||1;
+  const distance=(typeof dbToNum==="function"?dbToNum(l.db):null);
+  const success=l.result==="hit"?1:l.result==="miss"?0:null;
+  const front=(l.front!=null&&l.front!=="")?l.front:null;
+  const pressure=(l.pressure!=null&&l.pressure!=="")?l.pressure:null;
+  return {
+    date: l.date||callerSessionDate(),
+    opponent: l.opponent||callerSessionOpp(),
+    down: down,
+    distance: distance,
+    fieldZone: (l.zone&&l.zone!=="ANY")?l.zone:"",
+    hash: (l.hash&&l.hash!=="ANY")?l.hash:"",
+    coverage: l.coverage||"",
+    front: front,
+    pressure: pressure,
+    /* Sticky carry audit — future models can weight explicit higher */
+    frontCarried: !!(front&&l.frontCarried),
+    pressureCarried: !!(pressure&&l.pressureCarried),
+    formation: null,
+    motion: null,
+    personnel: null,
+    direction: null,
+    blitz: null,
+    play: l.play,
+    playType: l.playType||callerPlayType(l.play),
+    gain: null,
+    success: success,
+    source: "live_call",
+    signal: (l.signal!=null?l.signal:null),
+    callId: l.id||l.eventId||null,
+    gameWeek: l.gameWeek||null
+  };
+}
+/** Team def_playbook fronts/pressures (WEEK.gen or local QB author cache), plus "other". */
+function callerDefaultDefPlaybook(){
+  return {
+    fronts:[
+      {id:"4-3", name:"4-3"}, {id:"3-4", name:"3-4"}, {id:"Nickel", name:"Nickel"},
+      {id:"Bear (46)", name:"Bear"}, {id:"3-3-5 (Tite)", name:"Tite"},
+      {id:"Dime (4-1-6)", name:"Dime"}, {id:"other", name:"other"}
+    ],
+    pressures:[
+      {id:"none", name:"none"}, {id:"mike-a", name:"Mike A"}, {id:"de-loop", name:"DE loop"},
+      {id:"will-cross", name:"Will cross"}, {id:"dt-twist", name:"DT twist"},
+      {id:"nickel-fire", name:"Nickel fire"}, {id:"other", name:"other"}
+    ]
+  };
+}
+function callerDefPlaybook(){
+  const base=callerDefaultDefPlaybook();
+  let stored=null;
+  try{ if(WEEK&&WEEK.gen&&WEEK.gen.def_playbook) stored=WEEK.gen.def_playbook; }catch(e){}
+  if(!stored){
+    try{
+      const b=callerBridge();
+      const tid=b&&b.getTeamId?b.getTeamId():null;
+      const raw=localStorage.getItem("offgrd_def_playbook_"+(tid||"local"));
+      if(raw) stored=JSON.parse(raw);
+    }catch(e){}
+  }
+  const fronts=(stored&&stored.fronts&&stored.fronts.length)?stored.fronts.slice():base.fronts.slice();
+  const pressures=(stored&&stored.pressures&&stored.pressures.length)?stored.pressures.slice():base.pressures.slice();
+  if(!fronts.some(function(f){ return (f.id||f.name)==="other"; })) fronts.push({id:"other", name:"other"});
+  if(!pressures.some(function(p){ return (p.id||p.name)==="other"; })) pressures.push({id:"other", name:"other"});
+  return { fronts:fronts, pressures:pressures };
+}
+function callerObsChipHtml(){
+  const book=callerDefPlaybook();
+  const cs=callerSit;
+  function chips(field, items){
+    return items.map(function(it){
+      const id=it.id||it.name;
+      const lbl=it.name||it.id;
+      const on=cs[field]===id;
+      const carried=on&&!cs[field+"JustSet"]&&CALLER_LOG.length>0;
+      const style=carried?'opacity:.85':"";
+      return `<button type="button"${on?' class="on"':""} style="${style}" onclick="callerSetObs('${field}','${String(id).replace(/'/g,"")}')">${esc(lbl)}</button>`;
+    }).join("");
+  }
+  let h=`<div class="panel no-print" data-acc-skip style="margin-top:8px">`;
+  h+=`<div class="lbl">Front <span class="foot" style="font-weight:600">(optional · sticky)</span></div>`;
+  h+=`<div class="seg covlog" style="flex-wrap:wrap;display:flex;margin-bottom:8px">${chips("front", book.fronts)}</div>`;
+  h+=`<div class="lbl">Pressure <span class="foot" style="font-weight:600">(optional · sticky)</span></div>`;
+  h+=`<div class="seg covlog" style="flex-wrap:wrap;display:flex">${chips("pressure", book.pressures)}</div>`;
+  if((cs.front||cs.pressure)&&!cs.frontJustSet&&!cs.pressureJustSet&&CALLER_LOG.length){
+    h+=`<p class="foot" style="margin:6px 0 0">Carrying last look — tap to change; never required.</p>`;
+  } else {
+    h+=`<p class="foot" style="margin:6px 0 0">Tap what they showed — or leave blank.</p>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerSetObs(field, value){
+  if(field!=="front"&&field!=="pressure") return;
+  const cur=callerSit[field];
+  if(cur===value){
+    callerSit[field]=null;
+    callerSit[field+"JustSet"]=false;
+  } else {
+    callerSit[field]=value;
+  }
+  /* Late/out-of-order: attach to last logged play when one exists (always explicit). */
+  if(CALLER_LOG.length){
+    const pi=CALLER_LOG[CALLER_LOG.length-1].playIndex;
+    const payload={};
+    if(field==="front"){ payload.front=callerSit.front; payload.frontCarried=false; }
+    if(field==="pressure"){ payload.pressure=callerSit.pressure; payload.pressureCarried=false; }
+    callerAppend("observation", pi, payload);
+    callerSit[field+"JustSet"]=false; /* subsequent calls carry until tapped again */
+  } else {
+    callerSit[field+"JustSet"]=callerSit[field]!=null; /* first attach on next call = explicit */
+  }
+  callerSaveLocal();
+  renderCaller();
+}
+function callerAttachStickyObs(playIndex){
+  const front=callerSit.front;
+  const pressure=callerSit.pressure;
+  if(front==null&&pressure==null) return;
+  const payload={};
+  if(front!=null){
+    payload.front=front;
+    payload.frontCarried=!callerSit.frontJustSet;
+  }
+  if(pressure!=null){
+    payload.pressure=pressure;
+    payload.pressureCarried=!callerSit.pressureJustSet;
+  }
+  callerAppend("observation", playIndex, payload);
+  callerSit.frontJustSet=false;
+  callerSit.pressureJustSet=false;
+}
+function callerSaveLocal(){
+  const E=callerEngine();
+  const sess=callerEnsureSession();
+  const state={
+    session: sess,
+    sit: callerSit,
+    events: CALLER_EVENTS,
+    seq: CALLER_SEQ,
+    updatedAt: Date.now()
+  };
+  if(E&&E.saveStore) E.saveStore(state);
+  /* keep legacy key for one release (debug / rollback) */
+  try{ localStorage.setItem(CALLER_KEY, JSON.stringify({ session:sess, sit:callerSit, log:CALLER_LOG, updatedAt:Date.now() })); }catch(e){}
+}
+function callerRefold(){
+  const E=callerEngine();
+  if(!E){ return; }
+  const folded=E.foldCallerEvents(CALLER_EVENTS);
+  CALLER_LOG=folded.log||[];
+  CALLER_COLLISIONS=folded.collisions||[];
+  CALLER_ACTIVITY=folded.activity||[];
+  callerSyncToGames();
+}
+/** Write folded (non-superseded) calls into GAMES ours — one dataset for bestCallsFor. */
+function callerSyncToGames(){
+  const sess=callerEnsureSession();
+  const rows=CALLER_LOG.map(callerEntryToRow);
+  const k=gameKey(sess.opp, sess.week, "ours");
+  const prev=GAMES.find(g=>g.key===k);
+  if(!rows.length){
+    GAMES=GAMES.filter(g=>g.key!==k);
+    saveGames(); rebuildActive();
+    return;
+  }
+  rows.forEach(function(r){
+    r.opponent=sess.opp; r.gameWeek=sess.week;
+    if(!r.date) r.date=callerSessionDate();
+    r.source="live_call";
+  });
+  if(prev){
+    prev.rows=rows;
+    prev.source="live_call";
+    prev.opponent=sess.opp;
+    prev.week=sess.week;
+    if(!prev.key) prev.key=k;
+  } else {
+    GAMES.push({key:k, opponent:sess.opp, week:sess.week, side:"ours", source:"live_call", rows:rows});
+  }
+  saveGames(); rebuildActive();
+}
+function callerAppend(type, playIndex, payload){
+  const E=callerEngine();
+  const sess=callerEnsureSession();
+  const actor=callerActor();
+  CALLER_SEQ=(CALLER_SEQ||0)+1;
+  const ev={
+    eventId: E&&E.uuid?E.uuid():("e"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+    gameId: sess.gameId,
+    playIndex: playIndex,
+    type: type,
+    payload: payload||{},
+    deviceId: callerDeviceId(),
+    actorId: actor.id,
+    clientTs: Date.now(),
+    seq: CALLER_SEQ,
+    superseded: false
+  };
+  CALLER_EVENTS.push(ev);
+  callerRefold();
+  callerSaveLocal();
+  callerScheduleSync();
+  return ev;
+}
+function callerScheduleSync(){
+  clearTimeout(_callerSyncT);
+  _callerSyncT=setTimeout(function(){ try{ if(window.OFFGRD_CALLER_SYNC) window.OFFGRD_CALLER_SYNC(); }catch(e){} }, 800);
+}
+async function callerEnsureCloudGame(){
+  const b=callerBridge();
+  const sess=callerEnsureSession();
+  if(!b||!b.getTeamId||!b.cloud||!b.canEdit||!b.canEdit()) return sess.gameId;
+  const teamId=b.getTeamId();
+  if(!teamId||!b.cloud.ensureCallerGame) return sess.gameId;
+  try{
+    const g=await b.cloud.ensureCallerGame(teamId, {
+      id: sess.gameId,
+      opponent: sess.opp,
+      week: sess.week,
+      game_date: callerSessionDate(),
+      created_by: (callerActor().id)||null
+    });
+    if(g&&g.id && g.id!==sess.gameId){
+      /* Adopt team-active game so mid-game iPad pickup shares one gameId */
+      const old=sess.gameId;
+      sess.gameId=g.id;
+      CALLER_EVENTS.forEach(function(e){ if(e.gameId===old) e.gameId=g.id; });
+      callerSaveLocal();
+    } else if(g&&g.id){
+      sess.gameId=g.id;
+    }
+    if(g){
+      if(g.opponent) sess.opp=g.opponent;
+      if(g.week) sess.week=g.week;
+    }
+  }catch(e){ console.warn("callerEnsureCloudGame", e); }
+  return sess.gameId;
+}
+window.OFFGRD_CALLER_SYNC=async function(){
+  const E=callerEngine();
+  const b=callerBridge();
+  if(!E||!b||!b.getTeamId||!b.cloud) return;
+  const teamId=b.getTeamId();
+  if(!teamId) return;
+  try{
+    await callerEnsureCloudGame();
+    const sess=callerEnsureSession();
+    const remote=await b.cloud.listCallerEvents(teamId, sess.gameId);
+    const before=CALLER_EVENTS.length;
+    CALLER_EVENTS=E.mergeEvents(CALLER_EVENTS, remote);
+    let maxSeq=CALLER_SEQ||0;
+    CALLER_EVENTS.forEach(function(e){ if(e.deviceId===callerDeviceId() && e.seq>maxSeq) maxSeq=e.seq; });
+    CALLER_SEQ=maxSeq;
+    if(CALLER_EVENTS.length!==before || remote.length){ callerRefold(); callerSaveLocal(); }
+    if(b.canEdit&&b.canEdit() && CALLER_EVENTS.length){
+      await b.cloud.appendCallerEvents(teamId, CALLER_EVENTS);
+      /* flag superseded on server for audit (fold already excludes from gamesRows) */
+      const folded=E.foldCallerEvents(CALLER_EVENTS);
+      const ids=Object.keys(folded.supersededIds||{}).filter(function(id){ return folded.supersededIds[id]; });
+      for(let i=0;i<ids.length;i++){
+        try{ await b.cloud.markCallerEventSuperseded(ids[i], true); }catch(e2){}
+      }
+    }
+    if(CURRENT_VIEW==="caller") renderCaller();
+  }catch(e){ console.warn("OFFGRD_CALLER_SYNC", e); }
+};
+function callerPresenceStop(){
+  try{ if(_callerChan){ _callerChan.unsubscribe(); _callerChan=null; } }catch(e){}
+  CALLER_PEERS=[];
+}
+function callerPresenceStart(){
+  callerPresenceStop();
+  const b=callerBridge();
+  const sess=callerEnsureSession();
+  if(!b||!b.cloud||!b.cloud.sb||!sess.gameId) return;
+  try{
+    const actor=callerActor();
+    const ch=b.cloud.sb.channel("caller-"+sess.gameId, { config:{ presence:{ key: callerDeviceId() } } });
+    ch.on("presence", { event:"sync" }, function(){
+      const state=ch.presenceState();
+      const peers=[];
+      Object.keys(state||{}).forEach(function(k){
+        (state[k]||[]).forEach(function(p){
+          if(p.deviceId && p.deviceId!==callerDeviceId()) peers.push(p);
+        });
+      });
+      CALLER_PEERS=peers;
+      if(CURRENT_VIEW==="caller") renderCaller();
+    });
+    ch.on("postgres_changes", { event:"INSERT", schema:"offgrd", table:"caller_events", filter:"game_id=eq."+sess.gameId }, function(){
+      callerScheduleSync();
+    });
+    ch.subscribe(async function(status){
+      if(status==="SUBSCRIBED"){
+        try{ await ch.track({ deviceId:callerDeviceId(), actorId:actor.id, label:actor.label, at:Date.now() }); }catch(e){}
+      }
+    });
+    _callerChan=ch;
+  }catch(e){ console.warn("callerPresence", e); }
+}
+function loadCallerSession(){
+  const E=callerEngine();
+  let loaded=null;
+  if(E&&E.loadStore) loaded=E.loadStore();
+  if(loaded&&Array.isArray(loaded.events)){
+    CALLER_SESSION=loaded.session||null;
+    if(loaded.sit) callerSit=Object.assign({dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false}, loaded.sit);
+    CALLER_EVENTS=loaded.events;
+    CALLER_SEQ=loaded.seq||0;
+    callerRefold();
+    return;
+  }
+  /* migrate v1 snapshot → events */
+  try{
+    const x=localStorage.getItem(CALLER_KEY);
+    if(!x) return;
+    const o=JSON.parse(x);
+    if(o.session&&o.session.opp) CALLER_SESSION=o.session;
+    if(o.sit) callerSit=Object.assign({dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false}, o.sit);
+    if(Array.isArray(o.log)&&o.log.length&&E&&E.migrateV1Log){
+      const actor=callerActor();
+      const mig=E.migrateV1Log(o.log, CALLER_SESSION, callerDeviceId(), actor.id);
+      CALLER_SESSION=CALLER_SESSION||{};
+      CALLER_SESSION.gameId=mig.gameId;
+      CALLER_EVENTS=mig.events;
+      CALLER_SEQ=mig.events.length;
+      callerRefold();
+      callerSaveLocal();
+    }
+  }catch(e){}
+}
+function callerHydrateFromGames(){
+  if(CALLER_EVENTS.length||CALLER_LOG.length) return;
+  const k=gameKey(callerSessionOpp(), callerSessionWeek(), "ours");
+  const g=GAMES.find(x=>x.key===k);
+  if(!g||!Array.isArray(g.rows)||!g.rows.length) return;
+  if(g.source!=="live_call" && !(g.rows[0]&&g.rows[0].source==="live_call")) return;
+  const E=callerEngine();
+  if(!E||!E.migrateV1Log) return;
+  CALLER_SESSION={opp:g.opponent, week:g.week, gameId:(E.uuid?E.uuid():null)};
+  const log=g.rows.map(function(r,idx){
+    return {
+      id: r.callId||r.id,
+      playIndex: idx,
+      sitTxt: ordinal(+r.down)+" & "+distBucket(r.distance)+(r.hash?" "+r.hash:""),
+      play: r.play,
+      result: r.success===1?"hit":r.success===0?"miss":null,
+      dn: +r.down, db: distBucket(r.distance), hash: r.hash||"ANY", zone: r.fieldZone||"ANY",
+      coverage: r.coverage||null, playType: r.playType||"", opponent: r.opponent||g.opponent,
+      date: r.date||callerSessionDate(), signal: r.signal, front: r.front||"", ts: Date.now()-idx
+    };
+  });
+  const mig=E.migrateV1Log(log, CALLER_SESSION, callerDeviceId(), callerActor().id);
+  CALLER_SESSION.gameId=mig.gameId;
+  CALLER_EVENTS=mig.events;
+  CALLER_SEQ=mig.events.length;
+  callerRefold();
+  callerSaveLocal();
+}
+function callerPersist(){ callerSaveLocal(); callerSyncToGames(); callerScheduleSync(); }
+function dispatchCall(play){ callerLog(play); }
+try{ window.dispatchCall=dispatchCall; }catch(e){}
+function callerAgo(ts){
+  const s=Math.max(0, Math.round((Date.now()-(ts||0))/1000));
+  if(s<5) return "just now";
+  if(s<60) return s+"s ago";
+  return Math.round(s/60)+"m ago";
+}
+/** Selection / ON CALL — always from folded CALLER_LOG (survives refresh + multi-device). */
+function callerOnCall(){
+  const E=callerEngine();
+  if(E&&E.onCallFromLog) return E.onCallFromLog(CALLER_LOG);
+  return CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1]:null;
+}
+function callerFlashActive(eventId){
+  return !!(eventId && CALLER_FLASH_ID===eventId && Date.now()<CALLER_FLASH_UNTIL);
+}
+function callerMarkPersisted(eventId){
+  if(!eventId) return;
+  CALLER_FLASH_ID=eventId;
+  CALLER_FLASH_UNTIL=Date.now()+2200;
+  clearTimeout(_callerFlashT);
+  _callerFlashT=setTimeout(function(){
+    if(Date.now()>=CALLER_FLASH_UNTIL && CURRENT_VIEW==="caller") renderCaller();
+  }, 2300);
+}
+function callerOnCallBarHtml(){
+  const on=callerOnCall();
+  /* Inline fallbacks so classic (non-rd) is readable in sunlight without redesign CSS. */
+  let h=`<div class="caller-oncall no-print" role="status" aria-live="polite" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px">`;
+  if(on&&on.play){
+    h+=`<div class="caller-oncall-live" style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FFD24A;border:2px solid #13294B;border-radius:8px;color:#0E1116"><span class="caller-oncall-lbl" style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">ON CALL</span><span class="caller-oncall-play" style="font-size:22px;font-weight:800">${esc(on.play)}</span></div>`;
+    h+=`<button type="button" class="caller-undo" style="min-width:88px;min-height:56px;font-weight:700;font-size:15px" onclick="callerUndoLast()">Undo</button>`;
+  } else {
+    h+=`<div class="caller-oncall-idle" style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--line,#e2e5ea);border-radius:8px;background:#f5f6f8"><span class="caller-oncall-lbl" style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7">ON CALL</span><span class="caller-oncall-play muted" style="font-size:22px;opacity:.4">—</span></div>`;
+    h+=`<button type="button" class="caller-undo" style="min-width:88px;min-height:56px;opacity:.4" disabled title="Nothing to undo">Undo</button>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerCallItemHtml(l, i, opts){
+  opts=opts||{};
+  const flash=callerFlashActive(l.eventId||l.id);
+  const on=callerOnCall();
+  const isOn=on&&(on.eventId===l.eventId||on.id===l.id);
+  const cls=["callitem", flash?"callitem-flash":"", isOn?"callitem-oncall":""].filter(Boolean).join(" ");
+  const hitStyle=l.result==="hit"?"background:var(--good);color:#fff":"";
+  const missStyle=l.result==="miss"?"background:var(--bad);color:#fff":"";
+  const pad=opts.compact?"3px 9px":"8px 12px";
+  const wt=opts.compact?"800":"500";
+  return `<div class="${cls}" data-event-id="${esc(l.eventId||l.id||"")}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:${wt}">${esc(l.play)}</div><button type="button" class="ghost" style="padding:${pad};${hitStyle}" onclick="callerResult(${i},'hit')">Hit</button><button type="button" class="ghost" style="padding:${pad};${missStyle}" onclick="callerResult(${i},'miss')">Miss</button></div>`;
+}
+function callerUiChrome(){
+  let h="";
+  h+=callerOnCallBarHtml();
+  if(CALLER_PEERS.length){
+    h+=`<p class="foot caller-presence no-print" style="margin:0 0 8px">${CALLER_PEERS.map(p=>esc(p.label||"Coach")+" · active").join(" · ")}</p>`;
+  }
+  const remote=CALLER_ACTIVITY.filter(a=>a.deviceId!==callerDeviceId()).slice(-1)[0];
+  if(remote){
+    h+=`<p class="foot no-print" style="margin:0 0 8px;color:var(--accent2)">Play ${remote.playIndex+1} · <b>${esc(remote.play||"?")}</b> — logged by ${esc(remote.actorLabel||"teammate")} ${callerAgo(remote.clientTs)}</p>`;
+  }
+  if(CALLER_COLLISIONS.length){
+    h+=`<div class="panel caller-collision no-print" style="border-color:var(--warn);background:#fff8e8;margin-bottom:10px">`;
+    CALLER_COLLISIONS.forEach(function(c,ix){
+      const a=(c.keep.payload&&c.keep.payload.play)||"?";
+      const b=(c.drop.payload&&c.drop.payload.play)||"?";
+      h+=`<p style="margin:0 0 6px;font-weight:700">Two calls for play ${c.playIndex+1} — keep ${esc(a)} or ${esc(b)}?</p>`;
+      h+=`<div class="seg">`;
+      h+=`<button type="button" onclick="callerResolveCollision(${ix},'keep')">Keep ${esc(a)}</button>`;
+      h+=`<button type="button" onclick="callerResolveCollision(${ix},'drop')">Keep ${esc(b)}</button>`;
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+  }
+  return h;
+}
+function callerResolveCollision(ix, which){
+  const c=CALLER_COLLISIONS[ix]; if(!c) return;
+  const keep=which==="drop"?c.drop:c.keep;
+  const drop=which==="drop"?c.keep:c.drop;
+  callerAppend("resolve_collision", c.playIndex, { keepEventId:keep.eventId, dropEventId:drop.eventId });
+  renderCaller();
+}
+function callerUndoLast(){
+  const on=callerOnCall();
+  if(!on||on.playIndex==null) return;
+  callerAppend("undo", on.playIndex, {});
+  CALLER_FLASH_ID=null;
+  CALLER_FLASH_UNTIL=0;
+  renderCaller();
+}
+
+function renderCaller(){
+  const host=document.getElementById("view-caller"); if(!host)return;
+  const opp=sit.opp, cs=callerSit;
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+  const expect=callerExpectSample();
+  const g=expect.g, cov=expect.cov, target=expect.target, def=expect.def;
   const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
   const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
-  const target=cov?cov.k:null;
   const cRuns=target?bestCallsFor(target,+cs.dn,cs.db,"Run").slice(0,2):[];
   const cPass=target?bestCallsFor(target,+cs.dn,cs.db,"Pass").slice(0,2):[];
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
 
   if(rd){
@@ -1984,6 +2523,7 @@ function renderCaller(){
     const escPlay=p=>esc(p).replace(/'/g,"");
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ?":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=callerUiChrome();
     h+=`<div class="rd-gd-sit"><div class="rd-gd-sit-txt">${esc(sitTxt)}</div>`;
     h+=`<div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div>`;
     h+=`<details class="rd-gd-edit"><summary>Edit situation</summary><div class="grid" style="margin-top:8px">`;
@@ -1991,23 +2531,28 @@ function renderCaller(){
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`</div></details></div>`;
+    h+=callerObsChipHtml();
+    const onCall=callerOnCall();
     if(hero){
       const sig=sigMap[hero.play];
-      h+=`<div class="rd-gd-hero">`;
+      const heroOn=onCall&&onCall.play===hero.play;
+      h+=`<div class="rd-gd-hero${heroOn?" rd-gd-hero-oncall":""}">`;
       if(sig!=null) h+=`<span class="rd-gd-signal">${esc(String(sig))}</span>`;
       h+=`<div class="rd-gd-hero-name">${esc(hero.play)}</div>`;
-      if(cov) h+=`<p class="rd-gd-why">beats their <b>${esc(cov.k)}</b> ? <b>${fmtPct(cov.pct)}</b> here ? ${Math.round(hero.sr*100)}% on ${hero.n}</p>`;
+      if(heroOn) h+=`<p class="rd-gd-called">CALLED — on the sheet</p>`;
+      else if(cov) h+=`<p class="rd-gd-why">beats their <b>${esc(cov.k)}</b> · <b>${fmtPct(cov.pct)}</b> here · ${Math.round(hero.sr*100)}% on ${hero.n}</p>`;
       else h+=`<p class="rd-gd-why">${Math.round(hero.sr*100)}% success on ${hero.n}</p>`;
-      h+=`<button type="button" class="rd-gd-btn" style="width:100%;margin-bottom:10px" onclick="callerLog('${escPlay(hero.play)}')">Call it</button>`;
+      h+=`<button type="button" class="rd-gd-btn${heroOn?" rd-gd-btn-oncall":""}" style="width:100%;margin-bottom:10px" onclick="callerLog('${escPlay(hero.play)}')">${heroOn?"On call":"Call it"}</button>`;
       if(backups.length){
         h+=`<div class="rd-gd-backups">`+backups.map(c=>{
           const s=sigMap[c.play];
-          return `<button type="button" class="rd-gd-backup" onclick="callerLog('${escPlay(c.play)}')">${s!=null?`<span class="sig">${esc(String(s))}</span>`:""}<span>${esc(c.play)}</span><span class="meta">${Math.round(c.sr*100)}%</span></button>`;
+          const bOn=onCall&&onCall.play===c.play;
+          return `<button type="button" class="rd-gd-backup${bOn?" rd-gd-backup-oncall":""}" onclick="callerLog('${escPlay(c.play)}')">${s!=null?`<span class="sig">${esc(String(s))}</span>`:""}<span>${esc(c.play)}</span><span class="meta">${bOn?"ON CALL":Math.round(c.sr*100)+"%"}</span></button>`;
         }).join("")+`</div>`;
       }
       h+=`</div>`;
     } else {
-      h+=`<div class="rd-gd-hero"><div class="rd-gd-hero-name" style="font-size:22px">No call yet</div><p class="rd-gd-why">${g.length?"Need tagged offense vs "+(cov?esc(cov.k):"this look")+".":"No reps for this exact look ? widen hash/field."}</p></div>`;
+      h+=`<div class="rd-gd-hero"><div class="rd-gd-hero-name" style="font-size:22px">No call yet</div><p class="rd-gd-why">${g.length?"Need tagged offense vs "+(cov?esc(cov.k):"this look")+".":"No reps for this exact look — widen hash/field."}</p></div>`;
     }
     h+=`<div class="rd-gd-expect"><div class="lbl">Expect</div><div class="body">`;
     if(g.length){
@@ -2029,8 +2574,8 @@ function renderCaller(){
     if(CALLER_LOG.length){
       const done=CALLER_LOG.filter(l=>l.result).length, hits=CALLER_LOG.filter(l=>l.result==="hit").length;
       h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button></div>`;
-      h+=`<p class="foot">${CALLER_LOG.length} calls${done?" ? "+Math.round(hits/done*100)+"% success ("+hits+"/"+done+")":""}</p>`;
-      h+=CALLER_LOG.map((l,i)=>`<div class="callitem"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:500">${esc(l.play)}</div><button type="button" class="ghost" style="padding:8px 12px;${l.result==="hit"?"background:var(--good);color:#fff":""}" onclick="callerResult(${i},'hit')">Hit</button><button type="button" class="ghost" style="padding:8px 12px;${l.result==="miss"?"background:var(--bad);color:#fff":""}" onclick="callerResult(${i},'miss')">Miss</button></div>`).join("");
+      h+=`<p class="foot">${CALLER_LOG.length} calls${done?" · "+Math.round(hits/done*100)+"% success ("+hits+"/"+done+")":""}</p>`;
+      h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{})).join("");
       h+=`</div>`;
     }
     h+=`</div></div>`;
@@ -2040,11 +2585,17 @@ function renderCaller(){
 
   function sg(label,key,opts,labels){ return `<div style="margin-bottom:8px"><div class="lbl">${label}</div><div class="seg">`+opts.map((o,i)=>`<button${String(cs[key])===String(o)?' class="on"':''} onclick="callerSet('${key}','${o}')">${labels?labels[i]:o}</button>`).join("")+`</div></div>`; }
   let h=`<div class="panel no-print" data-acc-skip><div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(opp!=="ANY"?opp:"",30)}<span class="pl"><b>${esc(opp!=="ANY"?opp:"opponent")}</b> &mdash; live caller</span></div>`;
+  h+=callerUiChrome();
   h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
+  h+=callerObsChipHtml();
   h+=`<div class="panel" data-acc-skip><div class="lbl">${ordinal(+cs.dn)} & ${cs.db}${cs.zone!=="ANY"?" &middot; "+(cs.zone==="REDZONE"?"RZ":cs.zone):""}${cs.hash!=="ANY"?" &middot; "+cs.hash+" hash":""} &mdash; they show</div>`;
   if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
   else h+=`<p class="foot">No reps for this exact look (try widening hash/field).</p>`;
-  const cline=c=>`<div class="callitem"><div class="cn">${esc(c.play)}</div><div class="track" style="flex:1"><div class="fill cov" style="width:${Math.max(3,Math.round(c.sr*100))}%">${Math.round(c.sr*100)}%</div></div><button class="ghost" style="padding:4px 12px" onclick="callerLog('${esc(c.play).replace(/'/g,"")}')">Call</button></div>`;
+  const onCallClassic=callerOnCall();
+  const cline=c=>{
+    const on=onCallClassic&&onCallClassic.play===c.play;
+    return `<div class="callitem${on?" callitem-oncall":""}"><div class="cn">${esc(c.play)}</div><div class="track" style="flex:1"><div class="fill cov" style="width:${Math.max(3,Math.round(c.sr*100))}%">${Math.round(c.sr*100)}%</div></div><button class="ghost" style="padding:4px 12px${on?";background:#13294B;color:#fff;font-weight:800":""}" onclick="callerLog('${esc(c.play).replace(/'/g,"")}')">${on?"On call":"Call"}</button></div>`;
+  };
   if(cRuns.length||cPass.length){ h+=`<div class="lbl" style="margin-top:8px">Your best calls</div>`; if(cRuns.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+cRuns.map(cline).join(""); } if(cPass.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:4px">PASS</div>`+cPass.map(cline).join(""); } }
   h+=`</div>`;
   h+=`<div class="panel no-print" data-acc-skip><div class="lbl">They showed &mdash; log it</div><div class="seg covlog" style="flex-wrap:wrap">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
@@ -2054,15 +2605,79 @@ function renderCaller(){
   if(CALLER_LOG.length){
     const done=CALLER_LOG.filter(l=>l.result).length, hits=CALLER_LOG.filter(l=>l.result==="hit").length;
     h+=`<p class="foot">${CALLER_LOG.length} calls${done?" &middot; "+Math.round(hits/done*100)+"% success ("+hits+"/"+done+")":""}</p>`;
-    h+=CALLER_LOG.map((l,i)=>`<div class="callitem"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:800">${esc(l.play)}</div><button class="ghost" style="padding:3px 9px;${l.result==="hit"?"background:var(--good);color:#fff":""}" onclick="callerResult(${i},'hit')">Hit</button><button class="ghost" style="padding:3px 9px;${l.result==="miss"?"background:var(--bad);color:#fff":""}" onclick="callerResult(${i},'miss')">Miss</button></div>`).join("");
+    h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{compact:true})).join("");
   } else h+=`<p class="foot">Tap <b>Call</b> on a play to log it, then mark Hit/Miss to track your night.</p>`;
   h+=`</div>`;
   host.innerHTML=h;
 }
-function callerSet(k,v){ callerSit[k]=v; renderCaller(); }
-function callerLog(play){ const cs=callerSit; CALLER_LOG.push({sitTxt:ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""),play:play,result:null}); renderCaller(); }
-function callerResult(i,res){ if(CALLER_LOG[i]) CALLER_LOG[i].result=(CALLER_LOG[i].result===res?null:res); renderCaller(); }
-function callerClear(){ CALLER_LOG=[]; renderCaller(); }
+function callerSet(k,v){ callerSit[k]=v; callerSaveLocal(); renderCaller(); }
+function callerLog(play){
+  const E=callerEngine();
+  callerEnsureSession();
+  /* Silent de-dup: same play within window already on the sheet — re-confirm, do not append. */
+  if(E&&E.wouldDedupCall){
+    const hit=E.wouldDedupCall(CALLER_LOG, play, Date.now());
+    if(hit){
+      callerMarkPersisted(hit.eventId||hit.id);
+      renderCaller();
+      return;
+    }
+  }
+  const cs=callerSit;
+  const expect=callerExpectSample();
+  let signal=null;
+  try{ const m=callerSignalMap(); if(m&&m[play]!=null) signal=m[play]; }catch(e){}
+  const actor=callerActor();
+  const folded=E?E.foldCallerEvents(CALLER_EVENTS):{ nextPlayIndex:CALLER_LOG.length };
+  const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
+  callerAppend("call", playIndex, {
+    sitTxt: ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""),
+    play: play,
+    dn: +cs.dn,
+    db: cs.db,
+    hash: cs.hash,
+    zone: cs.zone,
+    coverage: expect.target||null,
+    playType: callerPlayType(play),
+    opponent: callerSessionOpp(),
+    date: callerSessionDate(),
+    signal: signal,
+    actorLabel: actor.label
+  });
+  /* Confirm only after fold + local persist. Attach sticky obs to the surviving call. */
+  const on=callerOnCall();
+  if(on&&on.play===play){
+    callerAttachStickyObs(on.playIndex);
+    callerMarkPersisted(on.eventId);
+  } else if(on){
+    callerMarkPersisted(on.eventId);
+  }
+  renderCaller();
+}
+function callerResult(i,res){
+  const entry=CALLER_LOG[i]; if(!entry) return;
+  const next=(entry.result===res?null:res);
+  callerAppend("outcome", entry.playIndex, { result: next });
+  renderCaller();
+}
+function callerClear(){
+  const sess=CALLER_SESSION;
+  const k=gameKey(callerSessionOpp(), callerSessionWeek(), "ours");
+  GAMES=GAMES.filter(g=>g.key!==k);
+  CALLER_LOG=[]; CALLER_EVENTS=[]; CALLER_COLLISIONS=[]; CALLER_ACTIVITY=[]; CALLER_SEQ=0;
+  CALLER_SESSION=null;
+  callerPresenceStop();
+  try{
+    const b=callerBridge();
+    if(b&&b.cloud&&b.canEdit&&b.canEdit()&&sess&&sess.gameId&&b.cloud.archiveCallerGame){
+      b.cloud.archiveCallerGame(sess.gameId).catch(function(){});
+    }
+  }catch(e){}
+  callerSaveLocal();
+  saveGames();
+  rebuildActive();
+  renderCaller();
+}
 
 
 /* ---------- presets ---------- */
@@ -2442,9 +3057,9 @@ function closeGetStarted(){ if(gsEl) gsEl.style.display="none"; }
 /* ---------- init ---------- */
 DEF_SAMPLE=buildSample();
 OURS_SAMPLE=buildOffenseSample();
-GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
+GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); loadCallerSession(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
-window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;saveGames();rebuildActive();buildControls();render();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}}};
+window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames(); else saveGames();buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}}};
 /* week plan hook ? account.js feeds the active week_plans row here on every pull.
    Registered at TOP LEVEL, synchronously (the Playbook sync lesson ? never move into DOMContentLoaded). */
 window.OFFGRD_WEEK={set:function(wp,ce){
@@ -2473,6 +3088,9 @@ window.OFFGRD_WEEK={set:function(wp,ce){
 /* live-apply hook for the onboarding brand editor (account.js) */
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
 rebuildActive();
+callerHydrateFromGames();
+if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames();
+try{ if(window.OFFGRD_CALLER_SYNC) setTimeout(function(){ window.OFFGRD_CALLER_SYNC(); }, 1200); }catch(e){}
 document.getElementById("brandCrest").innerHTML=crest(OUR_TEAM,34);
 if(gamesRows("off").length && !gamesRows("def").length) SCOUT_MODE="offense";
 document.querySelectorAll("#seg-scoutmode button").forEach(x=>{ if(x.dataset.sm===SCOUT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
@@ -2500,7 +3118,7 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=111"></script>
+<script type="module" src="OFFGRD-account.js?v=114"></script>
 <script src="OFFGRD-role-gate.js?v=117"></script>
 <script src="OFFGRD-mobile.js?v=97"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
