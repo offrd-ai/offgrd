@@ -223,19 +223,34 @@
       if (!slot || !slot.call || slot.undone) return;
       if (superseded[slot.call.eventId]) return;
       var p = slot.call.payload || {};
-      var result = null;
-      if (slot.outcome && slot.outcome.payload) {
-        result = slot.outcome.payload.result || null;
-      }
       var obs = slot.obs || null;
       var front = obs && obs.front != null && obs.front !== "" ? obs.front : null;
       var pressure = obs && obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
+      var Out = global.OFFGRD_CALLER_OUTCOME;
+      var fin = { result: null, gain: null, flag: null, negated: false, success: null, concept: null, conceptOverride: null };
+      if (slot.outcome && slot.outcome.payload) {
+        if (Out && Out.finalizeOutcome) {
+          fin = Out.finalizeOutcome(slot.outcome.payload, { dn: p.dn, db: p.db });
+        } else {
+          fin.result = slot.outcome.payload.result || null;
+          fin.flag = slot.outcome.payload.flag || null;
+          fin.conceptOverride = slot.outcome.payload.conceptOverride || null;
+          if (fin.result === "hit") fin.success = 1;
+          else if (fin.result === "miss") fin.success = 0;
+        }
+      }
       var entry = {
         id: slot.call.eventId,
         playIndex: pi,
         sitTxt: p.sitTxt || "",
         play: p.play,
-        result: result,
+        result: fin.result,
+        gain: fin.gain,
+        flag: fin.flag,
+        negated: !!fin.negated,
+        success: fin.success,
+        concept: fin.concept,
+        conceptOverride: fin.conceptOverride,
         dn: p.dn,
         db: p.db,
         hash: p.hash,

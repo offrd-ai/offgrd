@@ -267,9 +267,10 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=140"></script>
+<script src="OFFGRD-redesign.js?v=141"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
-<script src="OFFGRD-caller-log.js?v=138"></script>
+<script src="OFFGRD-caller-outcome.js?v=141"></script>
+<script src="OFFGRD-caller-log.js?v=141"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1403,15 +1404,23 @@ function printActive(){ window.print(); }
 
 /* ----- best calls for an arbitrary coverage + situation (uses our plays) ----- */
 function playKind(pl){ let run=0,pass=0; gamesRows("ours").forEach(r=>{ if(r.play===pl){ if(/run/i.test(r.playType))run++; else pass++; } }); return run>pass?"Run":(pass>run?"Pass":(run>0?"Run":"Pass")); }
+function callerLearnSuccess(r){
+  const O=window.OFFGRD_CALLER_OUTCOME;
+  if(O&&O.learningSuccess){
+    /* Prefer concept on live rows; gamesRows already maps learning → success */
+    if(r&&(r.concept!=null||r.conceptOverride!=null)) return O.learningSuccess(r);
+  }
+  return (r&&r.success!=null)?r.success:null;
+}
 function bestCallsFor(target,dn,db,kind){
   const ours=gamesRows("ours"); let plays=uniq(ours.map(r=>r.play)); if(kind) plays=plays.filter(pl=>playKind(pl)===kind); const res=[];
   const mD=r=>(dn==="ANY"||r.down===+dn);
   /* Null/unbucketed distance never matches a specific db (was silent 10+ via dbToNum/distBucket). */
   const mB=r=>(db==="ANY"||(r.distance!=null&&distBucket(r.distance)===db));
   plays.forEach(pl=>{ if(!pl) return;
-    let pool=ours.filter(r=>r.play===pl&&r.coverage===target&&mD(r)&&mB(r)&&r.success!=null);
-    if(pool.length<2) pool=ours.filter(r=>r.play===pl&&r.coverage===target&&r.success!=null);
-    if(pool.length>=2){ const sr=pool.reduce((a,b)=>a+b.success,0)/pool.length; res.push({play:pl,sr:sr,n:pool.length}); }
+    let pool=ours.filter(r=>r.play===pl&&r.coverage===target&&mD(r)&&mB(r)&&callerLearnSuccess(r)!=null);
+    if(pool.length<2) pool=ours.filter(r=>r.play===pl&&r.coverage===target&&callerLearnSuccess(r)!=null);
+    if(pool.length>=2){ const sr=pool.reduce((a,b)=>a+callerLearnSuccess(b),0)/pool.length; res.push({play:pl,sr:sr,n:pool.length}); }
   });
   rankCalls(res); return res.slice(0,3);
 }
@@ -2041,7 +2050,8 @@ function callerExpectSample(){
 function callerEntryToRow(l){
   const down=+l.dn||1;
   const distance=(typeof dbToNum==="function"?dbToNum(l.db):null);
-  const success=l.result==="hit"?1:l.result==="miss"?0:null;
+  const O=window.OFFGRD_CALLER_OUTCOME;
+  const learn=O&&O.learningSuccess?O.learningSuccess(l):(l.result==="hit"?1:l.result==="miss"?0:(l.success!=null?l.success:null));
   const front=(l.front!=null&&l.front!=="")?l.front:null;
   const pressure=(l.pressure!=null&&l.pressure!=="")?l.pressure:null;
   return {
@@ -2064,8 +2074,12 @@ function callerEntryToRow(l){
     blitz: null,
     play: l.play,
     playType: l.playType||callerPlayType(l.play),
-    gain: null,
-    success: success,
+    gain: (l.gain!=null?l.gain:null),
+    success: learn,
+    result: l.result||null,
+    flag: l.flag||null,
+    negated: !!l.negated,
+    concept: l.conceptOverride||l.concept||null,
     source: "live_call",
     signal: (l.signal!=null?l.signal:null),
     callId: l.id||l.eventId||null,
@@ -2438,17 +2452,131 @@ function callerOnCallBarHtml(){
   h+=`</div>`;
   return h;
 }
+function callerOut(){ return window.OFFGRD_CALLER_OUTCOME||null; }
+/** One-tap result (required). Same tap clears. Never blocks new calls. */
+function callerGrade(i, resultId){
+  const entry=CALLER_LOG[i]; if(!entry) return;
+  const next=(entry.result===resultId?null:resultId);
+  callerAppend("outcome", entry.playIndex, {
+    result: next,
+    flag: next? (entry.flag||null) : null,
+    conceptOverride: next? (entry.conceptOverride||null) : null
+  });
+  renderCaller();
+}
+/** Optional flag — only when result misleads. Toggle off if same. */
+function callerSetFlag(i, flagId){
+  const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
+  const next=(entry.flag===flagId?null:flagId);
+  callerAppend("outcome", entry.playIndex, {
+    result: entry.result,
+    flag: next,
+    conceptOverride: entry.conceptOverride||null
+  });
+  renderCaller();
+}
+function callerSetConcept(i, conceptId){
+  const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
+  const next=(entry.conceptOverride===conceptId?null:conceptId);
+  callerAppend("outcome", entry.playIndex, {
+    result: entry.result,
+    flag: entry.flag||null,
+    conceptOverride: next
+  });
+  renderCaller();
+}
+/** @deprecated hit/miss — routes to buckets via legacy ids still folded */
+function callerResult(i,res){ callerGrade(i,res); }
+function callerResultChipsHtml(l, i, opts){
+  opts=opts||{};
+  const O=callerOut();
+  if(!O){
+    const hitStyle=l.result==="hit"?"background:var(--good);color:#fff":"";
+    const missStyle=l.result==="miss"?"background:var(--bad);color:#fff":"";
+    return `<button type="button" class="ghost caller-out-btn${l.result==="hit"?" on":""}" style="${hitStyle}" onclick="callerGrade(${i},'hit')">Hit</button><button type="button" class="ghost caller-out-btn${l.result==="miss"?" on":""}" style="${missStyle}" onclick="callerGrade(${i},'miss')">Miss</button>`;
+  }
+  return `<div class="caller-out-results">`+O.RESULT_BUCKETS.map(b=>{
+    const on=l.result===b.id;
+    return `<button type="button" class="caller-out-btn${on?" on":""}" onclick="callerGrade(${i},'${b.id}')">${b.label}</button>`;
+  }).join("")+`</div>`;
+}
+function callerFlagChipsHtml(l, i){
+  const O=callerOut(); if(!O||!l.result) return "";
+  return `<div class="caller-out-flags"><span class="foot" style="margin-right:6px">Flag</span>`+O.FLAGS.map(f=>{
+    const on=l.flag===f.id;
+    return `<button type="button" class="caller-out-flag${on?" on":""}" onclick="callerSetFlag(${i},'${f.id}')">${f.label}</button>`;
+  }).join("")+`</div>`;
+}
+function callerConceptChipsHtml(l, i){
+  if(!l.result) return "";
+  const cur=l.conceptOverride||l.concept||"";
+  const opts=[["worked","Worked"],["didnt_work","Didn't"],["worked_untested","Untested"]];
+  return `<div class="caller-out-concept"><span class="foot" style="margin-right:6px">Concept</span>`+opts.map(([id,lab])=>{
+    const on=cur===id;
+    return `<button type="button" class="caller-out-flag${on?" on":""}" onclick="callerSetConcept(${i},'${id}')">${lab}</button>`;
+  }).join("")+`</div>`;
+}
+function callerPendingQueueHtml(){
+  const O=callerOut();
+  const pending=O?O.pendingEntries(CALLER_LOG):CALLER_LOG.filter(l=>!l.result);
+  let h=`<div class="caller-pending no-print">`;
+  if(pending.length){
+    h+=`<p class="caller-pending-count">${pending.length} play${pending.length===1?"":"s"} need results</p>`;
+  } else {
+    h+=`<p class="foot caller-pending-count">Results caught up</p>`;
+  }
+  /* Queue = ungraded first (out of order), then most recent graded for flag/concept polish */
+  const idxs=[];
+  CALLER_LOG.forEach((l,i)=>{ if(!l.result) idxs.push(i); });
+  const lastGraded=(()=>{ for(let i=CALLER_LOG.length-1;i>=0;i--) if(CALLER_LOG[i].result) return i; return -1; })();
+  if(lastGraded>=0&&idxs.indexOf(lastGraded)<0) idxs.push(lastGraded);
+  idxs.slice(0,8).forEach(i=>{
+    const l=CALLER_LOG[i];
+    h+=`<div class="caller-pending-row" data-play-index="${l.playIndex}">`;
+    h+=`<div class="caller-pending-head"><b>${esc(l.play)}</b><span class="foot">${esc(l.sitTxt||"")}</span></div>`;
+    h+=callerResultChipsHtml(l,i,{});
+    if(l.result){ h+=callerFlagChipsHtml(l,i); h+=callerConceptChipsHtml(l,i); }
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+function callerComebackHtml(){
+  const O=callerOut(); if(!O) return "";
+  const list=O.comebackEntries(CALLER_LOG).slice(-4);
+  if(!list.length) return "";
+  return `<div class="caller-comeback no-print"><div class="lbl">Come back to it</div>`+list.map(e=>`<p class="caller-comeback-item">${esc(O.comebackReason(e))}</p>`).join("")+`</div>`;
+}
+function callerRatesHtml(){
+  const O=callerOut();
+  if(!O){
+    const done=CALLER_LOG.filter(l=>l.result).length, hits=CALLER_LOG.filter(l=>l.result==="hit").length;
+    return done?`<p class="foot caller-rates">${Math.round(hits/done*100)}% success (${hits}/${done})</p>`:"";
+  }
+  const r=O.liveRates(CALLER_LOG);
+  if(!r.n&&!r.pending) return "";
+  const bits=[];
+  if(r.successRate!=null) bits.push(Math.round(r.successRate*100)+"% success");
+  if(r.explosiveRate!=null) bits.push(Math.round(r.explosiveRate*100)+"% explosive");
+  if(r.pending) bits.push(r.pending+" need results");
+  return bits.length?`<p class="foot caller-rates">${bits.join(" · ")}</p>`:"";
+}
 function callerCallItemHtml(l, i, opts){
   opts=opts||{};
   const flash=callerFlashActive(l.eventId||l.id);
   const on=callerOnCall();
   const isOn=on&&(on.eventId===l.eventId||on.id===l.id);
   const cls=["callitem", flash?"callitem-flash":"", isOn?"callitem-oncall":""].filter(Boolean).join(" ");
-  const hitStyle=l.result==="hit"?"background:var(--good);color:#fff":"";
-  const missStyle=l.result==="miss"?"background:var(--bad);color:#fff":"";
-  const pad=opts.compact?"3px 9px":"8px 12px";
   const wt=opts.compact?"800":"500";
-  return `<div class="${cls}" data-event-id="${esc(l.eventId||l.id||"")}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:${wt}">${esc(l.play)}</div><button type="button" class="ghost" style="padding:${pad};${hitStyle}" onclick="callerResult(${i},'hit')">Hit</button><button type="button" class="ghost" style="padding:${pad};${missStyle}" onclick="callerResult(${i},'miss')">Miss</button></div>`;
+  const O=callerOut();
+  let meta="";
+  if(l.result&&O){
+    const b=(O.RESULT_BUCKETS.find(x=>x.id===l.result)||{});
+    meta=`<span class="foot">${esc(b.label||l.result)}${l.negated?" · neg":""}${l.concept?" · "+esc(O.conceptLabel(l.conceptOverride||l.concept)):""}</span>`;
+  } else if(l.result==="hit"||l.result==="miss"){
+    meta=`<span class="foot">${l.result}</span>`;
+  }
+  return `<div class="${cls}" data-event-id="${esc(l.eventId||l.id||"")}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:${wt}">${esc(l.play)} ${meta}</div></div>`;
 }
 function callerUiChrome(){
   let h="";
@@ -2516,8 +2644,6 @@ function renderCaller(){
     const ranked=cRuns.concat(cPass).slice().sort((a,b)=>b.sr-a.sr);
     const hero=ranked[0]||null;
     const backups=ranked.slice(1,4);
-    const pendingIdx=(()=>{ for(let i=CALLER_LOG.length-1;i>=0;i--) if(!CALLER_LOG[i].result) return i; return CALLER_LOG.length?CALLER_LOG.length-1:-1; })();
-    const pending=pendingIdx>=0?CALLER_LOG[pendingIdx]:null;
     const escPlay=p=>esc(p).replace(/'/g,"");
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ✓":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
@@ -2565,15 +2691,13 @@ function renderCaller(){
     if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot" style="margin-top:8px">Logged this game: <b>${liveAll.length}</b> · ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" · ")} <button type="button" class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; }
     else h+=`<p class="foot" style="margin-top:8px">Tap the coverage they ran — it blends into the prediction live.</p>`;
     h+=`</div>`;
-    h+=`<div class="rd-gd-panel"><div class="lbl">Log last play</div>`;
-    if(pending){
-      h+=`<p style="font-weight:500;margin:0 0 8px;color:var(--rd-text)">${esc(pending.play)} <span class="foot">${esc(pending.sitTxt)}</span></p>`;
-      h+=`<div class="rd-gd-outcomes"><button type="button"${pending.result==="hit"?' class="on-hit"':''} onclick="callerResult(${pendingIdx},'hit')">Hit</button><button type="button"${pending.result==="miss"?' class="on-miss"':''} onclick="callerResult(${pendingIdx},'miss')">Miss</button></div>`;
-    } else h+=`<p class="foot">Call a play, then mark Hit / Miss.</p>`;
+    h+=`<div class="rd-gd-panel"><div class="lbl">Results</div>`;
+    h+=callerRatesHtml();
+    h+=callerComebackHtml();
+    h+=callerPendingQueueHtml();
     if(CALLER_LOG.length){
-      const done=CALLER_LOG.filter(l=>l.result).length, hits=CALLER_LOG.filter(l=>l.result==="hit").length;
       h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button></div>`;
-      h+=`<p class="foot">${CALLER_LOG.length} calls${done?" · "+Math.round(hits/done*100)+"% success ("+hits+"/"+done+")":""}</p>`;
+      h+=`<p class="foot">${CALLER_LOG.length} calls</p>`;
       h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{})).join("");
       h+=`</div>`;
     }
@@ -2600,12 +2724,15 @@ function renderCaller(){
   h+=`<div class="panel no-print" data-acc-skip><div class="lbl">They showed &mdash; log it</div><div class="seg covlog" style="flex-wrap:wrap">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
   if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot">Logged this game: <b>${liveAll.length}</b> &mdash; ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" &middot; ")} <button class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; } else h+=`<p class="foot">Tap the coverage they ran this snap &mdash; it blends into the prediction live.</p>`;
   h+=`</div>`;
-  h+=`<div class="panel" data-sec="Call log"><div class="persp" style="border:none;padding:0"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
+  h+=callerComebackHtml();
+  h+=`<div class="panel" data-sec="Results"><div class="lbl">Results</div>`;
+  h+=callerRatesHtml();
+  h+=callerPendingQueueHtml();
+  h+=`<div class="persp" style="border:none;padding:0;margin-top:10px"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
   if(CALLER_LOG.length){
-    const done=CALLER_LOG.filter(l=>l.result).length, hits=CALLER_LOG.filter(l=>l.result==="hit").length;
-    h+=`<p class="foot">${CALLER_LOG.length} calls${done?" &middot; "+Math.round(hits/done*100)+"% success ("+hits+"/"+done+")":""}</p>`;
+    h+=`<p class="foot">${CALLER_LOG.length} calls</p>`;
     h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{compact:true})).join("");
-  } else h+=`<p class="foot">Tap <b>Call</b> on a play to log it, then mark Hit/Miss to track your night.</p>`;
+  } else h+=`<p class="foot">Tap <b>Call</b> on a play, then one-tap a result bucket. Flags are optional.</p>`;
   h+=`</div>`;
   host.innerHTML=h;
 }

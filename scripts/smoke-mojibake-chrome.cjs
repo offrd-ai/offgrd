@@ -26,6 +26,7 @@ const SOURCE_GLOBS = [
   "OFFGRD-align-key.js",
   "OFFGRD-formation-canon.js",
   "OFFGRD-formations-data.js",
+  "OFFGRD-caller-outcome.js",
   "OFFGRD-caller-log.js",
   "OFFGRD-mobile.js",
   "OFFGRD-shell.js",

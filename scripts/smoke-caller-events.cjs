@@ -4,11 +4,10 @@
  */
 "use strict";
 
-// Load fold engine (browser IIFE → attach to sandbox)
+// Load outcome model then fold engine (browser IIFE → attach to sandbox)
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const src = fs.readFileSync(path.join(__dirname, "../OFFGRD-caller-log.js"), "utf8");
 const sandbox = {
   localStorage: {
     _m: {},
@@ -22,7 +21,8 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
-vm.runInNewContext(src, sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../OFFGRD-caller-outcome.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../OFFGRD-caller-log.js"), "utf8"), sandbox);
 const C = sandbox.OFFGRD_CALLER;
 if (!C) throw new Error("OFFGRD_CALLER missing");
 
