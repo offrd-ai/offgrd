@@ -1,0 +1,3353 @@
+{
+  "version": 1,
+  "formations": [
+    {
+      "aliases": [
+        "2x2",
+        "2X2",
+        "2 x 2",
+        "doubles",
+        "twins",
+        "2x2 doubles",
+        "doubles twins"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "2x2",
+        "gun"
+      ],
+      "id": "DOUBLES_2X2",
+      "display": "2x2 Doubles",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "2x2 slot",
+        "slot doubles",
+        "doubles slot"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "2x2",
+        "gun",
+        "slot"
+      ],
+      "id": "DOUBLES_2X2_SLOT",
+      "display": "2x2 Slot",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "2x2 stack",
+        "2X2 STACK",
+        "stack doubles"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "2x2",
+        "stack",
+        "gun"
+      ],
+      "id": "DOUBLES_2X2_STACK",
+      "display": "2x2 Stack",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "stack",
+          "onLOS": false,
+          "depth": 1.5
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "stack",
+          "onLOS": false,
+          "depth": 1.5
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "3x1",
+        "3X1",
+        "3 x 1",
+        "trips",
+        "trips right",
+        "trips rt",
+        "trio"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "trips"
+      ],
+      "id": "TRIPS_RT",
+      "display": "Trips Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "trips left",
+        "trips lt",
+        "3x1 left",
+        "3x1 lt"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "trips"
+      ],
+      "id": "TRIPS_LT",
+      "display": "Trips Left",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "trips open",
+        "trips open right",
+        "trey open"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "trips",
+        "open"
+      ],
+      "id": "TRIPS_RT_OPEN",
+      "display": "Trips Open Right",
+      "personnel": "10",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "F",
+          "role": "RB",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "trips te",
+        "trips te right",
+        "3x1 te"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "trips",
+        "12"
+      ],
+      "id": "TRIPS_RT_TE",
+      "display": "Trips TE Right",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "y-off trips",
+        "y off trips",
+        "y-off trips right"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "y-off"
+      ],
+      "id": "Y_OFF_TRIPS_RT",
+      "display": "Y-Off Trips Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "trips bunch",
+        "bunch",
+        "bunch right",
+        "3x1 bunch",
+        "nub",
+        "stack bunch",
+        "dart stack"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "bunch",
+        "gun"
+      ],
+      "id": "TRIPS_RT_BUNCH",
+      "display": "Trips Bunch Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "bunch",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "bunch"
+    },
+    {
+      "aliases": [
+        "tight bunch",
+        "tight bunch right"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "bunch",
+        "gun",
+        "tight"
+      ],
+      "id": "TIGHT_BUNCH_RT",
+      "display": "Tight Bunch Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "bunch"
+    },
+    {
+      "aliases": [
+        "trey",
+        "trey right",
+        "2x1",
+        "2X1",
+        "2 x 1",
+        "2x1 te"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "2x1",
+        "gun",
+        "trey"
+      ],
+      "id": "TREY_RT",
+      "display": "Trey Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "empty",
+        "5-wide",
+        "5wide",
+        "5 wide",
+        "empty 3x2",
+        "3x2",
+        "3X2"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "empty",
+        "gun",
+        "3x2"
+      ],
+      "id": "EMPTY_3X2",
+      "display": "Empty 3x2",
+      "personnel": "10",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "F",
+          "role": "RB",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "empty"
+    },
+    {
+      "aliases": [
+        "empty 4x1",
+        "4x1 empty",
+        "4x1",
+        "4X1"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "empty",
+        "gun",
+        "4x1"
+      ],
+      "id": "EMPTY_4X1",
+      "display": "Empty 4x1",
+      "personnel": "10",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 4,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "F",
+          "role": "RB",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "empty"
+    },
+    {
+      "aliases": [
+        "empty bunch",
+        "empty bunch right"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "empty",
+        "bunch",
+        "gun"
+      ],
+      "id": "EMPTY_BUNCH",
+      "display": "Empty Bunch",
+      "personnel": "10",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 2,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "bunch",
+          "onLOS": true
+        },
+        {
+          "label": "F",
+          "role": "RB",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "bunch"
+    },
+    {
+      "aliases": [
+        "quads",
+        "quads right",
+        "quads rt",
+        "4x0"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "quads",
+        "gun"
+      ],
+      "id": "QUADS_RT",
+      "display": "Quads Right",
+      "personnel": "10",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 4,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "F",
+          "role": "RB",
+          "side": "R",
+          "order": 3,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "empty"
+    },
+    {
+      "aliases": [
+        "2x1 wing",
+        "2X1 Wing",
+        "2x1 Wing",
+        "wing",
+        "pro wing",
+        "vs 2x1 wing",
+        "vs 2X1 Wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "wing",
+        "2x1",
+        "gun"
+      ],
+      "id": "WING_2X1",
+      "display": "2x1 Wing",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 1,
+          "split": "wing",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "3x1 wing",
+        "3x1 Wing",
+        "3X1 Wing",
+        "trips wing",
+        "trey wing",
+        "vs 3x1 wing",
+        "vs 3x1 Wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "wing",
+        "3x1",
+        "gun",
+        "trips"
+      ],
+      "id": "WING_3X1",
+      "display": "3x1 Wing",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "twins wing",
+        "twins wing right",
+        "2x2 wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "wing",
+        "twins",
+        "gun"
+      ],
+      "id": "TWINS_WING",
+      "display": "Twins Wing",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "double wing",
+        "dw",
+        "double-wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "wing",
+        "double-wing",
+        "under_center"
+      ],
+      "id": "DOUBLE_WING",
+      "display": "Double Wing",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "wing-t",
+        "wing t",
+        "wingt",
+        "delaware wing-t"
+      ],
+      "olCount": 5,
+      "tags": [
+        "wing",
+        "wing-t",
+        "under_center"
+      ],
+      "id": "WING_T",
+      "display": "Wing-T",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "heavy wing",
+        "tank wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "heavy",
+        "wing",
+        "under_center"
+      ],
+      "id": "HEAVY_WING",
+      "display": "Heavy Wing",
+      "personnel": "22",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 1,
+          "split": "attached",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "gun ace",
+        "ace gun"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun"
+      ],
+      "id": "GUN_ACE",
+      "display": "Gun Ace",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "gun ace wing",
+        "ace wing gun"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "wing"
+      ],
+      "id": "GUN_ACE_WING",
+      "display": "Gun Ace Wing",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "gun y-y wing",
+        "y-y wing",
+        "yy wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "wing"
+      ],
+      "id": "GUN_YY_WING",
+      "display": "Gun Y-Y Wing",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "U",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "gun 12 trips",
+        "12 trips",
+        "gun trips 12"
+      ],
+      "olCount": 5,
+      "tags": [
+        "spread",
+        "3x1",
+        "gun",
+        "12"
+      ],
+      "id": "GUN_12_TRIPS",
+      "display": "Gun 12 Trips",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "ace",
+        "ace formation",
+        "singleback ace",
+        "12 personnel ace"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun"
+      ],
+      "id": "ACE",
+      "display": "Ace",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "ace doubles",
+        "12 doubles"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "2x2"
+      ],
+      "id": "ACE_DOUBLES",
+      "display": "Ace Doubles",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "ace slot"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "slot"
+      ],
+      "id": "ACE_SLOT",
+      "display": "Ace Slot",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "ace wing under",
+        "singleback ace wing"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "wing"
+      ],
+      "id": "ACE_WING",
+      "display": "Ace Wing",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "ace tight"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "tight"
+      ],
+      "id": "ACE_TIGHT",
+      "display": "Ace Tight",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "ace bunch"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun",
+        "bunch"
+      ],
+      "id": "ACE_BUNCH",
+      "display": "Ace Bunch",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "bunch",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "bunch",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "bunch"
+    },
+    {
+      "aliases": [
+        "ace y-y",
+        "ace yy",
+        "y-y"
+      ],
+      "olCount": 5,
+      "tags": [
+        "ace",
+        "12",
+        "gun"
+      ],
+      "id": "ACE_YY",
+      "display": "Ace Y-Y",
+      "personnel": "12",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "U",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "pistol doubles",
+        "pistol 2x2"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pistol",
+        "2x2"
+      ],
+      "id": "PISTOL_DOUBLES",
+      "display": "Pistol Doubles",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x2"
+    },
+    {
+      "aliases": [
+        "pistol trips",
+        "pistol trips right",
+        "pistol 3x1"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pistol",
+        "3x1",
+        "trips"
+      ],
+      "id": "PISTOL_TRIPS_RT",
+      "display": "Pistol Trips Right",
+      "personnel": "11",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "R",
+          "order": 3,
+          "split": "nasty",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "pistol strong"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pistol",
+        "strong"
+      ],
+      "id": "PISTOL_STRONG",
+      "display": "Pistol Strong",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_R",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "pistol weak"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pistol",
+        "weak"
+      ],
+      "id": "PISTOL_WEAK",
+      "display": "Pistol Weak",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "diamond",
+        "pistol diamond",
+        "diamond pistol"
+      ],
+      "olCount": 5,
+      "tags": [
+        "option",
+        "pistol",
+        "diamond"
+      ],
+      "id": "PISTOL_DIAMOND",
+      "display": "Pistol Diamond",
+      "personnel": "20",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "WR",
+          "side": "L",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "pro",
+        "pro i",
+        "i formation",
+        "i-form",
+        "i pro"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "i",
+        "under_center"
+      ],
+      "id": "PRO_I",
+      "display": "Pro I",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "i slot",
+        "i-form slot"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "i",
+        "slot",
+        "under_center"
+      ],
+      "id": "I_SLOT",
+      "display": "I Slot",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "slot",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "pro set",
+        "pro-set"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "under_center"
+      ],
+      "id": "PRO_SET",
+      "display": "Pro Set",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "power i",
+        "power-i",
+        "poweri"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "power-i",
+        "under_center"
+      ],
+      "id": "POWER_I",
+      "display": "Power I",
+      "personnel": "22",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "TE",
+          "side": "R",
+          "order": 1,
+          "split": "attached",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "split backs",
+        "split",
+        "split backfield"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "split",
+        "under_center"
+      ],
+      "id": "SPLIT_BACKS",
+      "display": "Split Backs",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "split",
+          "depth": 5
+        },
+        {
+          "label": "FB",
+          "alignment": "split",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "gun split",
+        "gun split backs",
+        "split backs gun"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "split",
+        "gun"
+      ],
+      "id": "SPLIT_BACKS_GUN",
+      "display": "Gun Split Backs",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "split",
+          "depth": 5
+        },
+        {
+          "label": "FB",
+          "alignment": "split",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "near",
+        "near i",
+        "near formation"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "near",
+        "under_center"
+      ],
+      "id": "NEAR_I",
+      "display": "Near I",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_R",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "far",
+        "far i",
+        "far formation"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "far",
+        "under_center"
+      ],
+      "id": "FAR_I",
+      "display": "Far I",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "strong i",
+        "strong",
+        "strong formation"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "strong",
+        "under_center"
+      ],
+      "id": "STRONG_I",
+      "display": "Strong I",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_R",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "weak i",
+        "weak",
+        "weak formation"
+      ],
+      "olCount": 5,
+      "tags": [
+        "pro",
+        "weak",
+        "under_center"
+      ],
+      "id": "WEAK_I",
+      "display": "Weak I",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "flexbone",
+        "flex bone",
+        "triple option",
+        "wishbone flex"
+      ],
+      "olCount": 5,
+      "tags": [
+        "option",
+        "flexbone",
+        "under_center"
+      ],
+      "id": "FLEXBONE",
+      "display": "Flexbone",
+      "personnel": "20",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 6
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "WR",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "single wing",
+        "single-wing",
+        "sw"
+      ],
+      "olCount": 5,
+      "tags": [
+        "option",
+        "single-wing",
+        "youth"
+      ],
+      "id": "SINGLE_WING",
+      "display": "Single Wing",
+      "personnel": "21",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "pistol",
+          "depth": 4
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        },
+        {
+          "label": "FB",
+          "alignment": "offset_L",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": true
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "wing",
+          "onLOS": true
+        },
+        {
+          "label": "Z",
+          "role": "WR",
+          "side": "R",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "heavy",
+        "goal line",
+        "goal-line",
+        "gl",
+        "tank"
+      ],
+      "olCount": 5,
+      "tags": [
+        "heavy",
+        "goal-line",
+        "under_center"
+      ],
+      "id": "HEAVY_GOAL_LINE",
+      "display": "Heavy / Goal-line",
+      "personnel": "22",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 1,
+          "split": "attached",
+          "onLOS": true
+        }
+      ],
+      "familyHint": "2x1"
+    },
+    {
+      "aliases": [
+        "singleback 13",
+        "13 personnel",
+        "sb 13"
+      ],
+      "olCount": 5,
+      "tags": [
+        "heavy",
+        "13",
+        "gun"
+      ],
+      "id": "SINGLEBACK_13",
+      "display": "Singleback 13",
+      "personnel": "13",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "gun",
+          "depth": 5
+        },
+        {
+          "label": "RB",
+          "alignment": "offset_R",
+          "depth": 5
+        }
+      ],
+      "skill": [
+        {
+          "label": "X",
+          "role": "WR",
+          "side": "L",
+          "order": 1,
+          "split": "wide",
+          "onLOS": false,
+          "depth": 1
+        },
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 2,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "U",
+          "role": "TE",
+          "side": "R",
+          "order": 3,
+          "split": "wing",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "3x1"
+    },
+    {
+      "aliases": [
+        "goal line jumbo",
+        "jumbo 6ol",
+        "6ol",
+        "6 ol"
+      ],
+      "olCount": 6,
+      "tags": [
+        "heavy",
+        "goal-line",
+        "jumbo",
+        "under_center"
+      ],
+      "id": "GOAL_LINE_JUMBO",
+      "display": "Goal Line Jumbo",
+      "personnel": "22",
+      "backfield": [
+        {
+          "label": "QB",
+          "alignment": "under_center",
+          "depth": 0
+        },
+        {
+          "label": "RB",
+          "alignment": "I",
+          "depth": 7
+        },
+        {
+          "label": "FB",
+          "alignment": "I",
+          "depth": 4
+        }
+      ],
+      "skill": [
+        {
+          "label": "Y",
+          "role": "TE",
+          "side": "L",
+          "order": 1,
+          "split": "attached",
+          "onLOS": true
+        },
+        {
+          "label": "H",
+          "role": "TE",
+          "side": "R",
+          "order": 1,
+          "split": "attached",
+          "onLOS": false,
+          "depth": 1
+        }
+      ],
+      "familyHint": "2x1"
+    }
+  ]
+}
