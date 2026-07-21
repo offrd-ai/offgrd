@@ -355,6 +355,22 @@
       d.dx = DLAND.HKM.x;
       d.dy = DLAND.HKM.y;
     });
+
+    /* Align every matched man defender OVER his assignment (not front home).
+       Matching is already side-aware; alignment must follow or W/SS/FS sit
+       cross-formation while CBs look correct (v130 CB-only visual). */
+    const byId = {};
+    skill.forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
+    manDefs.filter(function (d) { return d.manId != null && !d._rat; }).forEach(function (d) {
+      const p = byId[d.manId];
+      if (!p) return;
+      const px = p.x || 0;
+      const py = p.y != null ? p.y : 380;
+      d.x = px + (px < 500 ? 14 : -14);
+      d.y = Math.min(py - 26, 354);
+      d.dx = d.x;
+      d.dy = Math.max(150, d.y - 18);
+    });
   }
 
   function placeDefenseOn(state, front, cov) {

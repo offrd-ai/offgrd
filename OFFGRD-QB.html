@@ -17,16 +17,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v117: player polish ‚Äî glyphs, pre-snap hint, sticky options -->
+<!-- v136: 7-on-LOS formations + Across outside land + Man # outside-in -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=112"></script>
-<script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=111"></script>
-<script src="OFFGRD-render.js?v=116"></script>
-<script src="OFFGRD-pos-glossary.js?v=107"></script>
-<script src="OFFGRD-autoderive.js?v=100"></script>
-<script src="OFFGRD-redesign.js?v=117"></script>
-<script src="OFFGRD-shell.js?v=112"></script>
+<script src="OFFGRD-config.js?v=136"></script>
+<script src="supabase.js?v=136"></script>
+<script src="OFFGRD-cache-gate.js?v=136"></script>
+<script src="OFFGRD-render.js?v=136"></script>
+<script src="OFFGRD-formations-data.js?v=136"></script>
+<script src="OFFGRD-formation-canon.js?v=136"></script>
+<script src="OFFGRD-align-key.js?v=136"></script>
+<script src="OFFGRD-pos-glossary.js?v=136"></script>
+<script src="OFFGRD-autoderive.js?v=136"></script>
+<script src="OFFGRD-redesign.js?v=136"></script>
+<script src="OFFGRD-shell.js?v=136"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -55,7 +59,16 @@
  .prompt-hint{display:none;margin:0 0 10px;font-size:14px;font-weight:600;color:var(--muted,#6b7280);line-height:1.4}
  .prompt-hint.show{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
  .prompt-hint button{appearance:none;border:0;background:transparent;color:var(--muted);font-size:16px;font-weight:800;cursor:pointer;padding:0 4px;line-height:1}
- /* Phone: keep prompt + field + answers usable without scrolling (390√ó844). */
+ /* Align zone dock ó every viewport (was nested under max-width:600px only). */
+ #alignZoneDock{display:none;flex-wrap:wrap;gap:8px;margin-top:10px;padding:12px;border:1px solid var(--line,#e2e5ea);border-radius:12px;background:#f7f9fc}
+ #alignZoneDock.show{display:flex}
+ #alignZoneDock .az-step{flex:1 1 100%;font-weight:800;font-size:14px;color:var(--navy,#13294B);margin:0}
+ #alignZoneDock .az-hint{flex:1 1 100%;font-size:12px;color:var(--muted,#6b7280);margin:0}
+ #alignZoneDock .chip,
+ #alignZoneDock [data-align-choice]{
+  min-height:48px!important;padding:12px 16px!important;font-size:15px!important;border-radius:12px;line-height:1.2;
+ }
+ /* Phone: keep prompt + field + answers usable without scrolling (390◊844). */
  @media (max-width:600px){
   #playPanel:not(.hidden){padding-bottom:8px}
   #playPanel .field-wrap{max-height:45vh}
@@ -69,7 +82,7 @@
   #playPanel #covChoices .chip{min-height:44px;padding:10px 14px;font-size:14px}
   #playPanel .pw-answer-dock .row{margin-top:8px!important}
  }
- /* Value uses --ink (maps to --rd-text under night) ‚Äî never --navy on dark panels. */
+ /* Value uses --ink (maps to --rd-text under night) ó never --navy on dark panels. */
  .our-call-chip{display:none;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);font-size:13px;font-weight:800;color:var(--ink,#e8eef7);line-height:1.35}
  .our-call-chip.show{display:block}
  .our-call-chip .k{display:inline-block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted,#9AA5B4);font-weight:900;margin-right:8px}
@@ -94,8 +107,8 @@
 <body>
 <div class="wrap">
  <div class="topbar">
- <a href="OFFGRD.html" title="OFFGRD ‚Äî back to home" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:30px;height:30px;border-radius:7px"><b>OFF<span style="color:var(--carolina)">GRD</span></b></a><span class="tag">‚Äî Reps Lab</span>
- <a class="btn go" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px;padding:6px 12px;font-size:13px">‚Üê OFFGRD</a>
+ <a href="OFFGRD.html" title="OFFGRD ó back to home" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:30px;height:30px;border-radius:7px"><b>OFF<span style="color:var(--carolina)">GRD</span></b></a><span class="tag">ó Reps Lab</span>
+ <a class="btn go" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px;padding:6px 12px;font-size:13px">? OFFGRD</a>
  <a class="btn" href="OFFGRD-Playbook.html" style="text-decoration:none;padding:6px 12px;font-size:13px">Playbook</a>
  <span style="flex:1"></span>
  <span id="acct"></span>
@@ -155,19 +168,20 @@
  <div class="panel hidden" id="playPanel">
  <p class="prompt" id="prompt"></p>
  <p class="prompt-teach" id="promptTeach"></p>
- <p class="prompt-hint" id="promptHint" role="note"><span>Tap Snap to see the play, then pick your answer.</span><button type="button" id="promptHintDismiss" aria-label="Dismiss hint">√ó</button></p>
+ <p class="prompt-hint" id="promptHint" role="note"><span>Tap Snap to see the play, then pick your answer.</span><button type="button" id="promptHintDismiss" aria-label="Dismiss hint">◊</button></p>
  <div id="ourCallChip" class="our-call-chip" aria-live="polite"></div>
  <div class="field-wrap"><svg id="field" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" aria-label="play"></svg></div>
  <div class="pw-answer-dock">
+ <div id="alignZoneDock" data-align-zones="v136" aria-live="polite"></div>
  <div class="chips hidden" id="covChoices" style="margin-top:10px"></div>
  <div class="fb" id="fb"></div>
  <div class="row" style="margin-top:12px;justify-content:space-between">
  <span class="score" id="progressLbl"></span>
  <span class="row">
- <button class="btn go" id="snapBtn">‚ñ∂ Snap</button>
- <button class="btn hidden" id="replayBtn">‚Üª Replay</button>
+ <button class="btn go" id="snapBtn">? Snap</button>
+ <button class="btn hidden" id="replayBtn">? Replay</button>
  <button class="btn" id="quitBtn">End</button>
- <button class="btn go hidden" id="nextBtn">Next ‚Üí</button>
+ <button class="btn go hidden" id="nextBtn">Next ?</button>
  </span>
  </div>
  </div>
@@ -183,7 +197,8 @@ const W=1000,H=600,LOS=360;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 /* route offsets (x lateral, y downfield-negative), d: N straight, S to sideline, M to middle */
-const PPY=11; /* pixels per yard (depth + lateral) */
+const PPY=11; /* schematic scale for route drawing only ó NOT grass yards; do not claim yards in align scoring */
+/* Align scoring is categorical (relationship ◊ leverage ◊ depth). Field is a schematic, not to scale. */
 /* routes as break points in YARDS: dep = depth downfield from LOS, lat = lateral yards
  (+ = toward the nearest sideline, - = toward the middle). Built to true depths. */
 const ROUTES={
@@ -214,70 +229,70 @@ const CONCEPTS=[
  recv:[{lab:"X",x:120,y:ON,route:"Hitch"},{lab:"Y",x:700,y:ON,route:"Seam"},{lab:"H",x:800,y:OFF,route:"Hitch"},{lab:"Z",x:892,y:ON,route:"Corner"}],
  back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Z","H","X","RB"],
  reads:{
- "Cover 0":{t:"H",why:"All-out man, no deep help ‚Äî throw the quick hitch (5-6) before the rush gets home."},
- "Cover 1":{t:"Z",why:"Single-high man ‚Äî win the corner one-on-one over the sinking corner."},
- "Cover 2":{t:"Z",why:"Classic Smash beater: high-low the corner. He jams the flat, safety\u2019s deep ‚Äî the corner sits in the hole."},
- "Cover 3":{t:"H",why:"The corner is roofed by the deep third ‚Äî take the 6-yard hitch underneath now."},
- "Cover 4":{t:"H",why:"Quarters brackets the corner ‚Äî the hitch underneath is the completion."},
- "Tampa 2":{t:"Z",why:"Corners squat, Mike runs the deep middle ‚Äî drop the corner over the squatting flat."} } },
+ "Cover 0":{t:"H",why:"All-out man, no deep help ó throw the quick hitch (5-6) before the rush gets home."},
+ "Cover 1":{t:"Z",why:"Single-high man ó win the corner one-on-one over the sinking corner."},
+ "Cover 2":{t:"Z",why:"Classic Smash beater: high-low the corner. He jams the flat, safety\u2019s deep ó the corner sits in the hole."},
+ "Cover 3":{t:"H",why:"The corner is roofed by the deep third ó take the 6-yard hitch underneath now."},
+ "Cover 4":{t:"H",why:"Quarters brackets the corner ó the hitch underneath is the completion."},
+ "Tampa 2":{t:"Z",why:"Corners squat, Mike runs the deep middle ó drop the corner over the squatting flat."} } },
 
  { id:"mesh", name:"Mesh", form:"2x2",
  recv:[{lab:"H",x:330,y:OFF,route:"Cross"},{lab:"Y",x:670,y:OFF,route:"Cross"},{lab:"X",x:130,y:ON,route:"Dig"},{lab:"Z",x:880,y:ON,route:"Corner"}],
  back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["H","Y","X","RB"],
  reads:{
- "Cover 0":{t:"H",why:"Man pressure ‚Äî the mesh rub springs a crosser; hit the first one (5-6 yds) coming off the pick."},
- "Cover 1":{t:"Y",why:"Man-free ‚Äî take the crosser coming off the rub with grass to run."},
- "Cover 2":{t:"H",why:"Zone ‚Äî throw the crosser as it settles in the hook window at 5-6, under the halves."},
+ "Cover 0":{t:"H",why:"Man pressure ó the mesh rub springs a crosser; hit the first one (5-6 yds) coming off the pick."},
+ "Cover 1":{t:"Y",why:"Man-free ó take the crosser coming off the rub with grass to run."},
+ "Cover 2":{t:"H",why:"Zone ó throw the crosser as it settles in the hook window at 5-6, under the halves."},
  "Cover 3":{t:"H",why:"Find the crosser sitting in the middle window versus three-deep."},
- "Cover 4":{t:"Y",why:"Quarters ‚Äî the crossers cross the underneath zones; take the first one in space."},
- "Tampa 2":{t:"H",why:"Mike carries the middle deep ‚Äî sit the crosser underneath him at 5-6."} } },
+ "Cover 4":{t:"Y",why:"Quarters ó the crossers cross the underneath zones; take the first one in space."},
+ "Tampa 2":{t:"H",why:"Mike carries the middle deep ó sit the crosser underneath him at 5-6."} } },
 
  { id:"flood", name:"Flood", form:"Trips Rt",
  recv:[{lab:"Y",x:700,y:ON,route:"Go"},{lab:"H",x:800,y:OFF,route:"Out"},{lab:"Z",x:892,y:ON,route:"Flat"},{lab:"X",x:120,y:ON,route:"Comeback"}],
  back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["H","Z","X","RB"],
  reads:{
- "Cover 0":{t:"Z",why:"Man ‚Äî the 3-yard flat with the most grass and leverage, quick."},
- "Cover 1":{t:"H",why:"Man ‚Äî the 10-yard out on leverage away from the free safety."},
+ "Cover 0":{t:"Z",why:"Man ó the 3-yard flat with the most grass and leverage, quick."},
+ "Cover 1":{t:"H",why:"Man ó the 10-yard out on leverage away from the free safety."},
  "Cover 2":{t:"H",why:"High-low the flat defender: he sits on the 3-yard flat, so throw the 10-12 out behind him."},
  "Cover 3":{t:"H",why:"Three-level flood: flat at 3 pulls the flat defender, the out sits in the void at 10-12."},
- "Cover 4":{t:"Z",why:"Quarters sinks the corner ‚Äî dump the 3-yard flat underneath for the easy completion."},
- "Tampa 2":{t:"H",why:"Corner squats the flat ‚Äî throw the out over him at 10-12, under the half."} } },
+ "Cover 4":{t:"Z",why:"Quarters sinks the corner ó dump the 3-yard flat underneath for the easy completion."},
+ "Tampa 2":{t:"H",why:"Corner squats the flat ó throw the out over him at 10-12, under the half."} } },
 
  { id:"verts", name:"Four Verts", form:"2x2",
  recv:[{lab:"X",x:120,y:ON,route:"Go"},{lab:"H",x:330,y:OFF,route:"Seam"},{lab:"Y",x:670,y:OFF,route:"Seam"},{lab:"Z",x:880,y:ON,route:"Go"}],
  back:{lab:"RB",x:500,y:470,route:"Flat"}, prog:["H","Y","X","RB"],
  reads:{
- "Cover 0":{t:"H",why:"No deep help ‚Äî throw the seam (20+) on your fastest matchup immediately."},
- "Cover 1":{t:"X",why:"Single-high man ‚Äî attack the outside vertical away from the free safety."},
- "Cover 2":{t:"H",why:"Bend the seam on the safety ‚Äî hit it 20+ over the corner, under the safety."},
- "Cover 3":{t:"H",why:"Attack the seam versus single-high ‚Äî throw it in the void between corner and safety."},
- "Cover 4":{t:"RB",why:"Quarters caps all four verticals ‚Äî check it down / hitch it up underneath."},
- "Tampa 2":{t:"X",why:"Mike runs the middle ‚Äî take the outside vertical on the deep-half corner."} } },
+ "Cover 0":{t:"H",why:"No deep help ó throw the seam (20+) on your fastest matchup immediately."},
+ "Cover 1":{t:"X",why:"Single-high man ó attack the outside vertical away from the free safety."},
+ "Cover 2":{t:"H",why:"Bend the seam on the safety ó hit it 20+ over the corner, under the safety."},
+ "Cover 3":{t:"H",why:"Attack the seam versus single-high ó throw it in the void between corner and safety."},
+ "Cover 4":{t:"RB",why:"Quarters caps all four verticals ó check it down / hitch it up underneath."},
+ "Tampa 2":{t:"X",why:"Mike runs the middle ó take the outside vertical on the deep-half corner."} } },
 
  { id:"stick", name:"Stick", form:"Trips Rt",
  recv:[{lab:"Y",x:700,y:ON,route:"Stick"},{lab:"H",x:800,y:OFF,route:"Go"},{lab:"Z",x:892,y:ON,route:"Go"},{lab:"X",x:120,y:ON,route:"Slant"}],
  back:{lab:"RB",x:455,y:465,route:"Flat"}, prog:["Y","RB","X"],
  reads:{
  "Cover 0":{t:"Y",why:"Beat man with the quick stick (5-6) breaking away from leverage."},
- "Cover 1":{t:"Y",why:"Man ‚Äî stick away from the defender's leverage; quick and open at 5-6."},
+ "Cover 1":{t:"Y",why:"Man ó stick away from the defender's leverage; quick and open at 5-6."},
  "Cover 2":{t:"Y",why:"The stick sits in the flat void at 5-6 inside the squatting corner."},
  "Cover 3":{t:"Y",why:"Underneath stick in the flat window versus the curl/flat defender."},
- "Cover 4":{t:"Y",why:"Quarters ‚Äî the 5-yard stick is the easy pitch-and-catch."},
+ "Cover 4":{t:"Y",why:"Quarters ó the 5-yard stick is the easy pitch-and-catch."},
  "Tampa 2":{t:"Y",why:"Stick in front of the squatting corner at 5-6."} } },
 
  { id:"curlflat", name:"Curl-Flat", form:"2x2",
  recv:[{lab:"X",x:130,y:ON,route:"Curl"},{lab:"H",x:300,y:OFF,route:"Flat"},{lab:"Z",x:880,y:ON,route:"Curl"},{lab:"Y",x:700,y:OFF,route:"Flat"}],
  back:{lab:"RB",x:545,y:465,route:"Flat"}, prog:["X","H","Z"],
  reads:{
- "Cover 0":{t:"H",why:"Man pressure ‚Äî the flat (3 yds, past the LOS) with leverage and grass, quick."},
- "Cover 1":{t:"X",why:"Man ‚Äî the curl breaking back to you at 10-12, away from trailing coverage."},
+ "Cover 0":{t:"H",why:"Man pressure ó the flat (3 yds, past the LOS) with leverage and grass, quick."},
+ "Cover 1":{t:"X",why:"Man ó the curl breaking back to you at 10-12, away from trailing coverage."},
  "Cover 2":{t:"X",why:"Curl settles in the hole at 10-12 under the half, inside the squat corner."},
  "Cover 3":{t:"H",why:"High-low the flat defender: he widened to the curl, so throw the flat at 3 past the LOS."},
- "Cover 4":{t:"H",why:"Quarters ‚Äî the flat underneath the sinking corner is the completion."},
+ "Cover 4":{t:"H",why:"Quarters ó the flat underneath the sinking corner is the completion."},
  "Tampa 2":{t:"X",why:"Curl in the void at 10-12 under the half, over the squatting corner."} } }
 ];
 const COVERAGES=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
-/* Step 3 harness: OFFGRD_AUTODERIVE.validateBuiltins(CONCEPTS) ‚Äî targets must match hand-authored reads */
+/* Step 3 harness: OFFGRD_AUTODERIVE.validateBuiltins(CONCEPTS) ó targets must match hand-authored reads */
 try{ if(window.OFFGRD_AUTODERIVE){ window.__OFFGRD_VALIDATE_BUILTINS=()=>OFFGRD_AUTODERIVE.validateBuiltins(CONCEPTS); } }catch(e){}
 
 /* ---------- Step 2: unified renderer (flagged; default OFF) ---------- */
@@ -363,7 +378,24 @@ function zone(x,y,rx,ry,lab){ return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry
 const DL="#c8963c", LB="#b8860b", DB="#123a6b";
 function dline(los){ los=los||LOS; return [430,485,540,595].map((x)=>dot(x,los-16,"",DL,12)).join(""); }
 function manDefs(recv,deep){
- let s=""; recv.forEach(p=>{ const dx=p.x+(p.x<500?14:-14), dy=p.y-26; s+=`<line x1="${dx}" y1="${dy}" x2="${p.x}" y2="${p.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`+dot(dx,dy,"M",DB,11); });
+ /* Prefer v101 man-match placement (side-aware). Legacy teleport kept only as last resort. */
+ const actors=coverageActorsManMatch(deep?"Cover 1":"Cover 0", recv||[], LOS);
+ if(actors&&actors.defs){
+  let s="";
+  actors.defs.filter(function(d){ return d.kind==="man"; }).forEach(function(d){
+   const rp=(d.manIdx!=null&&recv[d.manIdx])?recv[d.manIdx]:null;
+   if(rp) s+=`<line x1="${d.fx}" y1="${d.fy}" x2="${rp.x}" y2="${rp.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+   s+=dot(d.fx,d.fy,d.lab||"M",DB,11);
+  });
+  return s;
+ }
+ let s="";
+ const left=(recv||[]).filter(function(p){return p.x<500;}).sort(function(a,b){return a.x-b.x;});
+ const right=(recv||[]).filter(function(p){return p.x>=500;}).sort(function(a,b){return b.x-a.x;});
+ [left[0],right[0]].filter(Boolean).forEach(function(p){
+  const dx=p.x+(p.x<500?14:-14), dy=p.y-26;
+  s+=`<line x1="${dx}" y1="${dy}" x2="${p.x}" y2="${p.y}" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 4"/>`+dot(dx,dy,"C",DB,11);
+ });
  return s;
 }
 function uzone(x,y,rx,ry){ return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.32)" stroke-width="1.2" stroke-dasharray="5 4"/>`; }
@@ -372,10 +404,10 @@ function drawCoverage(cov,recv,los){
  let s=dline(los);
  if(cov==="Cover 0"){ s+=manDefs(recv); s+=dot(500,326,"B",LB,12)+`<path d="M500 316 L500 292" stroke="#e23b2e" stroke-width="4" stroke-linecap="round"/><path d="M493 300 L500 288 L507 300" fill="none" stroke="#e23b2e" stroke-width="4" stroke-linejoin="round"/>`; }
  else if(cov==="Cover 1"){ s+=manDefs(recv,true); s+=uzone(500,300,80,40)+dot(500,150,"FS",DB,13)+dot(500,300,"R",LB,12); }
- else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"‚Äî")+zone(700,150,120,60,"‚Äî")+uzone(160,290,80,40)+uzone(840,290,80,40)+uzone(380,300,78,40)+uzone(500,300,78,40)+uzone(620,300,78,40)+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
+ else if(cov==="Cover 2"){ s+=zone(300,150,120,60,"ó")+zone(700,150,120,60,"ó")+uzone(160,290,80,40)+uzone(840,290,80,40)+uzone(380,300,78,40)+uzone(500,300,78,40)+uzone(620,300,78,40)+dot(160,290,"F",DB,12)+dot(840,290,"F",DB,12)+dot(380,300,"H",LB,12)+dot(620,300,"H",LB,12)+dot(500,300,"M",LB,12); }
  else if(cov==="Cover 3"){ s+=zone(230,150,110,58,"?")+zone(500,140,110,58,"?")+zone(770,150,110,58,"?")+uzone(190,300,84,40)+uzone(810,300,84,40)+uzone(400,300,80,40)+uzone(600,300,80,40)+dot(190,300,"C",DB,12)+dot(810,300,"C",DB,12)+dot(400,300,"H",LB,12)+dot(600,300,"H",LB,12); }
- else if(cov==="Cover 4"){ s+=zone(180,150,95,55,"‚Äî")+zone(400,148,95,55,"‚Äî")+zone(600,148,95,55,"‚Äî")+zone(820,150,95,55,"‚Äî")+uzone(250,305,88,40)+uzone(500,305,88,40)+uzone(750,305,88,40)+dot(250,305,"C",LB,12)+dot(500,305,"H",LB,12)+dot(750,305,"C",LB,12); }
- else if(cov==="Tampa 2"){ s+=zone(300,150,115,58,"‚Äî")+zone(700,150,115,58,"‚Äî")+uzone(170,300,80,40)+uzone(830,300,80,40)+uzone(400,305,80,40)+uzone(600,305,80,40)+dot(500,205,"M",LB,13)+dot(170,300,"F",DB,12)+dot(830,300,"F",DB,12)+dot(400,305,"H",LB,12)+dot(600,305,"H",LB,12); }
+ else if(cov==="Cover 4"){ s+=zone(180,150,95,55,"ó")+zone(400,148,95,55,"ó")+zone(600,148,95,55,"ó")+zone(820,150,95,55,"ó")+uzone(250,305,88,40)+uzone(500,305,88,40)+uzone(750,305,88,40)+dot(250,305,"C",LB,12)+dot(500,305,"H",LB,12)+dot(750,305,"C",LB,12); }
+ else if(cov==="Tampa 2"){ s+=zone(300,150,115,58,"ó")+zone(700,150,115,58,"ó")+uzone(170,300,80,40)+uzone(830,300,80,40)+uzone(400,305,80,40)+uzone(600,305,80,40)+dot(500,205,"M",LB,13)+dot(170,300,"F",DB,12)+dot(830,300,"F",DB,12)+dot(400,305,"H",LB,12)+dot(600,305,"H",LB,12); }
  return s;
 }
 
@@ -489,7 +521,7 @@ function renderWeekBar(){
  +'<span style="flex:1"></span>'
  +((hasKinds||autotest)?'<button class="btn go" id="myWeekTestBtn">\uD83C\uDFAF '+esc(btnLabel)+'</button>':'<button class="btn go" id="pickPosWeekBtn">Set positions for week test</button>')
  +(WEEKPLAN.gen?'<button class="btn" id="weekBriefBtn">\uD83C\uDFC8 Briefing</button>':'')
- +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn">'+(WEEKMODE?"\u2713 Week mode ON":"\uD83C\uDFAF Week mode \u2014 this week\u2019s plays & looks")+'</button>';
+ +'<button class="btn'+(WEEKMODE?' go':'')+'" id="weekModeBtn" title="Controls which plays are in the pool \u2014 not whether a test counts">'+(WEEKMODE?"\u2713 Week plays ON (source only)":"Week plays \u2014 this week\u2019s install")+'</button>';
  document.getElementById("weekModeBtn").onclick=()=>setWeekMode(!WEEKMODE);
  const bb=document.getElementById("weekBriefBtn"); if(bb) bb.onclick=openBriefing;
  const mb=document.getElementById("myWeekTestBtn"); if(mb) mb.onclick=myWeekTest;
@@ -542,17 +574,54 @@ function renderAssignedWeekTest(){
  if(window.QB&&window.QB.ready){ const data=await window.QB.results(); rows=(data&&data.rows)||[]; }
  }catch(e){}
  const comp=OFFGRD_WEEK_AUTOTEST.completionForPlayer(spec, rows, WEEKPLAN.id, WEEKPLAN.opponent);
+ /* Tap a kind chip = the ONLY path that starts a counting week_test. */
  const chips=comp.items.map(i=>{
  const mark=i.passed?"\u2713":(i.started?"\u25D0":"\u25A2");
- const col=i.passed?"#1d7a45":(i.started?"#b8860b":"#7a8494");
- return '<span style="font-weight:800;color:'+col+';margin-right:10px">'+mark+' '+esc(String(i.label).replace(" test","").replace(" ID",""))+(i.pct!=null?(" "+i.pct+"%"):"")+'</span>';
+ const col=i.passed?"#1d7a45":(i.started?"#b8860b":"#13294B");
+ const lab=String(i.label).replace(" test","").replace(" ID","");
+ const tip=i.passed?"Passed \u2014 tap to retake (still counts)":"Tap to start this week test (counts toward Daily Focus)";
+ const cta=i.passed?"Retake":"Start";
+ return '<button type="button" class="week-kind-chip" data-week-kind="'+esc(i.kind)+'" title="'+esc(tip)+'" style="display:inline-flex;align-items:center;gap:8px;margin:0 8px 6px 0;padding:10px 14px;border-radius:12px;border:2px solid '+col+';background:'+(i.passed?"rgba(29,122,69,.08)":"#fff")+';font-weight:800;font-size:14px;color:'+col+';cursor:pointer;box-shadow:0 1px 2px rgba(19,41,75,.12)">'
+  +'<span aria-hidden="true" style="font-size:16px">'+mark+'</span>'
+  +'<span>'+esc(lab)+(i.pct!=null?(" "+i.pct+"%"):"")+'</span>'
+  +'<span style="font-size:12px;font-weight:900;letter-spacing:.02em;padding:3px 8px;border-radius:999px;background:'+col+';color:#fff">'+cta+'</span>'
+  +'</button>';
  }).join("");
  strip.style.display="block";
- strip.innerHTML='<b style="color:var(--navy)">Your week test vs '+esc(WEEKPLAN.opponent||"\u2014")+' ('+esc(positions.join("+"))+'):</b> '+chips
- +(spec.incomplete?' <span class="tag" style="color:#b8860b">some drills need coach keys</span>':'');
+ strip.innerHTML='<b style="color:var(--navy)">Your week test vs '+esc(WEEKPLAN.opponent||"\u2014")+' ('+esc(positions.join("+"))+'):</b> '
+  +'<div style="margin-top:8px">'+chips+'</div>'
+  +'<div class="tag" style="margin-top:6px">Each card starts that week test. The Test builder below is practice only.</div>'
+  +(spec.incomplete?' <span class="tag" style="color:#b8860b">some drills need coach keys</span>':'');
+ strip.querySelectorAll("[data-week-kind]").forEach(function(btn){
+  btn.onclick=function(){ myWeekTestKind(btn.getAttribute("data-week-kind")); };
+ });
  });
 }
 
+/** Sole entry that sets rep_context=week_test. Builder Start must never call this. */
+async function myWeekTestKind(kind){
+ const positions=await resolveMyRosterPositions();
+ if(!kind){
+  return myWeekTest();
+ }
+ if(!positions||!positions.length){
+  swap("setup");
+  showGuide("Set your positions for the week test",
+   "Your test is built from your roster position(s). Pick every position you play, then Save.",
+   posPickerHtml("mw", positions||[]));
+  wirePosPicker(ps=>{ hideGuide(); renderWeekBar(); myWeekTestKind(kind); }, positions||[], "mw");
+  return;
+ }
+ hideGuide();
+ setMode("test");
+ applyUnionPosFilter(positions);
+ selectKind(kind);
+ const rq=(kind==="routes");
+ /* Week plays ON = pool source only; counting comes from repContext below. */
+ await setWeekMode(true);
+ if(rq){ await loadRoutePlays(); buildPosChips(); }
+ startTest({repContext:"week_test"});
+}
 
 async function myWeekTest(){
  const positions=await resolveMyRosterPositions();
@@ -571,7 +640,6 @@ async function myWeekTest(){
  wirePosPicker(ps=>{ hideGuide(); renderWeekBar(); myWeekTest(); }, positions, "mw");
  return;
  }
- hideGuide();
  let kind=kinds[0];
  if(autotest){
  try{
@@ -582,13 +650,7 @@ async function myWeekTest(){
  if(next) kind=next.kind;
  }catch(e){}
  }
- setMode("test");
- applyUnionPosFilter(positions);
- selectKind(kind);
- const rq=(kind==="routes");
- await setWeekMode(true);
- if(rq){ await loadRoutePlays(); buildPosChips(); }
- startTest();
+ return myWeekTestKind(kind);
 }
 let _briefEl=null;
 async function openBriefing(){
@@ -627,7 +689,7 @@ async function openBriefing(){
  || briefPosNote(g.defense&&g.defense.positions, p);
  });
  const rem=(uid&&g.remediation&&g.remediation[uid])||null;
- /* Explicit dark-on-white ‚Äî redesign Night sets body color to light text; modal must not inherit it. */
+ /* Explicit dark-on-white ó redesign Night sets body color to light text; modal must not inherit it. */
  const ink="#111827", muted="#374151", navy="#13294B";
  let h='<div id="briefPanel" style="background:#fff;color:'+ink+';border-radius:14px;max-width:640px;width:100%;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.35)">'
  +'<div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:17px;color:'+navy+'">Week briefing \u2014 '+(isDef?'our defense vs ':'vs ')+esc(WEEKPLAN.opponent||"")+'</b><button class="btn" id="brX" style="color:'+ink+'">Close</button></div>'
@@ -661,6 +723,13 @@ async function openBriefing(){
  _briefEl.innerHTML=h;
  _briefEl.querySelector("#brX").onclick=()=>{ _briefEl.style.display="none"; };
 }
+function refreshStartBtnLabel(){
+ const btn=document.getElementById("startBtn");
+ if(!btn) return;
+ if(MODE!=="test"){ btn.textContent="Start training"; return; }
+ /* Builder Start is ALWAYS practice ó never auto-promotes to week_test. */
+ btn.textContent="Start practice test";
+}
 function setWeekMode(on){
  WEEKMODE=!!on;
  const note=document.getElementById("srcNote");
@@ -668,7 +737,7 @@ function setWeekMode(on){
  if(WEEKMODE){
  SOURCE="custom";
  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src==="custom"));
- if(note) note.textContent="Week mode: only this week\u2019s plan plays are used \u2014 sourced from your program playbook.";
+ if(note) note.textContent="Week plays ON: pool uses this week\u2019s install only. This does not make builder tests count \u2014 tap \u25A2 Alignment / Coverage above for the week test.";
  RQLABS.clear();
  p=loadCustom().then(()=>{
  rebuildPool();
@@ -685,6 +754,7 @@ function setWeekMode(on){
  if(TESTKIND==="routes"){ p=loadRoutePlays().then(buildPosChips); }
  }
  renderWeekBar();
+ refreshStartBtnLabel();
  return p;
 }
 
@@ -697,6 +767,7 @@ function initWeek(){
  WEEKCOVS=[]; const seen={};
  (wc.coverages||[]).forEach(c=>{ const n=normCov(c.k); if(n && !seen[n]){ seen[n]=1; WEEKCOVS.push(n); } });
  renderWeekBar();
+ refreshStartBtnLabel();
  }).catch(()=>{});
 }
 function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE!=="builtin") p=p.concat(CUSTOM); if(WEEKMODE) p=CUSTOM.filter(c=>weekPlayMatch({id:c.rowId,name:c.name})); return p; }
@@ -793,8 +864,8 @@ async function setSource(v){
  const note=document.getElementById("srcNote");
  if(note) note.textContent=(v!=="builtin" && !CUSTOM.length)
  ? (WEEKMODE
- ? "Your coach hasn\u2019t shared this week\u2019s install yet ‚Äî check back after they publish the week plan / authored reads."
- : "No authored plays yet ‚Äî once your coach adds reads in Author mode, they show up here.")
+ ? "Your coach hasn\u2019t shared this week\u2019s install yet ó check back after they publish the week plan / authored reads."
+ : "No authored plays yet ó once your coach adds reads in Author mode, they show up here.")
  : "";
  if(v!=="builtin" && !CUSTOM.length){
  showGuide(WEEKMODE?"This week\u2019s install isn\u2019t ready":"No program plays authored yet",
@@ -851,7 +922,7 @@ async function authorHubHTML(){
     {k:"coverage",label:"Coverage",where:"Offense: This week\u2019s D \u00b7 Defense: Defense tab roles"},
  {k:"routes",label:"Routes",where:"drawn routes on Playbook plays"},
     {k:"blitz",label:"Blitz / Defense",where:"Defense tab (front + coverage + pressure call)"},
-    {k:"align",label:"Alignment",where:"Defense tab ‚Äî confirm align vs each formation family"}
+    {k:"align",label:"Alignment",where:"Defense tab ó confirm align vs each formation family"}
   ];
   let status={};
   try{
@@ -951,9 +1022,9 @@ function assignRespOf(a){
 const DEF_COVERAGE_OPTS=[
   "Deep third","Deep half","Deep quarter","Deep middle",
   "Hook / curl","Flat","Tampa hole","Seam / curl",
-  "Man #1 ‚Äî inside leverage","Man #1 ‚Äî outside leverage",
-  "Man #2 ‚Äî inside leverage","Man #2 ‚Äî outside leverage",
-  "Man #3 ‚Äî inside leverage","Back / checkdown"
+  "Man #1 ó inside leverage","Man #1 ó outside leverage",
+  "Man #2 ó inside leverage","Man #2 ó outside leverage",
+  "Man #3 ó inside leverage","Back / checkdown"
 ];
 function isCoverageResp(resp){
   return DEF_COVERAGE_OPTS.indexOf(String(resp||""))>=0;
@@ -962,13 +1033,20 @@ function coverageRespForDef(state, i){
   const defs=(state&&state.defs)||[], d=defs[i]||{};
   if(d.group!=="DB"&&d.group!=="LB") return null;
   if(d.role==="man"){
-    const skill=((state&&state.players)||[]).filter(function(p){ return p&&(p.type==="route"||p.type==="rb"); }).sort(function(a,b){ return a.x-b.x; });
-    if(!skill.length) return "Man #1 ‚Äî inside leverage";
+    /* Outside-in per side (#1 widest) ó same ordinal as align key / man matchups. */
+    const skill=((state&&state.players)||[]).filter(function(p){ return p&&(p.type==="route"||p.type==="rb"); });
+    if(!skill.length) return "Man #1 ó inside leverage";
+    const left=skill.filter(function(p){ return (p.x||0)<500; }).sort(function(a,b){ return (a.x||0)-(b.x||0); });
+    const right=skill.filter(function(p){ return (p.x||0)>=500; }).sort(function(a,b){ return (b.x||0)-(a.x||0); });
+    const side=(d.x||0)<500?left:right;
+    if(!side.length) return "Man #1 ó inside leverage";
     let nearest=0, best=1e9;
-    skill.forEach(function(p,si){ const dist=Math.abs((p.x||0)-(d.x||0)); if(dist<best){best=dist;nearest=si;} });
-    const side=(d.x||0)<500?skill.slice(0,Math.ceil(skill.length/2)):skill.slice(Math.floor(skill.length/2));
-    let ordinal=side.indexOf(skill[nearest])+1; if(ordinal<1) ordinal=1; if(ordinal>3) ordinal=3;
-    return "Man #"+ordinal+" ‚Äî "+(d.x<500?"inside":"outside")+" leverage";
+    side.forEach(function(p,si){
+      const dist=Math.hypot((p.x||0)-(d.x||0), ((p.y||380)-(d.y||380))*0.4);
+      if(dist<best){ best=dist; nearest=si; }
+    });
+    let ordinal=nearest+1; if(ordinal>3) ordinal=3;
+    return "Man #"+ordinal+" ó "+(d.x<500?"inside":"outside")+" leverage";
   }
   const dx=d.dx==null?d.x:d.dx, dy=d.dy==null?d.y:d.dy;
   const cov=String((state&&state.coverage)||"");
@@ -1007,7 +1085,8 @@ function legacyBlitzToDefCall(bc){
     id:bc.id||"legacy-blitz",
     name:bc.name||((bc.front||"Week")+" blitz"),
     front:bc.front||"4-3",
-    coverage:bc.coverage||"Cover 3",
+    /* Coverage is a def_call field ó never invent from name / silent Cover 3 */
+    coverage:(bc.coverage!=null&&String(bc.coverage).trim())?String(bc.coverage).trim():"",
     pressure:bc.pressure||null,
     note:bc.note||"",
     defs:cloneJson(bc.defs||[]),
@@ -1047,34 +1126,21 @@ function defCallToPlay(call){
   };
 }
 function previewFormationLooks(){
-  const two={id:"form-2x2", name:"2x2", formation:"2x2", state:{players:cloneJson((STDFORM&&STDFORM.players)||[])}};
-  const tripsPlayers=cloneJson((STDFORM&&STDFORM.players)||[]);
-  tripsPlayers.forEach(function(p){
-    if(p.lab==="H"){ p.x=780; p.y=380; p.route=[{x:780,y:300}]; }
-    if(p.lab==="Y"){ p.x=860; p.y=380; p.route=[{x:860,y:300}]; }
-    if(p.lab==="Z"){ p.x=940; p.y=380; p.route=[{x:940,y:250}]; }
-    if(p.lab==="X"){ p.x=100; p.y=380; p.route=[{x:100,y:250}]; }
-  });
-  const trips={id:"form-3x1", name:"3x1 / Trips", formation:"3x1", state:{players:tripsPlayers}};
-  const emptyPlayers=cloneJson((STDFORM&&STDFORM.players)||[]).filter(function(p){ return !(p.type==="rb"); });
-  emptyPlayers.forEach(function(p){
-    if(p.lab==="H"){ p.x=220; p.y=380; p.route=[{x:220,y:300}]; }
-    if(p.lab==="Y"){ p.x=780; p.y=380; p.route=[{x:780,y:300}]; }
-  });
-  const empty={id:"form-empty", name:"Empty", formation:"empty", state:{players:emptyPlayers}};
-  const bunchPlayers=cloneJson((STDFORM&&STDFORM.players)||[]);
-  bunchPlayers.forEach(function(p){
-    if(p.lab==="Y"){ p.x=820; p.y=380; p.route=[{x:820,y:300}]; }
-    if(p.lab==="H"){ p.x=850; p.y=400; p.route=[{x:850,y:320}]; }
-    if(p.lab==="Z"){ p.x=880; p.y=380; p.route=[{x:880,y:250}]; }
-    if(p.lab==="X"){ p.x=120; p.y=380; p.route=[{x:120,y:250}]; }
-  });
-  const bunch={id:"form-bunch", name:"Bunch", formation:"bunch", state:{players:bunchPlayers}};
-  const looks=[two, trips, empty, bunch];
+  const FC=window.OFFGRD_FORMATION_CANON;
+  const ids=["DOUBLES_2X2","TRIPS_RT","WING_2X1","WING_3X1","TRIPS_RT_BUNCH","EMPTY_3X2","PRO_I"];
+  const looks=[];
+  if(FC&&FC.buildLookFromName){
+    ids.forEach(function(id){
+      const f=FC.getById&&FC.getById(id);
+      if(!f) return;
+      const look=FC.buildLookFromName(f.display);
+      if(look) looks.push(look);
+    });
+  }
   (OPPLOOKS||[]).slice(0,6).forEach(function(l){ looks.push(l); });
   return looks;
 }
-/* Author edit-history (Undo/Redo) ‚Äî same pattern as Playbook snap/undo/redo */
+/* Author edit-history (Undo/Redo) ó same pattern as Playbook snap/undo/redo */
 const AUTH_UNDO_CAP=40;
 let AUTH_HIST=null;
 function makeAuthHistory(){
@@ -1161,19 +1227,14 @@ function wireAuthorOlDrag(fsvg, opts){
 }
 
 function formationFamily(look){
+  const FC=window.OFFGRD_FORMATION_CANON;
+  if(FC&&typeof FC.familyFromLook==="function") return FC.familyFromLook(look||{});
   const name=String((look&&(look.formation||look.name||look.id))||"").toLowerCase();
   if(/bunch|stack|nub/.test(name)) return "bunch";
   if(/empty|5.?wide|5wide/.test(name)) return "empty";
+  if(/2\s*x\s*1|wing/.test(name)&&!/3\s*x\s*1|trips|trio|trey/.test(name)) return "2x1";
   if(/3x1|trips|trio|trey/.test(name)) return "3x1";
   if(/2x2|doubles|twins/.test(name)) return "2x2";
-  const players=((look&&look.state&&look.state.players)||[]).filter(function(p){ return p&&(p.type==="route"||p.type==="rb"); });
-  if(players.length){
-    const left=players.filter(function(p){ return (p.x||0)<500; }).length;
-    const right=players.filter(function(p){ return (p.x||0)>=500; }).length;
-    if(Math.max(left,right)>=3 && Math.min(left,right)<=1) return "3x1";
-    if(left>=2 && right>=2) return "2x2";
-    if(players.filter(function(p){ return p.type==="route"; }).length>=5) return "empty";
-  }
   return "other";
 }
 function resolveDefAlign(call, i, look){
@@ -1182,22 +1243,127 @@ function resolveDefAlign(call, i, look){
   const by=call.align_by_family&&(call.align_by_family[fam]||call.align_by_family[String(fam)]);
   if(by){
     const hit=by[i]!=null?by[i]:by[String(i)];
-    if(hit&&hit.x!=null&&hit.y!=null) return hit;
+    if(hit&&(hit.x!=null&&hit.y!=null || hit.relationship || hit.leverage || hit.depth!=null || hit.depthBand)) return hit;
   }
   const a=normalizeAssignEntry(call.assigns&&call.assigns[i]);
   return (a&&a.align)||null;
 }
-function alignWhy(play, di){
-  const d=((play&&play.state&&play.state.defs)||[])[di]||{};
-  const a=normalizeAssignEntry(play&&play._defCall&&play._defCall.assigns&&play._defCall.assigns[di]);
-  const resp=(a&&a.resp)||"";
-  const lev=(a&&a.align&&a.align.leverage)||"";
-  const bits=[];
-  if(resp) bits.push(resp);
-  if(lev) bits.push(lev+" leverage");
-  if(d.group==="DB") bits.push("align to your receiver / landmark for this coverage");
-  else if(d.group==="LB") bits.push("set to strength / #2-#3 surface for this front");
-  else bits.push("tech and shade vs this front");
+/* ---------- Align zones: categorical answer key (derive + coach override) ---------- */
+const ALIGN_LEV_OPTS=["inside","head-up","outside"];
+const ALIGN_DEPTH_OPTS=["press","off","deep","bail"];
+const ALIGN_REL_OPTS=[
+  "over #1","over #2","over #3","apex #2","over TE",
+  "stack the box","deep middle","deep half","deep third","deep outside third","deep quarter",
+  "flat","hook / curl","curl/flat","middle hook"
+];
+function isDepthBand(v){ return ALIGN_DEPTH_OPTS.indexOf(String(v||"").toLowerCase())>=0; }
+function depthBandFromLegacy(depth, y){
+  if(isDepthBand(depth)) return String(depth).toLowerCase();
+  var n=depth!=null&&depth!==""?+depth:NaN;
+  if(isNaN(n)&&y!=null) n=Math.max(0, Math.round((380-y)/PPY));
+  if(isNaN(n)) return "off";
+  if(n<=1.5) return "press";
+  if(n<=7.5) return "off";
+  if(n<=14) return "deep";
+  return "bail";
+}
+function resolveCallCoverage(call){
+  var AK=window.OFFGRD_ALIGN_KEY;
+  if(!AK||!AK.resolveCallCoverage) throw new Error("OFFGRD_ALIGN_KEY missing");
+  return AK.resolveCallCoverage(call);
+}
+function alignSkillPlayers(state){
+  var AK=window.OFFGRD_ALIGN_KEY;
+  if(AK&&AK.alignSkillPlayers) return AK.alignSkillPlayers(state);
+  return ((state&&state.players)||[]).filter(function(p){
+    if(!p) return false;
+    if(p.type==="route"||p.type==="rb") return true;
+    var lab=String(p.lab||"");
+    return !!lab && !/^OL|C$|LG|RG|LT|RT|QB$/i.test(lab);
+  });
+}
+function alignNearestOrdinal(skill, def){
+  var AK=window.OFFGRD_ALIGN_KEY;
+  if(AK&&AK.alignNearestOrdinal) return AK.alignNearestOrdinal(skill, def);
+  return {n:1, p:null};
+}
+/** Coverage from def_call.coverage only ó throws if missing/unrecognized (never silent Cover 3). */
+function deriveAlignAnswer(call, di, state){
+  var AK=window.OFFGRD_ALIGN_KEY;
+  if(!AK||!AK.deriveAlignAnswer) throw new Error("OFFGRD_ALIGN_KEY missing");
+  return AK.deriveAlignAnswer(call, di, state, {coverageRespForDef:coverageRespForDef});
+}
+/** Coach override wins per-dimension when authored as CATEGORICAL values.
+ *  Landmark x/y and numeric yard depths are telemetry only ó never let them
+ *  replace derived depth/leverage (that produced SS curl/flat + deep). */
+function resolveAlignAnswerKey(call, di, play){
+  var state=(play&&play.state)||{};
+  var look=(play&&play.look)||play||{};
+  var derived;
+  try{
+    derived=deriveAlignAnswer(call, di, state);
+  }catch(e){
+    console.error("[align] deriveAlignAnswer failed ó skip rep", e&&e.message||e);
+    return null;
+  }
+  if(!derived||!derived.relationship) return null;
+  var authored=resolveDefAlign(call, di, look)||{};
+  var assign=normalizeAssignEntry(call&&call.assigns&&call.assigns[di]);
+  var a=(assign&&assign.align)||{};
+  var relAuth=ALIGN_REL_OPTS.indexOf(String(a.relationship||""))>=0?String(a.relationship)
+    :(ALIGN_REL_OPTS.indexOf(String(authored.relationship||""))>=0?String(authored.relationship):null);
+  var rel=relAuth||derived.relationship;
+  var lev, depth;
+  /* When relationship is derived, take leverage+depth from derive as a unit.
+     Landmark y / numeric yards / stray head-up must not invent curl/flat∑deep. */
+  if(!relAuth){
+    lev=derived.leverage;
+    depth=isDepthBand(derived.depth)?String(derived.depth).toLowerCase():"off";
+  }else{
+    var al=String(a.leverage||"").toLowerCase();
+    var ol=String(authored.leverage||"").toLowerCase();
+    lev=ALIGN_LEV_OPTS.indexOf(al)>=0?al:(ALIGN_LEV_OPTS.indexOf(ol)>=0?ol:derived.leverage);
+    if(isDepthBand(a.depthBand)) depth=String(a.depthBand).toLowerCase();
+    else if(isDepthBand(a.depth)) depth=String(a.depth).toLowerCase();
+    else if(isDepthBand(authored.depthBand)) depth=String(authored.depthBand).toLowerCase();
+    else if(isDepthBand(authored.depth)) depth=String(authored.depth).toLowerCase();
+    else if(isDepthBand(derived.depth)) depth=String(derived.depth).toLowerCase();
+    else depth=depthBandFromLegacy(a.depth!=null?a.depth:authored.depth, a.y!=null?a.y:(authored.y!=null?authored.y:derived.y));
+  }
+  if(!lev||!rel||!isDepthBand(depth)) return null;
+  var under=["curl/flat","hook / curl","middle hook","flat"];
+  var deepRel=window.OFFGRD_ALIGN_KEY&&OFFGRD_ALIGN_KEY.isDeepZoneRel
+    ?OFFGRD_ALIGN_KEY.isDeepZoneRel(rel)
+    :/^deep\b/.test(String(rel||""));
+  if(under.indexOf(rel)>=0&&(depth==="deep"||depth==="bail")) depth="off";
+  if(deepRel&&(depth==="press"||depth==="off")) depth="deep";
+  var overridden=!!relAuth;
+  return {
+    leverage:lev,
+    depth:depth,
+    relationship:rel,
+    x:a.x!=null?a.x:(authored.x!=null?authored.x:derived.x),
+    y:a.y!=null?a.y:(authored.y!=null?authored.y:derived.y),
+    source:overridden?"override":"derived",
+    coverage:derived.coverage||null
+  };
+}
+function alignWhy(play, di, callFallback){
+  /* Prefer stored targetAlign (generation already proved it) ó never throw on null. */
+  let key=null;
+  try{
+    const call=(play&&play._defCall)||callFallback||null;
+    if(call) key=resolveAlignAnswerKey(call, di, play);
+  }catch(e){
+    console.error("[align] alignWhy derive failed", e&&e.message||e);
+    key=null;
+  }
+  if(!key||!key.relationship){
+    if(rep&&rep.targetAlign&&rep.targetAlign.relationship) key=rep.targetAlign;
+  }
+  if(!key||!key.relationship) return "Alignment key unavailable for this look";
+  const bits=[key.relationship, (key.leverage||"?")+" leverage", (key.depth||"?")+" depth"];
+  if(key.source==="override") bits.push("program rule");
   return bits.join(" \u00b7 ");
 }
 
@@ -1333,7 +1499,7 @@ async function editDefense(){
     +'<div class="lbl" style="margin-top:8px">Front</div><div class="chips" id="bzFronts" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:8px">Coverage</div><div class="chips" id="bzCovs" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:8px">Pressure</div><div class="chips" id="bzPress" style="margin:4px 0"></div>'
-    +'<div class="lbl" style="margin-top:8px;font-size:11px">Rules / adjust ‚Äî preview vs formation family (confirm align per look)</div><div class="chips" id="bzForms" style="margin:4px 0"></div>'
+    +'<div class="lbl" style="margin-top:8px;font-size:11px">Rules / adjust ó preview vs formation family (confirm align per look)</div><div class="chips" id="bzForms" style="margin:4px 0"></div>'
     +'<div class="lbl" style="margin-top:8px;font-size:11px">Motion (pre-snap adjust)</div><div class="chips" id="bzMotions" style="margin:4px 0"></div>'
     +'<div id="bzMotionRules" class="chips" style="margin:4px 0"></div>'
     +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="tag" id="bzCur"></span>'
@@ -1670,7 +1836,7 @@ async function editDefense(){
   paint({repressure:!Object.keys(cur.stunt||{}).length, forceSeed:!Object.keys(cur.assigns||{}).length});
 }
 function editBlitz(){ return editDefense(); }
-const STDFORM={front:"none",players:[
+const STDFORM={front:"none",players:(window.OFFGRD_FORMATION_CANON&&OFFGRD_FORMATION_CANON.playersForFamily("2x2"))||[
  {type:"route",lab:"X",x:120,y:380,route:[{x:120,y:250}]},{type:"route",lab:"H",x:290,y:380,route:[{x:290,y:300}]},
  {type:"route",lab:"Y",x:710,y:380,route:[{x:710,y:300}]},{type:"route",lab:"Z",x:880,y:380,route:[{x:880,y:250}]},
  {type:"rb",lab:"RB",x:500,y:432,route:[{x:560,y:405}]},{type:"qb",lab:"QB",x:500,y:470},
@@ -1688,14 +1854,14 @@ function wireDrag(fsvg, store, getCov, onLink){
 }
 function editWeekDef(){
  const body=document.getElementById("weekdBody");
- if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet ‚Äî a coach starts one in <b>Scout ? Game Plan ? This Week</b>, then set the opponent\u2019s alignments here.</p>'; return; }
+ if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet ó a coach starts one in <b>Scout ? Game Plan ? This Week</b>, then set the opponent\u2019s alignments here.</p>'; return; }
  WEEKDEF=WEEKDEF||{};
  const allCovs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
  const shown=(WEEKCOVS&&WEEKCOVS.length)?WEEKCOVS.slice():[];
  Object.keys(WEEKDEF).forEach(c=>{ if(shown.indexOf(c)<0) shown.push(c); });
  if(!shown.length) shown.push("Cover 3");
  let curCov=shown[0];
- body.innerHTML='<p class="tag" style="margin-top:8px">Set how <b>'+esc(WEEKPLAN.opponent||"this opponent")+'</b> lines up in each look ‚Äî drag any defender. The base coverage still plays out; this is the pre-snap picture your players see in Train/Test with \uD83C\uDFAF Week mode on.</p>'
+ body.innerHTML='<p class="tag" style="margin-top:8px">Set how <b>'+esc(WEEKPLAN.opponent||"this opponent")+'</b> lines up in each look ó drag any defender. The base coverage still plays out; this is the pre-snap picture your players see in Train/Test with \uD83C\uDFAF Week mode on.</p>'
  +'<div class="lbl" style="margin-top:8px">Their looks this week</div><div class="chips" id="wdCovs" style="margin:4px 0"></div>'
  +'<div class="lbl" style="margin-top:6px;font-size:11px">Add a look</div><div class="chips" id="wdAdd" style="margin:4px 0"></div>'
  +'<div class="row" style="margin:6px 0;justify-content:space-between;gap:8px"><span class="tag" id="wdCur"></span><button class="btn" id="wdReset" title="reset this look to base">? Base look</button></div>'
@@ -1713,13 +1879,13 @@ function editWeekDef(){
  const rcv=lab=>((STDFORM.players||[]).find(p=>p.lab===lab&&(p.type==="route"||p.type==="rb")));
  const autoLab=lab=>{ const rs=(STDFORM.players||[]).filter(p=>p.type==="route"||p.type==="rb"), xs=rs.map(p=>p.x), p=rcv(lab); if(!p) return "M"; if(p.x===Math.min.apply(null,xs)||p.x===Math.max.apply(null,xs)) return "C"; return Math.abs(p.x-500)<80?"M":"N"; };
  const linkTo=(di,lab)=>{ WEEKDEF[curCov]=WEEKDEF[curCov]||{}; const e=WEEKDEF[curCov][di]=WEEKDEF[curCov][di]||{}; e.man=lab; if(!e.lab) e.lab=autoLab(lab); const rp=rcv(lab); if(rp){ e.x=rp.x+(rp.x<500?14:-14); e.y=rp.y-26; } SELDEF=null; render(); };
- const renderLink=()=>{ const el=document.getElementById("wdLink"); if(!el) return; if(!isMan()){ el.innerHTML='<span class="tag">Zone ‚Äî drag defenders to set depth &amp; leverage.</span>'; return; } if(SELDEF==null){ el.innerHTML='<span class="tag"><b>Man:</b> tap a defender, then tap the receiver he covers. Drag to press/off.</span>'; return; } const e=(WEEKDEF[curCov]&&WEEKDEF[curCov][SELDEF])||{}; el.innerHTML='<span class="tag">Selected ‚Äî tap his receiver, or label:</span> <input id="wdLbl" class="btn" style="width:70px" maxlength="4" value="'+esc(e.lab||"")+'"> <button class="btn" id="wdDone">done</button>'; const inp=document.getElementById("wdLbl"); if(inp) inp.oninput=()=>{ WEEKDEF[curCov]=WEEKDEF[curCov]||{}; WEEKDEF[curCov][SELDEF]=WEEKDEF[curCov][SELDEF]||{}; WEEKDEF[curCov][SELDEF].lab=inp.value.trim(); const t=document.querySelector('#authField .dragdef[data-di="'+SELDEF+'"] text'); if(t) t.textContent=inp.value.trim()||"D"; }; const dn=document.getElementById("wdDone"); if(dn) dn.onclick=()=>{ SELDEF=null; render(); }; };
- const render=()=>{ const cur=document.getElementById("wdCur"); if(cur) cur.textContent="Editing: "+curCov+(WEEKDEF[curCov]?" ‚Äî customized":" ‚Äî base"); readsAuthorRender(STDFORM, curCov, WEEKDEF[curCov], "authField", null, SELDEF); paintCovChips(); renderLink(); };
+ const renderLink=()=>{ const el=document.getElementById("wdLink"); if(!el) return; if(!isMan()){ el.innerHTML='<span class="tag">Zone ó drag defenders to set depth &amp; leverage.</span>'; return; } if(SELDEF==null){ el.innerHTML='<span class="tag"><b>Man:</b> tap a defender, then tap the receiver he covers. Drag to press/off.</span>'; return; } const e=(WEEKDEF[curCov]&&WEEKDEF[curCov][SELDEF])||{}; el.innerHTML='<span class="tag">Selected ó tap his receiver, or label:</span> <input id="wdLbl" class="btn" style="width:70px" maxlength="4" value="'+esc(e.lab||"")+'"> <button class="btn" id="wdDone">done</button>'; const inp=document.getElementById("wdLbl"); if(inp) inp.oninput=()=>{ WEEKDEF[curCov]=WEEKDEF[curCov]||{}; WEEKDEF[curCov][SELDEF]=WEEKDEF[curCov][SELDEF]||{}; WEEKDEF[curCov][SELDEF].lab=inp.value.trim(); const t=document.querySelector('#authField .dragdef[data-di="'+SELDEF+'"] text'); if(t) t.textContent=inp.value.trim()||"D"; }; const dn=document.getElementById("wdDone"); if(dn) dn.onclick=()=>{ SELDEF=null; render(); }; };
+ const render=()=>{ const cur=document.getElementById("wdCur"); if(cur) cur.textContent="Editing: "+curCov+(WEEKDEF[curCov]?" ó customized":" ó base"); readsAuthorRender(STDFORM, curCov, WEEKDEF[curCov], "authField", null, SELDEF); paintCovChips(); renderLink(); };
  wireDrag(document.getElementById("authField"), WEEKDEF, ()=>curCov, { def:di=>{ if(!isMan()) return; SELDEF=di; render(); }, recv:lab=>{ if(isMan()&&SELDEF!=null) linkTo(SELDEF,lab); } });
  document.getElementById("wdReset").onclick=()=>{ delete WEEKDEF[curCov]; SELDEF=null; render(); };
  document.getElementById("wdSave").onclick=async()=>{
- const msg=document.getElementById("wdMsg"); msg.textContent="Saving‚Äî";
- try{ await window.QB.saveWeekDef(WEEKPLAN.id, WEEKDEF); WEEKPLAN.def_aligns=JSON.parse(JSON.stringify(WEEKDEF)); msg.textContent="Saved ? ‚Äî live in Train/Test under \uD83C\uDFAF Week mode."; }
+ const msg=document.getElementById("wdMsg"); msg.textContent="Savingó";
+ try{ await window.QB.saveWeekDef(WEEKPLAN.id, WEEKDEF); WEEKPLAN.def_aligns=JSON.parse(JSON.stringify(WEEKDEF)); msg.textContent="Saved ? ó live in Train/Test under \uD83C\uDFAF Week mode."; }
  catch(e){ msg.textContent=e.message||"Save failed"; }
  };
  render();
@@ -1728,7 +1894,7 @@ let AUTHKIND="reads";
 function editOlKeys(row){
  const ed=document.getElementById("authEditor");
  const state=(row.data&&row.data.players)?row.data:(row.data||row); const defs=(state&&state.defs)||[];
- if(!defs.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No defense drawn on ‚Äî'+esc(row.name||"this play")+'‚Äî yet ‚Äî open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a>, load the play, use <b>Place defense</b> (add Blitz / Direct paths for stunts), save it, then come back.</p>'; return; }
+ if(!defs.length){ ed.innerHTML='<p class="tag" style="margin-top:14px">No defense drawn on ó'+esc(row.name||"this play")+'ó yet ó open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a>, load the play, use <b>Place defense</b> (add Blitz / Direct paths for stunts), save it, then come back.</p>'; return; }
  let cur=(row.ol_keys&&row.ol_keys.keys)?JSON.parse(JSON.stringify(row.ol_keys)):{v:1,front:"",note:"",keys:{}};
  let autoOlNote="";
  if(window.OFFGRD_AUTODERIVE&&OFFGRD_AUTODERIVE.isAutoderive()){
@@ -1738,7 +1904,7 @@ function editOlKeys(row){
  if(merged.ol){
  cur=merged.ol;
  if(merged.filled){
- autoOlNote='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto ‚Äî tap to edit.</b> Pre-filled '+merged.filled+' blocker key'+(merged.filled===1?"":"s")+' from protection'+(state.protection?(' ('+esc(state.protection)+')'):'')+(state.front&&state.front!=="none"?(' vs '+esc(state.front)):'')+'. Coach edits always win.</div>';
+ autoOlNote='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto ó tap to edit.</b> Pre-filled '+merged.filled+' blocker key'+(merged.filled===1?"":"s")+' from protection'+(state.protection?(' ('+esc(state.protection)+')'):'')+(state.front&&state.front!=="none"?(' vs '+esc(state.front)):'')+'. Coach edits always win.</div>';
  row.ol_keys=cur;
  try{ if(window.QB&&window.QB.saveOlKeys) window.QB.saveOlKeys(row.id, cur); }catch(e){}
  }
@@ -1852,8 +2018,8 @@ function editPlay(row){
  const merged=OFFGRD_AUTODERIVE.mergeReads(reads, derived);
  reads=merged.reads||reads;
  if(merged.filled){
- const cLab=merged.concept?(' ‚Äî concept '+merged.concept):"";
- autoBanner='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto ‚Äî tap to edit.</b> Pre-filled '+merged.filled+' coverage'+(merged.filled===1?"":"s")+' from the drawn play'+cLab+'. Existing authored reads were left alone. Coach edits always win.</div>';
+ const cLab=merged.concept?(' ó concept '+merged.concept):"";
+ autoBanner='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:10px;padding:8px 12px;margin:8px 0 0;font-size:12.5px;line-height:1.45"><b style="color:#13294B">Auto ó tap to edit.</b> Pre-filled '+merged.filled+' coverage'+(merged.filled===1?"":"s")+' from the drawn play'+cLab+'. Existing authored reads were left alone. Coach edits always win.</div>';
  row.qb_reads=reads;
  try{ if(window.QB&&window.QB.savePlayReads) window.QB.savePlayReads(row.id, reads); }catch(e){}
  }
@@ -1863,7 +2029,7 @@ function editPlay(row){
  let curCov=Object.keys(reads).find(cv=>reads[cv]&&reads[cv].t)||"Cover 3", curReveal=null;
  ed.innerHTML=`${autoBanner}<div class="lbl" style="margin-top:16px">${esc(row.name||"Play")}</div>
  <div class="field-wrap"><svg id="authField" viewBox="0 0 1000 640"></svg></div>
- <div class="row" style="margin-top:6px;justify-content:space-between;align-items:flex-start;gap:8px"><p class="tag" style="margin:0;flex:1">Tap a coverage, then <b>drag any defender</b> to match this week\u2019s opponent (press a corner, roll a safety). The base coverage still plays out ‚Äî you're only setting the pre-snap look.</p><button class="btn" id="resetLook" title="reset this coverage to its base alignment">? Base look</button></div>
+ <div class="row" style="margin-top:6px;justify-content:space-between;align-items:flex-start;gap:8px"><p class="tag" style="margin:0;flex:1">Tap a coverage, then <b>drag any defender</b> to match this week\u2019s opponent (press a corner, roll a safety). The base coverage still plays out ó you're only setting the pre-snap look.</p><button class="btn" id="resetLook" title="reset this coverage to its base alignment">? Base look</button></div>
  <div id="covRows" style="margin-top:8px"></div>
  <div class="row" style="margin-top:12px"><button class="btn go" id="saveReads">Save reads</button><span id="saveReadsMsg" class="tag"></span></div>`;
  const cr=document.getElementById("covRows");
@@ -1871,10 +2037,10 @@ function editPlay(row){
  const r1=document.createElement("div"); r1.className="row"; r1.style.margin="6px 0"; r1.dataset.cov=cv;
  const isAuto=!!(reads[cv]&&reads[cv].auto);
  const nm=document.createElement("span"); nm.style.cssText="width:78px;font-weight:800;font-size:13px;cursor:pointer"; nm.innerHTML=esc(cv)+(isAuto?' <span style="font-size:10px;font-weight:800;color:#4B9CD3">auto</span>':"");
- const sel=document.createElement("select"); sel.className="btn"; sel.innerHTML='<option value="">‚Äî skip ‚Äî </option>'+labs.map(l=>`<option${reads[cv]&&reads[cv].t===l?" selected":""}>${l}</option>`).join("");
+ const sel=document.createElement("select"); sel.className="btn"; sel.innerHTML='<option value="">ó skip ó </option>'+labs.map(l=>`<option${reads[cv]&&reads[cv].t===l?" selected":""}>${l}</option>`).join("");
  const altV=(reads[cv]&&reads[cv].alt&&reads[cv].alt[0])||"";
- const sel2=document.createElement("select"); sel2.className="btn"; sel2.title="second correct answer (for mirrored routes)"; sel2.innerHTML='<option value="">‚Äî or also ‚Äî </option>'+labs.map(l=>`<option${altV===l?" selected":""}>${l}</option>`).join("");
- const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder=isAuto?"auto why ‚Äî tap to edit":"coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
+ const sel2=document.createElement("select"); sel2.className="btn"; sel2.title="second correct answer (for mirrored routes)"; sel2.innerHTML='<option value="">ó or also ó </option>'+labs.map(l=>`<option${altV===l?" selected":""}>${l}</option>`).join("");
+ const note=document.createElement("input"); note.className="btn"; note.style.flex="1"; note.style.minWidth="140px"; note.placeholder=isAuto?"auto why ó tap to edit":"coaching note (optional)"; note.value=(reads[cv]&&reads[cv].why)||"";
  const prog=(reads[cv]&&reads[cv].prog)||[];
  r1._sel=sel; r1._sel2=sel2; r1._note=note; r1._auto=isAuto; r1._prog=prog;
  r1.appendChild(nm); r1.appendChild(sel); r1.appendChild(sel2); r1.appendChild(note);
@@ -1901,8 +2067,8 @@ function editPlay(row){
  if(ALIGN[cv]&&Object.keys(ALIGN[cv]).length){ o=o||{why:why}; o.align=ALIGN[cv]; }
  if(o) out[cv]=o;
  });
- const msg=document.getElementById("saveReadsMsg"); msg.textContent="Saving‚Äî";
- try{ await window.QB.savePlayReads(row.id,out); row.qb_reads=out; msg.textContent="Saved ? ‚Äî now available in Train/Test under ‚ÄîOur plays‚Äî."; }
+ const msg=document.getElementById("saveReadsMsg"); msg.textContent="Savingó";
+ try{ await window.QB.savePlayReads(row.id,out); row.qb_reads=out; msg.textContent="Saved ? ó now available in Train/Test under óOur playsó."; }
  catch(e){ msg.textContent=e.message||"Save failed"; }
  };
 }
@@ -1928,7 +2094,64 @@ function offenseActors(rep){
  const list=c.recv.concat([c.back]).filter(Boolean);
  return list.map(p=>({lab:p.lab, pts:buildRoute(p.x,p.y,p.route), color:"#c8102e"}));
 }
+/**
+ * Cover 0/1 via OFFGRD_RENDER.assignManMatchups (v101) ó NOT per-receiver teleport.
+ * Old coverageActors placed a "C" on min-x and max-x receivers; on trips/West both
+ * extremes sit on one side ? both CBs same side + crossing man lines.
+ */
+function coverageActorsManMatch(cov, recv, los){
+  const R=window.OFFGRD_RENDER;
+  if(!R||!R.placeDefenseOn||(cov!=="Cover 0"&&cov!=="Cover 1"&&cov!=="2-Man")) return null;
+  const players=(recv||[]).map(function(p,i){
+    return {id:"sk-"+i, lab:p.lab||("R"+i), x:p.x, y:p.y, type:"route"};
+  });
+  const front=players.length>=5?"Nickel":"4-3";
+  const state={players:players, defs:[], front:front};
+  R.placeDefenseOn(state, front, cov);
+  const DLc="#c8963c", LB="#b8860b", DB="#123a6b", RED="#d9382c";
+  const defs=[];
+  let shade="";
+  try{ if(R.zoneShapes) shade=R.zoneShapes(cov)||""; }catch(e){}
+  (state.defs||[]).forEach(function(d){
+    if(!d) return;
+    if(d.group==="DL"){
+      defs.push({fx:d.x, fy:Math.min(d.y, los-16), lab:"", fill:DLc, kind:"dl", r:12});
+      return;
+    }
+    if(d.role==="man"){
+      if(d._rat){
+        defs.push({fx:d.dx!=null?d.dx:500, fy:d.dy!=null?d.dy:300, lab:"R", fill:LB, kind:"zone", r:12, _rat:true});
+        return;
+      }
+      let manIdx=null;
+      if(d.manId!=null){
+        const mi=players.findIndex(function(p){ return p.id===d.manId; });
+        if(mi>=0) manIdx=mi;
+      }
+      const pos=String(d.pos||"");
+      const lab=d.lab||(/^(LCB|RCB|CB)$/.test(pos)?"C":pos==="NB"?"N":pos==="SS"?"S":pos==="FS"?"FS":(/WLB|WILL/.test(pos)?"W":(/SLB|SAM/.test(pos)?"S":(/LB|MLB|MIKE/.test(pos)?"M":"N"))));
+      /* placeDefenseOn already slid man defs over their assignment (all levels). */
+      defs.push({fx:d.x, fy:Math.min(d.y, los-26), lab:lab, fill:DB, kind:"man", r:12, manIdx:manIdx, manId:d.manId});
+      return;
+    }
+    /* zone (Cover 1 FS deep middle, 2-Man halves, RAT already handled) */
+    const dy=d.dy!=null?d.dy:d.y;
+    const deep=dy<220;
+    const lab=d.lab||d.pos||"";
+    defs.push({
+      fx:d.dx!=null?d.dx:d.x,
+      fy:dy,
+      lab:(lab==="FS"||d.pos==="FS")?"FS":lab,
+      fill:DB,
+      kind:deep?"deep":"zone",
+      r:deep?13:12
+    });
+  });
+  return {shade:shade, defs:defs};
+}
 function coverageActors(cov, recv, los){
+ const manMatched=coverageActorsManMatch(cov, recv, los);
+ if(manMatched) return manMatched;
  const defs=[]; let shade="";
  const Z=(x,y,rx,ry,l)=>{ shade+=zone(x,y,rx,ry,l); };
  const U=(x,y,rx,ry)=>{ shade+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.32)" stroke-width="1.2" stroke-dasharray="5 4"/>`; };
@@ -1936,18 +2159,20 @@ function coverageActors(cov, recv, los){
  const push=(fx,fy,lab,fill,kind,extra)=>defs.push(Object.assign({fx,fy,lab,fill,kind,r:(kind==="deep"?13:12)},extra||{}));
  [430,485,540,595].forEach(x=>push(x,los-16,"",DLc,"dl")); /* 4-man rush */
  const nMan=recv.length;
- if(cov==="Cover 0"){
- { const _mnx=Math.min.apply(null,recv.map(p=>p.x)), _mxx=Math.max.apply(null,recv.map(p=>p.x)); recv.forEach((p,idx)=>{ const lab=(p.x===_mnx||p.x===_mxx)?"C":(Math.abs(p.x-500)<80?"M":"N"); push(p.x+(p.x<500?14:-14),p.y-26,lab,DB,"man",{manIdx:idx}); }); }
- const rush=Math.max(0,7-nMan), xs=[500,452,548,476,524,428,572];
- for(let k=0;k<rush;k++) push(xs[k]||500, los-30, "B", RED, "rush");
- } else if(cov==="Cover 1"){
- { const _mnx=Math.min.apply(null,recv.map(p=>p.x)), _mxx=Math.max.apply(null,recv.map(p=>p.x)); recv.forEach((p,idx)=>{ const lab=(p.x===_mnx||p.x===_mxx)?"C":(Math.abs(p.x-500)<80?"M":"N"); push(p.x+(p.x<500?14:-14),p.y-26,lab,DB,"man",{manIdx:idx}); }); }
- push(500,148,"FS",DB,"deep");
- const extra=Math.max(0,6-nMan);
- if(extra>0){ U(500,300,80,40); push(500,300,"R",LB,"zone"); } /* robber / rat */
- for(let k=1;k<extra;k++) push(452+k*70, los-28, "B", RED, "rush");
+ if(cov==="Cover 0"||cov==="Cover 1"){
+ /* Fallback only if render module missing ó still side-aware, never min/max-as-CB */
+ const left=recv.map(function(p,i){return {p:p,i:i};}).filter(function(o){return o.p.x<500;}).sort(function(a,b){return a.p.x-b.p.x;});
+ const right=recv.map(function(p,i){return {p:p,i:i};}).filter(function(o){return o.p.x>=500;}).sort(function(a,b){return b.p.x-a.p.x;});
+ if(left[0]) push(left[0].p.x+14, left[0].p.y-26, "C", DB, "man", {manIdx:left[0].i});
+ if(right[0]) push(right[0].p.x-14, right[0].p.y-26, "C", DB, "man", {manIdx:right[0].i});
+ left.slice(1).concat(right.slice(1)).forEach(function(o){
+   const lab=Math.abs(o.p.x-500)<80?"M":"N";
+   push(o.p.x+(o.p.x<500?14:-14), o.p.y-26, lab, DB, "man", {manIdx:o.i});
+ });
+ if(cov==="Cover 1"){ push(500,148,"FS",DB,"deep"); U(500,300,80,40); push(500,300,"R",LB,"zone"); }
+ else { const rush=Math.max(0,7-nMan), xs=[500,452,548,476,524]; for(let k=0;k<rush;k++) push(xs[k]||500, los-30, "B", RED, "rush"); }
  } else if(cov==="Cover 2"){
- Z(300,150,120,60,"‚Äî");Z(700,150,120,60,"‚Äî");
+ Z(300,150,120,60,"ó");Z(700,150,120,60,"ó");
  U(150,288,80,40);U(850,288,80,40);U(400,300,78,40);U(500,300,78,40);U(600,300,78,40);
  push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep");
  push(150,288,"C",DB,"zone"); push(850,288,"C",DB,"zone");
@@ -1958,12 +2183,12 @@ function coverageActors(cov, recv, los){
  push(200,150,"C",DB,"deep"); push(500,140,"FS",DB,"deep"); push(800,150,"C",DB,"deep");
  push(240,300,"F",LB,"zone"); push(760,300,"F",LB,"zone"); push(410,302,"H",LB,"zone"); push(590,302,"H",LB,"zone");
  } else if(cov==="Cover 4"){
- Z(180,150,95,55,"‚Äî");Z(400,148,95,55,"‚Äî");Z(600,148,95,55,"‚Äî");Z(820,150,95,55,"‚Äî");
+ Z(180,150,95,55,"ó");Z(400,148,95,55,"ó");Z(600,148,95,55,"ó");Z(820,150,95,55,"ó");
  U(280,300,88,40);U(500,305,88,40);U(720,300,88,40);
  push(180,158,"C",DB,"deep"); push(400,152,"S",DB,"deep"); push(600,152,"S",DB,"deep"); push(820,158,"C",DB,"deep");
  push(280,300,"N",LB,"zone"); push(500,305,"M",LB,"zone"); push(720,300,"N",LB,"zone");
  } else if(cov==="Tampa 2"){
- Z(300,150,115,58,"‚Äî");Z(700,150,115,58,"‚Äî");
+ Z(300,150,115,58,"ó");Z(700,150,115,58,"ó");
  U(180,300,80,40);U(820,300,80,40);U(400,305,80,40);U(600,305,80,40);
  push(300,158,"S",DB,"deep"); push(700,158,"S",DB,"deep"); push(500,202,"M",LB,"deep");
  push(180,300,"F",DB,"zone"); push(820,300,"F",DB,"zone"); push(400,305,"H",LB,"zone"); push(600,305,"H",LB,"zone");
@@ -2063,7 +2288,7 @@ function rqAllLabs(){ return [...new Set(RQPLAYS.reduce((a,p)=>a.concat(((p.stat
 function buildPosChips(){
  const pc=document.getElementById("posChips"); if(!pc) return; pc.innerHTML="";
  const labs=rqAllLabs();
- if(!labs.length){ pc.innerHTML='<span class="tag">No saved plays with routes yet ‚Äî draw and save plays in the Playbook first.</span>'; return; }
+ if(!labs.length){ pc.innerHTML='<span class="tag">No saved plays with routes yet ó draw and save plays in the Playbook first.</span>'; return; }
  if(!RQLABS.size){
  let want=null;
  if(WEEKMODE){ let pos=""; try{ pos=localStorage.getItem("offgrd_pos")||""; }catch(e){}
@@ -2134,14 +2359,14 @@ function answerRoute(i){
  if(!correct){ const ch=document.getElementById("ropt_"+i); if(ch) ch.setAttribute("stroke","#e23b2e"); }
  const ci=rep.options.findIndex(x=>x.correct); const cc=document.getElementById("ropt_"+ci);
  if(cc){ cc.setAttribute("stroke","#19c37d"); cc.setAttribute("stroke-width","5"); cc.setAttribute("opacity","1"); }
- test.results.push({concept:rep.play.name+" ‚Äî "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
+ test.results.push({concept:rep.play.name+" ó "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
  const job=rep.target.asn||rep.target.asnAuto;
  if(job){ const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad"); fb.innerHTML=`<h4>${correct?"?":"?"} ${esc(rep.target.lab)}'s assignment</h4><div>${esc(job)}</div>`; }
  test.i++;
  setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, job?(correct?1600:2400):(correct?450:900));
 }
 
-/* ---------- OL assignment quiz ‚Äî "who do you block?" (coach keys the play's drawn front) ---------- */
+/* ---------- OL assignment quiz ó "who do you block?" (coach keys the play's drawn front) ---------- */
 const OLRULES=[["bob","Big-on-big"],["climb","Climb to backer"],["fan","Fan / out"],["combo","Combo then climb"],["pull","I'm pulling"],["reach","Reach playside"],["down","Down block"],["kick","Kick out"],["scan","Scan / check"],["checkrel","Check-release"],["free","Free release"]];
 function olRuleName(r){ const m=OLRULES.find(x=>x[0]===r); return m?m[1]:String(r||""); }
 let OLPLAYS=[];
@@ -2248,7 +2473,7 @@ function renderOlQuiz(rep){
  const svg=document.getElementById("field"); svg.setAttribute("viewBox","0 0 1000 640");
  svg.innerHTML=olField(rep.play.state, rep.blocker, null, null, false);
  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
- const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center"; lbl.textContent="Tap your man on the field ‚Äî or a rule:"; cc.appendChild(lbl);
+ const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center"; lbl.textContent="Tap your man on the field ó or a rule:"; cc.appendChild(lbl);
  olChipsFor(rep).forEach(r=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=olRuleName(r); b.onclick=()=>answerOl({t:"rule",r:r}); cc.appendChild(b); });
 }
 function isOlTest(){ return MODE==="test" && test && test.kind==="protect"; }
@@ -2294,8 +2519,8 @@ function olSnap(){
  OLPHASE="snapping"; olClearRings();
  document.getElementById("snapBtn").classList.add("hidden");
  const fb=document.getElementById("fb"); fb.className="fb"; fb.innerHTML="";
- document.getElementById("prompt").textContent="Stunt developing ‚Äî watch the front move‚Äî";
- animateOlStunts(rep.play.state, function(){ OLPHASE="post"; document.getElementById("prompt").textContent="After the stunt ‚Äî "+rep.blocker+", who's your man now?"; document.getElementById("replayBtn").classList.remove("hidden"); }, "field", rep.play.ol&&rep.play.ol.stunt);
+ document.getElementById("prompt").textContent="Stunt developing ó watch the front moveó";
+ animateOlStunts(rep.play.state, function(){ OLPHASE="post"; document.getElementById("prompt").textContent="After the stunt ó "+rep.blocker+", who's your man now?"; document.getElementById("replayBtn").classList.remove("hidden"); }, "field", rep.play.ol&&rep.play.ol.stunt);
 }
 function answerOl(sel){
  if(!isOlTest()) return;
@@ -2310,9 +2535,9 @@ function answerOl(sel){
  if(rep.postKey && olHasStunts(rep.play.state, rep.play.ol&&rep.play.ol.stunt)){
  OLPHASE="await-snap";
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"‚úì Pre-snap: right man":"‚úó Pre-snap: not your man")+" ‚Äî "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ‚ñ∂ Snap ‚Äî read the stunt and pick up your new man.</div>";
+ fb.innerHTML="<h4>"+(correct?"? Pre-snap: right man":"? Pre-snap: not your man")+" ó "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ? Snap ó read the stunt and pick up your new man.</div>";
  document.getElementById("snapBtn").classList.remove("hidden");
- document.getElementById("prompt").textContent=rep.blocker+" ‚Äî ‚ñ∂ Snap to see the front move.";
+ document.getElementById("prompt").textContent=rep.blocker+" ó ? Snap to see the front move.";
  syncPresnapHint(true);
  } else {
  OLPHASE="done"; finalizeOl(correct, {}, job);
@@ -2329,10 +2554,10 @@ function finalizeOl(overallCorrect, post, job){
  const fb=document.getElementById("fb"); fb.className="fb show "+(overallCorrect?"ok":"bad");
  let head, detail="";
  if(single){
- head=(overallCorrect?"‚úì Correct":"‚úó Not your man")+" ‚Äî "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
+ head=(overallCorrect?"? Correct":"? Not your man")+" ó "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
  } else {
- head=(overallCorrect?"‚úì Correct":"‚úó Missed the assignment")+" ‚Äî "+esc(PL(rep.blocker,"off"));
- detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"‚úì":"‚úó")+" ("+esc(rep._pre?rep._pre.answer:"")+") ‚Äî After stunt: "+(post.postCorrect?"‚úì":"‚úó")+" ("+esc(post.postAnswer)+")";
+ head=(overallCorrect?"? Correct":"? Missed the assignment")+" ó "+esc(PL(rep.blocker,"off"));
+ detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"?":"?")+" ("+esc(rep._pre?rep._pre.answer:"")+") ó After stunt: "+(post.postCorrect?"?":"?")+" ("+esc(post.postAnswer)+")";
  }
  fb.innerHTML="<h4>"+head+"</h4>"
  +(detail?("<div>"+detail+"</div>"):"")
@@ -2340,10 +2565,10 @@ function finalizeOl(overallCorrect, post, job){
  +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
  const chose=(rep._pre?rep._pre.chose:"")+(single?"":(" / "+(post.postChose||"")));
  const answer=(rep._pre?rep._pre.answer:"")+(single?"":(" / "+(post.postAnswer||"")));
- if(test) test.results.push({concept:rep.play.name+" ‚Äî "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
+ if(test) test.results.push({concept:rep.play.name+" ó "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
  if(test){ test.i++; setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, overallCorrect?1400:2600); }
 }
-/* ---------- Blitz drill ‚Äî opponent offense picture + our front/blitz call (defender POV) ----------
+/* ---------- Blitz drill ó opponent offense picture + our front/blitz call (defender POV) ----------
  Offense look comes from the opponent\u2019s scouted plays/formations. Our defensive front + stunt
  overlay (and the graded assignment) come from our week plan plays with authored defs/stunts.
  Reuses olField + animateOlStunts + Coverage-ID MC scaffold. */
@@ -2375,26 +2600,148 @@ async function loadOpponentOffenseLooks(){
  state:{ players:cloneJson(players) }
  };
  }).filter(l=>((l.state&&l.state.players)||[]).length);
- /* Fallback: charted formations without diagrams ? STDFORM skeleton labeled by formation name. */
- if(!looks.length){
+ /* Charted formations without diagrams: build from formation canon (never STDFORM under a wrong label). */
+ const FC=window.OFFGRD_FORMATION_CANON;
  const forms={};
+ const PLAY_TYPE_NOISE=/^(pass|run|dart|rush|spike|kneel|punt|fg|field goal|kickoff|pat)$/i;
  filtered.forEach(g=>{
  (g.rows||[]).forEach(r=>{
- const f=String((r&&(r.formation||r.playType))||"").trim();
- if(f) forms[f]=(forms[f]||0)+1;
+ const f=String((r&&r.formation)||"").trim(); /* formation only ó not playType */
+ if(f && !PLAY_TYPE_NOISE.test(f)) forms[f]=(forms[f]||0)+1;
  });
  });
- Object.keys(forms).sort((a,b)=>forms[b]-forms[a]).slice(0,8).forEach(f=>{
- looks.push({
- id:"form-"+f,
- name:f,
- formation:f,
- state:{ players:cloneJson((STDFORM&&STDFORM.players)||[]) },
- _synthetic:true
+ /* Apply coach alias maps before resolve (week plan cloud + localStorage). */
+ try{
+   const local=JSON.parse(localStorage.getItem("offgrd_formation_maps_v1")||"{}")||{};
+   const cloud=(WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.scout_formation_maps)||{};
+   const maps=Object.assign({}, cloud, local);
+   window.__FORMATION_ALIAS_OVERRIDES__=maps;
+   if(FC&&FC.reload) FC.reload(window.OFFGRD_FORMATIONS_V1);
+ }catch(_m){}
+ const unmapped=[];
+ if(!looks.length){
+ Object.keys(forms).sort((a,b)=>forms[b]-forms[a]).slice(0,16).forEach(f=>{
+ if(!(FC&&FC.buildLookFromName)){ unmapped.push(f); return; }
+ const look=FC.buildLookFromName(f);
+ if(!look){ unmapped.push(f); return; }
+ /* Keep scout spelling as the prompt label; engine stores canonical id. */
+ look.name=f;
+ looks.push(look);
  });
- });
+ } else if(FC){
+ looks=looks.map(function(l){
+ const check=FC.lookDrawableForAlign(l);
+ if(check.ok) return l;
+ const built=FC.buildLookFromName(l.name||l.formation||"");
+ if(built){
+ FC.logSkip("remediate look from formation library", (l.name||"")+" ? "+built._formationId);
+ built.name=l.name||built.name;
+ return built;
  }
- return looks.filter(l=>((l.state&&l.state.players)||[]).length);
+ unmapped.push(l.name||l.formation||l.id||"?");
+ FC.logSkip("drop undrawable look", (l.name||l.id||"?")+": "+(check.reason||""));
+ return null;
+ }).filter(Boolean);
+ }
+ /* Also surface charted names that never got a look */
+ Object.keys(forms).forEach(function(f){
+ if(FC&&FC.resolve&&FC.resolve(f)) return;
+ if(unmapped.indexOf(f)<0) unmapped.push(f);
+ });
+ window.__FORMATION_UNMAPPED_SCOUT__=unmapped.slice();
+ const out=looks.filter(l=>{
+ if(!((l.state&&l.state.players)||[]).length) return false;
+ if(FC&&FC.lookDrawableForAlign){
+ const c=FC.lookDrawableForAlign(l);
+ if(!c.ok){ FC.logSkip("filter undrawable look", (l.name||"")+": "+c.reason); return false; }
+ }
+ return true;
+ });
+ if(!out.length){
+ console.error("[align-formation] no drawable opponent looks for", opp||"(no opponent)", "ó align reps will not generate");
+ }
+ if(unmapped.length){
+ console.error("[align-formation] unmapped scout formations (map in Scout):", unmapped);
+ }
+ return out;
+}
+function saveFormationAliasMap(scoutName, formationId){
+  const key=String(scoutName||"").toLowerCase().replace(/[◊?]/g,"x").replace(/^vs\s+/,"").replace(/\s+/g," ").trim();
+  if(!key||!formationId) return;
+  let maps={};
+  try{ maps=JSON.parse(localStorage.getItem("offgrd_formation_maps_v1")||"{}")||{}; }catch(e){ maps={}; }
+  maps[key]=formationId;
+  localStorage.setItem("offgrd_formation_maps_v1", JSON.stringify(maps));
+  const cloud=(WEEKPLAN&&WEEKPLAN.gen&&WEEKPLAN.gen.scout_formation_maps)||{};
+  window.__FORMATION_ALIAS_OVERRIDES__=Object.assign({}, cloud, maps);
+}
+/** Push local+week scout maps to active week plan (one write ó call after modal Save). */
+async function persistScoutFormationMapsCloud(){
+  if(!WEEKPLAN||!WEEKPLAN.id||!window.QB||!window.QB.saveWeekPlan) return;
+  let local={};
+  try{ local=JSON.parse(localStorage.getItem("offgrd_formation_maps_v1")||"{}")||{}; }catch(e){}
+  const genBase=Object.assign({}, WEEKPLAN.gen||{});
+  const merged=Object.assign({}, genBase.scout_formation_maps||{}, local);
+  genBase.scout_formation_maps=merged;
+  WEEKPLAN.gen=genBase;
+  window.__FORMATION_ALIAS_OVERRIDES__=Object.assign({}, merged);
+  try{ await window.QB.saveWeekPlan(WEEKPLAN.id, {gen:genBase}); }
+  catch(e){ console.error("[align-formation] cloud map save failed", e&&e.message||e); }
+}
+function viewerIsCoach(){
+  try{
+    if(window.OFFGRD_PROGRAM&&typeof OFFGRD_PROGRAM.isCoach==="function"&&OFFGRD_PROGRAM.isCoach()) return true;
+  }catch(e){}
+  return false;
+}
+function promptMapUnmappedFormations(){
+  const list=(window.__FORMATION_UNMAPPED_SCOUT__||[]).filter(Boolean);
+  if(!list.length) return;
+  /* Players never see this ó coaches map; players just skip unmapped looks. */
+  if(!viewerIsCoach()){
+    console.info("[align-formation] unmapped scout names (coach can map):", list);
+    return;
+  }
+  const FC=window.OFFGRD_FORMATION_CANON;
+  if(!FC||!FC.allFormations) return;
+  const existing=document.getElementById("formationMapModal");
+  if(existing) existing.remove();
+  const wrap=document.createElement("div");
+  wrap.id="formationMapModal";
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
+  const opts=FC.allFormations().map(function(f){
+    return "<option value=\""+f.id+"\" style=\"color:#111827;background:#fff\">"+f.display+" ("+f.id+")</option>";
+  }).join("");
+  /* Force light panel + dark ink ó Night theme must not bleed into selects/labels. */
+  wrap.innerHTML='<style>#formationMapModal .fmm-card,#formationMapModal .fmm-card label,#formationMapModal .fmm-card p,#formationMapModal .fmm-card select,#formationMapModal .fmm-card option{color:#111827!important;background:#fff!important;-webkit-text-fill-color:#111827!important}#formationMapModal .fmm-card select{border:1px solid #d1d5db!important}</style>'
+    +'<div class="fmm-card" style="background:#fff;color:#111827;border-radius:12px;max-width:440px;width:100%;padding:18px 18px 14px;box-shadow:0 12px 40px rgba(0,0,0,.25)">'
+    +'<div style="font-weight:700;font-size:16px;margin-bottom:6px;color:#111827">Map this formation</div>'
+    +'<p style="margin:0 0 12px;color:#374151;font-size:13px">Scout named something the library doesn\'t know. Pick the picture it should draw ó or skip and those looks won\'t generate align reps.</p>'
+    +'<div id="formationMapRows"></div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">'
+    +'<button type="button" class="btn" id="formationMapSkip" style="color:#111827">Skip</button>'
+    +'<button type="button" class="btn go" id="formationMapSave">Save maps</button>'
+    +'</div></div>';
+  document.body.appendChild(wrap);
+  const host=wrap.querySelector("#formationMapRows");
+  list.slice(0,6).forEach(function(name,i){
+    const row=document.createElement("div");
+    row.style.cssText="margin:8px 0;display:flex;flex-direction:column;gap:4px";
+    row.innerHTML='<label style="font-size:12px;font-weight:600;color:#111827">"'+String(name).replace(/[<>&"]/g,"") +'"</label>'
+      +'<select data-scout="'+i+'" style="padding:8px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;font-size:14px">'
+      +'<option value="" style="color:#111827;background:#fff">ó pick a formation ó</option>'+opts+"</select>";
+    row.querySelector("select").dataset.scoutName=name;
+    host.appendChild(row);
+  });
+  wrap.querySelector("#formationMapSkip").onclick=function(){ wrap.remove(); };
+  wrap.querySelector("#formationMapSave").onclick=async function(){
+    host.querySelectorAll("select").forEach(function(sel){
+      if(sel.value) saveFormationAliasMap(sel.dataset.scoutName, sel.value);
+    });
+    try{ await persistScoutFormationMapsCloud(); }catch(e){}
+    wrap.remove();
+    try{ await loadBlitzPlays(); }catch(e){}
+  };
 }
 async function loadBlitzPlays(){
   BLITZCALLS=[]; OPPLOOKS=[];
@@ -2426,6 +2773,7 @@ async function loadBlitzPlays(){
     }
   }catch(e){}
   try{ OPPLOOKS=await loadOpponentOffenseLooks(); }catch(e){ OPPLOOKS=[]; }
+  try{ if((window.__FORMATION_UNMAPPED_SCOUT__||[]).length) promptMapUnmappedFormations(); }catch(e){}
 }
 
 /* ---------- Phase 5: motion / shift adjusters ---------- */
@@ -2470,17 +2818,33 @@ function findMoverPlayer(players, moverKey){
   const byWide=skill.slice().sort(function(a,b){ return Math.abs((b.x||0)-500)-Math.abs((a.x||0)-500); });
   return byWide[Math.min(n-1, byWide.length-1)]||null;
 }
-function motionEndFor(mover, type, customPath){
+function motionEndFor(mover, type, customPath, allPlayers){
   if(customPath&&customPath.length){
     const e=customPath[customPath.length-1];
     return {x:e.x, y:e.y!=null?e.y:mover.y};
   }
+  const FC=window.OFFGRD_FORMATION_CANON;
   const x=mover.x||500, y=mover.y||380;
-  if(type==="across"||type==="jet") return {x:Math.max(80,Math.min(920,1000-x)), y:y};
-  if(type==="orbit") return {x:x<500?Math.min(920,x+200):Math.max(80,x-200), y:y};
-  if(type==="shift") return {x:x<500?Math.max(80,x-55):Math.min(920,x+55), y:y};
-  if(type==="tight-to-slot") return {x:x<500?290:710, y:380};
-  return {x:Math.max(80,Math.min(920,1000-x)), y:y};
+  let endX=x, endY=y;
+  if(type==="across"||type==="jet"){
+    /* Land outside the destination-side #1 (not mirror-clamp into the stack). */
+    if(FC&&typeof FC.acrossLandX==="function"&&allPlayers){
+      endX=FC.acrossLandX(mover, allPlayers);
+    } else {
+      endX=Math.max(40,Math.min(980,1000-x));
+      if(FC&&typeof FC.findClearSkillX==="function"&&allPlayers) endX=FC.findClearSkillX(endX, mover, allPlayers);
+    }
+    endY=y;
+    return {x:endX, y:endY};
+  }
+  else if(type==="orbit"){ endX=x<500?Math.min(980,x+200):Math.max(40,x-200); endY=y; }
+  else if(type==="shift"){ endX=x<500?Math.max(40,x-55):Math.min(980,x+55); endY=y; }
+  else if(type==="tight-to-slot"){ endX=x<500?290:710; endY=380; }
+  else { endX=Math.max(40,Math.min(980,1000-x)); endY=y; }
+  if(FC&&typeof FC.findClearSkillX==="function"&&allPlayers){
+    endX=FC.findClearSkillX(endX, mover, allPlayers);
+  }
+  return {x:endX, y:endY};
 }
 function applyOffenseMotion(look, motion){
   if(!look||!motion) return look;
@@ -2490,15 +2854,16 @@ function applyOffenseMotion(look, motion){
   const mover=findMoverPlayer(players, motion.mover);
   if(!mover){ out._motion=motion; return out; }
   const start={x:mover.x, y:mover.y};
-  const end=motionEndFor(mover, motion.type, motion.path);
+  const end=motionEndFor(mover, motion.type, motion.path, players);
   const path=(motion.path&&motion.path.length)?cloneJson(motion.path):[end];
   mover._motionFrom=start;
   mover._motionPath=path;
   mover.x=end.x; mover.y=end.y;
   if(mover.route&&mover.route.length){ /* keep routes relative-ish */ }
   out._preMotionFamily=formationFamily(look);
-  out.formation=formationFamily({state:{players:players}, name:out.name, formation:out.formation});
-  out._postMotionFamily=out.formation;
+  /* Keep scout label family for the prompt; post-motion geometry is separate. */
+  out._postMotionFamily=formationFamily({state:{players:players}});
+  out.formation=look.formation||look.name||out._postMotionFamily;
   out._motion=motion;
   out._motionLabel=(motion.name||motion.type||"motion")+" ("+(motion.mover||"?")+")";
   out.name=(look.name||look.formation||"Formation")+" + "+(motion.name||"motion");
@@ -2610,16 +2975,37 @@ function animateOffenseMotion(state, done, svgId){
   MOTANIM=requestAnimationFrame(frame);
 }
 
-/* composeDefense(formation, call) ‚Äî the single defensive composer behind every defensive
+/* composeDefense(formation, call) ó the single defensive composer behind every defensive
  view/test. Input: an offensive FORMATION (opponent-scouted or standard) + our CALL
  (front + coverage + pressure + assigns). Output: all defenders placed with the call's
  movement/assignments attached as the answer key. Blitz was the first consumer;
  composeBlitzPlay is kept as a thin alias so existing callers keep working. */
+/** Ensure a def_call-shaped object for answer keys. Playbook plays often have
+    coverage on ol/coverage but no _defCall ó display resolved that path while
+    alignWhy only read _defCall (no_call ? null ? TypeError). */
+function ensureDefCall(play, call){
+  if(play&&play._defCall) return play._defCall;
+  if(call&&call._defCall) return call._defCall;
+  if(call&&!call.state&&(call.coverage!=null||call.front!=null)) return call;
+  const src=play||call||{};
+  const covRes=resolveCallCoverage(src);
+  if(!covRes.ok) return null;
+  return {
+    id:src.id||"synth-call",
+    name:src.name||"Call",
+    front:(src.state&&src.state.front)||src.front||"",
+    coverage:covRes.coverage,
+    pressure:(src.ol&&src.ol.pressure)||src.pressure||null,
+    assigns:(src.assigns)||{},
+    defs:(src.state&&src.state.defs)||[],
+    note:(src.ol&&src.ol.note)||src.note||""
+  };
+}
 function composeDefense(look, call, motion){
   /* Accept either a play-shaped call (state+ol) or a raw def_call (via defCallToPlay).
      Optional motion: apply pre-snap motion to offense, recompose vs post-motion family, apply adjuster rule. */
   const play = (call && call.state) ? call : (call && call.front ? defCallToPlay(call) : call);
-  const defCall = play && play._defCall;
+  const defCall = ensureDefCall(play, call);
   let activeLook = look;
   let appliedMotion = null;
   if(motion){
@@ -2633,23 +3019,29 @@ function composeDefense(look, call, motion){
   const savedDefs=cloneJson(our.defs||[]);
   let defs=savedDefs;
   const lookForAlign={state:{players:players}, formation:(activeLook&&(activeLook.formation||activeLook.name)), name:(activeLook&&activeLook.name), id:(activeLook&&activeLook.id)};
+  /* Coverage from def_call.coverage only ó never call name, never silent Cover 3. */
+  const covRes=resolveCallCoverage(defCall||play);
+  if(!covRes.ok){
+    const err=new Error("composeDefense: "+(covRes.reason||"missing_coverage")+" call="+((defCall&&defCall.name)||(play&&play.name)||"?"));
+    err.code="MISSING_COVERAGE";
+    err.detail=covRes;
+    throw err;
+  }
   /* Recompose coverage roles against (post-motion) formation, then layer authored align overrides. */
   if(play && window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn){
-    const callFront=(our.front&&our.front!=="none")?our.front:(play.front||"4-3");
-    const tmp={players:players, defs:[], front:callFront};
-    try{
-      OFFGRD_RENDER.placeDefenseOn(tmp, callFront, play.coverage||(play.ol&&play.ol.coverage)||"Cover 3");
-      defs=(tmp.defs||[]).map(function(base,i){
-        const saved=savedDefs[i]||{};
-        const align=resolveDefAlign(defCall, i, lookForAlign);
-        return Object.assign({},base,saved,{
-          x:align&&align.x!=null?align.x:(saved.x!=null?saved.x:base.x),
-          y:align&&align.y!=null?align.y:(saved.y!=null?saved.y:base.y),
-          role:base.role,dx:base.dx,dy:base.dy,manId:base.manId,
-          lab:saved.lab||base.lab
-        });
+    const callFront=(our.front&&our.front!=="none")?our.front:(play.front||(defCall&&defCall.front)||"4-3");
+    const tmp={players:players, defs:[], front:callFront, coverage:covRes.coverage};
+    OFFGRD_RENDER.placeDefenseOn(tmp, callFront, covRes.coverage);
+    defs=(tmp.defs||[]).map(function(base,i){
+      const saved=savedDefs[i]||{};
+      const align=resolveDefAlign(defCall, i, lookForAlign);
+      return Object.assign({},base,saved,{
+        x:align&&align.x!=null?align.x:(saved.x!=null?saved.x:base.x),
+        y:align&&align.y!=null?align.y:(saved.y!=null?saved.y:base.y),
+        role:base.role,dx:base.dx,dy:base.dy,manId:base.manId,
+        lab:saved.lab||base.lab
       });
-    }catch(e){}
+    });
   }
   let motionRule=null;
   if(appliedMotion&&defCall){
@@ -2678,8 +3070,8 @@ function composeDefense(look, call, motion){
     name:oppName,
     oppLabel:oppName+(oppTag?(" \u00b7 "+oppTag):""),
     ourCall:(play&&play.name)||"Defense",
-    coverage:(play&&(play.coverage||(play.ol&&play.ol.coverage)))||"",
-    state:{ players:players, defs:defs, front:front },
+    coverage:covRes.coverage,
+    state:{ players:players, defs:defs, front:front, coverage:covRes.coverage },
     ol:ol,
     _defCall:defCall,
     formationFamily:formationFamily(lookForAlign),
@@ -2724,13 +3116,32 @@ function blitzAssignFor(play,i){
   if(isBacker) return "Drop to hook";
   return blitzGapForX(state,d.x);
 }
-function blitzTargets(play){
- const state=play.state, defs=(state&&state.defs)||[], stunt=(play.ol&&play.ol.stunt)||{}, idx=[];
- Object.keys(stunt).forEach(k=>{ const i=+k; if(defs[i]&&defs[i].group!=="DB"&&idx.indexOf(i)<0) idx.push(i); });
- defs.forEach((d,i)=>{ if(d&&d.group!=="DB"&&d.route&&d.route.length&&idx.indexOf(i)<0) idx.push(i); });
- olRushers(state).forEach(o=>{ if(idx.indexOf(o.i)<0) idx.push(o.i); });
- olBackers(state).forEach(o=>{ if(idx.indexOf(o.i)<0) idx.push(o.i); });
- return idx;
+/** Blitz targets scoped to roster position (LB?LB/W/M/S, DL?DL). Never CB/DB. */
+function blitzTargets(play, positions){
+ const state=play.state, defs=(state&&state.defs)||[], stunt=(play.ol&&play.ol.stunt)||{};
+ const AT=window.OFFGRD_WEEK_AUTOTEST;
+ const scoped=(AT&&AT.defIndicesForPositions)
+  ? AT.defIndicesForPositions(defs, positions, "blitz")
+  : (function(){
+      const want={DL:(positions||[]).indexOf("DL")>=0, LB:(positions||[]).indexOf("LB")>=0};
+      if(!want.DL&&!want.LB){ want.DL=want.LB=true; }
+      return defs.map(function(d,i){return i;}).filter(function(i){
+        const d=defs[i]; if(!d) return false;
+        if(d.group==="DL") return want.DL;
+        if(d.group==="LB") return want.LB;
+        return false;
+      });
+    })();
+ const allow={}; scoped.forEach(function(i){ allow[i]=1; });
+ const idx=[];
+ const add=function(i){ if(allow[i]&&idx.indexOf(i)<0) idx.push(i); };
+ Object.keys(stunt).forEach(function(k){ add(+k); });
+ defs.forEach(function(d,i){ if(d&&d.route&&d.route.length) add(i); });
+ olRushers(state).forEach(function(o){ add(o.i); });
+ olBackers(state).forEach(function(o){ add(o.i); });
+ /* Prefer stunt/rush candidates in-scope; else any in-scope LB/DL so LB never starves to DE. */
+ if(idx.length) return idx;
+ return scoped.filter(function(i){ return defs[i]&&defs[i].x!=null; });
 }
 
 function callHasMotionAdjusters(call){
@@ -2756,22 +3167,29 @@ function maybePickMotion(call){
   return pool[Math.floor(Math.random()*pool.length)]||null;
 }
 
-function pickBlitzRep(){
+function pickBlitzRep(positions){
  if(!BLITZCALLS.length || !OPPLOOKS.length) return null;
- for(let tries=0;tries<40;tries++){
+ for(let tries=0;tries<60;tries++){
  const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
+ if(!resolveCallCoverage(call).ok) continue;
  const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
  const mot=maybePickMotion(call);
- const p=composeBlitzPlay(look, call, mot);
- const tg=blitzTargets(p); if(!tg.length) continue;
+ let p;
+ try{ p=composeBlitzPlay(look, call, mot); }catch(e){ continue; }
+ const tg=blitzTargets(p, positions); if(!tg.length) continue;
  const i=tg[Math.floor(Math.random()*tg.length)];
  const d=((p.state&&p.state.defs)||[])[i]; if(!d) continue;
- return {blitz:true, play:p, di:i, defLab:(d.lab||"defender"), answer:blitzAssignFor(p,i), motion:mot||null};
+ /* Defense in depth ó never hand an LB a CB/DE seat. */
+ try{
+  const AT=window.OFFGRD_WEEK_AUTOTEST;
+  if(AT&&AT.assertRepRolesScoped) AT.assertRepRolesScoped((p.state&&p.state.defs)||[], [i], positions, "blitz");
+ }catch(e){ continue; }
+ return {blitz:true, play:p, di:i, defLab:(d.lab||d.pos||"defender"), answer:blitzAssignFor(p,i), motion:mot||null, roleGroup:d.group||null};
  }
  return null;
 }function isBlitzTest(){ return MODE==="test" && test && test.kind==="blitz"; }
 
-/* ---------- OUR CALL context (defender reps) ‚Äî never hide the premise ----------
+/* ---------- OUR CALL context (defender reps) ó never hide the premise ----------
    Coverage ID withholds opponent coverage (the picture IS the question).
    Coverage-as-defender / align / blitz / motion-adjust presuppose OUR call and must keep it on screen pre- and post-snap. */
 function isOurCallDefenderRep(r){
@@ -2801,9 +3219,12 @@ function ourResolvedFront(r){
 function ourResolvedCoverage(r){
   r=r||rep;
   const play=(r&&r.play)||{};
-  const dc=ourDefCall(r);
-  const cov=(dc&&dc.coverage)||play.coverage||(play.ol&&play.ol.coverage)||"";
-  return cov?String(cov):"";
+  const dc=ourDefCall(r)||play;
+  try{
+    const res=resolveCallCoverage(dc);
+    if(res&&res.ok) return res.coverage;
+  }catch(e){}
+  return "";
 }
 /** Display label: name when present, else resolved front+coverage. */
 function ourCallLabel(r){
@@ -2832,7 +3253,7 @@ function ourCallMotionLabel(r){
   const name=mot.name||mot.type||"motion";
   return rule?(name+" \u2192 "+rule):name;
 }
-/** Chip value: Name ‚Äî Front ¬∑ Coverage ¬∑ motion (resolved from def_call, not name parsing). */
+/** Chip value: Name ó Front ∑ Coverage ∑ motion (resolved from def_call, not name parsing). */
 function formatOurCallChipText(r){
   const name=ourCallNameOnly(r)||"our call";
   const front=ourResolvedFront(r);
@@ -2878,7 +3299,7 @@ function setPromptTeach(teachLine){
   if(teachLine){ teach.textContent=teachLine; teach.classList.add("show"); }
   else clearPromptTeach();
 }
-/* First-timer pre-snap hint ‚Äî show ~3 reps or until dismissed. */
+/* First-timer pre-snap hint ó show ~3 reps or until dismissed. */
 const PRESNAP_HINT_KEY="offgrd_presnap_hint_v1";
 function readPresnapHintState(){
   try{ return JSON.parse(localStorage.getItem(PRESNAP_HINT_KEY)||"{}")||{}; }catch(e){ return {}; }
@@ -2919,6 +3340,24 @@ function setDefenderPrompt(teachLine){
   let head="vs "+vs+", our "+callBit;
   if(mot) head+=" \u2014 "+mot;
   head+=" \u2014 you're the "+PL(rep.defLab,"def")+".";
+  /* Align: always name the base formation; mark post-motion picture explicitly. */
+  if(rep&&rep.align){
+    const base=rep.baseFormationLabel||rep.formationLabel||vs;
+    const FC=window.OFFGRD_FORMATION_CANON;
+    const canon=rep.formationId&&FC&&FC.displayName?FC.displayName(rep.formationId):"";
+    const label=canon&&canon!==base?(base+" ∑ "+canon):base;
+    head="vs "+label;
+    if(rep.motion){
+      head+=" (post-motion";
+      if(rep.motionLabel) head+=": "+rep.motionLabel;
+      head+=")";
+    }
+    head+=", our "+callBit+" \u2014 you're the "+PL(rep.defLab,"def")+".";
+    /* Always teach the three-choice model ó never "tap to place". */
+    teachLine=rep.motion
+      ?"Picture is AFTER motion ó answer relationship, leverage, then depth (chips below)."
+      :"Answer with the chips below: relationship ? leverage ? depth. Field tap is optional and not scored.";
+  }
   document.getElementById("prompt").textContent=head;
   setPromptTeach(teachLine||"");
 }
@@ -2932,7 +3371,7 @@ function blitzSnap(){
  if(SNAPPED) return; SNAPPED=true;
  document.getElementById("snapBtn").classList.add("hidden");
  setDefenderPrompt("Front's moving \u2014 call "+PL(rep.defLab,"def")+"'s job.");
- /* Options ungated ‚Äî animation teaches, does not block answering. */
+ /* Options ungated ó animation teaches, does not block answering. */
  showBlitzChoices();
  const go=function(){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); };
  /* Defer anim one frame so choices paint before rAF work starts. */
@@ -2954,7 +3393,7 @@ function answerBlitz(opt){
  const correct = opt===rep.answer;
  olClearRings(); olRing(rep.di, correct?"#19c37d":"#e23b2e");
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" ‚Äî "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>"
+ fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" ó "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>"
  +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Blitz")+" \u2014 "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
  test.i++;
@@ -2964,26 +3403,42 @@ function answerBlitz(opt){
 function isDefCoverageTest(){ return MODE==="test"&&test&&test.kind==="coverage"&&test.defenderCoverage; }
 function coverageTargets(play, positions){
   const defs=(play&&play.state&&play.state.defs)||[];
-  const wantDB=(positions||[]).indexOf("DB")>=0;
-  const wantLB=(positions||[]).indexOf("LB")>=0;
-  return defs.map(function(d,i){return {d:d,i:i};}).filter(function(o){
-    if(o.d.group==="DB"&&!wantDB) return false;
-    if(o.d.group==="LB"&&!wantLB) return false;
-    if(o.d.group!=="DB"&&o.d.group!=="LB") return false;
-    const authored=play&&play._defCall&&play._defCall.assigns&&assignRespOf(play._defCall.assigns[o.i]);
-    return !!(authored||coverageRespForDef(play.state,o.i));
-  }).map(function(o){return o.i;});
+  const AT=window.OFFGRD_WEEK_AUTOTEST;
+  const scoped=(AT&&AT.defIndicesForPositions)
+    ? AT.defIndicesForPositions(defs, positions, "coverage")
+    : (function(){
+        const wantDB=(positions||[]).indexOf("DB")>=0||(positions||[]).indexOf("S")>=0||(positions||[]).indexOf("CB")>=0;
+        const wantLB=(positions||[]).indexOf("LB")>=0;
+        const open=!wantDB&&!wantLB;
+        return defs.map(function(d,i){return i;}).filter(function(i){
+          const d=defs[i]; if(!d) return false;
+          if(d.group==="DB") return open||wantDB;
+          if(d.group==="LB") return open||wantLB;
+          return false;
+        });
+      })();
+  const allow={}; scoped.forEach(function(i){ allow[i]=1; });
+  return scoped.filter(function(i){
+    if(!allow[i]) return false;
+    const authored=play&&play._defCall&&play._defCall.assigns&&assignRespOf(play._defCall.assigns[i]);
+    return !!(authored||coverageRespForDef(play.state,i));
+  });
 }
 function pickDefCoverageRep(positions){
   if(!BLITZCALLS.length||!OPPLOOKS.length) return null;
   for(let tries=0;tries<60;tries++){
     const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
-    if(!call._defCall) continue;
+    if(!resolveCallCoverage(call).ok) continue;
     const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
     const mot=maybePickMotion(call);
-    const p=composeDefense(look,call,mot);
+    let p;
+    try{ p=composeDefense(look,call,mot); }catch(e){ continue; }
     const targets=coverageTargets(p,positions); if(!targets.length) continue;
     const i=targets[Math.floor(Math.random()*targets.length)], d=(p.state.defs||[])[i];
+    try{
+      const AT=window.OFFGRD_WEEK_AUTOTEST;
+      if(AT&&AT.assertRepRolesScoped) AT.assertRepRolesScoped((p.state&&p.state.defs)||[], [i], positions, "coverage");
+    }catch(e){ continue; }
     const authored=p._defCall&&p._defCall.assigns&&assignRespOf(p._defCall.assigns[i]);
     let answer=authored||coverageRespForDef(p.state,i);
     if(mot&&p.motionRule&&(p.motionRule.rule==="bump"||p.motionRule.rule==="spin")&&d.group==="DB"&&answer&&answer.indexOf("Deep")>=0){
@@ -3017,9 +3472,9 @@ function renderDefCoverageField(r){
 function defCoverageSnap(){
   if(SNAPPED)return; SNAPPED=true;
   document.getElementById("snapBtn").classList.add("hidden");
-  /* Teaching line is additive ‚Äî OUR CALL chip + premise stay on screen. */
+  /* Teaching line is additive ó OUR CALL chip + premise stay on screen. */
   setDefenderPrompt("Coverage rotating \u2014 track "+PL(rep.defLab,"def")+" to the landmark.");
-  /* Options ungated ‚Äî player can answer while motion/coverage animates. */
+  /* Options ungated ó player can answer while motion/coverage animates. */
   showDefCoverageChoices();
   const go=function(){ animateOlStunts(rep.play.state,null,"field",defenderCoveragePaths(rep.play)); };
   requestAnimationFrame(function(){
@@ -3042,78 +3497,177 @@ function answerDefCoverage(opt){
   const correct=opt===rep.answer;
   olClearRings(); olRing(rep.di,correct?"#19c37d":"#e23b2e");
   const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
-  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the responsibility")+" ‚Äî "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>";
-  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Formation")+" ‚Äî "+rep.defLab,coverage:rep.play.ourCall||rep.play.coverage||"",correct:correct,chose:opt,answer:rep.answer});
+  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the responsibility")+" ó "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>";
+  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Formation")+" ó "+rep.defLab,coverage:rep.play.ourCall||rep.play.coverage||"",correct:correct,chose:opt,answer:rep.answer});
   test.i++;
   setTimeout(function(){if(!test)return;if(test.i>=test.queue.length){finishTest();}else{showRep(test.queue[test.i]);updateProgress();}},correct?1300:2200);
 }
 
-/* ---------- Phase 4: Alignment test (tap-to-place + MC fallback) ---------- */
-const ALIGN_TOL=Math.round(1.5*PPY); /* ~1.5 yd */
-const ALIGN_LEV_OPTS=["inside","outside","head-up"];
+/* ---------- Phase 4: Alignment test ó three categorical choices (+ tap telemetry) ---------- */
 function isAlignTest(){ return MODE==="test" && test && test.kind==="align"; }
-function preferAlignMc(){
-  try{ if(window.matchMedia&&window.matchMedia("(max-width:520px)").matches) return true; }catch(e){}
-  try{ if(window.innerWidth&&window.innerWidth<520) return true; }catch(e){}
-  return false;
+function alignChoiceLabel(al){
+  if(!al) return "?";
+  return (al.relationship||"?")+" \u00b7 "+(al.leverage||"head-up")+" \u00b7 "+(al.depth||"off");
+}
+function buildAlignRepDetail(rep){
+  const key=rep.targetAlign||{};
+  const chosenRel=rep.pickedRelationship||null;
+  const chosenLev=rep.pickedLeverage||null;
+  const chosenDepth=rep.pickedDepth||null;
+  const relationshipCorrect=!!chosenRel&&chosenRel===(key.relationship||"");
+  const leverageCorrect=!!chosenLev&&chosenLev===(key.leverage||"head-up");
+  const depthCorrect=!!chosenDepth&&chosenDepth===(key.depth||"off");
+  const correct=relationshipCorrect&&leverageCorrect&&depthCorrect;
+  const credit=(relationshipCorrect?1/3:0)+(leverageCorrect?1/3:0)+(depthCorrect?1/3:0);
+  const tap=rep._tap||null;
+  const FC=window.OFFGRD_FORMATION_CANON;
+  const formationId=rep.formationId||null;
+  const formationDisplay=(formationId&&FC&&FC.displayName)?FC.displayName(formationId):(rep.baseFormationLabel||rep.formationLabel||"");
+  const d=((rep.play.state&&rep.play.state.defs)||[])[rep.di]||{};
+  const role=rep.defLab||d.lab||d.pos||"defender";
+  const choseTxt=[chosenRel, chosenLev, chosenDepth].filter(Boolean).join(" \u00b7 ")||"ó";
+  const answerTxt=alignChoiceLabel(key);
+  return {
+    concept:(rep.formationLabel||"Formation")+" \u2014 "+role,
+    coverage:rep.ourCall||"",
+    chose:choseTxt,
+    answer:answerTxt,
+    correct:correct,
+    credit:Math.round(credit*100)/100,
+    relationshipCorrect:relationshipCorrect,
+    leverageCorrect:leverageCorrect,
+    depthCorrect:depthCorrect,
+    chosenRelationship:chosenRel,
+    correctRelationship:key.relationship||null,
+    chosenLeverage:chosenLev,
+    correctLeverage:key.leverage||"head-up",
+    chosenDepth:chosenDepth,
+    correctDepth:key.depth||"off",
+    formationId:formationId,
+    formationDisplay:formationDisplay,
+    formationFamily:rep.formationFamily||null,
+    defensiveCall:rep.ourCall||"",
+    coverageName:rep.coverageName||null,
+    motion:rep.motionLabel||null,
+    role:role,
+    /* Telemetry only ó schematic coords, not scored, not yards */
+    chosenX:tap?tap.x:null,
+    chosenY:tap?tap.y:null,
+    landmarkX:key.x!=null?key.x:null,
+    landmarkY:key.y!=null?key.y:null,
+    keySource:key.source||"derived",
+    scoringModel:"align_zones_v1"
+  };
 }
 function alignTargets(play, positions){
   const defs=(play&&play.state&&play.state.defs)||[];
-  const want={DL:(positions||[]).indexOf("DL")>=0, LB:(positions||[]).indexOf("LB")>=0, DB:(positions||[]).indexOf("DB")>=0};
-  if(!want.DL&&!want.LB&&!want.DB){ want.DL=want.LB=want.DB=true; }
-  return defs.map(function(d,i){ return {d:d,i:i}; }).filter(function(o){
-    if(!o.d) return false;
-    if(o.d.group==="DL"&&!want.DL) return false;
-    if(o.d.group==="LB"&&!want.LB) return false;
-    if(o.d.group==="DB"&&!want.DB) return false;
-    if(o.d.group!=="DL"&&o.d.group!=="LB"&&o.d.group!=="DB") return false;
-    const al=resolveDefAlign(play._defCall, o.i, play.look||{name:play.name,formation:play.formationFamily});
-    return !!(al&&al.x!=null&&al.y!=null) || (o.d.x!=null&&o.d.y!=null);
-  }).map(function(o){ return o.i; });
+  const AT=window.OFFGRD_WEEK_AUTOTEST;
+  const scoped=(AT&&AT.defIndicesForPositions)
+    ? AT.defIndicesForPositions(defs, positions, "align")
+    : (function(){
+        const want={DL:(positions||[]).indexOf("DL")>=0, LB:(positions||[]).indexOf("LB")>=0, DB:(positions||[]).indexOf("DB")>=0||(positions||[]).indexOf("S")>=0||(positions||[]).indexOf("CB")>=0};
+        if(!want.DL&&!want.LB&&!want.DB){ want.DL=want.LB=want.DB=true; }
+        return defs.map(function(d,i){return i;}).filter(function(i){
+          const d=defs[i]; if(!d||d.x==null||d.y==null) return false;
+          if(d.group==="DL") return want.DL;
+          if(d.group==="LB") return want.LB;
+          if(d.group==="DB") return want.DB;
+          return false;
+        });
+      })();
+  return scoped.filter(function(i){ const d=defs[i]; return d&&d.x!=null&&d.y!=null; });
 }
 function pickAlignRep(positions){
   if(!BLITZCALLS.length||!OPPLOOKS.length) return null;
+  const FC=window.OFFGRD_FORMATION_CANON;
   for(let tries=0;tries<60;tries++){
     const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
+    const covRes=resolveCallCoverage(call);
+    if(!covRes.ok){
+      if(FC&&FC.logSkip) FC.logSkip("pickAlignRep skip call (no coverage field)", (call.name||"?")+": "+(covRes.reason||""));
+      continue;
+    }
     const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
+    if(FC&&FC.lookDrawableForAlign){
+      const chk=FC.lookDrawableForAlign(look);
+      if(!chk.ok){
+        FC.logSkip("pickAlignRep skip look", (look.name||look.id||"?")+": "+chk.reason);
+        continue;
+      }
+    }
     const mot=maybePickMotion(call);
-    const pre=composeDefense(look, call, null);
-    const p=composeDefense(look, call, mot);
+    let pre, p;
+    try{
+      pre=composeDefense(look, call, null);
+      p=composeDefense(look, call, mot);
+    }catch(e){
+      if(FC&&FC.logSkip) FC.logSkip("pickAlignRep compose skip", (call.name||"?")+": "+(e&&e.message||e));
+      continue;
+    }
+    const skillSrc=((p.look&&p.look.state&&p.look.state.players)||(p.state&&p.state.players)||[]);
+    if(FC&&FC.skillPlayersOverlap&&FC.skillPlayersOverlap(skillSrc)){
+      FC.logSkip("pickAlignRep skip overlap after motion", look.name||look.id);
+      continue;
+    }
+    const labelFam=(FC&&FC.familyFromName)?FC.familyFromName(look.name||look.formation||""):formationFamily(look);
+    const preGeom=(FC&&FC.familyFromGeometry)?FC.familyFromGeometry((pre.state&&pre.state.players)||[]):formationFamily(pre);
+    if(!look._synthetic&&labelFam!=="other"&&preGeom!=="other"&&labelFam!==preGeom){
+      if(FC&&FC.logSkip) FC.logSkip("pickAlignRep label?pre-motion geometry", (look.name||"")+": "+labelFam+" vs "+preGeom);
+      else console.error("[align-formation] label?geometry", look.name, labelFam, preGeom);
+      continue;
+    }
+    /* Attach def_call on the composed play so answer-time derive matches display. */
+    if(!p._defCall){
+      p._defCall=ensureDefCall(p, call);
+    }
+    if(!p._defCall){
+      if(FC&&FC.logSkip) FC.logSkip("pickAlignRep skip (no_call after compose)", call.name||"?");
+      continue;
+    }
     const targets=alignTargets(p, positions); if(!targets.length) continue;
     const i=targets[Math.floor(Math.random()*targets.length)];
     const d=(p.state.defs||[])[i]; if(!d) continue;
-    const al={x:d.x,y:d.y,leverage:(resolveDefAlign(p._defCall,i,p.look)||{}).leverage||"head-up",depth:(resolveDefAlign(p._defCall,i,p.look)||{}).depth};
-    const depth=al.depth!=null?al.depth:Math.max(0, Math.round((380-(al.y||380))/PPY));
-    const leverage=al.leverage||"head-up";
-    const motLabel=mot?((mot.name||mot.type)+" ‚Üí "+((p.motionRule&&p.motionRule.rule)||"bump")):"";
+    try{
+      const AT=window.OFFGRD_WEEK_AUTOTEST;
+      if(AT&&AT.assertRepRolesScoped) AT.assertRepRolesScoped((p.state&&p.state.defs)||[], [i], positions, "align");
+    }catch(e){ continue; }
+    /* Derive against the attached call only ó same object answer path will use. */
+    const key=resolveAlignAnswerKey(p._defCall, i, p);
+    if(!key||!key.relationship){
+      if(FC&&FC.logSkip) FC.logSkip("pickAlignRep skip (underivable key)", (call.name||"?")+" di="+i);
+      continue;
+    }
+    const motLabel=mot?((mot.name||mot.type)+" ? "+((p.motionRule&&p.motionRule.rule)||"bump")):"";
+    const baseLabel=look.name||look.formation||p.name||"formation";
+    const formationId=look._formationId||(FC&&FC.resolveId&&FC.resolveId(baseLabel))||null;
     return {
       align:true, play:p, prePlay:pre, di:i, defLab:d.lab||d.pos||"defender",
-      targetAlign:Object.assign({}, al, {x:al.x, y:al.y, leverage:leverage, depth:depth}),
-      formationLabel:look.name||look.formation||p.name||"formation",
-      ourCall:p.ourCall||p.coverage||"our call",
-      askLeverage:!!(al.leverage),
-      mc:preferAlignMc(),
+      targetAlign:key,
+      _defCall:p._defCall,
+      formationLabel:baseLabel,
+      baseFormationLabel:baseLabel,
+      formationId:formationId,
+      formationFamily:labelFam||null,
+      ourCall:p.ourCall||covRes.coverage||"our call",
+      coverageName:covRes.coverage,
       motion:mot||null,
-      motionLabel:motLabel
+      motionLabel:motLabel,
+      alignStep:"relationship",
+      pickedRelationship:null,
+      pickedLeverage:null,
+      pickedDepth:null,
+      _tap:null,
+      relOptions:alignRelationshipOptions(key)
     };
   }
+  console.error("[align-formation] pickAlignRep exhausted tries ó no valid align rep");
   return null;
 }
-function alignChoiceLabel(al, d){
-  const depth=al.depth!=null?al.depth:Math.max(0, Math.round((380-(al.y||380))/PPY));
-  const lev=al.leverage||"head-up";
-  const who=(d&&(d.lab||d.pos))||"spot";
-  return who+" \u00b7 "+lev+", "+depth+" off";
-}
-function alignMcOptions(r){
-  const key=r.targetAlign, d=((r.play.state&&r.play.state.defs)||[])[r.di]||{};
-  const opts=[{id:"ok", label:alignChoiceLabel(key,d), align:key}];
-  const distractors=[
-    {x:key.x+70,y:key.y,leverage:"outside",depth:Math.max(4,(key.depth||7)-2)},
-    {x:key.x-70,y:key.y+22,leverage:"inside",depth:(key.depth||7)+3},
-    {x:500,y:Math.min(340,key.y-40),leverage:"head-up",depth:12}
-  ];
-  distractors.forEach(function(a,i){ opts.push({id:"d"+i, label:alignChoiceLabel(a,d), align:a}); });
+function alignRelationshipOptions(key){
+  const correct=key.relationship||"over #1";
+  const pool=ALIGN_REL_OPTS.filter(function(r){ return r!==correct; });
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+  const opts=[correct].concat(pool.slice(0,3));
   for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=opts[i]; opts[i]=opts[j]; opts[j]=t; }
   return opts;
 }
@@ -3126,78 +3680,155 @@ function renderAlignField(r){
     animateOffenseMotion(r.play.state, function(){
       r._motionAnimating=false;
       svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
+      if(r._tap) markAlignTelemetry(r._tap);
     }, "field");
     return;
   }
   svg.innerHTML=olField(r.play.state, null, null, null, false, null, r.di);
 }
-function showAlignMc(){
+function markAlignTelemetry(p){
+  if(!p) return;
+  const svg=document.getElementById("field"); if(!svg) return;
+  const old=svg.querySelector("#alignTapMark"); if(old&&old.parentNode) old.parentNode.removeChild(old);
+  const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+  g.setAttribute("id","alignTapMark");
+  g.innerHTML='<circle cx="'+p.x+'" cy="'+p.y+'" r="12" fill="#0b1b33" fill-opacity="0.55" stroke="#fff" stroke-width="2"/>';
+  svg.appendChild(g);
+}
+function alignPromptPrefix(){
+  return "You're "+PL(rep.defLab,"def")+" \u2014 in our "+(ourCoverageShort(rep)||ourCallLabel(rep));
+}
+function alignZoneDockEl(){
+  return document.getElementById("alignZoneDock");
+}
+function hideAlignZoneDock(){
+  const dock=alignZoneDockEl();
+  if(!dock) return;
+  dock.classList.remove("show");
+  dock.innerHTML="";
+}
+function showAlignStep(){
+  if(!rep||!rep.align) return;
+  window.__ALIGN_ZONES_UI__=130;
   setOurCallChip(rep);
-  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
-  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+(ourCoverageShort(rep)||ourCallLabel(rep))+", pick your alignment:"; cc.appendChild(lbl);
-  alignMcOptions(rep).forEach(function(o){
-    const b=document.createElement("button"); b.className="chip"; b.textContent=o.label;
-    b.onclick=function(){ answerAlignMc(o); }; cc.appendChild(b);
+  /* Never reuse covChoices for align ó dedicated dock only. */
+  const cc=document.getElementById("covChoices");
+  if(cc){ cc.classList.add("hidden"); cc.innerHTML=""; }
+  const step=rep.alignStep||"relationship";
+  if(step==="relationship") showAlignRelationship();
+  else if(step==="leverage") showAlignLeverage();
+  else showAlignDepth();
+}
+function fillAlignZoneDock(stepIdx, title, options, onPick, selected){
+  const dock=alignZoneDockEl();
+  if(!dock){
+    console.error("[align-zones] #alignZoneDock missing from DOM ó hard-refresh required");
+    return;
+  }
+  dock.innerHTML="";
+  dock.classList.add("show");
+  const step=document.createElement("p");
+  step.className="az-step";
+  step.textContent="Step "+stepIdx+" of 3 ó "+title;
+  dock.appendChild(step);
+  const q=document.createElement("p");
+  q.className="az-hint";
+  q.textContent=alignPromptPrefix();
+  dock.appendChild(q);
+  (options||[]).forEach(function(opt){
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="chip"+(selected===opt?" on":"");
+    b.setAttribute("data-align-choice", opt);
+    b.textContent=opt;
+    b.onclick=function(){ onPick(opt); };
+    dock.appendChild(b);
   });
+  if(stepIdx===1){
+    const tip=document.createElement("p");
+    tip.className="az-hint";
+    tip.textContent="Field tap is optional telemetry only ó it does not score this rep.";
+    dock.appendChild(tip);
+  }
+}
+function showAlignRelationship(){
+  const opts=rep.relOptions&&rep.relOptions.length?rep.relOptions:alignRelationshipOptions(rep.targetAlign||{});
+  if(!opts.length){
+    console.error("[align-zones] no relationship options");
+    return;
+  }
+  fillAlignZoneDock(1, "Relationship ó who are you aligned to?", opts, function(rel){
+    rep.pickedRelationship=rel;
+    rep.alignStep="leverage";
+    showAlignStep();
+  }, rep.pickedRelationship);
 }
 function showAlignLeverage(){
-  setOurCallChip(rep);
-  const cc=document.getElementById("covChoices"); cc.innerHTML=""; cc.classList.remove("hidden");
-  const lbl=document.createElement("span"); lbl.className="tag"; lbl.style.alignSelf="center";
-  lbl.textContent="You're "+PL(rep.defLab,"def")+" \u2014 in our "+(ourCoverageShort(rep)||ourCallLabel(rep))+", leverage?"; cc.appendChild(lbl);
-  ALIGN_LEV_OPTS.forEach(function(lev){
-    const b=document.createElement("button"); b.className="chip"+(rep.pickedLeverage===lev?" on":""); b.textContent=lev;
-    b.onclick=function(){
-      rep.pickedLeverage=lev;
-      if(rep._tap){ answerAlignTap(rep._tap); }
-      else showAlignLeverage();
-    };
-    cc.appendChild(b);
-  });
+  fillAlignZoneDock(2, "Leverage", ALIGN_LEV_OPTS, function(lev){
+    rep.pickedLeverage=lev;
+    rep.alignStep="depth";
+    showAlignStep();
+  }, rep.pickedLeverage);
 }
-function finishAlignAnswer(correct, choseTxt){
+function showAlignDepth(){
+  fillAlignZoneDock(3, "Depth", ALIGN_DEPTH_OPTS, function(dep){
+    rep.pickedDepth=dep;
+    finishAlignFromChoices();
+  }, rep.pickedDepth);
+}
+function finishAlignFromChoices(){
+  if(answered||!isAlignTest()) return;
+  if(!rep.pickedRelationship||!rep.pickedLeverage||!rep.pickedDepth) return;
+  finishAlignAnswer(buildAlignRepDetail(rep));
+}
+function finishAlignAnswer(detail){
   answered=true;
-  const key=rep.targetAlign;
-  const svg=document.getElementById("field");
-  /* Reveal correct spot */
-  const mark=document.createElementNS("http://www.w3.org/2000/svg","g");
-  mark.innerHTML='<circle cx="'+key.x+'" cy="'+key.y+'" r="20" fill="none" stroke="'+(correct?"#19c37d":"#e23b2e")+'" stroke-width="3.5"/><circle cx="'+key.x+'" cy="'+key.y+'" r="7" fill="'+(correct?"#19c37d":"#e23b2e")+'"/>';
-  svg.appendChild(mark);
-  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
-  const why=alignWhy(rep.play, rep.di);
-  fb.innerHTML="<h4>"+(correct?"Lined up":"Missed the landmark")+" \u2014 "+esc(PL(rep.defLab,"def"))+" @ "+Math.round(key.x)+","+Math.round(key.y)+(key.leverage?(" \u00b7 "+key.leverage):"")+"</h4>"
-    +(correct?"":("<div class=\"prog\">"+esc(why)+"</div>"));
-  test.results.push({
-    concept:(rep.formationLabel||"Formation")+" \u2014 "+rep.defLab,
-    coverage:rep.ourCall||"",
-    correct:correct,
-    chose:choseTxt||"tap",
-    answer:alignChoiceLabel(key, ((rep.play.state&&rep.play.state.defs)||[])[rep.di]||{})
-  });
+  hideAlignZoneDock();
+  let correct=false;
+  try{
+    const key=(rep&&rep.targetAlign)||{};
+    correct=!!(detail&&detail.correct);
+    const svg=document.getElementById("field");
+    if(key.x!=null&&key.y!=null&&svg){
+      const stroke=correct?"#19c37d":"#e23b2e";
+      const mark=document.createElementNS("http://www.w3.org/2000/svg","g");
+      mark.innerHTML='<circle cx="'+key.x+'" cy="'+key.y+'" r="18" fill="none" stroke="'+stroke+'" stroke-width="3" stroke-dasharray="4 3"/>';
+      svg.appendChild(mark);
+    }
+    const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
+    const why=alignWhy(rep&&rep.play, rep&&rep.di, rep&&(rep._defCall||(rep.play&&rep.play._defCall)));
+    const bits=[
+      "rel "+(detail&&detail.relationshipCorrect?"?":"?"),
+      "lev "+(detail&&detail.leverageCorrect?"?":"?"),
+      "dep "+(detail&&detail.depthCorrect?"?":"?")
+    ];
+    let headline;
+    if(correct) headline="Lined up";
+    else if(detail&&!detail.relationshipCorrect&&detail.leverageCorrect&&detail.depthCorrect) headline="Wrong relationship";
+    else if(detail&&detail.relationshipCorrect&&!detail.leverageCorrect&&detail.depthCorrect) headline="Wrong leverage";
+    else if(detail&&detail.relationshipCorrect&&detail.leverageCorrect&&!detail.depthCorrect) headline="Wrong depth";
+    else headline="Missed the alignment";
+    fb.innerHTML="<h4>"+headline+" \u2014 "+esc(PL((rep&&rep.defLab)||"defender","def"))+" ∑ "+esc(alignChoiceLabel(key))
+      +" <span class=\"tag\">"+esc(bits.join(" ∑ "))+"</span></h4>"
+      +(correct?"":("<div class=\"prog\">"+esc(why)+"</div>"));
+    if(detail) test.results.push(detail);
+  }catch(e){
+    console.error("[align] finishAlignAnswer failed ó advancing", e&&e.message||e);
+    correct=false;
+    try{
+      const fb=document.getElementById("fb");
+      if(fb){ fb.className="fb show bad"; fb.innerHTML="<h4>Couldn\u2019t grade that alignment \u2014 skipping</h4>"; }
+      if(detail) test.results.push(detail);
+    }catch(_e){}
+  }
   test.i++;
   setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?1300:2400);
 }
-function answerAlignMc(opt){
-  if(answered||!isAlignTest()) return;
-  const key=rep.targetAlign;
-  const a=opt.align||{};
-  const dist=Math.hypot((a.x||0)-(key.x||0),(a.y||0)-(key.y||0));
-  const correct=opt.id==="ok"||dist<=ALIGN_TOL;
-  finishAlignAnswer(correct, opt.label);
-}
+/** Field tap = telemetry only (not scored). */
 function answerAlignTap(p){
   if(answered||!isAlignTest()||!p||(rep&&rep._motionAnimating)) return;
-  const key=rep.targetAlign;
-  if(rep.askLeverage&&!rep.pickedLeverage){
-    rep._tap=p;
-    showAlignLeverage();
-    return;
-  }
-  const dist=Math.hypot(p.x-key.x, p.y-key.y);
-  const posOk=dist<=ALIGN_TOL;
-  const levOk=!rep.askLeverage||!rep.pickedLeverage||rep.pickedLeverage===key.leverage;
-  finishAlignAnswer(posOk&&levOk, "tap @ "+Math.round(p.x)+","+Math.round(p.y)+(rep.pickedLeverage?(" \u00b7 "+rep.pickedLeverage):""));
+  rep._tap=p;
+  markAlignTelemetry(p);
 }
 
 /* ===================== game state ===================== */
@@ -3223,10 +3854,11 @@ function isCovTest(){ return MODE==="test" && test && test.kind==="coverage"; }
 function PL(pos,side){ try{ return (window.OFFGRD_RENDER&&OFFGRD_RENDER.POSLABEL)?OFFGRD_RENDER.POSLABEL(pos,side||null):String(pos||""); }catch(e){ return String(pos||""); } }
 function showRep(r){
  rep=r; answered=false; SNAPPED=false;
+ if(!(r&&r.align)) hideAlignZoneDock();
  if(r.protect){
  clearOurCallChip();
  SNAPPED=true; OLPHASE="pre"; r._pre=null;
- document.getElementById("prompt").textContent=`‚Äî${r.play.name}‚Äî vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} ‚Äî you're the ${PL(r.blocker,"off")}. Who do you block?`;
+ document.getElementById("prompt").textContent=`ó${r.play.name}ó vs ${(r.play.state.front&&r.play.state.front!=="none")?r.play.state.front:"their front"} ó you're the ${PL(r.blocker,"off")}. Who do you block?`;
  cancelQB(); renderOlQuiz(r);
  const fbp=document.getElementById("fb"); fbp.className="fb"; fbp.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3238,7 +3870,7 @@ function showRep(r){
  if(r.routes){
  clearOurCallChip();
  SNAPPED=true;
- document.getElementById("prompt").textContent=`‚Äî${r.play.name}‚Äî ‚Äî which route does ${PL(r.target.lab,"off")} run?`;
+ document.getElementById("prompt").textContent=`ó${r.play.name}ó ó which route does ${PL(r.target.lab,"off")} run?`;
  cancelQB(); renderRouteQuiz(r);
  const fb0=document.getElementById("fb"); fb0.className="fb"; fb0.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
@@ -3261,27 +3893,23 @@ function showRep(r){
  return;
  }
  if(r.align){
- SNAPPED=true; /* pre-snap placement ‚Äî no snap needed */
- setDefenderPrompt(r.motion?"Re-align.":"Line up.");
+ if(!r.targetAlign||!r.targetAlign.relationship||!(r.play&&r.play._defCall)){
+   console.error("[align] showRep refused underivable rep ó advancing");
+   if(test){ test.i++; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }
+   return;
+ }
+ SNAPPED=true; /* pre-snap ó categorical alignment, no snap */
  cancelQB(); renderAlignField(r);
  const fba=document.getElementById("fb"); fba.className="fb"; fba.innerHTML="";
  document.getElementById("nextBtn").classList.add("hidden");
  document.getElementById("snapBtn").classList.add("hidden");
  document.getElementById("replayBtn").classList.add("hidden");
- const cca=document.getElementById("covChoices"); cca.classList.add("hidden"); cca.innerHTML="";
- if(r.mc){ showAlignMc(); }
- else if(r.askLeverage){
-   cca.classList.remove("hidden");
-   const tip=document.createElement("span"); tip.className="tag"; tip.style.alignSelf="center"; tip.textContent="Tap the field to place yourself."; cca.appendChild(tip);
-   ALIGN_LEV_OPTS.forEach(function(lev){
-     const b=document.createElement("button"); b.className="chip"; b.textContent=lev;
-     b.onclick=function(){ rep.pickedLeverage=lev; [].forEach.call(cca.querySelectorAll("button.chip"),function(x){x.classList.toggle("on",x===b);}); };
-     cca.appendChild(b);
-   });
- } else {
-   cca.classList.remove("hidden");
-   const tip=document.createElement("span"); tip.className="tag"; tip.style.alignSelf="center"; tip.textContent="Tap the field where you'd line up."; cca.appendChild(tip);
- }
+ const cca=document.getElementById("covChoices"); if(cca){ cca.classList.add("hidden"); cca.innerHTML=""; }
+ r.alignStep="relationship";
+ r.pickedRelationship=null; r.pickedLeverage=null; r.pickedDepth=null; r._tap=null;
+ if(!r.relOptions||!r.relOptions.length) r.relOptions=alignRelationshipOptions(r.targetAlign||{});
+ setDefenderPrompt("Pick relationship, then leverage, then depth ó chips below.");
+ showAlignStep();
  syncPresnapHint(false);
  return;
  }
@@ -3297,10 +3925,10 @@ function showRep(r){
    syncPresnapHint(true);
    return;
  }
- /* Coverage ID / reads ‚Äî withhold opponent coverage; never show OUR CALL chip. */
+ /* Coverage ID / reads ó withhold opponent coverage; never show OUR CALL chip. */
  clearOurCallChip();
  document.getElementById("prompt").textContent = isCovTest()
- ? `What's the coverage? (${r.concept.name}) ‚Äî read the defense, then snap`
+ ? `What's the coverage? (${r.concept.name}) ó read the defense, then snap`
  : `Where's the throw vs ${r.coverage}? (${r.concept.name})`;
  cancelQB();
  UNIFIED_DRILL=null;
@@ -3358,9 +3986,9 @@ function answer(lab){
  if(MODE==="train"){
  const fb=document.getElementById("fb");
  fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML=`<h4>${correct?"‚úì Correct":"‚úó Not the best read"} ‚Äî throw the <b>${ansTxt}</b></h4>`+
+ fb.innerHTML=`<h4>${correct?"? Correct":"? Not the best read"} ó throw the <b>${ansTxt}</b></h4>`+
  `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
- (alts.length?`<div class="prog">Mirrored concept ‚Äî either side is a correct throw.</div>`:"")+
+ (alts.length?`<div class="prog">Mirrored concept ó either side is a correct throw.</div>`:"")+
  (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" ? ")}</div>`:"")+
  asnFeedback(rep);
  document.getElementById("nextBtn").classList.remove("hidden");
@@ -3372,15 +4000,40 @@ function answer(lab){
  }
 }
 function updateProgress(){
- if(MODE==="test" && test){ const got=test.results.filter(r=>r.correct).length; document.getElementById("progressLbl").textContent=`Question ${test.i+1} of ${test.queue.length} ‚Äî ${got} correct`; }
+ if(MODE==="test" && test){
+   const got=test.results.filter(r=>r.correct).length;
+   let lbl=`Question ${test.i+1} of ${test.queue.length} ó ${got} correct`;
+   if(test.shortPool&&test.requestedLen&&test.queue.length<test.requestedLen){
+     lbl+=` ∑ ${test.queue.length} available (asked for ${test.requestedLen})`;
+   }
+   document.getElementById("progressLbl").textContent=lbl;
+ }
  else document.getElementById("progressLbl").textContent="";
 }
 
 /* ---------- test lifecycle ---------- */
-async function startTest(){
+async function startTest(opts){
  hideGuide();
+ opts=opts||{};
+ /* Context is EXPLICIT from the entry point ó never infer from WEEKMODE / position / kind.
+  *   myWeekTestKind (checklist tap) ? week_test
+  *   builder Start ? practice (always)
+  */
+ const repContext=(opts.repContext==="week_test")?"week_test":"practice";
  const n=parseInt(document.getElementById("testLen").value,10)||10;
- test={queue:[],i:0,results:[],kind:TESTKIND,week:(WEEKMODE&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||""}:null};
+ test={
+  queue:[],i:0,results:[],kind:TESTKIND,
+  repContext:repContext,
+  week:(repContext==="week_test"&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||"",id:WEEKPLAN.id||null}:null
+ };
+ try{
+   const kn=document.getElementById("kindNote");
+   if(kn){
+     kn.textContent=repContext==="week_test"
+       ?("Week test \u2014 counts toward Daily Focus"+(WEEKPLAN&&WEEKPLAN.opponent?(" vs "+WEEKPLAN.opponent):""))
+       :"Practice \u2014 doesn\u2019t count toward your week test. Tap \u25A2 Alignment / Coverage above to take the real one.";
+   }
+ }catch(e){}
  let myPositions=await resolveMyRosterPositions();
  if(!myPositions.length&&POSFILTER&&POSFILTER!=="ALL") myPositions=[POSFILTER];
  test.positions=myPositions;
@@ -3410,7 +4063,7 @@ async function startTest(){
  for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickRouteRep(); if(r) test.queue.push(r); }
  if(!test.queue.length){
  empty(WEEKMODE?"This week\u2019s route install isn\u2019t ready":"No routed plays yet",
- WEEKMODE?"None of this week\u2019s plan plays have drawn routes yet ‚Äî your coach draws them in the Playbook, or adds plays to the week plan."
+ WEEKMODE?"None of this week\u2019s plan plays have drawn routes yet ó your coach draws them in the Playbook, or adds plays to the week plan."
  :"No saved plays with routes yet. Draw and save plays in the Playbook, then try again.");
  return;
  }
@@ -3418,7 +4071,7 @@ async function startTest(){
  }
  if(TESTKIND==="blitz"){
  await loadBlitzPlays();
- for(let k=0;k<n*6 && test.queue.length<n;k++){ const r=pickBlitzRep(); if(r) test.queue.push(r); }
+ for(let k=0;k<n*8 && test.queue.length<n;k++){ const r=pickBlitzRep(myPositions); if(r) test.queue.push(r); }
  if(!test.queue.length){
  empty(WEEKMODE?"This week\u2019s blitz install isn't ready":"No opponent looks / blitz calls yet",
  WEEKMODE?"Need opponent offensive looks (scout cards or charted formations) AND our week plan plays with a drawn front + blitz/stunt. Coach: Scout cards for the opponent, plus Playbook front/stunt on week plays."
@@ -3430,11 +4083,18 @@ async function startTest(){
  if(TESTKIND==="align"){
  await loadBlitzPlays();
  for(let k=0;k<n*8 && test.queue.length<n;k++){ const r=pickAlignRep(myPositions); if(r) test.queue.push(r); }
+ /* Drop any underivable reps that slipped through (defense in depth). */
+ test.queue=test.queue.filter(function(r){ return r&&r.targetAlign&&r.targetAlign.relationship&&r.play&&r.play._defCall; });
  if(!test.queue.length){
  empty(WEEKMODE?"This week\u2019s alignment install isn\u2019t ready":"No alignment calls yet",
  WEEKMODE?"Coach: Author \u2192 Defense, confirm defender aligns vs 2x2 and 3x1 (Rules / adjust), then Save. Need opponent offensive looks too."
  :"Author a defensive call with alignments under Author \u2192 Defense.");
  return;
+ }
+ if(test.queue.length<n){
+   test.requestedLen=n;
+   test.shortPool=true;
+   console.warn("[align] short pool: "+test.queue.length+" of "+n+" requested (underivable looks skipped)");
  }
  swap("play"); showRep(test.queue[0]); updateProgress(); return;
  }
@@ -3450,7 +4110,7 @@ async function startTest(){
  for(let k=0;k<n*4 && test.queue.length<n;k++){ const r=pickRep(); if(r) test.queue.push(r); }
  if(!test.queue.length){
  empty(WEEKMODE?"This week\u2019s reads aren\u2019t ready":"No reps match your filters",
- WEEKMODE?"None of this week\u2019s plan plays have authored reads for the selected coverages yet ‚Äî a coach can add them in Author mode."
+ WEEKMODE?"None of this week\u2019s plan plays have authored reads for the selected coverages yet ó a coach can add them in Author mode."
  :"Enable at least one concept and coverage, or ask your coach to author reads on program plays.");
  return;
  }
@@ -3465,7 +4125,7 @@ async function finishTest(){
  <div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>
  <div id="saveMsg" class="tag" style="margin-top:6px"></div>
  <div style="margin-top:14px">`+
- test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'?':'?'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} ‚Äî answer: ${r.answer}</span></div>`).join("")+
+ test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'?':'?'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} ó answer: ${r.answer}</span></div>`).join("")+
  `</div><div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
  document.getElementById("againBtn").onclick=()=>{ swap("setup"); setMode("test"); };
  document.getElementById("backBtn").onclick=()=>{ swap("setup"); setMode("train"); };
@@ -3475,22 +4135,29 @@ async function finishTest(){
  const ctx=await window.QB.context();
  if(ctx && ctx.user && ctx.team){
  const AT=window.OFFGRD_WEEK_AUTOTEST;
- const wkPrefix=test.week?("Week vs "+(test.week.opp||"\u2014")+" \u2014 "):"";
+ const isWeekTest=test.repContext==="week_test";
+ const wkPrefix=isWeekTest?("Week vs "+((test.week&&test.week.opp)||(WEEKPLAN&&WEEKPLAN.opponent)||"\u2014")+" \u2014 "):"";
  const quizBase=(AT&&AT.quizLabelForKind)
   ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
   : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
  const quiz=wkPrefix+quizBase;
  const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
  const position=(test.positions&&test.positions[0])||null;
- await window.QB.save({quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position, week_plan_id:(test.week&&WEEKPLAN&&WEEKPLAN.id)||null});
- saveMsg=`Saved to ${ctx.team.name} ? ‚Äî your coaches can see it under Results.`+(test.week?(" This one counts toward the week"+(test.week.due?(" (game "+test.week.due+")"):"")+"."):"");
+ const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
+ await window.QB.save({
+  quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position,
+  week_plan_id:weekPlanId,
+  rep_context:isWeekTest?"week_test":"practice"
+ });
+ saveMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
+ if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
  } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
  }
  }catch(e){ saveMsg="Couldn\u2019t save score: "+(e.message||e); }
  const sm=document.getElementById("saveMsg"); if(sm) sm.textContent=saveMsg;
 }
 
-/* ---------- Phase C: readiness ‚Äî green/yellow/red by player, by position group ---------- */
+/* ---------- Phase C: readiness ó green/yellow/red by player, by position group ---------- */
 const READY_MIN_TESTS=2, READY_AVG=0.8;
 const READY_DOT={green:"#1d7a45",yellow:"#b8860b",red:"#b3261e",slate:"#7a8494"};
 function readinessOf(rows){
@@ -3500,9 +4167,15 @@ function readinessOf(rows){
  return {s:"yellow",label:"In progress",tests:rows.length,avg};
 }
 function weekRowsOf(rows){
- if(!WEEKPLAN) return [];
- const pref="Week vs "+(WEEKPLAN.opponent||"‚Äî");
- return (rows||[]).filter(r=>r.quiz&&String(r.quiz).indexOf(pref)===0);
+ if(!WEEKPLAN||!WEEKPLAN.id) return [];
+ /* Structural: week_plan_id + week_test + not soft-excluded ó never quiz-name prefix. */
+ return (rows||[]).filter(function(r){
+  if(!r||!r.week_plan_id) return false;
+  if(String(r.week_plan_id)!==String(WEEKPLAN.id)) return false;
+  if(r.rep_context&&r.rep_context!=="week_test") return false;
+  if(r.exclude_from_rollup===true) return false;
+  return true;
+ });
 }
 function readinessHTML(roster,rows){
  if(!WEEKPLAN) return "";
@@ -3603,22 +4276,47 @@ function readinessHTML(roster,rows){
  });
  h+="</div>";
  return h;
-}function myReadinessHTML(rows,uid){
+}function myReadinessHTML(rows,uid,positionsOpt){
  if(!WEEKPLAN) return "";
- const opp=WEEKPLAN.opponent||"‚Äî";
- const mine=weekRowsOf(rows).filter(r=>r.user_id===uid);
- const st=readinessOf(mine); const due=weekDue();
+ const opp=WEEKPLAN.opponent||"\u2014";
+ const due=weekDue();
+ const AT=window.OFFGRD_WEEK_AUTOTEST;
+ const mineAll=(rows||[]).filter(r=>r&&r.user_id===uid);
+ const mine=weekRowsOf(mineAll);
+ let st=readinessOf(mine);
+ let kindsHtml="";
+ let positions=positionsOpt||[];
+ if(!positions.length){
+  try{
+   const ls=localStorage.getItem("offgrd_pos")||"";
+   if(ls) positions=ls.split(/[,/+|&]+/).map(s=>s.trim()).filter(Boolean).map(s=>String(s).toUpperCase());
+  }catch(e){}
+ }
+ if(AT&&AT.parseMemberPositions&&positions.length){
+  positions=AT.parseMemberPositions({positions:positions,position:positions[0]});
+ }
+ if(AT&&WEEKPLAN.test_spec&&positions.length&&AT.unionSpecForPlayer&&AT.completionForPlayer){
+  const spec=AT.unionSpecForPlayer(positions, WEEKPLAN.test_spec);
+  if(spec&&spec.kinds&&spec.kinds.length){
+   const comp=AT.completionForPlayer(spec, mineAll, WEEKPLAN.id, opp);
+   st=comp.status==="passed"?{s:"green",label:"Ready",tests:comp.started,avg:comp.passed/Math.max(1,comp.assigned)}
+    :(comp.status==="started"?{s:"yellow",label:"In progress",tests:comp.started,avg:0}
+    :{s:"slate",label:"Not started",tests:0,avg:0});
+   kindsHtml=" <span class=\"tag\">"+esc((comp.items||[]).map(i=>(i.passed?"\u2713":"\u25A2")+" "+String(i.label).replace(" test","").replace(" ID","")).join(" \u00b7 "))+"</span>";
+  }
+ }
  return '<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin:0 0 16px">'
- +'<b style="color:var(--navy)">Your week vs '+esc(opp)+':</b> <span style="font-weight:800;color:'+READY_DOT[st.s]+'">? '+st.label+'</span>'
- +' <span class="tag">'+st.tests+' week test'+(st.tests===1?"":"s")+(st.tests?(' ‚Äî avg '+Math.round(st.avg*100)+'%'):'')+(due?(' ‚Äî '+esc(due)):'')+'</span>'
- +(st.s==="green"?'':' <span class="tag">‚Äî take tests with \uD83C\uDFAF Week mode on to go green ('+READY_MIN_TESTS+'+ tests at '+Math.round(READY_AVG*100)+'%+).</span>')
- +'</div>';
+  +'<b style="color:var(--navy)">Your week vs '+esc(opp)+':</b> <span style="font-weight:800;color:'+READY_DOT[st.s]+'">'+esc(st.label)+'</span>'
+  +kindsHtml
+  +' <span class="tag">'+st.tests+' week test'+(st.tests===1?"":"s")+(st.tests?(' \u2014 avg '+Math.round(st.avg*100)+'%'):'')+(due?(' \u2014 '+esc(due)):'')+'</span>'
+  +(st.s==="green"?'':' <span class="tag">\u2014 tap \u25A2 Alignment / Coverage on the week checklist (Train tab) to count.</span>')
+  +'</div>';
 }
 /* ---------- coach results ---------- */
 async function showResults(){
  const rp=document.getElementById("resultPanel");
- rp.innerHTML='<p class="tag">Loading results‚Äî</p>';
- if(!(window.QB && window.QB.ready)){ rp.innerHTML='<div style="padding:8px 0"><b style="color:var(--navy)">Sign in to see results</b><p class="tag" style="margin:8px 0 0;line-height:1.5">Scores sync when you\u2019re signed in to your program. Use the account control (top-right) ‚Äî then Results will show your tests.</p></div>'; return; }
+ rp.innerHTML='<p class="tag">Loading resultsó</p>';
+ if(!(window.QB && window.QB.ready)){ rp.innerHTML='<div style="padding:8px 0"><b style="color:var(--navy)">Sign in to see results</b><p class="tag" style="margin:8px 0 0;line-height:1.5">Scores sync when you\u2019re signed in to your program. Use the account control (top-right) ó then Results will show your tests.</p></div>'; return; }
  let ctx; try{ ctx=await window.QB.context(); }catch(e){ ctx=null; }
  if(!ctx || !ctx.user){ rp.innerHTML='<p class="tag">Sign in (top-right) to see saved results.</p>'; return; }
  if(!ctx.team){ rp.innerHTML='<p class="tag">Join or create a program to track results.</p>'; return; }
@@ -3628,13 +4326,14 @@ async function showResults(){
  const coach=(ctx.role==="owner"||ctx.role==="coach_edit"||ctx.role==="coach");
  /* Phase C: make sure the active week plan is loaded, then build the readiness block */
  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; WEEKDEF=(wc.plan&&wc.plan.def_aligns)||{}; buildWeekSet(); renderWeekBar(); } }catch(e){} }
- const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id);
- if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Take a test in Test mode (with Week mode on for game readiness). Scores will land here for coaches.</p></div>'; return; }
- rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results ‚Äî ${ctx.team.name}</h3>
+ let myPos=[]; try{ if(!coach) myPos=await resolveMyRosterPositions(); }catch(e){}
+ const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id, myPos);
+ if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Tap \u25A2 Alignment / Coverage on your week checklist (Train tab) to take a counting week test. Builder runs are practice only.</p></div>'; return; }
+ rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results \u2014 ${ctx.team.name}</h3>
  <p class="tag">${coach?"Your whole roster's scores.":"Your saved scores."}</p>`+ready+`
  <table class="res"><thead><tr><th>Player</th><th>Test</th><th>Score</th><th>%</th><th>When</th></tr></thead><tbody>`+
  rows.map(r=>{ const pct=r.total?Math.round(r.score/r.total*100):0; const when=new Date(r.created_at).toLocaleDateString();
- return `<tr><td>${(nameOf[r.user_id]||"‚Äî")}</td><td>${r.quiz||"Test"}</td><td>${r.score}/${r.total}</td><td>${pct}%</td><td>${when}</td></tr>`; }).join("")+
+ return `<tr><td>${(nameOf[r.user_id]||"ó")}</td><td>${r.quiz||"Test"}</td><td>${r.score}/${r.total}</td><td>${pct}%</td><td>${when}</td></tr>`; }).join("")+
  `</tbody></table>`;
 }
 
@@ -3650,8 +4349,16 @@ function setMode(m){
  [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.classList.toggle("on",b.dataset.mode===m));
  document.getElementById("testLenWrap").classList.toggle("hidden", m!=="test");
  document.getElementById("kindWrap").classList.toggle("hidden", m!=="test");
- document.getElementById("startBtn").textContent = m==="test" ? "Start test" : "Start training";
- if(m==="test") buildPosFilter();
+ refreshStartBtnLabel();
+ if(m==="test"){
+   buildPosFilter();
+   try{
+     const kn=document.getElementById("kindNote");
+     if(kn){
+       kn.textContent="Practice \u2014 doesn\u2019t count toward your week test. Tap \u25A2 Alignment / Coverage on the week checklist above.";
+     }
+   }catch(e){}
+ }
  if(m==="results"){ swap("results"); showResults(); }
  else if(m==="author"){ swap("author"); loadAuthor(); }
  else swap("setup");
@@ -3675,7 +4382,7 @@ function selectKind(kind){
  const rq=(kind==="routes");
  const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
  const defCov=kind==="coverage"&&(POSFILTER==="DB"||POSFILTER==="LB");
- const NOTES={reads:"Where's the throw ‚Äî read the coverage, snap, then pick the target.",coverage:defCov?"Play our call ‚Äî snap, track your defender, then name the coverage responsibility.":"Name the opponent coverage after you snap and read it.",routes:"Your Playbook plays ‚Äî which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author ? OL keys. (Filters don't apply.)",blitz:"You're the rusher/backer ‚Äî snap, read the front, then call your job: rush gap, loop/twist, or drop. (Filters don't apply.)",align:"vs their formation, our call \u2014 tap where you line up (leverage if asked)."};
+ const NOTES={reads:"Where's the throw ó read the coverage, snap, then pick the target.",coverage:defCov?"Play our call ó snap, track your defender, then name the coverage responsibility.":"Name the opponent coverage after you snap and read it.",routes:"Your Playbook plays ó which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author ? OL keys. (Filters don't apply.)",blitz:"You're the rusher/backer ó snap, read the front, then call your job: rush gap, loop/twist, or drop. (Filters don't apply.)",align:"vs their formation, our call \u2014 tap where you line up (leverage if asked)."};
  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=NOTES[kind]||"";
  if(rq){ loadRoutePlays().then(buildPosChips); }
 }
@@ -3693,19 +4400,61 @@ function applyPosFilter(pos){
  [].forEach.call(document.querySelectorAll("#kindSeg button"),b=>{ b.style.display = allowed.indexOf(b.dataset.kind)>=0 ? "" : "none"; });
  if(allowed.indexOf(TESTKIND)<0) selectKind(allowed[0]);
 }
-function buildPosFilter(){
+function normalizeTestPosChip(raw){
+ const u=String(raw||"").toUpperCase().trim();
+ if(!u) return null;
+ if(POSKINDS[u]) return u;
+ if(/^(FS|SS|SAF)$/.test(u)) return "S";
+ if(/^(NB|NICK)$/.test(u)) return "DB";
+ if(/^(CB|S|DB|LB|DL|OL|QB|RB|WR|TE)$/.test(u)) return u;
+ if(/^(DE|DT|NT|EDGE)$/.test(u)) return "DL";
+ if(/^(ILB|OLB|MLB|MIKE|SAM|WILL)$/.test(u)) return "LB";
+ if(/^(OT|OG|OC|C|LT|RT|LG|RG)$/.test(u)) return "OL";
+ if(/^(HB|TB|FB)$/.test(u)) return "RB";
+ return null;
+}
+async function buildPosFilter(){
  const host=document.getElementById("posFilter"); if(!host) return;
- let mine=""; try{ mine=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e){}
+ const isPlayer=!!(window.OFFGRD_PROGRAM&&OFFGRD_PROGRAM.isPlayer&&OFFGRD_PROGRAM.isPlayer());
+ let offer=POSLIST.slice();
+ let mine="";
+ try{
+  const roster=await resolveMyRosterPositions();
+  if(roster&&roster.length) mine=normalizeTestPosChip(roster[0])||String(roster[0]).toUpperCase();
+  if(isPlayer){
+   offer=[];
+   roster.forEach(function(p){
+    const chip=normalizeTestPosChip(p);
+    if(chip&&POSKINDS[chip]&&offer.indexOf(chip)<0) offer.push(chip);
+   });
+  } else {
+   offer=POSLIST.concat(["ALL"]);
+  }
+ }catch(e){
+  if(isPlayer) offer=[];
+  else offer=POSLIST.concat(["ALL"]);
+  try{ mine=(localStorage.getItem("offgrd_pos")||"").toUpperCase(); }catch(e2){}
+ }
  host.innerHTML="";
- POSLIST.concat(["ALL"]).forEach(p=>{ const b=document.createElement("button"); b.className="chip"; b.dataset.pos=p; b.textContent=(p==="ALL"?"All":p)+(p===mine?" ?":""); b.onclick=()=>applyPosFilter(p); host.appendChild(b); });
- applyPosFilter((mine&&POSKINDS[mine])?mine:"ALL");
+ if(isPlayer&&!offer.length){
+  host.innerHTML='<span class="tag">Set your roster position first (week bar) ó Test only offers positions you play.</span>';
+  return;
+ }
+ offer.forEach(function(p){
+  const b=document.createElement("button"); b.className="chip"; b.dataset.pos=p;
+  b.textContent=(p==="ALL"?"All":p)+(p===mine?" \u2605":"");
+  b.onclick=function(){ applyPosFilter(p); };
+  host.appendChild(b);
+ });
+ const start=offer.indexOf(mine)>=0?mine:offer[0];
+ applyPosFilter(start);
 }
 /* ---------- init ---------- */
 function init(){
  buildChips();
  [].forEach.call(document.querySelectorAll("#modeSeg button"),b=>b.onclick=()=>setMode(b.dataset.mode));
  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.onclick=()=>setSource(b.dataset.src));
- document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest(); return; } const r=pickRep(); if(!r){ swap("setup"); showGuide("No reps match your filters","Enable at least one concept and coverage, or switch Source to Built-in if your program plays aren\u2019t authored yet.",'<button type="button" class="btn" id="guideEnableAll">Enable all concepts</button>'); const ea=document.getElementById("guideEnableAll"); if(ea) ea.onclick=()=>{ hideGuide(); rebuildPool(); enabledCoverages.clear(); COVERAGES.forEach(c=>enabledCoverages.add(c)); buildChips(); }; return; } hideGuide(); swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode ‚Äî read the defense, snap, then tap where the ball should go."; };
+ document.getElementById("startBtn").onclick=()=>{ if(MODE==="test"){ startTest({repContext:"practice"}); return; } const r=pickRep(); if(!r){ swap("setup"); showGuide("No reps match your filters","Enable at least one concept and coverage, or switch Source to Built-in if your program plays aren\u2019t authored yet.",'<button type="button" class="btn" id="guideEnableAll">Enable all concepts</button>'); const ea=document.getElementById("guideEnableAll"); if(ea) ea.onclick=()=>{ hideGuide(); rebuildPool(); enabledCoverages.clear(); COVERAGES.forEach(c=>enabledCoverages.add(c)); buildChips(); }; return; } hideGuide(); swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode \u2014 read the defense, snap, then tap where the ball should go."; };
  document.getElementById("nextBtn").onclick=()=>{ if(MODE==="train"){ const r=pickRep(); if(r) showRep(r); } };
  document.getElementById("snapBtn").onclick=snapPlay;
  const phd=document.getElementById("promptHintDismiss"); if(phd) phd.onclick=dismissPresnapHint;
@@ -3713,21 +4462,30 @@ function init(){
  buildPosFilter();
  document.getElementById("replayBtn").onclick=()=>{ if(isOlTest()){ animateOlStunts(rep.play.state, null, "field", rep.play.ol&&rep.play.ol.stunt); return; } if(SCENE&&SCENE.unified){ animateUnified(); return; } if(SCENE && SNAPPED) animateScene(SCENE); };
  document.getElementById("quitBtn").onclick=()=>{ cancelQB(); test=null; setMode(MODE==="test"?"test":"train"); };
- document.getElementById("field").addEventListener("click",e=>{ if(isAlignTest()&&!answered){ if(preferAlignMc()) return; const svg=document.getElementById("field"); const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null; if(p) answerAlignTap(p); return; } const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ if(isOlTest()) answerOl({t:"def",di:parseInt(L.slice(3),10)}); return; } if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
+ document.getElementById("field").addEventListener("click",e=>{ if(isAlignTest()&&!answered){ const svg=document.getElementById("field"); const p=(typeof svgPoint==="function")?svgPoint(svg,e.clientX,e.clientY):null; if(p) answerAlignTap(p); return; } const g=e.target.closest("[data-lab]"); if(!g) return; const L=g.dataset.lab; if(L&&L.indexOf("ol_")===0){ if(isOlTest()) answerOl({t:"def",di:parseInt(L.slice(3),10)}); return; } if(L&&L.indexOf("r_")===0&&isRouteTest()){ answerRoute(parseInt(L.slice(2),10)); } else answer(L); });
  window.OFFGRD_APP={kind:"qb"};
+ /* If auth later resolves a user, never leave the signed-out banner up on QB. */
+ try{
+   if(!window.OFFGRD_SESSION_GATED && window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE();
+ }catch(e){}
  initWeek(); /* Phase B: week-scoped tests once the cloud bridge is up */
  /* deep link from onboarding: drop straight into a first rep */
- if(location.hash==="#train"){ const r=pickRep(); if(r){ swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode ‚Äî read the defense, snap, then tap where the ball should go."; } }
+ if(location.hash==="#train"){ const r=pickRep(); if(r){ swap("play"); showRep(r); document.getElementById("progressLbl").textContent="Train mode \u2014 read the defense, snap, then tap where the ball should go."; } }
+ const wkHash=(location.hash||"").match(/week-kind=([\w-]+)/i);
+ if(wkHash){
+  const k=wkHash[1];
+  setTimeout(function(){ try{ myWeekTestKind(k); }catch(e){ console.warn("[week] deep-link failed", e); } }, 400);
+ }
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=100"></script>
-<script src="OFFGRD-scoutcards.js?v=100"></script>
-<script src="OFFGRD-week-autotest.js?v=113"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=113"></script>
+<script src="OFFGRD-mobile.js?v=136"></script>
+<script src="OFFGRD-scoutcards.js?v=136"></script>
+<script src="OFFGRD-week-autotest.js?v=136"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=136"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=113"></script>
-<script src="OFFGRD-role-gate.js?v=117"></script>
+<script type="module" src="OFFGRD-account.js?v=136"></script>
+<script src="OFFGRD-role-gate.js?v=136"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

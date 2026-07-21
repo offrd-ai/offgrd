@@ -4,6 +4,9 @@
   "description": "OFFGRD coaching suite (static bundle)",
   "scripts": {
     "check": "node scripts/check-parse.js && node scripts/check-accent.js",
-    "prepublishOnly": "npm run check"
+    "sync:formations": "node ../scripts/sync-formations-embed.cjs",
+    "smoke:formation": "node ../scripts/smoke-formation-canon.cjs",
+    "smoke:align": "node ../scripts/smoke-align-key.cjs",
+    "prepublishOnly": "npm run check && npm run smoke:formation && npm run smoke:align"
   }
 }
