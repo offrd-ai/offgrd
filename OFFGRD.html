@@ -267,7 +267,7 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=139"></script>
+<script src="OFFGRD-redesign.js?v=140"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
 <script src="OFFGRD-caller-log.js?v=138"></script>
 </head>
@@ -2522,13 +2522,14 @@ function renderCaller(){
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ✓":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
+    /* Situation always expanded (Booth + redesign): changes every snap — never behind <details>. */
     h+=`<div class="rd-gd-sit"><div class="rd-gd-sit-txt">${esc(sitTxt)}</div>`;
-    h+=`<div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div>`;
-    h+=`<details class="rd-gd-edit"><summary>Edit situation</summary><div class="grid" style="margin-top:8px">`;
+    h+=`<div class="rd-gd-sit-grid">`;
+    h+=`<div><div class="lbl">Down</div><div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
-    h+=`</div></details></div>`;
+    h+=`</div></div>`;
     h+=callerObsChipHtml();
     const onCall=callerOnCall();
     if(hero){
