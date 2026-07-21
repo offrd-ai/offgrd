@@ -1854,7 +1854,7 @@ function wireDrag(fsvg, store, getCov, onLink){
 }
 function editWeekDef(){
  const body=document.getElementById("weekdBody");
- if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet — a coach starts one in <b>Scout ? Game Plan ? This Week</b>, then set the opponent\u2019s alignments here.</p>'; return; }
+ if(!WEEKPLAN){ body.innerHTML='<p class="tag" style="margin-top:14px">No active week plan yet — a coach starts one in <b>Scout · Game Plan · This Week</b>, then set the opponent\u2019s alignments here.</p>'; return; }
  WEEKDEF=WEEKDEF||{};
  const allCovs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","Tampa 2"];
  const shown=(WEEKCOVS&&WEEKCOVS.length)?WEEKCOVS.slice():[];
@@ -3356,7 +3356,7 @@ function setDefenderPrompt(teachLine){
     /* Always teach the three-choice model — never "tap to place". */
     teachLine=rep.motion
       ?"Picture is AFTER motion — answer relationship, leverage, then depth (chips below)."
-      :"Answer with the chips below: relationship ? leverage ? depth. Field tap is optional and not scored.";
+      :"Answer with the chips below: relationship × leverage × depth. Field tap is optional and not scored.";
   }
   document.getElementById("prompt").textContent=head;
   setPromptTeach(teachLine||"");
@@ -4102,7 +4102,7 @@ async function startTest(opts){
    await loadBlitzPlays();
    for(let k=0;k<n*8&&test.queue.length<n;k++){const r=pickDefCoverageRep(myPositions);if(r)test.queue.push(r);}
    if(!test.queue.length){
-     empty("This week\u2019s defensive coverage isn\u2019t ready","Coach: Author ? Defense, pick our coverage, confirm DB/LB responsibilities, then save the call. Opponent formations also need scout looks.");
+     empty("This week\u2019s defensive coverage isn\u2019t ready","Coach: Author — Defense, pick our coverage, confirm DB/LB responsibilities, then save the call. Opponent formations also need scout looks.");
      return;
    }
    swap("play"); showRep(test.queue[0]); updateProgress(); return;
@@ -4382,7 +4382,7 @@ function selectKind(kind){
  const rq=(kind==="routes");
  const rw=document.getElementById("rqWrap"); if(rw) rw.classList.toggle("hidden",!rq);
  const defCov=kind==="coverage"&&(POSFILTER==="DB"||POSFILTER==="LB");
- const NOTES={reads:"Where's the throw — read the coverage, snap, then pick the target.",coverage:defCov?"Play our call — snap, track your defender, then name the coverage responsibility.":"Name the opponent coverage after you snap and read it.",routes:"Your Playbook plays — which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author ? OL keys. (Filters don't apply.)",blitz:"You're the rusher/backer — snap, read the front, then call your job: rush gap, loop/twist, or drop. (Filters don't apply.)",align:"vs their formation, our call \u2014 tap where you line up (leverage if asked)."};
+ const NOTES={reads:"Where's the throw — read the coverage, snap, then pick the target.",coverage:defCov?"Play our call — snap, track your defender, then name the coverage responsibility.":"Name the opponent coverage after you snap and read it.",routes:"Your Playbook plays — which route does each man run? (Concept/coverage filters don't apply.)",protect:"Who do you block? Coach places the front + keys it in Author — OL keys. (Filters don't apply.)",blitz:"You're the rusher/backer — snap, read the front, then call your job: rush gap, loop/twist, or drop. (Filters don't apply.)",align:"vs their formation, our call \u2014 tap where you line up (leverage if asked)."};
  const kn=document.getElementById("kindNote"); if(kn) kn.textContent=NOTES[kind]||"";
  if(rq){ loadRoutePlays().then(buildPosChips); }
 }
