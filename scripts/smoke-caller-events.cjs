@@ -352,4 +352,66 @@ if (offense.length !== 1 || offense[0].play !== "SLANT") throw new Error("offens
 if (O.learningSuccess(offense[0]) !== 1) throw new Error("offense SLANT solid should still learn 1");
 console.log("OK special teams: fg/punt fold + playType carried + offense filter intact");
 
+// 13) inferNextSituation on REAL graded fold entries (exact shape callerMaybeAdvanceAfterGrade feeds).
+// Guards the ambiguity: the "ungraded" gate reads outcome.result — the SAME field the fold populates
+// (entry.result = fin.result). A graded entry therefore never returns {skip:"ungraded"}.
+function inferForEntry(entry) {
+  return O.inferNextSituation(
+    { dn: entry.dn, db: entry.db, hash: entry.hash, zone: entry.zone },
+    { result: entry.result, gain: entry.gain, flag: entry.flag, negated: entry.negated },
+    entry.playType
+  );
+}
+// Same-label calls (two Field Goals, two Punts) must sit beyond DEDUP_MS or the fold collapses them.
+const GAP = (C.DEDUP_MS || 3000) + 1000;
+const inferEvents = [
+  ev({ eventId: "i1", playIndex: 0, payload: { play: "POWER", dn: 1, db: "10+", playType: "Run", hash: "L", zone: "ANY" }, clientTs: 100, seq: 1 }),
+  ev({ eventId: "i1o", type: "outcome", playIndex: 0, payload: { result: "chunk" }, clientTs: 150, seq: 2 }),
+  ev({ eventId: "i2", playIndex: 1, payload: { play: "Field Goal", dn: 4, db: "1-3", playType: "fg" }, clientTs: 1 * GAP, seq: 3 }),
+  ev({ eventId: "i2o", type: "outcome", playIndex: 1, payload: { result: "fg_good" }, clientTs: 1 * GAP + 50, seq: 4 }),
+  ev({ eventId: "i3", playIndex: 2, payload: { play: "Field Goal", dn: 4, db: "7-9", playType: "fg" }, clientTs: 2 * GAP, seq: 5 }),
+  ev({ eventId: "i3o", type: "outcome", playIndex: 2, payload: { result: "fg_no" }, clientTs: 2 * GAP + 50, seq: 6 }),
+  ev({ eventId: "i4", playIndex: 3, payload: { play: "Punt", dn: 4, db: "10+", playType: "punt" }, clientTs: 3 * GAP, seq: 7 }),
+  ev({ eventId: "i4o", type: "outcome", playIndex: 3, payload: { result: "punt_i20" }, clientTs: 3 * GAP + 50, seq: 8 }),
+  ev({ eventId: "i5", playIndex: 4, payload: { play: "Punt", dn: 4, db: "4-6", playType: "punt", hash: "R", zone: "PLUS" }, clientTs: 4 * GAP, seq: 9 }),
+  ev({ eventId: "i5o", type: "outcome", playIndex: 4, payload: { result: "punt_fake_conv" }, clientTs: 4 * GAP + 50, seq: 10 }),
+];
+const fInfer = C.foldCallerEvents(inferEvents);
+if (fInfer.log.length !== 5) throw new Error("infer fold length " + fInfer.log.length);
+const byResult = (res) => {
+  const e = fInfer.log.find((x) => x.result === res);
+  if (!e) throw new Error("no folded entry with result=" + res);
+  return e;
+};
+/* Every ST/offense row here is graded — none may return the ungraded skip */
+for (const res of ["chunk", "fg_good", "fg_no", "punt_i20", "punt_fake_conv"]) {
+  const r = inferForEntry(byResult(res));
+  if (r.reason === "ungraded") throw new Error("graded fold entry result=" + res + " wrongly read as ungraded");
+}
+/* Offensive control (chunk on 1st&10) still auto-advances — inferred, not skipped */
+const ctrl = inferForEntry(byResult("chunk"));
+if (ctrl.skip || !ctrl.inferred) throw new Error("offensive control must auto-advance: " + JSON.stringify(ctrl));
+/* FG good → change of possession (needsInput, no offensive auto-advance) */
+const fgGoodInf = inferForEntry(byResult("fg_good"));
+if (!fgGoodInf.needsInput || fgGoodInf.inferred || fgGoodInf.reason !== "change_of_possession") {
+  throw new Error("real FG good → change_of_possession: " + JSON.stringify(fgGoodInf));
+}
+/* Missed FG → change of possession */
+const fgMissInf = inferForEntry(byResult("fg_no"));
+if (!fgMissInf.needsInput || fgMissInf.inferred || fgMissInf.reason !== "change_of_possession") {
+  throw new Error("real missed FG → change_of_possession: " + JSON.stringify(fgMissInf));
+}
+/* Punt → change of possession */
+const puntInf = inferForEntry(byResult("punt_i20"));
+if (!puntInf.needsInput || puntInf.inferred || puntInf.reason !== "change_of_possession") {
+  throw new Error("real punt → change_of_possession: " + JSON.stringify(puntInf));
+}
+/* Fake converted → 1st & 10, offense continues, keeps hash/zone */
+const fakeInf = inferForEntry(byResult("punt_fake_conv"));
+if (!fakeInf.inferred || fakeInf.dn !== 1 || fakeInf.db !== "10+" || fakeInf.reason !== "fake_converted") {
+  throw new Error("real fake converted → 1st&10: " + JSON.stringify(fakeInf));
+}
+if (fakeInf.hash !== "R" || fakeInf.zone !== "PLUS") throw new Error("fake keeps hash/zone from fold entry");
+console.log("OK inferNextSituation on real fold entries: COP for FG-good/miss/punt, 1st&10 for fake, offense advances");
+
 console.log("ALL PASS");
