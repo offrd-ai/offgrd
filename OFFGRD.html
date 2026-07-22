@@ -267,7 +267,7 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=142"></script>
+<script src="OFFGRD-redesign.js?v=143"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
 <script src="OFFGRD-caller-outcome.js?v=142"></script>
 <script src="OFFGRD-caller-log.js?v=142"></script>
@@ -2666,6 +2666,25 @@ function callerPendingQueueHtml(){
   h+=`</div>`;
   return h;
 }
+/* Compact always-visible strip: current situation (tap = jump to grid) + persistent grade badge. */
+function callerStickyBarHtml(sitTxt){
+  const O=callerOut();
+  const pending=O?O.pendingEntries(CALLER_LOG).length:CALLER_LOG.filter(l=>!l.result).length;
+  let h=`<div class="rd-gd-sticky no-print">`;
+  h+=`<button type="button" class="rd-gd-sticky-sit" onclick="callerJumpTop()" title="Edit situation">${esc(sitTxt||"situation")}</button>`;
+  if(pending>0){
+    h+=`<button type="button" class="rd-gd-sticky-pending" onclick="callerJumpPending()">${pending} need${pending===1?"s":""} results</button>`;
+  } else {
+    h+=`<span class="rd-gd-sticky-caught foot">Results caught up</span>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerScrollTo(id){
+  try{ const el=document.getElementById(id); if(el&&el.scrollIntoView) el.scrollIntoView({behavior:"smooth",block:"start"}); }catch(e){}
+}
+function callerJumpPending(){ callerScrollTo("caller-pending-anchor"); }
+function callerJumpTop(){ callerScrollTo("caller-sit-anchor"); }
 function callerComebackHtml(){
   const O=callerOut(); if(!O) return "";
   const list=O.comebackEntries(CALLER_LOG).slice(-4);
@@ -2775,10 +2794,13 @@ function renderCaller(){
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ✓":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
+    h+=callerStickyBarHtml(sitTxt);
+    h+=`<div class="rd-gd-cols">`;
+    h+=`<div class="rd-gd-col-main">`;
     /* Situation always expanded — never behind <details>. Inferred advance is visually distinct. */
     const sitInf=!!cs.inferred;
     const sitNeed=!!cs.needsInput;
-    h+=`<div class="rd-gd-sit${sitInf?" rd-gd-sit-inferred":""}${sitNeed?" rd-gd-sit-needs":""}">`;
+    h+=`<div id="caller-sit-anchor" class="rd-gd-sit${sitInf?" rd-gd-sit-inferred":""}${sitNeed?" rd-gd-sit-needs":""}">`;
     h+=`<div class="rd-gd-sit-txt">${esc(sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">set situation</span>':""}</div>`;
     if(sitInf){
       h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">Suggested from last result — confirm or tap a chip</span>`;
@@ -2790,7 +2812,6 @@ function renderCaller(){
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`</div></div>`;
-    h+=callerObsChipHtml();
     const onCall=callerOnCall();
     if(hero){
       const sig=sigMap[hero.play];
@@ -2813,6 +2834,11 @@ function renderCaller(){
     } else {
       h+=`<div class="rd-gd-hero"><div class="rd-gd-hero-name" style="font-size:22px">No call yet</div><p class="rd-gd-why">${g.length?"Need tagged offense vs "+(cov?esc(cov.k):"this look")+".":"No reps for this exact look — widen hash/field."}</p></div>`;
     }
+    h+=`</div>`; /* /rd-gd-col-main */
+    h+=`<div class="rd-gd-col-side">`;
+    /* Reference (front/pressure · expect · they showed) — demoted behind a tap, never between situation and call. */
+    h+=`<details class="rd-gd-ref no-print"><summary class="rd-gd-ref-sum">Reference — front · expect · they showed</summary><div class="rd-gd-ref-body">`;
+    h+=callerObsChipHtml();
     h+=`<div class="rd-gd-expect"><div class="lbl">Expect</div><div class="body">`;
     if(g.length){
       h+=cov?`<b>${esc(cov.k)}</b> ${fmtPct(cov.pct)}`:"?";
@@ -2825,17 +2851,21 @@ function renderCaller(){
     if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot" style="margin-top:8px">Logged this game: <b>${liveAll.length}</b> · ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" · ")} <button type="button" class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; }
     else h+=`<p class="foot" style="margin-top:8px">Tap the coverage they ran — it blends into the prediction live.</p>`;
     h+=`</div>`;
+    h+=`</div></details>`; /* /rd-gd-ref-body + /details */
     h+=`<div class="rd-gd-panel"><div class="lbl">Results</div>`;
     h+=callerRatesHtml();
     h+=callerComebackHtml();
-    h+=callerPendingQueueHtml();
+    h+=`<div id="caller-pending-anchor">`+callerPendingQueueHtml()+`</div>`;
     if(CALLER_LOG.length){
       h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button></div>`;
       h+=`<p class="foot">${CALLER_LOG.length} calls</p>`;
       h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{})).join("");
       h+=`</div>`;
     }
-    h+=`</div></div>`;
+    h+=`</div>`; /* /rd-gd-panel results */
+    h+=`</div>`; /* /rd-gd-col-side */
+    h+=`</div>`; /* /rd-gd-cols */
+    h+=`</div>`; /* /rd-gd */
     host.innerHTML=h;
     return;
   }
