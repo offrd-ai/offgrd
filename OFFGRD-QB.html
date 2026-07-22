@@ -4003,8 +4003,11 @@ function answer(lab){
 }
 function updateProgress(){
  if(MODE==="test" && test){
-   const got=test.results.filter(r=>r.correct).length;
-   let lbl=`Question ${test.i+1} of ${test.queue.length} — ${got} correct`;
+   const alignP=(test.kind==="align"||TESTKIND==="align")&&test.results.some(function(r){return typeof r.credit==="number";});
+   const got=alignP
+     ? Math.round(test.results.reduce(function(a,r){return a+(typeof r.credit==="number"?r.credit:(r.correct?1:0));},0)*10)/10
+     : test.results.filter(function(r){return r.correct;}).length;
+   let lbl=`Question ${test.i+1} of ${test.queue.length} — ${got} ${alignP?"credit":"correct"}`;
    if(test.shortPool&&test.requestedLen&&test.queue.length<test.requestedLen){
      lbl+=` · ${test.queue.length} available (asked for ${test.requestedLen})`;
    }
@@ -4119,44 +4122,103 @@ async function startTest(opts){
  swap("play"); showRep(test.queue[0]); updateProgress();
 }
 async function finishTest(){
- const got=test.results.filter(r=>r.correct).length, tot=test.results.length;
+ const tot=test.results.length;
+ // Alignment scores by PARTIAL CREDIT (mean of relationship/leverage/depth per rep),
+ // not strict all-three-right. The server rollup applies the same rule; other kinds unchanged.
+ const alignPartial=(test.kind==="align"||TESTKIND==="align")&&test.results.some(function(r){return typeof r.credit==="number";});
+ const gotExact=alignPartial
+   ? Math.round(test.results.reduce(function(a,r){return a+(typeof r.credit==="number"?r.credit:(r.correct?1:0));},0)*10)/10
+   : test.results.filter(function(r){return r.correct;}).length;
+ const got=gotExact;
+ const scoreToSave=alignPartial?Math.round(gotExact):gotExact; // qb_results.score is integer
+ const isWeekTest=test.repContext==="week_test";
  swap("result");
  const rp=document.getElementById("resultPanel");
- let saveMsg="Sign in and join a program to save your score.";
- rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>
- <div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>
- <div id="saveMsg" class="tag" style="margin-top:6px"></div>
- <div style="margin-top:14px">`+
- test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'\u2713':'\u2717'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} — answer: ${r.answer}</span></div>`).join("")+
- `</div><div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
- document.getElementById("againBtn").onclick=()=>{ swap("setup"); setMode("test"); };
- document.getElementById("backBtn").onclick=()=>{ swap("setup"); setMode("train"); };
- // save to cloud if signed in
- try{
- if(window.QB && window.QB.ready){
- const ctx=await window.QB.context();
- if(ctx && ctx.user && ctx.team){
- const AT=window.OFFGRD_WEEK_AUTOTEST;
- const isWeekTest=test.repContext==="week_test";
- const wkPrefix=isWeekTest?("Week vs "+((test.week&&test.week.opp)||(WEEKPLAN&&WEEKPLAN.opponent)||"\u2014")+" \u2014 "):"";
- const quizBase=(AT&&AT.quizLabelForKind)
-  ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
-  : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
- const quiz=wkPrefix+quizBase;
- const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
- const position=(test.positions&&test.positions[0])||null;
- const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
- await window.QB.save({
-  quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position,
-  week_plan_id:weekPlanId,
-  rep_context:isWeekTest?"week_test":"practice"
- });
- saveMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
- if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
- } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
+
+ const reviewHtml=test.results.map((r,i)=>{
+   const partial=typeof r.credit==="number"&&r.credit>0&&r.credit<1;
+   const mk=r.correct
+     ? '<span class="dotok">\u2713</span>'
+     : (partial
+        ? '<span style="display:inline-block;min-width:1.8em;text-align:center;color:#b8860b;font-weight:900">'+Math.round(r.credit*3)+'/3</span>'
+        : '<span class="dotbad">\u2717</span>');
+   return `<div class="rev">${mk}<span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} \u2014 answer: ${r.answer}</span></div>`;
+ }).join("");
+ const scoreBlock=`<div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>`;
+ const buttons=`<div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
+ const wireButtons=function(){
+   const ab=document.getElementById("againBtn"); if(ab) ab.onclick=function(){ swap("setup"); setMode("test"); };
+   const bb=document.getElementById("backBtn"); if(bb) bb.onclick=function(){ swap("setup"); setMode("train"); };
+ };
+
+ // Attempt the save BEFORE showing a success score — a completed-test score must
+ // never render for a row that didn't persist (a week_test FK/RLS throw was being
+ // swallowed while the score screen implied success).
+ async function attemptSave(){
+   if(!(window.QB && window.QB.ready)) return {status:"local", msg:"Sign in and join a program to save your score."};
+   let ctx;
+   try{ ctx=await window.QB.context(); }catch(e){ return {status:"error", msg:(e&&(e.message||e))||"Couldn\u2019t reach your program."}; }
+   if(!(ctx && ctx.user)) return {status:"local", msg:"Sign in and join a program to save your score."};
+   if(ctx.user && !ctx.team) return {status:"local", msg:"Join or create a program (Team button) to save scores for your coaches."};
+   const AT=window.OFFGRD_WEEK_AUTOTEST;
+   const wkPrefix=isWeekTest?("Week vs "+((test.week&&test.week.opp)||(WEEKPLAN&&WEEKPLAN.opponent)||"\u2014")+" \u2014 "):"";
+   const quizBase=(AT&&AT.quizLabelForKind)
+    ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
+    : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
+   const quiz=wkPrefix+quizBase;
+   const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
+   const position=(test.positions&&test.positions[0])||null;
+   const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
+   try{
+     await window.QB.save({
+       quiz:quiz, score:scoreToSave, total:tot, detail:test.results, kind:kind, position:position,
+       week_plan_id:weekPlanId,
+       rep_context:isWeekTest?"week_test":"practice"
+     });
+   }catch(e){ return {status:"error", msg:(e&&(e.message||e))||"Unknown error"}; }
+   if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
+   const savedMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
+   return {status:"saved", msg:savedMsg};
  }
- }catch(e){ saveMsg="Couldn\u2019t save score: "+(e.message||e); }
- const sm=document.getElementById("saveMsg"); if(sm) sm.textContent=saveMsg;
+
+ function renderSaving(){
+   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
+     +`<div class="tag" style="margin-top:6px">\u21bb Saving your result\u2026</div>`
+     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
+   wireButtons();
+ }
+ function renderSaved(msg){
+   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
+     +scoreBlock
+     +`<div class="tag" style="margin-top:6px;color:#1d7a45">${msg}</div>`
+     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
+   wireButtons();
+ }
+ function renderLocal(msg){
+   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
+     +scoreBlock
+     +`<div class="tag" style="margin-top:6px">${msg}</div>`
+     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
+   wireButtons();
+ }
+ function renderError(msg){
+   rp.innerHTML=`<h3 style="margin:0 0 4px;color:#b3261e">\u2717 Not saved</h3>`
+     +`<div style="background:#fdecea;border:1px solid #f5c2bd;border-radius:8px;padding:10px 12px;color:#8a1c12;font-weight:700;margin-bottom:8px">Your result was NOT recorded${isWeekTest?" \u2014 it did not count toward the week":""}. Nothing was saved.</div>`
+     +`<div class="tag" style="margin-bottom:8px">Reason: ${esc(String(msg))}</div>`
+     +`<div class="row" style="margin-bottom:6px"><button class="btn go" id="retryBtn">Retry save</button></div>`
+     +`<div style="margin-top:8px">`+reviewHtml+`</div>`+buttons;
+   wireButtons();
+   const rb=document.getElementById("retryBtn");
+   if(rb) rb.onclick=async function(){ renderSaving(); apply(await attemptSave()); };
+ }
+ function apply(res){
+   if(res.status==="saved") renderSaved(res.msg);
+   else if(res.status==="local") renderLocal(res.msg);
+   else renderError(res.msg);
+ }
+
+ renderSaving();
+ apply(await attemptSave());
 }
 
 /* ---------- Phase C: readiness — green/yellow/red by player, by position group ---------- */
@@ -4484,7 +4546,7 @@ init();
 <script src="OFFGRD-mobile.js?v=137"></script>
 <script src="OFFGRD-scoutcards.js?v=137"></script>
 <script src="OFFGRD-week-autotest.js?v=137"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=137"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=139"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
 <script type="module" src="OFFGRD-account.js?v=137"></script>
 <script src="OFFGRD-role-gate.js?v=137"></script>

@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=113";
+import { Cloud } from "./OFFGRD-cloud.js?v=115";
 
 function legacyBlitzAsDefCall(bc){
   if(!bc) return null;
@@ -63,6 +63,9 @@ window.QB = {
   ready: Cloud.ready,
   async context(){
     try{
+      // Revive a stale JWT before reading identity — a backgrounded tab otherwise
+      // reads user=null and we'd mislabel an expired session as "signed out".
+      try{ await Cloud.ensureFreshSession(); }catch(e){}
       const u = await Cloud.user(); if(!u) return { user:null };
       const t = await activeTeam(); if(!t) return { user:u, team:null };
       const role = await Cloud.myRole(t.id);

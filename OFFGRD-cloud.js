@@ -46,6 +46,16 @@ function purgeForeignAuthTokens(expectedRef) {
   } catch (e) {}
   return kill.length;
 }
+/** True when a Supabase/PostgREST error is an auth/JWT failure (expired token, 401). */
+function isAuthError(err) {
+  if (!err) return false;
+  const status = err.status || err.statusCode || err.code || "";
+  const msg = String((err && (err.message || err.error_description || err.error)) || "").toLowerCase();
+  return String(status) === "401" ||
+    status === 401 ||
+    String(err.code || "") === "PGRST301" ||
+    /jwt|token is expired|token expired|not authenticated|auth session|invalid claim|no api key|refresh token/.test(msg);
+}
 const EXPECTED_REF = projectRefFromUrl(cfg.url);
 
 export const Cloud = {
@@ -118,6 +128,25 @@ export const Cloud = {
   async signOut() { return sb.auth.signOut(); },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
   async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
+  /**
+   * Ensure a live, non-expiring-imminently access token before a write.
+   * A backgrounded tab (esp. mobile) can sit on an expired JWT even with
+   * autoRefreshToken on. Returns true if a usable session is in hand.
+   */
+  async ensureFreshSession() {
+    if (!sb) return false;
+    try {
+      let { data } = await sb.auth.getSession();
+      let s = data && data.session;
+      const expSoon = !!(s && s.expires_at && (s.expires_at * 1000 - Date.now() < 60000));
+      if (!s || expSoon) {
+        const r = await sb.auth.refreshSession();
+        if (r && r.error) return false;
+        s = r && r.data && r.data.session ? r.data.session : null;
+      }
+      return !!s;
+    } catch (e) { return false; }
+  },
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */
@@ -290,8 +319,23 @@ export const Cloud = {
     if (r.week_plan_id) row.week_plan_id = r.week_plan_id;
     if (r.kind) row.kind = r.kind;
     if (r.position) row.position = r.position;
-    const { data, error } = await OG.from("qb_results").insert(row).select().single();
-    if (error) throw error; return data;
+    // rep_context was being dropped here — without it a week_test row fails the
+    // flywheel filter (rep_context='week_test') and never counts. Persist it.
+    if (r.rep_context) row.rep_context = r.rep_context;
+    // Root cause of vanished retakes: an expired JWT (tab left open for hours)
+    // makes the insert 401 and the result silently disappears. Refresh before the
+    // write, and if the insert still comes back as an auth error, force one
+    // refresh + retry. Only give up (and surface) if the session can't be revived.
+    await this.ensureFreshSession();
+    let res = await OG.from("qb_results").insert(row).select().single();
+    if (res.error && isAuthError(res.error)) {
+      let revived = false;
+      try { const rr = await sb.auth.refreshSession(); revived = !!(rr && rr.data && rr.data.session && !rr.error); } catch (e) { revived = false; }
+      if (!revived) throw new Error("Your session expired \u2014 sign in again to save this result.");
+      res = await OG.from("qb_results").insert(row).select().single();
+    }
+    if (res.error) throw res.error;
+    return res.data;
   },
   async listQuizResults(teamId) {
     const { data, error } = await OG.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });

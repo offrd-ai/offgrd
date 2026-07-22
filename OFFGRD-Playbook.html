@@ -1119,7 +1119,7 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=113"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=139"></script>
 <script type="module" src="OFFGRD-account.js?v=113"></script>
 <script src="OFFGRD-role-gate.js?v=97"></script>
 <script src="OFFGRD-mobile.js?v=97"></script>
