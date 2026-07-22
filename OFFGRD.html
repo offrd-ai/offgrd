@@ -267,10 +267,11 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=144"></script>
+<script src="OFFGRD-redesign.js?v=145"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
 <script src="OFFGRD-caller-outcome.js?v=143"></script>
 <script src="OFFGRD-caller-log.js?v=142"></script>
+<script src="OFFGRD-caller-select.js?v=1"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2773,6 +2774,153 @@ function callerUndoLast(){
   renderCaller();
 }
 
+function callerSelect(){ return window.OFFGRD_CALLER_SELECT||null; }
+/* SINGLE RANKING SEAM — the only place the caller reads play ranking.
+   Suggester v2 (football priors + scouted + observed drift) swaps in HERE
+   without touching any selection UI. Returns {target, cov, list:[{play,sr,n,kind}]}
+   ranked best-first. Math is unchanged: it wraps bestCallsFor()/rankCalls(). */
+function callerRankedCalls(){
+  const ex=(typeof callerExpectSample==="function")?callerExpectSample():{target:null,cov:null};
+  const cs=callerSit, target=ex.target;
+  if(!target) return { target:null, cov:ex.cov||null, list:[] };
+  const runs=bestCallsFor(target,+cs.dn,cs.db,"Run").map(r=>Object.assign({kind:"Run"},r));
+  const pass=bestCallsFor(target,+cs.dn,cs.db,"Pass").map(r=>Object.assign({kind:"Pass"},r));
+  const list=runs.concat(pass).sort((a,b)=>b.sr-a.sr||b.n-a.n);
+  return { target:target, cov:ex.cov||null, list:list };
+}
+function callerCallReason(entry, cov){
+  if(!entry) return "";
+  const pct=Math.round((entry.sr||0)*100)+"% on "+(entry.n||0);
+  return cov ? `beats their ${cov.k} · ${pct}` : `${pct}`;
+}
+/* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
+   in his order, with the suggester woven in as marks — not a competing screen.
+   Every tap here flows into callerLog() → the identical ON CALL / outcome path. */
+function callerCallSheetHtml(){
+  const S=callerSelect();
+  const cs=callerSit;
+  const buckets=(typeof planBuckets==="function")?planBuckets():[];
+  const ranked=callerRankedCalls();
+  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i}; });
+  const sigMap=callerSignalMap();
+  const onCall=callerOnCall();
+  const top=ranked.list[0]||null;
+  const m=(S&&S.matchBucket)?S.matchBucket(buckets,{dn:cs.dn,db:cs.db,zone:cs.zone}):null;
+  const bucket=m?m.bucket:null;
+  const escN=s=>esc(s).replace(/'/g,"");
+  const sigTag=nm=>sigMap[nm]!=null?`<span class="sig">${esc(String(sigMap[nm]))}</span>`:`<span class="sig sig-empty"></span>`;
+  const topInBucket= !!(top && bucket && S && S.playInBucket(bucket, top.play));
+  let h="";
+  /* Tier 2 — "Best now" strip only when the suggester's pick isn't on the matched sheet. */
+  if(top && !topInBucket){
+    const on=onCall&&onCall.play===top.play;
+    h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now</div>`;
+    h+=`<button type="button" class="rd-gd-bestnow-row${on?" oncall":""}" onclick="callerLog('${escN(top.play)}')">${sigTag(top.play)}<span class="nm">${esc(top.play)}</span><span class="cta">${on?"On call":"Call it"}</span></button>`;
+    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov))}</p></div>`;
+  }
+  /* Tier 1 — the call sheet (matched bucket) or the best-options fallback. */
+  h+=`<div class="rd-gd-sheet">`;
+  h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Best options"}</span><button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button></div>`;
+  if(bucket && Array.isArray(bucket.plays) && bucket.plays.length){
+    h+=`<div class="rd-gd-sheet-list">`;
+    bucket.plays.forEach(p=>{
+      const nm=p&&p.name; if(!nm) return;
+      const on=onCall&&onCall.play===nm;
+      const r=rankMap[nm];
+      const best= top && nm===top.play;
+      h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>`;
+      if(best) h+=`<span class="mark best">Best</span>`;
+      else if(r) h+=`<span class="mark">${Math.round(r.sr*100)}%</span>`;
+      else h+=`<span class="mark mark-none"></span>`;
+      h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
+    });
+    h+=`</div>`;
+    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> — ${esc(callerCallReason(top, ranked.cov))}</p>`;
+  } else if(ranked.list.length){
+    /* No authored bucket for this down/distance — surface the suggester's ranked list as the sheet. */
+    h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} — best from your reps:</p>`;
+    h+=`<div class="rd-gd-sheet-list">`;
+    ranked.list.slice(0,6).forEach((r)=>{
+      const nm=r.play; const on=onCall&&onCall.play===nm;
+      h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span><span class="mark">${Math.round(r.sr*100)}%</span><span class="cta">${on?"On call":"Call"}</span></button>`;
+    });
+    h+=`</div>`;
+  } else {
+    h+=`<p class="rd-gd-sheet-sub">${ranked.target?"No reps for this look yet — widen hash/field, or open the playbook.":"Tap the playbook to call any play."}</p>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+/* Tier 3 — full playbook escape hatch. One tap from the call screen; searchable
+   by name (type "hou" → HOUSTON), family chips, recent + hot surfaced. Any play
+   callable in ≤2 taps. Calling flows through the same callerLog() path. */
+let _callerPB=null, _callerPBFilter="";
+function callerOpenPlaybook(){
+  if(!_callerPB){
+    _callerPB=document.createElement("div");
+    _callerPB.className="caller-pb-overlay no-print";
+    document.body.appendChild(_callerPB);
+    _callerPB.addEventListener("click",function(e){ if(e.target===_callerPB) callerClosePlaybook(); });
+  }
+  _callerPBFilter="";
+  _callerPB.style.display="flex";
+  _callerPBBuild("");
+}
+function callerClosePlaybook(){ if(_callerPB) _callerPB.style.display="none"; }
+function callerPlaybookCall(name){ callerClosePlaybook(); callerLog(name); }
+function callerPlaybookFilter(f){
+  _callerPBFilter=String(f||"");
+  const q=document.getElementById("callerPBQ"); const cur=q?q.value:"";
+  _callerPBBuild(cur);
+}
+function _callerPBBuild(query){
+  if(!_callerPB) return;
+  const S=callerSelect();
+  const pbook=Array.isArray(PBOOK)?PBOOK:[];
+  const fams=(S&&S.families)?S.families(pbook):[];
+  let h=`<div class="caller-pb-box" role="dialog" aria-label="Playbook">`;
+  h+=`<div class="caller-pb-head"><b>Playbook</b><button type="button" class="caller-pb-close" onclick="callerClosePlaybook()">Close</button></div>`;
+  h+=`<input id="callerPBQ" class="caller-pb-q" placeholder="Search plays — type a name" value="${esc(query||"")}" autocomplete="off" autocapitalize="off" spellcheck="false">`;
+  if(fams.length>1){
+    h+=`<div class="caller-pb-chips"><button type="button" class="caller-pb-chip${_callerPBFilter?"":" on"}" onclick="callerPlaybookFilter('')">All</button>`;
+    fams.forEach(f=>{ const fe=String(f).replace(/'/g,""); h+=`<button type="button" class="caller-pb-chip${_callerPBFilter.toLowerCase()===String(f).toLowerCase()?" on":""}" onclick="callerPlaybookFilter('${esc(fe)}')">${esc(f)}</button>`; });
+    h+=`</div>`;
+  }
+  h+=`<div id="callerPBList" class="caller-pb-list"></div>`;
+  h+=`</div>`;
+  _callerPB.innerHTML=h;
+  const q=document.getElementById("callerPBQ");
+  if(q){ q.oninput=function(){ _callerPBRenderList(q.value); }; }
+  _callerPBRenderList(query||"");
+  if(q){ setTimeout(function(){ try{ q.focus(); }catch(e){} },20); }
+}
+function _callerPBRenderList(query){
+  const list=document.getElementById("callerPBList"); if(!list) return;
+  const S=callerSelect();
+  const pbook=Array.isArray(PBOOK)?PBOOK:[];
+  let items=(S&&S.searchPlaybook)?S.searchPlaybook(pbook,query):pbook.slice();
+  if(_callerPBFilter) items=items.filter(p=>String((p&&(p.family||p.type))||"").toLowerCase()===_callerPBFilter.toLowerCase());
+  items=items.slice(0,60);
+  const sigMap=callerSignalMap();
+  const escN=s=>esc(s).replace(/'/g,"");
+  const sigTag=nm=>sigMap[nm]!=null?`<span class="sig">${esc(String(sigMap[nm]))}</span>`:`<span class="sig sig-empty"></span>`;
+  let h="";
+  if(!query && !_callerPBFilter){
+    const recent=[]; for(let i=CALLER_LOG.length-1;i>=0&&recent.length<6;i--){ const l=CALLER_LOG[i]; if(l&&l.play&&recent.indexOf(l.play)<0&&!(typeof callerIsST==="function"&&callerIsST(l))) recent.push(l.play); }
+    const hot=((callerRankedCalls().list)||[]).slice(0,5).map(r=>r.play);
+    if(recent.length){ h+=`<div class="caller-pb-sec">Recent</div><div class="caller-pb-quick">`+recent.map(nm=>`<button type="button" class="caller-pb-quickbtn" onclick="callerPlaybookCall('${escN(nm)}')">${esc(nm)}</button>`).join("")+`</div>`; }
+    if(hot.length){ h+=`<div class="caller-pb-sec">Hot today</div><div class="caller-pb-quick">`+hot.map(nm=>`<button type="button" class="caller-pb-quickbtn hot" onclick="callerPlaybookCall('${escN(nm)}')">${sigTag(nm)}${esc(nm)}</button>`).join("")+`</div>`; }
+  }
+  if(items.length){
+    h+=items.map(p=>{ const nm=p&&p.name; if(!nm) return ""; const meta=[p.formation,p.family||p.type].filter(Boolean).join(" · ");
+      return `<button type="button" class="caller-pb-row" onclick="callerPlaybookCall('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span><span class="meta">${esc(meta)}</span><span class="cta">Call</span></button>`;
+    }).join("");
+  } else {
+    h+=`<p class="foot">${pbook.length?"No matches.":"No playbook loaded — sign in on a device with your program's plays."}</p>`;
+  }
+  list.innerHTML=h;
+}
+
 function renderCaller(){
   const host=document.getElementById("view-caller"); if(!host)return;
   const opp=sit.opp, cs=callerSit;
@@ -2787,7 +2935,6 @@ function renderCaller(){
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
 
   if(rd){
-    const sigMap=callerSignalMap();
     const hashLbl=cs.hash==="L"?"Left hash":cs.hash==="R"?"Right hash":cs.hash==="M"?"Middle hash":"";
     const zoneLbl=cs.zone==="REDZONE"?"RZ":cs.zone==="OWN"?"Own":cs.zone==="PLUS"?"Plus":"";
     const sitBits=[(ordinal(+cs.dn)+"").toUpperCase()+" & "+cs.db];
@@ -2795,10 +2942,6 @@ function renderCaller(){
     if(hashLbl) sitBits.push(hashLbl);
     const sitTxt=sitBits.join(" · ");
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
-    const ranked=cRuns.concat(cPass).slice().sort((a,b)=>b.sr-a.sr);
-    const hero=ranked[0]||null;
-    const backups=ranked.slice(1,4);
-    const escPlay=p=>esc(p).replace(/'/g,"");
     let h=`<div class="rd-gd" data-acc-skip>`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ✓":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
@@ -2820,28 +2963,9 @@ function renderCaller(){
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`</div></div>`;
-    const onCall=callerOnCall();
-    if(hero){
-      const sig=sigMap[hero.play];
-      const heroOn=onCall&&onCall.play===hero.play;
-      h+=`<div class="rd-gd-hero${heroOn?" rd-gd-hero-oncall":""}">`;
-      if(sig!=null) h+=`<span class="rd-gd-signal">${esc(String(sig))}</span>`;
-      h+=`<div class="rd-gd-hero-name">${esc(hero.play)}</div>`;
-      if(heroOn) h+=`<p class="rd-gd-called">CALLED — on the sheet</p>`;
-      else if(cov) h+=`<p class="rd-gd-why">beats their <b>${esc(cov.k)}</b> · <b>${fmtPct(cov.pct)}</b> here · ${Math.round(hero.sr*100)}% on ${hero.n}</p>`;
-      else h+=`<p class="rd-gd-why">${Math.round(hero.sr*100)}% success on ${hero.n}</p>`;
-      h+=`<button type="button" class="rd-gd-btn${heroOn?" rd-gd-btn-oncall":""}" style="width:100%;margin-bottom:10px" onclick="callerLog('${escPlay(hero.play)}')">${heroOn?"On call":"Call it"}</button>`;
-      if(backups.length){
-        h+=`<div class="rd-gd-backups">`+backups.map(c=>{
-          const s=sigMap[c.play];
-          const bOn=onCall&&onCall.play===c.play;
-          return `<button type="button" class="rd-gd-backup${bOn?" rd-gd-backup-oncall":""}" onclick="callerLog('${escPlay(c.play)}')">${s!=null?`<span class="sig">${esc(String(s))}</span>`:""}<span>${esc(c.play)}</span><span class="meta">${bOn?"ON CALL":Math.round(c.sr*100)+"%"}</span></button>`;
-        }).join("")+`</div>`;
-      }
-      h+=`</div>`;
-    } else {
-      h+=`<div class="rd-gd-hero"><div class="rd-gd-hero-name" style="font-size:22px">No call yet</div><p class="rd-gd-why">${g.length?"Need tagged offense vs "+(cov?esc(cov.k):"this look")+".":"No reps for this exact look — widen hash/field."}</p></div>`;
-    }
+    /* Selection: coach's call sheet (Tier 1) + best-now/inline marks (Tier 2),
+       with the full playbook one tap away (Tier 3). Replaces the single-hero suggester. */
+    h+=callerCallSheetHtml();
     h+=callerStRowHtml();
     h+=`</div>`; /* /rd-gd-col-main */
     h+=`<div class="rd-gd-col-side">`;
