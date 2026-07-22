@@ -301,6 +301,69 @@ function assertLoneQuestionGateRegression() {
   console.log("OK lone-'?' regression (poisoned pressure ? ${ caught)");
 }
 
+/**
+ * Flag a literal "?" used as a pass/fail STATUS GLYPH in a runtime-built string
+ * (the U+FFFD / lone-'?'-separator gates miss these — the '?' lives inside a JS
+ * ternary that only exists after render, e.g. `rel ${x?"?":"?"}` / `"? Correct"`).
+ *
+ *  Rule 1 — both branches a bare "?" / '?':  cond ? "?" : "?"   (rel/lev/dep/result mark)
+ *  Rule 2 — correctness ternary whose branch string is a "? " status prefix:
+ *              overallCorrect ? "? Correct" : "? Missed…"
+ *
+ * Correct → U+2713 (✓), wrong → U+2717 (✗). Runs on the two gameday HTML surfaces.
+ */
+function statusGlyphHits(s) {
+  const hits = [];
+  const push = (idx) => {
+    if (isInsideJsComment(s, idx)) return;
+    if (hits.some((h) => Math.abs(h.at - idx) < 3)) return;
+    hits.push({
+      at: idx,
+      ctx: s.slice(Math.max(0, idx - 26), idx + 26).replace(/\s+/g, " "),
+    });
+  };
+  /* Rule 1: ? "?" : "?"  (both outcomes a bare question mark) */
+  const reBoth = /(["'])\?\1\s*:\s*(["'])\?\2/g;
+  let m;
+  while ((m = reBoth.exec(s))) push(m.index);
+  /* Rule 2: <correctness>? "? …" — a status-icon prefix that never got its ✓/✗ */
+  const reIcon = /[A-Za-z]*[Cc]orrect[A-Za-z]*\s*\?\s*(["'])\?(?:\1|\s)/g;
+  while ((m = reIcon.exec(s))) push(m.index);
+  return hits;
+}
+
+function assertNoStatusGlyphQuestion(p) {
+  if (!/OFFGRD(?:-QB)?\.html$/i.test(p)) return;
+  const s = fs.readFileSync(p, "utf8");
+  const hits = statusGlyphHits(s);
+  if (hits.length) {
+    const sample = hits
+      .slice(0, 8)
+      .map((h) => "  @" + h.at + " " + JSON.stringify(h.ctx))
+      .join("\n");
+    throw new Error(
+      path.relative(ROOT, p) +
+        ": literal '?' status glyph(s) x" +
+        hits.length +
+        " (rel/lev/dep/result mark never got \u2713/\u2717; runtime string, FFFD/lone-'?' gates miss it)\n" +
+        sample
+    );
+  }
+}
+
+/** Prove the status-glyph gate fires on the exact shapes we just fixed. */
+function assertStatusGlyphGateRegression() {
+  const bad1 = 'fb.innerHTML=`<h4>${correct?"?":"?"} x</h4>`';
+  const bad2 = 'head=(overallCorrect?"? Correct":"? Missed the assignment")';
+  const bad3 = '"rel "+(detail&&detail.relationshipCorrect?"?":"?")';
+  const good = 'x?"\\u2713":"\\u2717"'; /* must NOT fire */
+  if (!statusGlyphHits(bad1).length) throw new Error("status-glyph gate: missed bare ?:? ternary");
+  if (!statusGlyphHits(bad2).length) throw new Error("status-glyph gate: missed '? Correct' prefix");
+  if (!statusGlyphHits(bad3).length) throw new Error("status-glyph gate: missed rel ?:? mark");
+  if (statusGlyphHits(good).length) throw new Error("status-glyph gate: false-positive on \u2713/\u2717");
+  console.log("OK status-glyph '?' gate regression (bare ?:? / '? Correct' / rel-mark caught)");
+}
+
 function assertQbChrome(p) {
   const s = fs.readFileSync(p, "utf8");
   const sig = (s.match(/\u00e2\u20ac/g) || []).length;
@@ -341,6 +404,10 @@ console.log("OK U+FFFD gate:", sources.length, "files");
 for (const p of sources) assertNoLoneQuestionSeparators(p);
 console.log("OK lone-'?' separator gate:", sources.length, "files");
 assertLoneQuestionGateRegression();
+
+for (const p of sources) assertNoStatusGlyphQuestion(p);
+console.log("OK status-glyph '?' gate:", sources.length, "files");
+assertStatusGlyphGateRegression();
 
 for (const p of [
   path.join(ROOT, "OFFGRD-QB.html"),

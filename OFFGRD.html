@@ -1113,7 +1113,7 @@ function renderOffense(){
     '<div class="dist"><div class="lbl">Run direction</div>'+(dir.arr.length?dir.arr.map(d=>bar(dirLabel(d.k),d.pct,d.raw,"prs")).join(""):'<p class="foot">No direction tagged.</p>')+'</div>'+
     '<div class="dist"><div class="lbl">Formation</div>'+(form.arr.length?form.arr.slice(0,6).map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No formation tagged.</p>')+'</div>'+
     '<details><summary>Matching plays</summary><table><thead><tr><th>Date</th><th>Opp</th><th>D&amp;D</th><th>Zone</th><th>Hash</th><th>Backfield</th><th>Form</th><th>Play</th><th>Dir</th><th>Mot</th><th>Gn</th></tr></thead><tbody>'+
-      rows.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(rw=>'<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td><td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td><td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td><b>'+esc(rw.playType||"")+'</b></td><td>'+esc(rw.direction||"")+'</td><td>'+(+rw.motion===1?"?":"")+'</td><td>'+(rw.gain==null?"":rw.gain)+'</td></tr>').join("")+
+      rows.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(rw=>'<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td><td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td><td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td><b>'+esc(rw.playType||"")+'</b></td><td>'+esc(rw.direction||"")+'</td><td>'+(+rw.motion===1?"\u2713":"")+'</td><td>'+(rw.gain==null?"":rw.gain)+'</td></tr>').join("")+
       '</tbody></table></details>';
   renderOffenseGrid(useRec);
 }
@@ -1259,7 +1259,7 @@ function renderManager(){
     const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
     const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
     const isNext=WEEK&&WEEK.opponent===opp;
-    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">? NEXT'+(weekCountdown()?" ? "+esc(weekCountdown()):"")+'</span>':"";
+    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">\u25b6 NEXT'+(weekCountdown()?" \u00b7 "+esc(weekCountdown()):"")+'</span>':"";
     const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
     html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
@@ -1577,7 +1577,7 @@ function wireWeekUI(host){
   const ws=host.querySelector("#wkStart"); if(ws) ws.onclick=weekStartUI;
   const wg=host.querySelector("#wkGenBtn"); if(wg) wg.onclick=async()=>{
     if(WEEK&&WEEK.gen&&!confirm("Regenerate this week's briefing? The current one is replaced for the whole program.")) return;
-    wg.disabled=true; wg.textContent="? Generating? (10-20s)";
+    wg.disabled=true; wg.textContent="\u21bb Generating\u2026 (10-20s)";
     try{ await window.OFFGRD_WEEK_GEN(!!(WEEK&&WEEK.gen)); }
     catch(e){ alert((e&&e.message)||"Generation failed."); }
     renderPlan();

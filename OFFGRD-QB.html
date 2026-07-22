@@ -181,7 +181,7 @@
  <button class="btn go" id="snapBtn">▶ Snap</button>
  <button class="btn hidden" id="replayBtn">↻ Replay</button>
  <button class="btn" id="quitBtn">End</button>
- <button class="btn go hidden" id="nextBtn">Next ?</button>
+ <button class="btn go hidden" id="nextBtn">Next &rarr;</button>
  </span>
  </div>
  </div>
@@ -2361,7 +2361,7 @@ function answerRoute(i){
  if(cc){ cc.setAttribute("stroke","#19c37d"); cc.setAttribute("stroke-width","5"); cc.setAttribute("opacity","1"); }
  test.results.push({concept:rep.play.name+" — "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
  const job=rep.target.asn||rep.target.asnAuto;
- if(job){ const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad"); fb.innerHTML=`<h4>${correct?"?":"?"} ${esc(rep.target.lab)}'s assignment</h4><div>${esc(job)}</div>`; }
+ if(job){ const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad"); fb.innerHTML=`<h4>${correct?'<span style="color:#19c37d;font-weight:900">\u2713</span>':'<span style="color:#e23b2e;font-weight:900">\u2717</span>'} ${esc(rep.target.lab)}'s assignment</h4><div>${esc(job)}</div>`; }
  test.i++;
  setTimeout(()=>{ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, job?(correct?1600:2400):(correct?450:900));
 }
@@ -2535,7 +2535,7 @@ function answerOl(sel){
  if(rep.postKey && olHasStunts(rep.play.state, rep.play.ol&&rep.play.ol.stunt)){
  OLPHASE="await-snap";
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML="<h4>"+(correct?"? Pre-snap: right man":"? Pre-snap: not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ▶ Snap — read the stunt and pick up your new man.</div>";
+ fb.innerHTML="<h4>"+(correct?'<span style="color:#19c37d;font-weight:900">\u2713</span> Pre-snap: right man':'<span style="color:#e23b2e;font-weight:900">\u2717</span> Pre-snap: not your man')+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre.answer)+"</h4><div>Now ▶ Snap — read the stunt and pick up your new man.</div>";
  document.getElementById("snapBtn").classList.remove("hidden");
  document.getElementById("prompt").textContent=rep.blocker+" — ▶ Snap to see the front move.";
  syncPresnapHint(true);
@@ -2554,10 +2554,10 @@ function finalizeOl(overallCorrect, post, job){
  const fb=document.getElementById("fb"); fb.className="fb show "+(overallCorrect?"ok":"bad");
  let head, detail="";
  if(single){
- head=(overallCorrect?"? Correct":"? Not your man")+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
+ head=(overallCorrect?'<span style="color:#19c37d;font-weight:900">\u2713</span> Correct':'<span style="color:#e23b2e;font-weight:900">\u2717</span> Not your man')+" — "+esc(PL(rep.blocker,"off"))+": "+esc(rep._pre?rep._pre.answer:"");
  } else {
- head=(overallCorrect?"? Correct":"? Missed the assignment")+" — "+esc(PL(rep.blocker,"off"));
- detail="Pre-snap: "+(rep._pre&&rep._pre.correct?"?":"?")+" ("+esc(rep._pre?rep._pre.answer:"")+") — After stunt: "+(post.postCorrect?"?":"?")+" ("+esc(post.postAnswer)+")";
+ head=(overallCorrect?'<span style="color:#19c37d;font-weight:900">\u2713</span> Correct':'<span style="color:#e23b2e;font-weight:900">\u2717</span> Missed the assignment')+" — "+esc(PL(rep.blocker,"off"));
+ detail="Pre-snap: "+(rep._pre&&rep._pre.correct?'<span style="color:#19c37d;font-weight:900">\u2713</span>':'<span style="color:#e23b2e;font-weight:900">\u2717</span>')+" ("+esc(rep._pre?rep._pre.answer:"")+") — After stunt: "+(post.postCorrect?'<span style="color:#19c37d;font-weight:900">\u2713</span>':'<span style="color:#e23b2e;font-weight:900">\u2717</span>')+" ("+esc(post.postAnswer)+")";
  }
  fb.innerHTML="<h4>"+head+"</h4>"
  +(detail?("<div>"+detail+"</div>"):"")
@@ -3797,10 +3797,12 @@ function finishAlignAnswer(detail){
     }
     const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
     const why=alignWhy(rep&&rep.play, rep&&rep.di, rep&&(rep._defCall||(rep.play&&rep.play._defCall)));
+    const okMk='<span style="color:#19c37d;font-weight:900">\u2713</span>';
+    const badMk='<span style="color:#e23b2e;font-weight:900">\u2717</span>';
     const bits=[
-      "rel "+(detail&&detail.relationshipCorrect?"?":"?"),
-      "lev "+(detail&&detail.leverageCorrect?"?":"?"),
-      "dep "+(detail&&detail.depthCorrect?"?":"?")
+      "rel "+(detail&&detail.relationshipCorrect?okMk:badMk),
+      "lev "+(detail&&detail.leverageCorrect?okMk:badMk),
+      "dep "+(detail&&detail.depthCorrect?okMk:badMk)
     ];
     let headline;
     if(correct) headline="Lined up";
@@ -3808,8 +3810,8 @@ function finishAlignAnswer(detail){
     else if(detail&&detail.relationshipCorrect&&!detail.leverageCorrect&&detail.depthCorrect) headline="Wrong leverage";
     else if(detail&&detail.relationshipCorrect&&detail.leverageCorrect&&!detail.depthCorrect) headline="Wrong depth";
     else headline="Missed the alignment";
-    fb.innerHTML="<h4>"+headline+" \u2014 "+esc(PL((rep&&rep.defLab)||"defender","def"))+" · "+esc(alignChoiceLabel(key))
-      +" <span class=\"tag\">"+esc(bits.join(" · "))+"</span></h4>"
+    fb.innerHTML="<h4>"+(correct?okMk:badMk)+" "+headline+" \u2014 "+esc(PL((rep&&rep.defLab)||"defender","def"))+" · "+esc(alignChoiceLabel(key))
+      +" <span class=\"tag\">"+bits.join(" · ")+"</span></h4>"
       +(correct?"":("<div class=\"prog\">"+esc(why)+"</div>"));
     if(detail) test.results.push(detail);
   }catch(e){
@@ -3986,7 +3988,7 @@ function answer(lab){
  if(MODE==="train"){
  const fb=document.getElementById("fb");
  fb.className="fb show "+(correct?"ok":"bad");
- fb.innerHTML=`<h4>${correct?"? Correct":"? Not the best read"} — throw the <b>${ansTxt}</b></h4>`+
+ fb.innerHTML=`<h4>${correct?'<span style="color:#19c37d;font-weight:900">\u2713</span> Correct':'<span style="color:#e23b2e;font-weight:900">\u2717</span> Not the best read'} — throw the <b>${ansTxt}</b></h4>`+
  `<div>${esc(read.why)||"Coach\u2019s read."}</div>`+
  (alts.length?`<div class="prog">Mirrored concept — either side is a correct throw.</div>`:"")+
  (rep.concept.prog?`<div class="prog">Progression: ${rep.concept.prog.join(" ? ")}</div>`:"")+
@@ -4125,7 +4127,7 @@ async function finishTest(){
  <div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>
  <div id="saveMsg" class="tag" style="margin-top:6px"></div>
  <div style="margin-top:14px">`+
- test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'?':'?'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} — answer: ${r.answer}</span></div>`).join("")+
+ test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'\u2713':'\u2717'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} — answer: ${r.answer}</span></div>`).join("")+
  `</div><div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
  document.getElementById("againBtn").onclick=()=>{ swap("setup"); setMode("test"); };
  document.getElementById("backBtn").onclick=()=>{ swap("setup"); setMode("train"); };
