@@ -152,4 +152,91 @@ const noTo = O.inferNextSituation(
 );
 if (!noTo.needsInput) throw new Error("turnover must need input");
 
-console.log("OK caller outcome model + fold + pending + learning + infer");
+/* 10) Special teams — finalize (no offensive concept/success/yards) */
+const fgGood = O.finalizeOutcome({ result: "fg_good" }, { dn: 4, db: "1-3" }, "fg");
+if (fgGood.result !== "fg_good") throw new Error("fg finalize result");
+if (fgGood.success !== null || fgGood.concept !== null || fgGood.gain !== null) {
+  throw new Error("fg has no offensive success/concept/yards " + JSON.stringify(fgGood));
+}
+if (fgGood.made !== true || fgGood.playType !== "fg") throw new Error("fg_good made/playType");
+/* ST detected by result id even without the playType arg (fold path passes 2 args) */
+const fgById = O.finalizeOutcome({ result: "fg_no" }, { dn: 4, db: "4-6" });
+if (fgById.playType !== "fg" || fgById.made !== false || fgById.success !== null) {
+  throw new Error("fg detected by id " + JSON.stringify(fgById));
+}
+const punt = O.finalizeOutcome({ result: "punt_i20" }, { dn: 4, db: "10+" }, "punt");
+if (punt.playType !== "punt" || punt.inside20 !== true || punt.success !== null) {
+  throw new Error("punt finalize " + JSON.stringify(punt));
+}
+
+/* learningSuccess null for ST — never moves the offensive suggester */
+if (O.learningSuccess({ playType: "fg", result: "fg_good" }) !== null) throw new Error("fg learning null");
+if (O.learningSuccess({ playType: "punt", result: "punt_ret" }) !== null) throw new Error("punt learning null");
+if (O.learningSuccess({ result: "fg_no" }) !== null) throw new Error("ST-by-id learning null");
+
+/* isSpecialEntry + resultLabel */
+if (!O.isSpecialEntry({ playType: "punt" })) throw new Error("isSpecialEntry by playType");
+if (!O.isSpecialEntry({ result: "fg_good" })) throw new Error("isSpecialEntry by result id");
+if (O.isSpecialEntry({ playType: "Run", result: "solid" })) throw new Error("offense is not ST");
+if (O.resultLabel("fg_good") !== "Good") throw new Error("resultLabel fg");
+if (O.resultLabel("punt_i20") !== "Downed in 20") throw new Error("resultLabel punt");
+if (O.resultLabel("td") !== "TD") throw new Error("resultLabel offense");
+
+/* 11) Change of possession — FG good / punt / missed FG → needsInput, not inferred */
+const copFg = O.inferNextSituation({ dn: 4, db: "1-3" }, { result: "fg_good" }, "fg");
+if (!copFg.needsInput || copFg.inferred || copFg.reason !== "change_of_possession") {
+  throw new Error("fg good → change of possession " + JSON.stringify(copFg));
+}
+const copPunt = O.inferNextSituation({ dn: 4, db: "10+" }, { result: "punt_fc" }, "punt");
+if (!copPunt.needsInput || copPunt.inferred) throw new Error("punt → change of possession");
+const copMiss = O.inferNextSituation({ dn: 4, db: "4-6" }, { result: "fg_no" }, "fg");
+if (!copMiss.needsInput || copMiss.inferred) throw new Error("missed fg → change of possession");
+/* detected by id without playType arg */
+const copById = O.inferNextSituation({ dn: 4, db: "10+" }, { result: "punt_tb" });
+if (!copById.needsInput || copById.inferred) throw new Error("punt-by-id → change of possession");
+
+/* fake converted → offense continues 1st & 10, keeps hash/zone */
+const fake = O.inferNextSituation(
+  { dn: 4, db: "10+", hash: "R", zone: "PLUS" },
+  { result: "punt_fake_conv" },
+  "punt"
+);
+if (!fake.inferred || fake.dn !== 1 || fake.db !== "10+" || fake.reason !== "fake_converted") {
+  throw new Error("fake converted → 1st&10 " + JSON.stringify(fake));
+}
+if (fake.hash !== "R" || fake.zone !== "PLUS") throw new Error("fake keeps hash/zone");
+
+/* failed 4th down (offensive Go for it) → turnover on downs (unchanged offensive behavior) */
+const failed4 = O.inferNextSituation(
+  { dn: 4, db: "4-6" },
+  O.finalizeOutcome({ result: "short" }, { dn: 4, db: "4-6" })
+);
+if (!failed4.needsInput || failed4.reason !== "turnover_on_downs") {
+  throw new Error("failed 4th → turnover on downs " + JSON.stringify(failed4));
+}
+
+/* 12) ST stat helpers */
+const stLog = [
+  { playType: "fg", result: "fg_good" },
+  { playType: "fg", result: "fg_no" },
+  { playType: "punt", result: "punt_i20" },
+  { playType: "punt", result: "punt_fake_conv" },
+  { playType: "punt", result: null }, /* ungraded punt — excluded */
+];
+const fgs = O.fgStats(stLog);
+if (fgs.attempts !== 2 || fgs.made !== 1 || Math.abs(fgs.pct - 0.5) > 1e-9) {
+  throw new Error("fgStats " + JSON.stringify(fgs));
+}
+const pus = O.puntStats(stLog);
+/* ungraded punt (result null) is excluded → 2 graded punts */
+if (pus.punts !== 2 || pus.inside20 !== 1 || pus.fakesConverted !== 1) {
+  throw new Error("puntStats " + JSON.stringify(pus));
+}
+
+/* 13) ST excluded from offensive liveRates — n / SR unchanged when ST plays are present */
+const mixed = folded.log.concat([{ playType: "fg", result: "fg_good", eventId: "fg1", playIndex: 9 }]);
+const rates2 = O.liveRates(mixed);
+if (rates2.n !== 1) throw new Error("liveRates must exclude ST from n, got " + rates2.n);
+if (rates2.successRate !== 1) throw new Error("offensive SR unchanged by ST");
+
+console.log("OK caller outcome model + fold + pending + learning + infer + special teams");

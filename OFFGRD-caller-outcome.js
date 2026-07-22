@@ -27,7 +27,52 @@
     { id: "coverage", label: "Coverage took it" },
   ];
 
+  /* Special teams — separate result sets. One required tap. ST never feeds offensive learning. */
+  var FG_RESULTS = [
+    { id: "fg_good", label: "Good", made: true },
+    { id: "fg_no", label: "No good", made: false },
+    { id: "fg_block", label: "Blocked", made: false },
+  ];
+
+  var PUNT_RESULTS = [
+    { id: "punt_i20", label: "Downed in 20", inside20: true },
+    { id: "punt_fc", label: "Fair catch" },
+    { id: "punt_tb", label: "Touchback" },
+    { id: "punt_ret", label: "Returned" },
+    { id: "punt_block", label: "Blocked" },
+    { id: "punt_fake_conv", label: "Fake conv", fakeConverted: true },
+    { id: "punt_fake_fail", label: "Fake fail", fakeFailed: true },
+  ];
+
   var LEGACY = { hit: true, miss: true };
+
+  function isSpecialType(pt) {
+    return pt === "fg" || pt === "punt";
+  }
+
+  function stSetFor(kind) {
+    if (kind === "fg") return FG_RESULTS;
+    if (kind === "punt") return PUNT_RESULTS;
+    return null;
+  }
+
+  function stResultInfo(id) {
+    var i;
+    for (i = 0; i < FG_RESULTS.length; i++) {
+      if (FG_RESULTS[i].id === id) return { kind: "fg", spec: FG_RESULTS[i] };
+    }
+    for (i = 0; i < PUNT_RESULTS.length; i++) {
+      if (PUNT_RESULTS[i].id === id) return { kind: "punt", spec: PUNT_RESULTS[i] };
+    }
+    return null;
+  }
+
+  /** ST if the play was called as fg/punt OR graded with an ST result id. */
+  function isSpecialEntry(entry) {
+    if (!entry) return false;
+    if (isSpecialType(entry.playType)) return true;
+    return !!stResultInfo(entry.result);
+  }
 
   function dbToNum(db) {
     if (db === "1-3") return 2;
@@ -56,6 +101,17 @@
   function bucketToGain(id) {
     var b = bucketById(id);
     return b ? b.gain : null;
+  }
+
+  /** Human label for any result id — offensive bucket, ST result, or legacy hit/miss. */
+  function resultLabel(id) {
+    var b = bucketById(id);
+    if (b) return b.label;
+    var st = stResultInfo(id);
+    if (st) return st.spec.label;
+    if (id === "hit") return "Hit";
+    if (id === "miss") return "Miss";
+    return id || "";
   }
 
   function isPenaltyFlag(flag) {
@@ -103,7 +159,7 @@
    * Normalize outcome payload → folded fields.
    * sit: { dn, db }
    */
-  function finalizeOutcome(payload, sit) {
+  function finalizeOutcome(payload, sit, playType) {
     payload = payload || {};
     sit = sit || {};
     var raw = payload.result;
@@ -116,6 +172,32 @@
         success: null,
         concept: null,
         conceptOverride: payload.conceptOverride || null,
+      };
+    }
+
+    /* Special teams — FG/Punt have their own result model; no offensive yards/concept/success. */
+    var stKind = isSpecialType(playType)
+      ? playType
+      : isSpecialType(sit.playType)
+      ? sit.playType
+      : null;
+    var stInfo = stResultInfo(raw);
+    if (stInfo && !stKind) stKind = stInfo.kind;
+    if (stKind) {
+      var spec = stInfo ? stInfo.spec : null;
+      return {
+        result: raw,
+        gain: null,
+        flag: null,
+        negated: false,
+        success: null,
+        concept: null,
+        conceptOverride: null,
+        playType: stKind,
+        made: spec ? !!spec.made : false,
+        inside20: spec ? !!spec.inside20 : false,
+        fakeConverted: spec ? !!spec.fakeConverted : false,
+        fakeFailed: spec ? !!spec.fakeFailed : false,
       };
     }
 
@@ -175,6 +257,8 @@
   /** What the suggester should learn: 1 / 0 / null (ungraded or exclude). */
   function learningSuccess(entry) {
     if (!entry) return null;
+    /* Special teams never move the offensive suggester. */
+    if (isSpecialEntry(entry)) return null;
     var c = entry.conceptOverride || entry.concept;
     if (c === "worked" || c === "worked_untested") return 1;
     if (c === "didnt_work") return 0;
@@ -240,10 +324,30 @@
    * Suggest next down/distance after a graded call.
    * Turnovers / negated penalties / TD / turnover-on-downs → no infer, needsInput.
    */
-  function inferNextSituation(sit, outcome) {
+  function inferNextSituation(sit, outcome, playType) {
     sit = sit || {};
     outcome = outcome || {};
     if (!outcome.result) return { skip: true, reason: "ungraded" };
+
+    /* Special teams → change of possession (no offensive auto-advance), unless a fake converts. */
+    var stKind = isSpecialType(playType) ? playType : null;
+    var stInfo = stResultInfo(outcome.result);
+    if (stInfo && !stKind) stKind = stInfo.kind;
+    if (stKind) {
+      var stSpec = stInfo ? stInfo.spec : null;
+      if (stSpec && stSpec.fakeConverted) {
+        return {
+          dn: 1,
+          db: "10+",
+          hash: sit.hash != null ? sit.hash : "ANY",
+          zone: sit.zone != null ? sit.zone : "ANY",
+          inferred: true,
+          reason: "fake_converted",
+        };
+      }
+      return { skip: true, needsInput: true, reason: "change_of_possession" };
+    }
+
     if (outcome.result === "turnover") {
       return { skip: true, needsInput: true, reason: "turnover" };
     }
@@ -281,9 +385,46 @@
     };
   }
 
+  /** Field-goal accuracy over graded FG attempts. */
+  function fgStats(log) {
+    log = log || [];
+    var atts = log.filter(function (e) {
+      var st = stResultInfo(e.result);
+      return isGraded(e) && (e.playType === "fg" || (st && st.kind === "fg"));
+    });
+    var made = atts.filter(function (e) {
+      return e.result === "fg_good";
+    }).length;
+    return { attempts: atts.length, made: made, pct: atts.length ? made / atts.length : null };
+  }
+
+  /** Punt outcomes over graded punts: inside-20 rate + converted fakes. */
+  function puntStats(log) {
+    log = log || [];
+    var punts = log.filter(function (e) {
+      var st = stResultInfo(e.result);
+      return isGraded(e) && (e.playType === "punt" || (st && st.kind === "punt"));
+    });
+    var inside20 = punts.filter(function (e) {
+      return e.result === "punt_i20";
+    }).length;
+    var fakes = punts.filter(function (e) {
+      return e.result === "punt_fake_conv";
+    }).length;
+    return {
+      punts: punts.length,
+      inside20: inside20,
+      inside20Rate: punts.length ? inside20 / punts.length : null,
+      fakesConverted: fakes,
+    };
+  }
+
   function liveRates(log) {
     log = log || [];
-    var graded = log.filter(isGraded);
+    /* Offensive headline only — special teams are excluded from success/explosive. */
+    var graded = log.filter(function (e) {
+      return isGraded(e) && !isSpecialEntry(e);
+    });
     var learnable = graded.filter(function (e) {
       return learningSuccess(e) != null && !e.negated;
     });
@@ -308,11 +449,18 @@
   global.OFFGRD_CALLER_OUTCOME = {
     RESULT_BUCKETS: RESULT_BUCKETS,
     FLAGS: FLAGS,
+    FG_RESULTS: FG_RESULTS,
+    PUNT_RESULTS: PUNT_RESULTS,
     dbToNum: dbToNum,
     isSuccessVal: isSuccessVal,
     bucketToGain: bucketToGain,
+    resultLabel: resultLabel,
     isPenaltyFlag: isPenaltyFlag,
     isExecFlag: isExecFlag,
+    isSpecialType: isSpecialType,
+    isSpecialEntry: isSpecialEntry,
+    stSetFor: stSetFor,
+    stResultInfo: stResultInfo,
     deriveConcept: deriveConcept,
     conceptLabel: conceptLabel,
     flagLabel: flagLabel,
@@ -324,6 +472,8 @@
     comebackEntries: comebackEntries,
     comebackReason: comebackReason,
     liveRates: liveRates,
+    fgStats: fgStats,
+    puntStats: puntStats,
     yardsToDb: yardsToDb,
     inferNextSituation: inferNextSituation,
   };

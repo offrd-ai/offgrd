@@ -267,9 +267,9 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=143"></script>
+<script src="OFFGRD-redesign.js?v=144"></script>
 <script src="OFFGRD-shell.js?v=112"></script>
-<script src="OFFGRD-caller-outcome.js?v=142"></script>
+<script src="OFFGRD-caller-outcome.js?v=143"></script>
 <script src="OFFGRD-caller-log.js?v=142"></script>
 </head>
 <body>
@@ -2217,7 +2217,8 @@ function callerRefold(){
 /** Write folded (non-superseded) calls into GAMES ours — one dataset for bestCallsFor. */
 function callerSyncToGames(){
   const sess=callerEnsureSession();
-  const rows=CALLER_LOG.map(callerEntryToRow);
+  /* Special teams never enter the offensive "ours" dataset — bestCallsFor/playKind stay offense-only. */
+  const rows=CALLER_LOG.filter(l=>!callerIsST(l)).map(callerEntryToRow);
   const k=gameKey(sess.opp, sess.week, "ours");
   const prev=GAMES.find(g=>g.key===k);
   if(!rows.length){
@@ -2471,7 +2472,8 @@ function callerMaybeAdvanceAfterGrade(entry){
   if(!O||!O.inferNextSituation||!entry||!entry.result) return;
   const next=O.inferNextSituation(
     { dn:entry.dn, db:entry.db, hash:entry.hash, zone:entry.zone },
-    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated }
+    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated },
+    entry.playType
   );
   if(next.needsInput){
     callerSit.needsInput=true;
@@ -2540,7 +2542,9 @@ function callerEditPanelHtml(){
   const entry=CALLER_LOG.find(l=>l.playIndex===CALLER_EDIT_PI);
   if(!entry){ CALLER_EDIT_PI=null; return ""; }
   const O=callerOut();
-  const buckets=O?O.RESULT_BUCKETS:[];
+  const isST=!!(O&&O.isSpecialEntry&&O.isSpecialEntry(entry));
+  const stKind=isST?(O.isSpecialType&&O.isSpecialType(entry.playType)?entry.playType:((O.stResultInfo&&O.stResultInfo(entry.result))||{}).kind):null;
+  const buckets=isST?(O.stSetFor&&O.stSetFor(stKind)||[]):(O?O.RESULT_BUCKETS:[]);
   const flags=O?O.FLAGS:[];
   let h=`<div class="caller-edit-panel no-print" role="dialog" aria-label="Edit last play">`;
   h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px"><span class="pl"><b>Edit last play</b> — keeps the call, fixes details</span>`;
@@ -2554,7 +2558,7 @@ function callerEditPanelHtml(){
   h+=`<div><div class="lbl">Field</div><select id="callerEditZone" style="width:100%;min-height:44px">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([v,l])=>`<option value="${v}"${entry.zone===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   if(buckets.length){
     h+=`<div><div class="lbl">Result</div><select id="callerEditResult" style="width:100%;min-height:44px"><option value="">—</option>`+buckets.map(b=>`<option value="${b.id}"${entry.result===b.id?" selected":""}>${b.label}</option>`).join("")+`</select></div>`;
-    h+=`<div><div class="lbl">Flag</div><select id="callerEditFlag" style="width:100%;min-height:44px"><option value="">—</option>`+flags.map(f=>`<option value="${f.id}"${entry.flag===f.id?" selected":""}>${f.label}</option>`).join("")+`</select></div>`;
+    if(!isST) h+=`<div><div class="lbl">Flag</div><select id="callerEditFlag" style="width:100%;min-height:44px"><option value="">—</option>`+flags.map(f=>`<option value="${f.id}"${entry.flag===f.id?" selected":""}>${f.label}</option>`).join("")+`</select></div>`;
   }
   h+=`</div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:12px">`;
@@ -2620,13 +2624,16 @@ function callerResultChipsHtml(l, i, opts){
     const missStyle=l.result==="miss"?"background:var(--bad);color:#fff":"";
     return `<button type="button" class="ghost caller-out-btn${l.result==="hit"?" on":""}" style="${hitStyle}" onclick="callerGrade(${i},'hit')">Hit</button><button type="button" class="ghost caller-out-btn${l.result==="miss"?" on":""}" style="${missStyle}" onclick="callerGrade(${i},'miss')">Miss</button>`;
   }
-  return `<div class="caller-out-results">`+O.RESULT_BUCKETS.map(b=>{
+  const stKind=O.isSpecialType&&O.isSpecialType(l.playType)?l.playType:(O.stResultInfo&&O.stResultInfo(l.result)?O.stResultInfo(l.result).kind:null);
+  const buckets=stKind&&O.stSetFor?O.stSetFor(stKind):O.RESULT_BUCKETS;
+  return `<div class="caller-out-results">`+buckets.map(b=>{
     const on=l.result===b.id;
     return `<button type="button" class="caller-out-btn${on?" on":""}" onclick="callerGrade(${i},'${b.id}')">${b.label}</button>`;
   }).join("")+`</div>`;
 }
 function callerFlagChipsHtml(l, i){
   const O=callerOut(); if(!O||!l.result) return "";
+  if(O.isSpecialEntry&&O.isSpecialEntry(l)) return "";
   return `<div class="caller-out-flags"><span class="foot" style="margin-right:6px">Flag</span>`+O.FLAGS.map(f=>{
     const on=l.flag===f.id;
     return `<button type="button" class="caller-out-flag${on?" on":""}" onclick="callerSetFlag(${i},'${f.id}')">${f.label}</button>`;
@@ -2634,6 +2641,7 @@ function callerFlagChipsHtml(l, i){
 }
 function callerConceptChipsHtml(l, i){
   if(!l.result) return "";
+  if(callerIsST(l)) return "";
   const cur=l.conceptOverride||l.concept||"";
   const opts=[["worked","Worked"],["didnt_work","Didn't"],["worked_untested","Untested"]];
   return `<div class="caller-out-concept"><span class="foot" style="margin-right:6px">Concept</span>`+opts.map(([id,lab])=>{
@@ -2715,8 +2723,8 @@ function callerCallItemHtml(l, i, opts){
   const O=callerOut();
   let meta="";
   if(l.result&&O){
-    const b=(O.RESULT_BUCKETS.find(x=>x.id===l.result)||{});
-    meta=`<span class="foot">${esc(b.label||l.result)}${l.negated?" · neg":""}${l.concept?" · "+esc(O.conceptLabel(l.conceptOverride||l.concept)):""}</span>`;
+    const lbl=O.resultLabel?O.resultLabel(l.result):((O.RESULT_BUCKETS.find(x=>x.id===l.result)||{}).label||l.result);
+    meta=`<span class="foot">${esc(lbl)}${l.negated?" · neg":""}${l.concept?" · "+esc(O.conceptLabel(l.conceptOverride||l.concept)):""}</span>`;
   } else if(l.result==="hit"||l.result==="miss"){
     meta=`<span class="foot">${l.result}</span>`;
   }
@@ -2834,6 +2842,7 @@ function renderCaller(){
     } else {
       h+=`<div class="rd-gd-hero"><div class="rd-gd-hero-name" style="font-size:22px">No call yet</div><p class="rd-gd-why">${g.length?"Need tagged offense vs "+(cov?esc(cov.k):"this look")+".":"No reps for this exact look — widen hash/field."}</p></div>`;
     }
+    h+=callerStRowHtml();
     h+=`</div>`; /* /rd-gd-col-main */
     h+=`<div class="rd-gd-col-side">`;
     /* Reference (front/pressure · expect · they showed) — demoted behind a tap, never between situation and call. */
@@ -2854,6 +2863,7 @@ function renderCaller(){
     h+=`</div></details>`; /* /rd-gd-ref-body + /details */
     h+=`<div class="rd-gd-panel"><div class="lbl">Results</div>`;
     h+=callerRatesHtml();
+    h+=callerStStatsHtml();
     h+=callerComebackHtml();
     h+=`<div id="caller-pending-anchor">`+callerPendingQueueHtml()+`</div>`;
     if(CALLER_LOG.length){
@@ -2885,12 +2895,14 @@ function renderCaller(){
   };
   if(cRuns.length||cPass.length){ h+=`<div class="lbl" style="margin-top:8px">Your best calls</div>`; if(cRuns.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+cRuns.map(cline).join(""); } if(cPass.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:4px">PASS</div>`+cPass.map(cline).join(""); } }
   h+=`</div>`;
+  h+=callerStRowHtml();
   h+=`<div class="panel no-print" data-acc-skip><div class="lbl">They showed &mdash; log it</div><div class="seg covlog" style="flex-wrap:wrap">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
   if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot">Logged this game: <b>${liveAll.length}</b> &mdash; ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" &middot; ")} <button class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; } else h+=`<p class="foot">Tap the coverage they ran this snap &mdash; it blends into the prediction live.</p>`;
   h+=`</div>`;
   h+=callerComebackHtml();
   h+=`<div class="panel" data-sec="Results"><div class="lbl">Results</div>`;
   h+=callerRatesHtml();
+  h+=callerStStatsHtml();
   h+=callerPendingQueueHtml();
   h+=`<div class="persp" style="border:none;padding:0;margin-top:10px"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
   if(CALLER_LOG.length){
@@ -2958,6 +2970,70 @@ function callerLog(play){
     callerMarkPersisted(on.eventId);
   }
   renderCaller();
+}
+/** Special-teams call (Punt / Field Goal) — reuses the call/ON CALL/undo/edit path, tagged playType. */
+function callerLogST(kind){
+  if(kind!=="fg"&&kind!=="punt") return;
+  const E=callerEngine();
+  callerEnsureSession();
+  const play=kind==="fg"?"Field Goal":"Punt";
+  if(E&&E.wouldDedupCall){
+    const hit=E.wouldDedupCall(CALLER_LOG, play, Date.now());
+    if(hit){ callerMarkPersisted(hit.eventId||hit.id); renderCaller(); return; }
+  }
+  const cs=callerSit;
+  const actor=callerActor();
+  const folded=E?E.foldCallerEvents(CALLER_EVENTS):{ nextPlayIndex:CALLER_LOG.length };
+  const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
+  callerAppend("call", playIndex, {
+    sitTxt: ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""),
+    play: play,
+    dn: +cs.dn,
+    db: cs.db,
+    hash: cs.hash,
+    zone: cs.zone,
+    situationInferred: !!cs.inferred,
+    coverage: null,
+    playType: kind,
+    opponent: callerSessionOpp(),
+    date: callerSessionDate(),
+    signal: null,
+    actorLabel: actor.label
+  });
+  callerSit.inferred=false;
+  callerSit.needsInput=false;
+  callerSaveLocal();
+  const on=callerOnCall();
+  if(on&&on.play===play) callerMarkPersisted(on.eventId);
+  renderCaller();
+}
+function callerIsST(l){
+  const O=callerOut();
+  if(O&&O.isSpecialEntry) return O.isSpecialEntry(l);
+  return !!(l&&(l.playType==="fg"||l.playType==="punt"));
+}
+/** 4th-down special-teams options — Go for it / Punt / Field Goal. */
+function callerStRowHtml(){
+  if(+callerSit.dn!==4) return "";
+  const on=callerOnCall();
+  const fgOn=on&&on.play==="Field Goal";
+  const puntOn=on&&on.play==="Punt";
+  let h=`<div class="rd-gd-st no-print" data-acc-skip><div class="lbl">4th down — special teams</div><div class="rd-gd-st-row">`;
+  h+=`<button type="button" class="rd-gd-st-btn" onclick="callerJumpTop()">Go for it</button>`;
+  h+=`<button type="button" class="rd-gd-st-btn${puntOn?" on":""}" onclick="callerLogST('punt')">${puntOn?"Punt · on call":"Punt"}</button>`;
+  h+=`<button type="button" class="rd-gd-st-btn${fgOn?" on":""}" onclick="callerLogST('fg')">${fgOn?"Field Goal · on call":"Field Goal"}</button>`;
+  h+=`</div></div>`;
+  return h;
+}
+/** Small ST readout — FG accuracy + punt inside-20. */
+function callerStStatsHtml(){
+  const O=callerOut(); if(!O||!O.fgStats) return "";
+  const fg=O.fgStats(CALLER_LOG), pu=O.puntStats(CALLER_LOG);
+  if(!fg.attempts&&!pu.punts) return "";
+  const bits=[];
+  if(fg.attempts) bits.push(`FG ${fg.made}/${fg.attempts}${fg.pct!=null?" ("+Math.round(fg.pct*100)+"%)":""}`);
+  if(pu.punts){ let p=`Punts ${pu.punts}`; if(pu.inside20Rate!=null) p+=` · ${Math.round(pu.inside20Rate*100)}% inside 20`; if(pu.fakesConverted) p+=` · ${pu.fakesConverted} fake conv`; bits.push(p); }
+  return `<p class="foot caller-st-stats">${bits.join(" · ")}</p>`;
 }
 function callerResult(i,res){
   const entry=CALLER_LOG[i]; if(!entry) return;

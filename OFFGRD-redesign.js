@@ -1400,7 +1400,14 @@
       'html.rd-on #view-caller details.rd-gd-ref[open] .rd-gd-ref-sum::after{content:"\\25b4";}',
       'html.rd-on #view-caller .rd-gd-ref-body{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px;}',
       '@media (min-width:820px){html.rd-on #view-caller{max-width:960px;}html.rd-on #view-caller .rd-gd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;}}',
-      '@media (max-width:480px){html.rd-on #view-caller .rd-gd-hero-name{font-size:30px;}html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:38px;}html.rd-on #view-caller .rd-gd-hero{padding:12px 14px;}html.rd-on #view-caller .rd-gd-sit{padding:10px 12px;}html.rd-on #view-caller .rd-gd-sit-txt{font-size:18px;margin-bottom:8px;}}'
+      '@media (max-width:480px){html.rd-on #view-caller .rd-gd-hero-name{font-size:30px;}html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:38px;}html.rd-on #view-caller .rd-gd-hero{padding:12px 14px;}html.rd-on #view-caller .rd-gd-sit{padding:10px 12px;}html.rd-on #view-caller .rd-gd-sit-txt{font-size:18px;margin-bottom:8px;}}',
+      /* --- Special teams: 4th-down Go/Punt/FG row + ST stats readout --- */
+      'html.rd-on #view-caller .rd-gd-st{background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);border-radius:var(--radius-card);padding:12px 14px;}',
+      'html.rd-on #view-caller .rd-gd-st .lbl{font-size:var(--fs-micro);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);margin-bottom:8px;}',
+      'html.rd-on #view-caller .rd-gd-st-row{display:flex;gap:8px;flex-wrap:wrap;}',
+      'html.rd-on #view-caller .rd-gd-st-btn{flex:1 1 30%;min-height:52px;padding:10px 12px;background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:700!important;font-size:15px;cursor:pointer;}',
+      'html.rd-on #view-caller .rd-gd-st-btn.on{background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;}',
+      'html.rd-on #view-caller .caller-st-stats{font-weight:700;margin:6px 0 0;color:var(--rd-text);}'
     ].join("");
   }
 

@@ -25,6 +25,8 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../OFFGRD-caller-outcom
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../OFFGRD-caller-log.js"), "utf8"), sandbox);
 const C = sandbox.OFFGRD_CALLER;
 if (!C) throw new Error("OFFGRD_CALLER missing");
+const O = sandbox.OFFGRD_CALLER_OUTCOME;
+if (!O) throw new Error("OFFGRD_CALLER_OUTCOME missing");
 
 function ev(partial) {
   return Object.assign(
@@ -320,5 +322,34 @@ if (!corrBase.find((e) => e.eventId === "corrC" && e.type === "call" && e.payloa
   throw new Error("original call event must remain in the event set");
 }
 console.log("OK correction: sit patch → 7-9 bucket; original event retained; reorder-safe");
+
+// 12) Special teams — fg/punt call+outcome fold; playType carried; offense filter intact
+const stEvents = [
+  ev({ eventId: "s1", playIndex: 0, payload: { play: "SLANT", dn: 1, db: "10+", playType: "Pass" }, clientTs: 100, seq: 1 }),
+  ev({ eventId: "s1o", type: "outcome", playIndex: 0, payload: { result: "solid" }, clientTs: 110, seq: 2 }),
+  ev({ eventId: "s2", playIndex: 1, payload: { play: "Field Goal", dn: 4, db: "1-3", playType: "fg" }, clientTs: 200, seq: 3 }),
+  ev({ eventId: "s2o", type: "outcome", playIndex: 1, payload: { result: "fg_good" }, clientTs: 210, seq: 4 }),
+  ev({ eventId: "s3", playIndex: 2, payload: { play: "Punt", dn: 4, db: "10+", playType: "punt" }, clientTs: 300, seq: 5 }),
+  ev({ eventId: "s3o", type: "outcome", playIndex: 2, payload: { result: "punt_i20" }, clientTs: 310, seq: 6 }),
+];
+const fst = C.foldCallerEvents(stEvents);
+const fstR = C.foldCallerEvents(stEvents.slice().reverse());
+if (fst.log.length !== 3) throw new Error("ST fold length " + fst.log.length);
+const fgRow = fst.log.find((x) => x.play === "Field Goal");
+const puntRow = fst.log.find((x) => x.play === "Punt");
+if (!fgRow || fgRow.playType !== "fg" || fgRow.result !== "fg_good") throw new Error("fg fold " + JSON.stringify(fgRow));
+if (!puntRow || puntRow.playType !== "punt" || puntRow.result !== "punt_i20") throw new Error("punt fold " + JSON.stringify(puntRow));
+if (JSON.stringify(fst.log.map((x) => [x.play, x.playType, x.result])) !==
+    JSON.stringify(fstR.log.map((x) => [x.play, x.playType, x.result]))) {
+  throw new Error("ST fold not deterministic on reorder");
+}
+if (C.mergeEvents(stEvents, stEvents).length !== stEvents.length) throw new Error("ST merge not idempotent");
+/* ST never feeds offensive learning */
+if (O.learningSuccess(fgRow) !== null || O.learningSuccess(puntRow) !== null) throw new Error("ST learningSuccess must be null");
+/* Offense-only filter (mirrors callerSyncToGames) leaves offensive rows intact */
+const offense = fst.log.filter((l) => !O.isSpecialEntry(l));
+if (offense.length !== 1 || offense[0].play !== "SLANT") throw new Error("offense filter " + JSON.stringify(offense));
+if (O.learningSuccess(offense[0]) !== 1) throw new Error("offense SLANT solid should still learn 1");
+console.log("OK special teams: fg/punt fold + playType carried + offense filter intact");
 
 console.log("ALL PASS");
