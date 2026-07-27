@@ -46,16 +46,6 @@ function purgeForeignAuthTokens(expectedRef) {
   } catch (e) {}
   return kill.length;
 }
-/** True when a Supabase/PostgREST error is an auth/JWT failure (expired token, 401). */
-function isAuthError(err) {
-  if (!err) return false;
-  const status = err.status || err.statusCode || err.code || "";
-  const msg = String((err && (err.message || err.error_description || err.error)) || "").toLowerCase();
-  return String(status) === "401" ||
-    status === 401 ||
-    String(err.code || "") === "PGRST301" ||
-    /jwt|token is expired|token expired|not authenticated|auth session|invalid claim|no api key|refresh token/.test(msg);
-}
 const EXPECTED_REF = projectRefFromUrl(cfg.url);
 
 export const Cloud = {
@@ -128,25 +118,6 @@ export const Cloud = {
   async signOut() { return sb.auth.signOut(); },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
   async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
-  /**
-   * Ensure a live, non-expiring-imminently access token before a write.
-   * A backgrounded tab (esp. mobile) can sit on an expired JWT even with
-   * autoRefreshToken on. Returns true if a usable session is in hand.
-   */
-  async ensureFreshSession() {
-    if (!sb) return false;
-    try {
-      let { data } = await sb.auth.getSession();
-      let s = data && data.session;
-      const expSoon = !!(s && s.expires_at && (s.expires_at * 1000 - Date.now() < 60000));
-      if (!s || expSoon) {
-        const r = await sb.auth.refreshSession();
-        if (r && r.error) return false;
-        s = r && r.data && r.data.session ? r.data.session : null;
-      }
-      return !!s;
-    } catch (e) { return false; }
-  },
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */
@@ -307,39 +278,122 @@ export const Cloud = {
   },
   async deleteGame(id) { const { error } = await OG.from("scouting_games").delete().eq("id", id); if (error) throw error; },
 
+  /* ---------- live caller event log (multi-device, append-only) ---------- */
+  async activeCallerGame(teamId) {
+    if (!OG || !teamId) return null;
+    const { data, error } = await OG.from("caller_games").select("*")
+      .eq("team_id", teamId).eq("status", "active").maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+  async ensureCallerGame(teamId, meta) {
+    if (!OG || !teamId) return null;
+    const existing = await this.activeCallerGame(teamId);
+    if (existing) return existing;
+    const row = {
+      team_id: teamId,
+      opponent: (meta && meta.opponent) || null,
+      week: (meta && meta.week) || null,
+      game_date: (meta && meta.game_date) || null,
+      status: "active",
+      created_by: (meta && meta.created_by) || null,
+    };
+    if (meta && meta.id) row.id = meta.id;
+    const { data, error } = await OG.from("caller_games").insert(row).select().single();
+    if (error) {
+      /* race: another device created active game */
+      const again = await this.activeCallerGame(teamId);
+      if (again) return again;
+      throw error;
+    }
+    return data;
+  },
+  async archiveCallerGame(gameId) {
+    if (!OG || !gameId) return;
+    const { error } = await OG.from("caller_games").update({ status: "archived" }).eq("id", gameId);
+    if (error) throw error;
+  },
+  async listCallerEvents(teamId, gameId) {
+    if (!OG || !teamId || !gameId) return [];
+    const { data, error } = await OG.from("caller_events").select("*")
+      .eq("team_id", teamId).eq("game_id", gameId)
+      .order("client_ts", { ascending: true });
+    if (error) throw error;
+    return (data || []).map(function (r) {
+      return {
+        eventId: r.event_id,
+        gameId: r.game_id,
+        playIndex: r.play_index,
+        type: r.type,
+        payload: r.payload || {},
+        deviceId: r.device_id,
+        actorId: r.actor_id,
+        clientTs: Number(r.client_ts),
+        seq: r.seq,
+        superseded: !!r.superseded,
+        teamId: r.team_id,
+      };
+    });
+  },
+  /** Idempotent upsert on event_id — safe to retry after press-box drops. */
+  async appendCallerEvents(teamId, events) {
+    if (!OG || !teamId || !events || !events.length) return [];
+    const rows = events.map(function (e) {
+      return {
+        event_id: e.eventId,
+        team_id: teamId,
+        game_id: e.gameId,
+        play_index: e.playIndex,
+        type: e.type,
+        payload: e.payload || {},
+        device_id: e.deviceId,
+        actor_id: e.actorId || null,
+        client_ts: e.clientTs,
+        seq: e.seq,
+        superseded: !!e.superseded,
+      };
+    });
+    const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");
+    if (error) throw error;
+    return data || [];
+  },
+  async markCallerEventSuperseded(eventId, superseded) {
+    if (!OG || !eventId) return;
+    const { error } = await OG.from("caller_events").update({ superseded: !!superseded }).eq("event_id", eventId);
+    if (error) throw error;
+  },
+
   /* ---------- QB reads trainer results ---------- */
   async saveQuizResult(teamId, r) {
+    /* rep_context is entry-point truth: week_test feeds flywheel; practice = Results only. */
+    const ctx = (r.rep_context === "week_test" || r.rep_context === "practice")
+      ? r.rep_context
+      : (r.week_plan_id ? "week_test" : "practice");
     const row = {
       team_id: teamId,
       quiz: r.quiz || "Test",
       score: r.score|0,
       total: r.total|0,
-      detail: r.detail || []
+      detail: r.detail || [],
+      rep_context: ctx
     };
-    if (r.week_plan_id) row.week_plan_id = r.week_plan_id;
+    if (ctx === "week_test" && r.week_plan_id) row.week_plan_id = r.week_plan_id;
     if (r.kind) row.kind = r.kind;
     if (r.position) row.position = r.position;
-    // rep_context was being dropped here — without it a week_test row fails the
-    // flywheel filter (rep_context='week_test') and never counts. Persist it.
-    if (r.rep_context) row.rep_context = r.rep_context;
-    // Root cause of vanished retakes: an expired JWT (tab left open for hours)
-    // makes the insert 401 and the result silently disappears. Refresh before the
-    // write, and if the insert still comes back as an auth error, force one
-    // refresh + retry. Only give up (and surface) if the session can't be revived.
-    await this.ensureFreshSession();
-    let res = await OG.from("qb_results").insert(row).select().single();
-    if (res.error && isAuthError(res.error)) {
-      let revived = false;
-      try { const rr = await sb.auth.refreshSession(); revived = !!(rr && rr.data && rr.data.session && !rr.error); } catch (e) { revived = false; }
-      if (!revived) throw new Error("Your session expired \u2014 sign in again to save this result.");
-      res = await OG.from("qb_results").insert(row).select().single();
-    }
-    if (res.error) throw res.error;
-    return res.data;
+    const { data, error } = await OG.from("qb_results").insert(row).select().single();
+    if (error) throw error; return data;
   },
   async listQuizResults(teamId) {
     const { data, error } = await OG.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
     if (error) throw error; return data || [];
+  },
+
+  /** Slice 4d Follow-up G: active (non-consumed) focus flags for test-gen up-weight. */
+  async getActiveFocusFlags(schoolId) {
+    if (!sb || !schoolId) return [];
+    const { data, error } = await sb.rpc("get_active_focus_flags", { p_school_id: schoolId });
+    if (error) throw error;
+    return data || [];
   },
 
   /* ---------- week plans (Phase A of the education engine) ---------- */

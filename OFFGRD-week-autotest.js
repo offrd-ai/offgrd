@@ -126,6 +126,21 @@
     return null;
   }
 
+  /**
+   * Slice 4d / Follow-up G — scheme key parity with portal normalizeSchemeValue
+   * and SQL public._focus_normalize_scheme. Lowercase "cover 1" so generated
+   * reps and refresh_focus_impact measure the same cell.
+   */
+  function normalizeSchemeKey(v) {
+    const t = String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+    if (!t) return "";
+    if (t.indexOf("tampa") >= 0) return "tampa 2";
+    let m = t.match(/(?:cover|cvr|cov|c)\s*([0-9])\b/);
+    if (!m) m = t.match(/^([0-9])$/);
+    if (m) return "cover " + m[1];
+    return t;
+  }
+
   function planPlayList(week) {
     const out = [];
     const seen = {};
@@ -337,9 +352,13 @@
     return { ok: false, reason: "unknown kind" };
   }
 
-  /** Parse roster member → normalized position buckets (supports positions[] or "WR, DB"). */
+  /** Parse roster member → normalized position buckets (supports positions[] or "WR, DB").
+   * Prefer recruiting canonical columns when present (primary_position / secondary_position),
+   * then OFFGRD team_members.position / positions[]. */
   function parseMemberPositions(m) {
     const raw = [];
+    if (m && m.primary_position) raw.push(m.primary_position);
+    if (m && m.secondary_position) raw.push(m.secondary_position);
     if (m && m.positions && m.positions.length) {
       m.positions.forEach(function (p) { if (p) raw.push(p); });
     } else if (m && m.position) {
@@ -366,13 +385,23 @@
     return kinds;
   }
 
-  /** Collect emphasis weights from test_spec (Phase 5 Daily Focus). */
+  /** Collect emphasis from test_spec (Phase 5 + Slice 4d cell fields). */
   function collectEmphasis(posList, testSpec) {
     const out = [];
     const positions = (testSpec && testSpec.positions) || {};
     const kw = (testSpec && testSpec.kind_weights) || {};
     Object.keys(kw).forEach(function (k) {
-      out.push({ kind: k, weight: +kw[k] || 2, subskill: null });
+      out.push({
+        kind: k,
+        weight: +kw[k] || 2,
+        subskill: null,
+        scheme_type: null,
+        scheme_value: null,
+        dimension: null,
+        min_reps: null,
+        out_of_plan_mode: null,
+        tracked_focus_id: null
+      });
     });
     (posList || []).forEach(function (pos) {
       const s = positions[pos];
@@ -382,11 +411,115 @@
           kind: e.kind,
           weight: +e.weight || 2,
           subskill: e.subskill || null,
-          player_id: e.player_id || null
+          player_id: e.player_id || null,
+          scheme_type: e.scheme_type || null,
+          scheme_value: e.scheme_value || null,
+          dimension: e.dimension || null,
+          min_reps: e.min_reps != null ? (+e.min_reps || 6) : null,
+          out_of_plan_mode: e.out_of_plan_mode || null,
+          tracked_focus_id: e.tracked_focus_id || null
         });
       });
     });
     return out;
+  }
+
+  /**
+   * Follow-up G: cell-level emphasis entries that drive min_reps up-weight.
+   * Kind-only weights (no scheme_value) are ignored here — they still sort kinds.
+   */
+  function cellEmphasisFromSpec(posList, testSpec) {
+    return collectEmphasis(posList, testSpec).filter(function (e) {
+      return e && e.kind && e.scheme_value && String(e.scheme_value).trim();
+    }).map(function (e) {
+      return {
+        kind: e.kind,
+        dimension: e.dimension || null,
+        scheme_type: e.scheme_type || "coverage",
+        scheme_value: e.scheme_value,
+        scheme_key: normalizeSchemeKey(e.scheme_value),
+        min_reps: e.min_reps != null && e.min_reps > 0 ? e.min_reps : 6,
+        out_of_plan_mode: e.out_of_plan_mode || "review",
+        weight: e.weight || 2,
+        tracked_focus_id: e.tracked_focus_id || null,
+        player_id: e.player_id || null
+      };
+    }).filter(function (e) { return !!e.scheme_key; });
+  }
+
+  /** Installed scheme keys from week test_spec / def_aligns (for in-plan vs review). */
+  function installedSchemeKeys(week) {
+    const out = {};
+    const mark = function (v) {
+      const k = normalizeSchemeKey(v);
+      if (k) out[k] = 1;
+    };
+    const ts = (week && week.test_spec) || {};
+    (ts.coverages || []).forEach(function (c) {
+      mark(typeof c === "string" ? c : (c && (c.k || c.coverage)));
+    });
+    Object.keys((week && week.def_aligns) || {}).forEach(mark);
+    const genDef = (week && week.gen && week.gen.defense) || {};
+    Object.keys(genDef).forEach(mark);
+    return out;
+  }
+
+  /**
+   * Resolve active cell flags: prefer test_spec.emphasis[] when present;
+   * fall back to get_active_focus_flags(school_id) for no-week / empty emphasis.
+   */
+  async function activeCellEmphasis(posList, week) {
+    const fromSpec = cellEmphasisFromSpec(posList, week && week.test_spec);
+    if (fromSpec.length) return fromSpec;
+
+    let schoolId = null;
+    try {
+      if (root.Cloud && root.Cloud.myTeams) {
+        const teams = await root.Cloud.myTeams();
+        let tid = null;
+        try { tid = localStorage.getItem("offgrd_team"); } catch (e) {}
+        const team = (teams || []).find(function (t) { return t.id === tid; }) || (teams && teams[0]);
+        schoolId = team && (team.high_school_id || team.school_id) || null;
+      }
+    } catch (e) {}
+    if (!schoolId || !root.Cloud || typeof root.Cloud.getActiveFocusFlags !== "function") {
+      return [];
+    }
+    try {
+      const flags = await root.Cloud.getActiveFocusFlags(schoolId);
+      const posSet = {};
+      (posList || []).forEach(function (p) { posSet[String(p || "").toUpperCase()] = 1; });
+      return (flags || []).filter(function (f) {
+        if (!f || !f.scheme_value || !f.kind) return false;
+        if (posList && posList.length && f.position_group) {
+          return !!posSet[String(f.position_group).toUpperCase()];
+        }
+        return true;
+      }).map(function (f) {
+        return {
+          kind: f.kind,
+          dimension: f.dimension || null,
+          scheme_type: f.scheme_type || "coverage",
+          scheme_value: f.scheme_value,
+          scheme_key: normalizeSchemeKey(f.scheme_value),
+          min_reps: f.min_reps != null && f.min_reps > 0 ? +f.min_reps : 6,
+          out_of_plan_mode: "review",
+          weight: f.weight != null ? +f.weight : 2,
+          tracked_focus_id: f.id || null,
+          player_id: null
+        };
+      }).filter(function (e) { return !!e.scheme_key; });
+    } catch (e) {
+      console.warn("[week-autotest] get_active_focus_flags failed", e);
+      return [];
+    }
+  }
+
+  /** Does this composed align rep land on the flagged scheme cell? */
+  function alignRepMatchesCell(rep, cell) {
+    if (!rep || !cell || cell.kind !== "align") return false;
+    const cov = normalizeSchemeKey(rep.coverageName || (rep._defCall && rep._defCall.coverage) || "");
+    return !!cov && cov === cell.scheme_key;
   }
 
   /** Union test_spec kinds for a player at one or more positions. Emphasized kinds sort first. */
@@ -441,6 +574,8 @@
     const planPlays = planPlayList(week);
     const players = (roster || []).filter(function (m) { return m && m.role === "player"; });
     const positions = {};
+    const prevSpec = (week && week.test_spec) || {};
+    const prevPositions = prevSpec.positions || {};
     const blitzCtx = {
       games: games || [],
       opponent: (week && week.opponent) || "",
@@ -469,8 +604,11 @@
       }
       spec.kinds = (spec.kinds || []).slice();
       spec.buildable = okKinds;
+      // Preserve Slice 4d emphasis[] / kind_weights across approve rebuilds.
+      const prevEm = (prevPositions[pos] && prevPositions[pos].emphasis) || [];
+      if (prevEm.length) spec.emphasis = prevEm.slice();
     });
-    return {
+    const out = {
       v: 1,
       generated_at: new Date().toISOString(),
       opponent: (week && week.opponent) || "",
@@ -478,6 +616,10 @@
       coverages: (coverages || []).slice(0, 6),
       positions: positions
     };
+    if (prevSpec.kind_weights && typeof prevSpec.kind_weights === "object") {
+      out.kind_weights = prevSpec.kind_weights;
+    }
+    return out;
   }
 
   /** Seed def_aligns keys for top opponent looks (base shells until coach customizes). */
@@ -537,9 +679,14 @@
   function completionForPlayer(specPos, rows, weekPlanId, opponent) {
     const kinds = (specPos && specPos.kinds) || [];
     const mine = (rows || []).filter(function (r) {
-      if (weekPlanId && r.week_plan_id) return String(r.week_plan_id) === String(weekPlanId);
-      const pref = "Week vs " + (opponent || "—");
-      return r.quiz && String(r.quiz).indexOf(pref) === 0;
+      /* Graded week reps only — practice / soft-excluded never count toward readiness. */
+      if (r.exclude_from_rollup === true) return false;
+      if (r.rep_context && r.rep_context !== "week_test") return false;
+      if (weekPlanId) {
+        return r.week_plan_id && String(r.week_plan_id) === String(weekPlanId);
+      }
+      /* Legacy rows without week_plan_id: do not infer from quiz prefix. */
+      return false;
     });
     const done = {};
     mine.forEach(function (r) {
@@ -753,6 +900,69 @@
     return out;
   }
 
+  /**
+   * Map roster positions → defender groups allowed on a rep.
+   * DB/S/CB → DB; LB → LB; DL → DL.
+   */
+  function groupsWanted(positions) {
+    const want = { DL: false, LB: false, DB: false };
+    (positions || []).forEach(function (p) {
+      const u = String(p || "").toUpperCase();
+      if (u === "DL") want.DL = true;
+      else if (u === "LB") want.LB = true;
+      else if (u === "DB" || u === "S" || u === "CB" || u === "FS" || u === "SS") want.DB = true;
+    });
+    return want;
+  }
+
+  /**
+   * Indices of defs whose group matches the player's position set.
+   * mode: 'blitz' → DL|LB ; 'coverage' → DB|LB ; 'align' → DL|LB|DB
+   * Empty positions → all groups allowed for that mode (practice / unscoped).
+   */
+  function defIndicesForPositions(defs, positions, mode) {
+    const want = groupsWanted(positions);
+    const allowDL = mode === "blitz" || mode === "align";
+    const allowLB = mode === "blitz" || mode === "coverage" || mode === "align";
+    const allowDB = mode === "coverage" || mode === "align";
+    if (!want.DL && !want.LB && !want.DB) {
+      want.DL = !!allowDL;
+      want.LB = !!allowLB;
+      want.DB = !!allowDB;
+    } else {
+      if (!allowDL) want.DL = false;
+      if (!allowLB) want.LB = false;
+      if (!allowDB) want.DB = false;
+    }
+    const out = [];
+    (defs || []).forEach(function (d, i) {
+      if (!d) return;
+      if (d.group === "DL" && want.DL) out.push(i);
+      else if (d.group === "LB" && want.LB) out.push(i);
+      else if (d.group === "DB" && want.DB) out.push(i);
+    });
+    return out;
+  }
+
+  /** Assert every index's def.group is in the position-allowed set for mode. */
+  function assertRepRolesScoped(defs, indices, positions, mode) {
+    const allowed = defIndicesForPositions(defs, positions, mode);
+    const allowSet = {};
+    allowed.forEach(function (i) { allowSet[i] = 1; });
+    (indices || []).forEach(function (i) {
+      if (!allowSet[i]) {
+        const d = (defs || [])[i];
+        const err = new Error(
+          "DEF_ROLE_SCOPE " + mode + " positions=" + JSON.stringify(positions) +
+            " got " + (d && (d.pos || d.lab || d.group)) + " group=" + (d && d.group)
+        );
+        err.code = "DEF_ROLE_SCOPE";
+        throw err;
+      }
+    });
+    return true;
+  }
+
   root.OFFGRD_WEEK_AUTOTEST = {
     isWeekAutotest: isWeekAutotest,
     POSKINDS: POSKINDS,
@@ -772,11 +982,20 @@
     parseMemberPositions: parseMemberPositions,
     kindsForPositions: kindsForPositions,
     unionSpecForPlayer: unionSpecForPlayer,
+    collectEmphasis: collectEmphasis,
+    cellEmphasisFromSpec: cellEmphasisFromSpec,
+    activeCellEmphasis: activeCellEmphasis,
+    installedSchemeKeys: installedSchemeKeys,
+    normalizeSchemeKey: normalizeSchemeKey,
+    alignRepMatchesCell: alignRepMatchesCell,
     nudgeHtml: nudgeHtml,
     keyText: keyText,
     keyPositions: keyPositions,
     inferKeyPositions: inferKeyPositions,
     filterKeysForPos: filterKeysForPos,
-    filterKeysForPositions: filterKeysForPositions
+    filterKeysForPositions: filterKeysForPositions,
+    groupsWanted: groupsWanted,
+    defIndicesForPositions: defIndicesForPositions,
+    assertRepRolesScoped: assertRepRolesScoped
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -3556,7 +3556,14 @@ function buildAlignRepDetail(rep){
     landmarkX:key.x!=null?key.x:null,
     landmarkY:key.y!=null?key.y:null,
     keySource:key.source||"derived",
-    scoringModel:"align_zones_v1"
+    scoringModel:"align_zones_v1",
+    /* Follow-up G: out-of-plan teach/review — Impact still counts; tendency should not. */
+    reviewRep:!!rep._reviewRep,
+    focusEmphasis:rep._focusCell?{
+      scheme_value:rep._focusCell.scheme_value||null,
+      dimension:rep._focusCell.dimension||null,
+      out_of_plan_mode:rep._focusCell.out_of_plan_mode||null
+    }:null
   };
 }
 function alignTargets(play, positions){
@@ -3577,15 +3584,111 @@ function alignTargets(play, positions){
       })();
   return scoped.filter(function(i){ const d=defs[i]; return d&&d.x!=null&&d.y!=null; });
 }
-function pickAlignRep(positions){
-  if(!BLITZCALLS.length||!OPPLOOKS.length) return null;
+/**
+ * True defensive calls carry top-level coverage or _defCall (Author → Defense /
+ * weekDefCalls). OL protection plays only set ol.coverage ("vs Cover 1") — that
+ * must not satisfy Focus 4d strictScheme matching (false positive → 0/min_reps).
+ */
+function isExplicitAlignCall(call){
+  if(!call) return false;
+  if(call._defCall&&call._defCall.coverage!=null&&String(call._defCall.coverage).trim()) return true;
+  if(call.coverage!=null&&String(call.coverage).trim()) return true;
+  return false;
+}
+/**
+ * When gen.def_calls lacks the flagged scheme but the week already authored it
+ * in def_aligns / WEEKCOVS, build a real def_call shell. placeDefenseOn fills
+ * defs at compose time — same path as Author picking that coverage. Not inventing
+ * opponent frequency; reuses coach-authored install coverage.
+ */
+function weekAlignCallForScheme(schemeValue){
+  const AT=window.OFFGRD_WEEK_AUTOTEST;
+  const preferKey=(schemeValue&&AT&&AT.normalizeSchemeKey)
+    ? AT.normalizeSchemeKey(schemeValue)
+    : String(schemeValue||"").trim().toLowerCase();
+  if(!preferKey) return null;
+  let covLabel=null;
+  const consider=function(label){
+    if(!label||covLabel) return;
+    const k=AT&&AT.normalizeSchemeKey?AT.normalizeSchemeKey(label):String(label).trim().toLowerCase();
+    if(k===preferKey) covLabel=String(label).trim();
+  };
+  Object.keys(WEEKDEF||{}).forEach(consider);
+  (WEEKCOVS||[]).forEach(function(c){ consider(typeof c==="string"?c:(c&&(c.k||c.coverage))); });
+  if(WEEKPLAN&&WEEKPLAN.def_aligns) Object.keys(WEEKPLAN.def_aligns).forEach(consider);
+  if(!covLabel){
+    /* Last resort: canonical Cover N / Tampa 2 label from the key itself. */
+    if(/^cover [0-6]$/.test(preferKey)) covLabel="Cover "+preferKey.slice(-1);
+    else if(preferKey==="tampa 2") covLabel="Tampa 2";
+  }
+  if(!covLabel) return null;
+  /* Require evidence the week authored this coverage (def_aligns or WEEKCOVS). */
+  const authored=Object.keys(WEEKDEF||{}).some(function(k){
+    return (AT&&AT.normalizeSchemeKey?AT.normalizeSchemeKey(k):String(k).toLowerCase())===preferKey;
+  })||(WEEKCOVS||[]).some(function(c){
+    const label=typeof c==="string"?c:(c&&(c.k||c.coverage));
+    return (AT&&AT.normalizeSchemeKey?AT.normalizeSchemeKey(label):String(label||"").toLowerCase())===preferKey;
+  });
+  if(!authored) return null;
+  const base=(weekDefCalls()||[])[0]||{};
+  const front=base.front||"4-3";
+  return defCallToPlay({
+    id:"week-align-"+preferKey.replace(/\s+/g,"-"),
+    name:front+" "+covLabel,
+    front:front,
+    coverage:covLabel,
+    defs:[],
+    stunt:{},
+    assigns:{},
+    v:2
+  });
+}
+/**
+ * Pick an align rep. opts.preferScheme (e.g. "Cover 1") biases the call pool to
+ * that coverage via the same normalizeSchemeKey the Focus Impact RPC uses —
+ * Follow-up G up-weight. opts.review=true when the scheme is out-of-plan.
+ */
+function pickAlignRep(positions, opts){
+  opts=opts||{};
+  if(!OPPLOOKS.length) return null;
   const FC=window.OFFGRD_FORMATION_CANON;
+  const AT=window.OFFGRD_WEEK_AUTOTEST;
+  const preferKey=(opts.preferScheme&&AT&&AT.normalizeSchemeKey)
+    ? AT.normalizeSchemeKey(opts.preferScheme)
+    : (opts.preferScheme?String(opts.preferScheme).trim().toLowerCase():"");
+  let callPool=BLITZCALLS.slice();
+  if(preferKey){
+    const matched=BLITZCALLS.filter(function(call){
+      if(!isExplicitAlignCall(call)) return false;
+      const cov=resolveCallCoverage(call);
+      if(!cov.ok) return false;
+      const key=AT&&AT.normalizeSchemeKey?AT.normalizeSchemeKey(cov.coverage):String(cov.coverage||"").toLowerCase();
+      return key===preferKey;
+    });
+    if(matched.length) callPool=matched;
+    else if(opts.strictScheme){
+      const fromWeek=weekAlignCallForScheme(opts.preferScheme);
+      if(fromWeek){
+        callPool=[fromWeek];
+        if(FC&&FC.logSkip) FC.logSkip("pickAlignRep using week def_aligns call", preferKey);
+      }else{
+        /* No authored defensive call / def_aligns for this scheme — cannot fabricate. */
+        if(FC&&FC.logSkip) FC.logSkip("pickAlignRep no authored call for scheme", preferKey);
+        return null;
+      }
+    }
+  }
+  if(!callPool.length) return null;
   for(let tries=0;tries<60;tries++){
-    const call=BLITZCALLS[Math.floor(Math.random()*BLITZCALLS.length)];
+    const call=callPool[Math.floor(Math.random()*callPool.length)];
     const covRes=resolveCallCoverage(call);
     if(!covRes.ok){
       if(FC&&FC.logSkip) FC.logSkip("pickAlignRep skip call (no coverage field)", (call.name||"?")+": "+(covRes.reason||""));
       continue;
+    }
+    if(preferKey){
+      const got=AT&&AT.normalizeSchemeKey?AT.normalizeSchemeKey(covRes.coverage):String(covRes.coverage||"").toLowerCase();
+      if(got!==preferKey) continue;
     }
     const look=OPPLOOKS[Math.floor(Math.random()*OPPLOOKS.length)];
     if(FC&&FC.lookDrawableForAlign){
@@ -3657,7 +3760,10 @@ function pickAlignRep(positions){
       pickedLeverage:null,
       pickedDepth:null,
       _tap:null,
-      relOptions:alignRelationshipOptions(key)
+      relOptions:alignRelationshipOptions(key),
+      /* Follow-up G: review/teach when flagged scheme is out of this week's install. */
+      _reviewRep:!!opts.review,
+      _focusCell:opts.focusCell||null
     };
   }
   console.error("[align-formation] pickAlignRep exhausted tries — no valid align rep");
@@ -4003,11 +4109,8 @@ function answer(lab){
 }
 function updateProgress(){
  if(MODE==="test" && test){
-   const alignP=(test.kind==="align"||TESTKIND==="align")&&test.results.some(function(r){return typeof r.credit==="number";});
-   const got=alignP
-     ? Math.round(test.results.reduce(function(a,r){return a+(typeof r.credit==="number"?r.credit:(r.correct?1:0));},0)*10)/10
-     : test.results.filter(function(r){return r.correct;}).length;
-   let lbl=`Question ${test.i+1} of ${test.queue.length} — ${got} ${alignP?"credit":"correct"}`;
+   const got=test.results.filter(r=>r.correct).length;
+   let lbl=`Question ${test.i+1} of ${test.queue.length} — ${got} correct`;
    if(test.shortPool&&test.requestedLen&&test.queue.length<test.requestedLen){
      lbl+=` · ${test.queue.length} available (asked for ${test.requestedLen})`;
    }
@@ -4087,6 +4190,41 @@ async function startTest(opts){
  }
  if(TESTKIND==="align"){
  await loadBlitzPlays();
+ /* Follow-up G: raise the floor for flagged (kind, dimension, scheme) cells —
+  * bias, don't monopolize. Fill min_reps first, then normal random spread. */
+ try{
+   if(AT&&AT.activeCellEmphasis){
+     const cells=await AT.activeCellEmphasis(myPositions, WEEKPLAN||null);
+     const installed=AT.installedSchemeKeys?AT.installedSchemeKeys(WEEKPLAN||null):{};
+     for(let ci=0;ci<(cells||[]).length && test.queue.length<n;ci++){
+       const cell=cells[ci];
+       if(!cell||cell.kind!=="align"||!cell.scheme_key) continue;
+       const floor=Math.min(cell.min_reps||6, n);
+       const inPlan=!!installed[cell.scheme_key];
+       /* Out-of-plan: still honor min_reps as review/teach — never invent opp frequency. */
+       const asReview=!inPlan;
+       let have=test.queue.filter(function(r){ return AT.alignRepMatchesCell(r, cell); }).length;
+       let guard=0;
+       while(have<floor && test.queue.length<n && guard<floor*12){
+         guard++;
+         const r=pickAlignRep(myPositions, {
+           preferScheme:cell.scheme_value,
+           strictScheme:true,
+           review:asReview,
+           focusCell:cell
+         });
+         if(!r) break;
+         test.queue.push(r);
+         have++;
+       }
+       if(have<floor){
+         console.warn("[focus-4d] cell up-weight short: "+cell.scheme_value+" "+(cell.dimension||"")+" got "+have+"/"+floor+(asReview?" (review)":""));
+       }else{
+         console.info("[focus-4d] cell up-weight ok: "+cell.scheme_value+" "+(cell.dimension||"")+" ≥"+floor+(asReview?" (review)":""));
+       }
+     }
+   }
+ }catch(e){ console.warn("[focus-4d] emphasis up-weight skipped", e); }
  for(let k=0;k<n*8 && test.queue.length<n;k++){ const r=pickAlignRep(myPositions); if(r) test.queue.push(r); }
  /* Drop any underivable reps that slipped through (defense in depth). */
  test.queue=test.queue.filter(function(r){ return r&&r.targetAlign&&r.targetAlign.relationship&&r.play&&r.play._defCall; });
@@ -4122,103 +4260,44 @@ async function startTest(opts){
  swap("play"); showRep(test.queue[0]); updateProgress();
 }
 async function finishTest(){
- const tot=test.results.length;
- // Alignment scores by PARTIAL CREDIT (mean of relationship/leverage/depth per rep),
- // not strict all-three-right. The server rollup applies the same rule; other kinds unchanged.
- const alignPartial=(test.kind==="align"||TESTKIND==="align")&&test.results.some(function(r){return typeof r.credit==="number";});
- const gotExact=alignPartial
-   ? Math.round(test.results.reduce(function(a,r){return a+(typeof r.credit==="number"?r.credit:(r.correct?1:0));},0)*10)/10
-   : test.results.filter(function(r){return r.correct;}).length;
- const got=gotExact;
- const scoreToSave=alignPartial?Math.round(gotExact):gotExact; // qb_results.score is integer
- const isWeekTest=test.repContext==="week_test";
+ const got=test.results.filter(r=>r.correct).length, tot=test.results.length;
  swap("result");
  const rp=document.getElementById("resultPanel");
-
- const reviewHtml=test.results.map((r,i)=>{
-   const partial=typeof r.credit==="number"&&r.credit>0&&r.credit<1;
-   const mk=r.correct
-     ? '<span class="dotok">\u2713</span>'
-     : (partial
-        ? '<span style="display:inline-block;min-width:1.8em;text-align:center;color:#b8860b;font-weight:900">'+Math.round(r.credit*3)+'/3</span>'
-        : '<span class="dotbad">\u2717</span>');
-   return `<div class="rev">${mk}<span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} \u2014 answer: ${r.answer}</span></div>`;
- }).join("");
- const scoreBlock=`<div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>`;
- const buttons=`<div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
- const wireButtons=function(){
-   const ab=document.getElementById("againBtn"); if(ab) ab.onclick=function(){ swap("setup"); setMode("test"); };
-   const bb=document.getElementById("backBtn"); if(bb) bb.onclick=function(){ swap("setup"); setMode("train"); };
- };
-
- // Attempt the save BEFORE showing a success score — a completed-test score must
- // never render for a row that didn't persist (a week_test FK/RLS throw was being
- // swallowed while the score screen implied success).
- async function attemptSave(){
-   if(!(window.QB && window.QB.ready)) return {status:"local", msg:"Sign in and join a program to save your score."};
-   let ctx;
-   try{ ctx=await window.QB.context(); }catch(e){ return {status:"error", msg:(e&&(e.message||e))||"Couldn\u2019t reach your program."}; }
-   if(!(ctx && ctx.user)) return {status:"local", msg:"Sign in and join a program to save your score."};
-   if(ctx.user && !ctx.team) return {status:"local", msg:"Join or create a program (Team button) to save scores for your coaches."};
-   const AT=window.OFFGRD_WEEK_AUTOTEST;
-   const wkPrefix=isWeekTest?("Week vs "+((test.week&&test.week.opp)||(WEEKPLAN&&WEEKPLAN.opponent)||"\u2014")+" \u2014 "):"";
-   const quizBase=(AT&&AT.quizLabelForKind)
-    ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
-    : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
-   const quiz=wkPrefix+quizBase;
-   const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
-   const position=(test.positions&&test.positions[0])||null;
-   const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
-   try{
-     await window.QB.save({
-       quiz:quiz, score:scoreToSave, total:tot, detail:test.results, kind:kind, position:position,
-       week_plan_id:weekPlanId,
-       rep_context:isWeekTest?"week_test":"practice"
-     });
-   }catch(e){ return {status:"error", msg:(e&&(e.message||e))||"Unknown error"}; }
-   if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
-   const savedMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
-   return {status:"saved", msg:savedMsg};
+ let saveMsg="Sign in and join a program to save your score.";
+ rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>
+ <div class="score" style="font-size:22px">${got} / ${tot} &nbsp;<span style="color:var(--muted);font-weight:700">(${Math.round(got/tot*100)}%)</span></div>
+ <div id="saveMsg" class="tag" style="margin-top:6px"></div>
+ <div style="margin-top:14px">`+
+ test.results.map((r,i)=>`<div class="rev"><span class="${r.correct?'dotok':'dotbad'}">${r.correct?'\u2713':'\u2717'}</span><span style="flex:1">${i+1}. ${r.concept}${r.coverage?" vs "+r.coverage:""}</span><span class="tag">you: ${r.chose} — answer: ${r.answer}</span></div>`).join("")+
+ `</div><div class="row" style="margin-top:14px"><button class="btn go" id="againBtn">New test</button><button class="btn" id="backBtn">Back to training</button></div>`;
+ document.getElementById("againBtn").onclick=()=>{ swap("setup"); setMode("test"); };
+ document.getElementById("backBtn").onclick=()=>{ swap("setup"); setMode("train"); };
+ // save to cloud if signed in
+ try{
+ if(window.QB && window.QB.ready){
+ const ctx=await window.QB.context();
+ if(ctx && ctx.user && ctx.team){
+ const AT=window.OFFGRD_WEEK_AUTOTEST;
+ const isWeekTest=test.repContext==="week_test";
+ const wkPrefix=isWeekTest?("Week vs "+((test.week&&test.week.opp)||(WEEKPLAN&&WEEKPLAN.opponent)||"\u2014")+" \u2014 "):"";
+ const quizBase=(AT&&AT.quizLabelForKind)
+  ? AT.quizLabelForKind(test.kind, {defenderCoverage:!!test.defenderCoverage})
+  : (test.kind==="align"?"Alignment test":test.kind==="coverage"?(test.defenderCoverage?"Coverage defender test":"Coverage ID test"):test.kind==="routes"?"Route quiz":test.kind==="protect"?"OL test":test.kind==="blitz"?"Blitz test":test.kind==="motion"?"Motion test":"Reads test");
+ const quiz=wkPrefix+quizBase;
+ const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
+ const position=(test.positions&&test.positions[0])||null;
+ const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
+ await window.QB.save({
+  quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position,
+  week_plan_id:weekPlanId,
+  rep_context:isWeekTest?"week_test":"practice"
+ });
+ saveMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
+ if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
+ } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
  }
-
- function renderSaving(){
-   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
-     +`<div class="tag" style="margin-top:6px">\u21bb Saving your result\u2026</div>`
-     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
-   wireButtons();
- }
- function renderSaved(msg){
-   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
-     +scoreBlock
-     +`<div class="tag" style="margin-top:6px;color:#1d7a45">${msg}</div>`
-     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
-   wireButtons();
- }
- function renderLocal(msg){
-   rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Test complete</h3>`
-     +scoreBlock
-     +`<div class="tag" style="margin-top:6px">${msg}</div>`
-     +`<div style="margin-top:14px">`+reviewHtml+`</div>`+buttons;
-   wireButtons();
- }
- function renderError(msg){
-   rp.innerHTML=`<h3 style="margin:0 0 4px;color:#b3261e">\u2717 Not saved</h3>`
-     +`<div style="background:#fdecea;border:1px solid #f5c2bd;border-radius:8px;padding:10px 12px;color:#8a1c12;font-weight:700;margin-bottom:8px">Your result was NOT recorded${isWeekTest?" \u2014 it did not count toward the week":""}. Nothing was saved.</div>`
-     +`<div class="tag" style="margin-bottom:8px">Reason: ${esc(String(msg))}</div>`
-     +`<div class="row" style="margin-bottom:6px"><button class="btn go" id="retryBtn">Retry save</button></div>`
-     +`<div style="margin-top:8px">`+reviewHtml+`</div>`+buttons;
-   wireButtons();
-   const rb=document.getElementById("retryBtn");
-   if(rb) rb.onclick=async function(){ renderSaving(); apply(await attemptSave()); };
- }
- function apply(res){
-   if(res.status==="saved") renderSaved(res.msg);
-   else if(res.status==="local") renderLocal(res.msg);
-   else renderError(res.msg);
- }
-
- renderSaving();
- apply(await attemptSave());
+ }catch(e){ saveMsg="Couldn\u2019t save score: "+(e.message||e); }
+ const sm=document.getElementById("saveMsg"); if(sm) sm.textContent=saveMsg;
 }
 
 /* ---------- Phase C: readiness — green/yellow/red by player, by position group ---------- */
@@ -4545,8 +4624,8 @@ init();
 </script>
 <script src="OFFGRD-mobile.js?v=137"></script>
 <script src="OFFGRD-scoutcards.js?v=137"></script>
-<script src="OFFGRD-week-autotest.js?v=137"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=139"></script>
+<script src="OFFGRD-week-autotest.js?v=139"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=137"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
 <script type="module" src="OFFGRD-account.js?v=137"></script>
 <script src="OFFGRD-role-gate.js?v=137"></script>
