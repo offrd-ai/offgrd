@@ -603,19 +603,38 @@
       'font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}',
       '#rdSetupMenu button:hover,#rdSetupMenu a:hover{background:var(--rd-surface-2);}',
       /* Match OFFGRD-mobile.js breakpoint (820) so pills stay clear on phones/tablets. */
+      /* Phone chrome: OFFOPS bar (row 1) + one combined context/tools strip (row 2). */
       '@media (max-width:820px){',
-      '#rdNavBody{flex-direction:column;}',
-      '#rdPhases{flex-direction:row;justify-content:space-around;width:auto;flex:none;',
+      'html.rd-on #rdShell{flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px;',
+      'padding:4px 8px;min-height:48px;}',
+      'html.rd-on #rdContext,html.rd-on #rdNavBody{display:contents;}',
+      'html.rd-on #rdMark,html.rd-on #rdAcctHost,html.rd-on #rdContext .rd-spacer{display:none!important;}',
+      'html.rd-on #rdCrest{flex:0 0 auto;}',
+      'html.rd-on #rdScope{flex:0 1 auto;max-width:38vw;min-height:44px;padding:8px 10px;',
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+      'html.rd-on #rdSync{flex:0 0 auto;width:44px;height:44px;min-width:44px;display:inline-flex;',
+      'align-items:center;justify-content:center;font-size:0;letter-spacing:0;color:var(--rd-accent);}',
+      'html.rd-on #rdSync::after{content:"\\25CF";font-size:14px;line-height:1;}',
+      'html.rd-on #rdSync[data-tone="warn"]::after{color:var(--rd-warn-text);content:"\\25CB";}',
+      'html.rd-on #rdSetup{flex:0 0 auto;position:relative;}',
+      'html.rd-on #rdGear{min-width:44px;min-height:44px;padding:0;width:44px;justify-content:center;}',
+      'html.rd-on #rdGear .rd-gear-label{display:none;}',
+      'html.rd-on #rdPhases{flex-direction:row;justify-content:space-around;width:auto;flex:none;',
       'position:fixed;left:0;right:0;bottom:0;padding:8px 10px;border-right:0;',
+      'padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));',
       'border-top:1px solid var(--rd-border);background:var(--rd-surface);z-index:45;}',
       '.rd-phase{text-align:center;padding:10px 8px;min-height:44px;font-weight:600;}',
       '.rd-phase.on{box-shadow:0 0 0 2px var(--rd-accent);}',
-      '#rdTools{padding:8px 12px 10px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;',
-      'gap:8px;position:sticky;top:0;z-index:30;background:var(--rd-bg);}',
-      '.rd-pill{min-height:44px;padding:10px 14px;flex:0 0 auto;font-weight:600;opacity:.72;}',
+      'html.rd-on #rdTools{flex:1 1 auto;min-width:0;padding:0 28px 0 4px;flex-wrap:nowrap;',
+      'overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;gap:8px;',
+      'mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 28px),transparent 100%);',
+      '-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 28px),transparent 100%);}',
+      'html.rd-on #rdTools::-webkit-scrollbar{display:none;}',
+      '.rd-pill{min-height:44px;padding:10px 14px;flex:0 0 auto;font-weight:600;opacity:.72;',
+      'scroll-snap-align:start;white-space:nowrap;}',
       '.rd-pill.on{opacity:1;font-weight:700;background:var(--rd-accent);color:var(--rd-accent-text);',
       'border-color:var(--rd-accent);outline:2px solid var(--rd-accent);outline-offset:2px;}',
-      'html.rd-on body{padding-bottom:64px;}',
+      'html.rd-on body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));}',
       'html.rd-on #view-package .plan-tbl,html.rd-on #view-package .tn-tbl,',
       'html.rd-on #view-report .tn-tbl,html.rd-on #view-caller .plan-tbl{',
       'display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}',
@@ -1686,7 +1705,8 @@
       + '<button type="button" id="rdScope" title="Opponent / scope">Scope</button>'
       + '<span id="rdSync">SYNC</span>'
       + '<span class="rd-spacer"></span>'
-      + '<div id="rdSetup"><button type="button" class="rd-iconbtn" id="rdGear" aria-label="Setup">\u2699 Setup</button>'
+      + '<div id="rdSetup"><button type="button" class="rd-iconbtn" id="rdGear" aria-label="Setup">'
+      + '\u2699<span class="rd-gear-label"> Setup</span></button>'
       + '<div id="rdSetupMenu" role="menu">' + setup + '</div></div>'
       + '<span id="rdAcctHost"></span>'
       + '</div>'
@@ -1753,6 +1773,13 @@
       }
       p.classList.toggle("on", onPill);
     });
+    /* Keep the active tool pill visible in the horizontal strip on phones. */
+    try {
+      const onEl = document.querySelector("#rdTools .rd-pill.on:not([hidden])");
+      if (onEl && onEl.scrollIntoView) {
+        onEl.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+      }
+    } catch (eScroll) {}
     syncGamedayChrome();
   }
 
@@ -1773,18 +1800,31 @@
     const sync = document.getElementById("rdSync");
     const stat = document.getElementById("syncstat");
     if (sync) {
-      if (isPlayerRole()) { sync.textContent = ""; }
-      else {
+      if (isPlayerRole()) {
+        sync.textContent = "";
+        sync.removeAttribute("title");
+        sync.removeAttribute("data-tone");
+      } else {
         const t = (stat && (stat.textContent || "").trim()) || "";
-        if (t) { sync.textContent = t; return; }
-        /* QB kind is not SYNCABLE — never lie with LOCAL when a program session exists. */
-        const prog = root.OFFGRD_PROGRAM;
-        if (prog && prog.ready && prog.teamId) { sync.textContent = "PROGRAM"; return; }
-        const acct = document.getElementById("acct");
-        const signedIn = !!(acct && /Sign out/i.test(acct.textContent || ""));
-        if (signedIn) { sync.textContent = prog && !prog.ready ? "NO TEAM" : "SIGNED IN"; return; }
-        if (root.OFFGRD_SESSION_GATED) { sync.textContent = "SIGNED OUT"; return; }
-        sync.textContent = "LOCAL";
+        let label = t;
+        if (!label) {
+          /* QB kind is not SYNCABLE — never lie with LOCAL when a program session exists. */
+          const prog = root.OFFGRD_PROGRAM;
+          if (prog && prog.ready && prog.teamId) label = "PROGRAM";
+          else {
+            const acct = document.getElementById("acct");
+            const signedIn = !!(acct && /Sign out/i.test(acct.textContent || ""));
+            if (signedIn) label = prog && !prog.ready ? "NO TEAM" : "SIGNED IN";
+            else if (root.OFFGRD_SESSION_GATED) label = "SIGNED OUT";
+            else label = "LOCAL";
+          }
+        }
+        sync.textContent = label;
+        sync.title = label;
+        sync.setAttribute("aria-label", "Sync status: " + label);
+        const warn = /NO TEAM|SIGNED OUT|LOCAL|OFFLINE|ERROR|FAIL/i.test(label);
+        if (warn) sync.setAttribute("data-tone", "warn");
+        else sync.removeAttribute("data-tone");
       }
     }
   }

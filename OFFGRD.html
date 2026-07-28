@@ -267,8 +267,8 @@
 <script src="OFFGRD-week-autotest.js?v=97"></script>
 <script src="OFFGRD-weeklypackage.js?v=97"></script>
 <script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=145"></script>
-<script src="OFFGRD-shell.js?v=112"></script>
+<script src="OFFGRD-redesign.js?v=146"></script>
+<script src="OFFGRD-shell.js?v=113"></script>
 <script src="OFFGRD-caller-outcome.js?v=143"></script>
 <script src="OFFGRD-caller-log.js?v=142"></script>
 <script src="OFFGRD-caller-select.js?v=1"></script>
@@ -759,7 +759,7 @@ function render(){
   const pressedRows=rows.filter(rw=>+rw.pressure===1);
   const blitz=weightedDist(pressedRows,"blitz",useRec);
   const pr=pressureRate(rows,useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" ? "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const noPrW=1-pr;
   const untagged=rows.length-covRows.length;
 
@@ -773,15 +773,15 @@ function render(){
 
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">'+leadName+' ? '+sitTxt+(sit.opp!=="ANY"?" ? vs "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">'+leadName+' · '+sitTxt+(sit.opp!=="ANY"?" · vs "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(headK)+'</div>'+(showPct?'<div class="callpct">'+pctTxt(headPct)+'</div>':'')+((useCoverage&&covS.arr[1])?'<div class="sub" style="align-self:flex-end;padding-bottom:9px">then '+esc(covS.arr[1].k)+' '+pctTxt(covS.arr[1].pct)+'</div>':'')+'</div>'+
     '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span>'+
-      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" ? recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">? Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">· Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet — showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' ? top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
-      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"?")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" ? then "+esc(front.arr[1].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' · top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
+      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"?")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" · then "+esc(front.arr[1].k):"")+'</div></div>'+
       (useCoverage
         ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(behind.k):"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
         : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
@@ -952,7 +952,7 @@ function playStatsVsCoverage(play,target){
 }
 function setCallMode(m){ CALL_MODE=m; render(); }
 function callSheetHTML(cov, useRec){
-  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls ? '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
+  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls · '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
   if(!OFF_DATA.length){
     return head+'<div class="callsempty">Import your offensive self-scout (play/concept, the coverage faced, DN, DIST, and GN/LS yards) to turn this prediction into a ranked call sheet. <br><button class="btnp" onclick="openImport(\'offense\')">Import offense</button></div></div>';
   }
@@ -971,12 +971,12 @@ function callSheetHTML(cov, useRec){
     });
     rankCalls(ranked);
     const mixStr=mix.map(m=>m.k.replace("Cover ","C")+" "+Math.round(m.pct*100)).join(" / ");
-    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' ? plays with more reps rank higher</div>';
+    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' · plays with more reps rank higher</div>';
   } else {
     const target=cov.arr[0].k; let widened=false;
     plays.forEach(pl=>{ const st=playStatsVsCoverage(pl,target); if(st){ if(st.level>0)widened=true; ranked.push({play:pl, sr:st.sr, xr:st.xr, n:st.n}); } });
     rankCalls(ranked);
-    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% · best plays first, more reps rank higher'+(widened?' ? <span style="color:var(--warn)">widened — few reps here</span>':'')+'</div>';
+    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% · best plays first, more reps rank higher'+(widened?' · <span style="color:var(--warn)">widened — few reps here</span>':'')+'</div>';
   }
   if(!ranked.length){
     return head+toggle+'<div class="callsempty">Not enough offensive reps tagged for this look yet — import more self-scout (with GN/LS yards) and your best calls will appear.</div></div>';
@@ -1092,17 +1092,17 @@ function renderOffense(){
   const motionRate=weightedShare(rows,r=>+r.motion===1,useRec);
   const form=weightedDist(rows.filter(r=>r.formation),"formation",useRec);
   const pers=weightedDist(rows.filter(r=>r.personnel),"personnel",useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" ? "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const isRun=/run/i.test(top.k);
   const note = isRun
     ? "Run-leaning here ("+pctTxt(top.pct)+(dir.arr[0]?", most often to the "+dirLabel(dir.arr[0].k):"")+"). Set the front/strength that way, fit your gaps; expect "+esc(form.arr[0]?form.arr[0].k:"their base")+(pers.arr[0]?" / "+esc(pers.arr[0].k):"")+"."
     : "Pass-leaning here ("+pctTxt(top.pct)+"). Motion on "+pctTxt(motionRate)+" of snaps — ID coverage/pressure pre-snap; watch "+esc(form.arr[0]?form.arr[0].k:"their spread")+".";
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">Most likely ? '+sitTxt+(sit.opp!=="ANY"?" ? "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">Most likely · '+sitTxt+(sit.opp!=="ANY"?" · "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(top.k.toUpperCase())+'</div><div class="callpct">'+pctTxt(top.pct)+'</div></div>'+
-    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" ? recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">? Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">· Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     '<div class="cards">'+
       '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?dirLabel(dir.arr[0].k):"?")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
       '<div class="card"><div class="k">Motion rate</div><div class="v gold">'+pctTxt(motionRate)+'</div><div class="s">'+(motionRate>0.2?"motion-heavy":"low motion")+'</div></div>'+
@@ -1178,7 +1178,7 @@ function upsertGame(opp,week,side,source,rows){
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
   saveGames(); rebuildActive(); return existed;
 }
-function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" ? "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
+function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
 /* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
 function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); const p=document.getElementById("schedPid"); if(p){ p.innerHTML = SCHED_TEAM_ID ? ('Program ID for your OFFRD link: <code>'+esc(SCHED_TEAM_ID)+'</code> <button class="ghost" style="padding:2px 8px" onclick="schedCopyId()">Copy</button>') : '<span class="foot">Sign in to your program to see your OFFRD link ID.</span>'; } renderSchedule(); } }
@@ -1194,7 +1194,7 @@ function schedScoutCounts(opp){ let off=0,def=0; if(opp) GAMES.forEach(g=>{ if(g
 function schedStatusLine(g){
   const opp=(g.opponent||"").trim(); if(!opp) return '';
   const sc=schedScoutCounts(opp);
-  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">? scouting</span> <span class="foot">off '+sc.off+' ? def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
+  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">· scouting</span> <span class="foot">off '+sc.off+' · def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
   const isPlan=WEEK&&WEEK.opponent===opp;
   const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">? this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">? Plan this week</button>':'');
   return '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px">'+scout+' '+planChip+'</div>';
@@ -1255,7 +1255,7 @@ function renderManager(){
     const list=byOpp[opp];
     const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
     const nG=dates.length||list.length;
-    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" ? "+dates[dates.length-1]):"";
+    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" · "+dates[dates.length-1]):"";
     const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
     const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
     const isNext=WEEK&&WEEK.opponent===opp;
@@ -1263,7 +1263,7 @@ function renderManager(){
     const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
     html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
-      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' ? '+esc(range):"")+'</span>'+nextBadge
+      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
       +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ?</button></div>'
       +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
       +'<table><tbody>'+grows+'</tbody></table></div>';
@@ -1497,7 +1497,7 @@ function weekBarHTML(){
   const wrap=inner=> rd
     ? '<div class="rd-week-bar">'+inner+'</div>'
     : '<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
-  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" ? a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">? Start new week</button>':""));
+  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" · a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">· Start new week</button>':""));
   const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
   const cd=weekCountdown();
   const fld=rd?'':'background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;';
@@ -1552,7 +1552,7 @@ function weekGenHTML(){
   }
   const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
   let h=(rd?'<details class="rd-week-brief"':'<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px"')+'>'
-    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">? Week briefing ? '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">· Week briefing · '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
   if(defSide){
     if(!d||!d.narrative){
       h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
@@ -1659,9 +1659,9 @@ function matchupMatrix(def,by){
 /* ----- REPORT ----- */
 function mineTells(off,def){
   const T=[];
-  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" ? "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" ? "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" ? "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" ? "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="?"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" ? "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
+  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" · "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" · "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="?"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" · "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
   T.sort((a,b)=>b.w-a.w); const seen={}, out=[]; T.forEach(t=>{ if(!seen[t.txt]){seen[t.txt]=1;out.push(t);} }); return out.slice(0,8);
 }
 function renderReport(){
@@ -1678,8 +1678,8 @@ function renderReport(){
     const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
       opponent: opp,
-      title: oppName+" ? tendency report",
-      subtitle: "Scope: "+scopeLab+" ? opponent filter — self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
+      title: oppName+" · tendency report",
+      subtitle: "Scope: "+scopeLab+" · opponent filter — self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
       scopeLabel: scopeLab
     });
     /* Classic combined page: Top tells above heat tables when redesign is off */
@@ -1731,7 +1731,7 @@ function renderReport(){
     if(M.length){
       h+=`<div class="panel"><div class="lbl">How they line up vs your ${by==="personnel"?"personnel groupings":"formations"}</div><table class="plan-tbl"><tr><th>${by==="personnel"?"Personnel":"Formation"}</th><th>Front</th><th>Coverage</th><th>Press%</th><th>Snaps</th></tr>`;
       M.forEach(m=>{ h+=`<tr><td><b>${esc(m.g)}</b></td><td>${m.fr.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"?"}</td><td>${m.cov.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"?"}</td><td>${fmtPct(m.pr)}</td><td>${m.n}${m.n<4?' <span class="foot">(low)</span>':''}</td></tr>`; });
-      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} ? use it to predict their look. Under 4 snaps = low sample.</p></div>`;
+      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} · use it to predict their look. Under 4 snaps = low sample.</p></div>`;
     }
   }
   host.innerHTML=h;
@@ -1787,7 +1787,7 @@ function renderPlan(){
 function setPlanSide(sde){ PLAN_SIDE=sde; renderPlan(); }
 /* ---------- Practice script (auto-drafted from the week plan; printable; live rep-marking) ---------- */
 function practiceSave(){ if(!WEEK) return; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(WEEK_EDIT && window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({practice:WEEK.practice}); }
-function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team ? "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
+function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team · "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
 function practiceRedraft(){ if(!confirm("Re-draft the script from the current game plan? Replaces the periods (rep counts and marks reset).")) return; WEEK.practice=draftPractice(); practiceSave(); renderPractice(); }
 function practiceAddPeriod(){ WEEK.practice=WEEK.practice||draftPractice(); WEEK.practice.periods.push({name:"New period",plays:[]}); practiceSave(); renderPractice(); }
 function renderPractice(){
@@ -1853,7 +1853,7 @@ function suggestDef(off,dn,db){
   const form=weightedDist(off.filter(r=>r.formation),"formation",false).arr[0];
   const motion=off.length?off.filter(r=>+r.motion===1).length/off.length:0;
   let front,cover,press,note;
-  if(run>=0.65){ front="Base / heavy — load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" ? set strength to the run, stay gap-sound."; }
+  if(run>=0.65){ front="Base / heavy — load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" · set strength to the run, stay gap-sound."; }
   else if(run<=0.35){ front="Nickel / lighter box"; cover="Two-high: Cover 2 / Quarters, mix man"; press="Rush 4 + sim pressure; DB blitz vs empty"; note="Pass-heavy ("+fmtPct(1-run)+") · 2-high, disguise, get hands on routes."; }
   else { front="Multiple — even/odd mix"; cover="Cover 3 base, mix Cover 1"; press="Situational pressure"; note="Balanced ("+fmtPct(run)+" run) · stay multiple, play your keys, disguise."; }
   if(+dn===3 && db==="10+"){ cover="Two-high zone (Cover 2/4) · keep it underneath"; press="Zone/sim pressure, don't get gashed"; }
