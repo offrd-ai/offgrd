@@ -26,7 +26,8 @@
     reads: "Reads test",
     coverage: "Coverage ID test",
     routes: "Route quiz",
-    protect: "OL test",
+    /* Protection ID for QB/skill — not the OL position group. */
+    protect: "Protections test",
     blitz: "Blitz test",
     align: "Alignment test"
   };
@@ -34,7 +35,7 @@
     reads: "Reads",
     coverage: "Coverage",
     routes: "Routes",
-    protect: "Protection",
+    protect: "Protections",
     blitz: "Blitz",
     align: "Alignment"
   };
@@ -522,7 +523,13 @@
     return !!cov && cov === cell.scheme_key;
   }
 
-  /** Union test_spec kinds for a player at one or more positions. Emphasized kinds sort first. */
+  /**
+   * Week-test kinds for this player — sole definition for the assign strip + readiness.
+   * Position test_spec.kinds only (fallback POSKINDS). Emphasis / kind_weights may
+   * re-order or up-weight within that set — they must NEVER add a kind the position
+   * does not own (e.g. team-level align weight must not put Alignment on a QB).
+   * Mirrors OFFRD weekTestKindsForPlayer.
+   */
   function unionSpecForPlayer(posList, testSpec) {
     posList = posList || [];
     const positions = (testSpec && testSpec.positions) || {};
@@ -552,8 +559,10 @@
     const emphasis = collectEmphasis(posList, testSpec);
     const weightOf = {};
     emphasis.forEach(function (e) {
+      if (!e || !e.kind) return;
+      /* Sort/up-weight only — never expand the assigned set. */
+      if (kinds.indexOf(e.kind) < 0) return;
       weightOf[e.kind] = Math.max(weightOf[e.kind] || 0, e.weight || 2);
-      if (kinds.indexOf(e.kind) < 0) kinds.push(e.kind);
     });
     kinds.sort(function (a, b) {
       return (weightOf[b] || 1) - (weightOf[a] || 1);
@@ -669,7 +678,7 @@
     if (kind === "align") return "Alignment test";
     if (kind === "coverage") return opts.defenderCoverage ? "Coverage defender test" : "Coverage ID test";
     if (kind === "routes") return "Route quiz";
-    if (kind === "protect") return "OL test";
+    if (kind === "protect") return "Protections test";
     if (kind === "blitz") return "Blitz test";
     if (kind === "motion") return "Motion test";
     if (kind === "reads") return "Reads test";
