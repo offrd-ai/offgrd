@@ -4486,7 +4486,7 @@ async function showResults(){
  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; WEEKDEF=(wc.plan&&wc.plan.def_aligns)||{}; buildWeekSet(); renderWeekBar(); } }catch(e){} }
  let myPos=[]; try{ if(!coach) myPos=await resolveMyRosterPositions(); }catch(e){}
  const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id, myPos);
- if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Tap \u25A2 Alignment / Coverage on your week checklist (Train tab) to take a counting week test. Builder runs are practice only.</p></div>'; return; }
+ if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Tap your week-test cards on the week checklist (Train tab) to take a counting week test. Builder runs are practice only.</p></div>'; return; }
  rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results \u2014 ${ctx.team.name}</h3>
  <p class="tag">${coach?"Your whole roster's scores.":"Your saved scores."}</p>`+ready+`
  <table class="res"><thead><tr><th>Player</th><th>Test</th><th>Score</th><th>%</th><th>When</th></tr></thead><tbody>`+
@@ -4513,7 +4513,7 @@ function setMode(m){
    try{
      const kn=document.getElementById("kindNote");
      if(kn){
-       kn.textContent="Practice \u2014 doesn\u2019t count toward your week test. Tap \u25A2 Alignment / Coverage on the week checklist above.";
+       kn.textContent="Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above.";
      }
    }catch(e){}
  }
