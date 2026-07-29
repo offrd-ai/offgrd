@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=145";
+import { Cloud } from "./OFFGRD-cloud.js?v=146";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -232,141 +232,241 @@ function switchGuard(u){
 }
 let _sessionResolved = false;
 let _sessionRetryT = null;
-function scheduleSessionRetry(){
+let _sessionRetryN = 0;
+let _teamRetryT = null;
+let _teamRetryN = 0;
+let _teamRetryGaveUp = false;
+
+function clearSessionRetry(){
+  if(_sessionRetryT){ clearTimeout(_sessionRetryT); _sessionRetryT = null; }
+}
+function clearTeamRetry(){
+  if(_teamRetryT){ clearTimeout(_teamRetryT); _teamRetryT = null; }
+}
+function resetProgramRetries(){
+  clearSessionRetry();
+  clearTeamRetry();
+  _sessionRetryN = 0;
+  _teamRetryN = 0;
+  _teamRetryGaveUp = false;
+  try{
+    const el = document.getElementById("ogTeamUnreachable");
+    if(el) el.remove();
+  }catch(e){}
+}
+function showTeamUnreachable(){
+  try{
+    let host = document.getElementById("ogTeamUnreachable");
+    if(!host){
+      host = document.createElement("div");
+      host.id = "ogTeamUnreachable";
+      host.className = "no-print";
+      host.innerHTML =
+        '<div style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:14px 16px;margin:12px 0 14px;font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">' +
+        '<b style="color:#13294B">Can\u2019t reach your team</b>' +
+        '<p style="margin:6px 0 10px;color:#5b626e;font-size:13px">We couldn\u2019t load your program from this session. Check your connection, then try again.</p>' +
+        '<button type="button" class="ogm-b go" id="ogTeamRetryBtn" style="border:1px solid #13294B;background:#13294B;color:#fff;padding:8px 12px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer">Try again</button>' +
+        "</div>";
+      const tb = document.querySelector(".topbar");
+      if(tb && tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling);
+      else document.body.insertBefore(host, document.body.firstChild);
+      host.querySelector("#ogTeamRetryBtn").onclick = function(){
+        _teamRetryGaveUp = false;
+        _teamRetryN = 0;
+        try{ host.remove(); }catch(e){}
+        if(SESSION_USER) onUser(SESSION_USER);
+        else scheduleSessionRetry("manual");
+      };
+    }
+  }catch(e){}
+}
+/** Auth hydrate only — capped exponential backoff. Never tight-loops onUser. */
+function scheduleSessionRetry(reason){
   if(_sessionRetryT) return;
-  let n = 0;
-  _sessionRetryT = setInterval(async function(){
-    n++;
+  if(_sessionRetryN >= 8){
+    try{ console.warn("[onUser] session hydrate gave up", reason || ""); }catch(e){}
+    showTeamUnreachable();
+    return;
+  }
+  const delay = Math.min(30000, 500 * Math.pow(2, _sessionRetryN));
+  _sessionRetryN++;
+  try{ console.warn("[onUser] session retry", _sessionRetryN, "in", delay + "ms", reason || ""); }catch(e){}
+  _sessionRetryT = setTimeout(async function(){
+    _sessionRetryT = null;
     try{
       const u = (Cloud.ensureFreshSession ? await Cloud.ensureFreshSession() : await Cloud.session());
       if(u){
-        clearInterval(_sessionRetryT); _sessionRetryT = null;
+        _sessionRetryN = 0;
         onUser(u);
         return;
       }
     }catch(e){}
-    if(n >= 40){ clearInterval(_sessionRetryT); _sessionRetryT = null; }
-  }, 500);
+    scheduleSessionRetry(reason || "still-null");
+  }, delay);
 }
+/** Team membership retry — separate from auth; capped backoff; terminal banner. */
+function scheduleTeamRetry(reason){
+  if(_teamRetryGaveUp) return;
+  if(_teamRetryT) return;
+  if(_teamRetryN >= 8){
+    _teamRetryGaveUp = true;
+    try{ console.warn("[onUser] team hydrate gave up after", _teamRetryN, reason || ""); }catch(e){}
+    showTeamUnreachable();
+    return;
+  }
+  const delay = Math.min(30000, 500 * Math.pow(2, _teamRetryN));
+  _teamRetryN++;
+  try{ console.warn("[onUser] team retry", _teamRetryN, "in", delay + "ms", reason || ""); }catch(e){}
+  _teamRetryT = setTimeout(async function(){
+    _teamRetryT = null;
+    if(!SESSION_USER){ scheduleSessionRetry("lost-user"); return; }
+    try{
+      const ok = await hydrateTeamsFromSession(SESSION_USER, { fromRetry: true });
+      if(ok) await finishProgramHydrate(SESSION_USER);
+    }catch(e){
+      try{ console.warn("[onUser] team retry err", e && e.message); }catch(e2){}
+      scheduleTeamRetry("error");
+    }
+  }, delay);
+}
+
+async function hydrateTeamsFromSession(u, opts){
+  const fromRetry = !!(opts && opts.fromRetry);
+  try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
+  let teams = await Cloud.myTeams();
+  try{ console.log("[onUser] myTeams", teams.length, u.id, fromRetry ? "(retry)" : ""); }catch(e){}
+  if(!teams.length && !fromRetry){
+    /* One short immediate retry on first paint only — not a loop. */
+    await new Promise(function(r){ setTimeout(r, 400); });
+    try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
+    teams = await Cloud.myTeams();
+    try{ console.log("[onUser] myTeams once-more", teams.length); }catch(e){}
+  }
+  if(!teams.length && Cloud.playerMembership){
+    try{
+      const mem = await Cloud.playerMembership();
+      try{ console.log("[onUser] membership gate", mem && mem.is_member, mem && mem.team_id, mem && mem.error); }catch(e){}
+      if(mem && mem.team_id && mem.is_member){
+        teams = [{
+          id: mem.team_id,
+          name: mem.team_name || "Program",
+          brand: mem.brand || null,
+          schedule: [],
+          high_school_id: mem.school_id || null
+        }];
+      }
+    }catch(e){ console.warn("[onUser] membership", e && e.message); }
+  }
+
+  TEAMS = teams || [];
+  if(TEAMS.length){
+    let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
+    TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
+    try{ if(TEAM && TEAM.id) localStorage.setItem(AKEY, TEAM.id); }catch(e){}
+    ROLE = await Cloud.myRole(TEAM.id);
+    if(!ROLE){
+      await new Promise(function(r){ setTimeout(r, 300); });
+      ROLE = await Cloud.myRole(TEAM.id);
+    }
+    if(!ROLE) ROLE = "player";
+    try{ if(obEl) obEl.classList.remove("show"); }catch(e){}
+    _teamRetryN = 0;
+    _teamRetryGaveUp = false;
+    clearTeamRetry();
+    try{
+      const el = document.getElementById("ogTeamUnreachable");
+      if(el) el.remove();
+    }catch(e){}
+    return true;
+  }
+
+  TEAM = null;
+  ROLE = null;
+  if(!fromRetry){
+    /* First failure — schedule backoff; do not open join for known members. */
+    let mem = null;
+    try{ mem = Cloud.playerMembership ? await Cloud.playerMembership() : null; }catch(e){}
+    if(mem && mem.is_member && mem.team_id){
+      scheduleTeamRetry("member-but-empty-myTeams");
+    } else if(mem && mem.ok === false && mem.error === "not_authenticated"){
+      scheduleSessionRetry("membership-unauth");
+    } else {
+      scheduleTeamRetry("no-team");
+      let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
+      if(!ob && mem && mem.team_id && mem.is_member === false){
+        setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
+      } else if(!ob && mem && !mem.team_id && !mem.school_id){
+        setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
+      } else if(!ob && !mem){
+        setTimeout(function(){ if(!TEAM) openOnboard(); }, 2000);
+      }
+    }
+  } else {
+    scheduleTeamRetry("still-empty");
+  }
+  return false;
+}
+
+async function finishProgramHydrate(u){
+  await refreshCreateEligibility();
+  await refreshLinkStatus();
+  publishProgramRole();
+  applyCloudBrand();
+  try{
+    if(TEAM && Array.isArray(TEAM.schedule)){
+      localStorage.setItem("offgrd_schedule_v1", JSON.stringify(TEAM.schedule));
+    }
+  }catch(e){}
+  try{
+    if(TEAM && Cloud.listGames){
+      const games = await Cloud.listGames(TEAM.id).catch(function(){ return []; });
+      if(games && games.length){
+        const mapped = games.map(function(r){
+          return {
+            key: (r.opponent+"|"+r.week+"|"+r.side).toLowerCase(),
+            opponent: r.opponent, week: r.week, side: r.side, source: r.source,
+            rows: r.rows, cid: r.id
+          };
+        });
+        localStorage.setItem("offgrd_season_v2", JSON.stringify(mapped));
+      }
+    }
+  }catch(e){}
+  try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}
+  bar(u);
+  if(TEAM) await pull(true);
+  clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);
+  if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
+  try{ if(A.onUser) A.onUser(u.email); }catch(e){}
+}
+
 async function onUser(u){
   if(!u){
     SESSION_USER=null; TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
     const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
-    /* Token in storage but hydrate returned null — never wipe, keep retrying.
-       (Previously _sessionResolved was set true before this ran, so the guard
-       never fired and a clean-device load cleared/stopped before membership.) */
+    /* Token in storage but hydrate returned null — never wipe, keep retrying (capped). */
     if(likely){
       try{ console.warn("[onUser] null user with likely session — retrying hydrate"); }catch(e){}
-      publishProgramRole(); bar(null); scheduleSessionRetry(); return;
+      publishProgramRole(); bar(null); scheduleSessionRetry("likely-session"); return;
     }
     if(!_sessionResolved){
       publishProgramRole(); bar(null); return;
     }
+    resetProgramRetries();
     try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
     try{ if(window.OFFGRD_RESET_IN_MEMORY_PROGRAM) window.OFFGRD_RESET_IN_MEMORY_PROGRAM(); }catch(e){}
     try{ if(window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
     publishProgramRole(); bar(null); return;
   }
   SESSION_USER = u;
-  if(_sessionRetryT){ clearInterval(_sessionRetryT); _sessionRetryT = null; }
+  clearSessionRetry();
+  _sessionRetryN = 0;
   try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}
   try{ window.OFFGRD_SESSION_GATED = false; }catch(e){}
   if(switchGuard(u)) return;
   try{
-    try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
-    TEAMS = await Cloud.myTeams();
-    try{ console.log("[onUser] myTeams", TEAMS.length, u.id); }catch(e){}
-    if(!TEAMS.length){
-      /* Auth can win the race before JWT is attached to PostgREST — retry + membership. */
-      await new Promise(function(r){ setTimeout(r, 400); });
-      try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
-      TEAMS = await Cloud.myTeams();
-      try{ console.log("[onUser] myTeams retry", TEAMS.length); }catch(e){}
-    }
-    if(!TEAMS.length && Cloud.playerMembership){
-      try{
-        const mem = await Cloud.playerMembership();
-        try{ console.log("[onUser] membership gate", mem && mem.is_member, mem && mem.team_id, mem && mem.error); }catch(e){}
-        if(mem && mem.team_id && mem.is_member){
-          TEAMS = [{
-            id: mem.team_id,
-            name: mem.team_name || "Program",
-            brand: mem.brand || null,
-            schedule: [],
-            high_school_id: mem.school_id || null
-          }];
-        }
-      }catch(e){ console.warn("[onUser] membership", e && e.message); }
-    }
-    if(TEAMS.length){
-      let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
-      TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
-      /* Always persist — clean phones have no handoff seed. */
-      try{ if(TEAM && TEAM.id) localStorage.setItem(AKEY, TEAM.id); }catch(e){}
-      ROLE = await Cloud.myRole(TEAM.id);
-      if(!ROLE){
-        await new Promise(function(r){ setTimeout(r, 300); });
-        ROLE = await Cloud.myRole(TEAM.id);
-      }
-      if(!ROLE) ROLE = "player"; /* member without role row — still player chrome */
-      try{ if(obEl) obEl.classList.remove("show"); }catch(e){}
-    } else { TEAM = null; ROLE = null; }
-    await refreshCreateEligibility();
-    await refreshLinkStatus();
-    publishProgramRole();
-    applyCloudBrand();
-    /* Session hydrate: schedule + season from RPCs — never require a prior coach
-       Scout sync on this device (that's what left clean phones with empty caches). */
-    try{
-      if(TEAM && Array.isArray(TEAM.schedule)){
-        localStorage.setItem("offgrd_schedule_v1", JSON.stringify(TEAM.schedule));
-      }
-    }catch(e){}
-    try{
-      if(TEAM && Cloud.listGames){
-        const games = await Cloud.listGames(TEAM.id).catch(function(){ return []; });
-        if(games && games.length){
-          const mapped = games.map(function(r){
-            return {
-              key: (r.opponent+"|"+r.week+"|"+r.side).toLowerCase(),
-              opponent: r.opponent, week: r.week, side: r.side, source: r.source,
-              rows: r.rows, cid: r.id
-            };
-          });
-          localStorage.setItem("offgrd_season_v2", JSON.stringify(mapped));
-        }
-      }
-    }catch(e){}
-    try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}
-    bar(u);
-    if(TEAM) await pull(true);
-    clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
-    /* Join onboard only when membership proves they are NOT on a roster.
-       (Hardcoded "Braden Biermann" / "3DBCC4" placeholders looked like live team
-       context — they were examples. Real members must never see that modal.) */
-    if(!TEAM){
-      let mem = null;
-      try{ mem = Cloud.playerMembership ? await Cloud.playerMembership() : null; }catch(e){}
-      if(mem && mem.is_member && mem.team_id){
-        try{ console.warn("[onUser] member but myTeams empty — retrying hydrate"); }catch(e){}
-        scheduleSessionRetry();
-      } else if(mem && mem.ok === false && mem.error === "not_authenticated"){
-        scheduleSessionRetry();
-      } else {
-        scheduleSessionRetry();
-        let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
-        /* Delay onboard so a late membership RPC can win; only for true non-members. */
-        if(!ob && mem && mem.team_id && mem.is_member === false){
-          setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
-        } else if(!ob && mem && !mem.team_id && !mem.school_id){
-          setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
-        } else if(!ob && !mem){
-          setTimeout(function(){ if(!TEAM) openOnboard(); }, 2000);
-        }
-      }
-    }
-    if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
-    try{ if(A.onUser) A.onUser(u.email); }catch(e){}
+    await hydrateTeamsFromSession(u, { fromRetry: false });
+    await finishProgramHydrate(u);
   }catch(e){ console.error(e); bar(u); }
 }
 async function setActiveTeam(id, silent){
