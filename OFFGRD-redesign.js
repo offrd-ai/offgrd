@@ -179,6 +179,9 @@
     { id: "recruiting", label: "Recruiting", views: ["recruiting"], tools: [] }
   ];
 
+  /* Role pending — context bar only; never flash coach phases before we know who they are. */
+  const PHASES_NEUTRAL = [];
+
   const SETUP_ITEMS = [
     { id: "import", label: "Import data", action: "import" },
     { id: "brand", label: "Team & logos", action: "brand" },
@@ -203,12 +206,29 @@
     } catch (e) { return false; }
   }
 
+  /** Shell chrome only — never guess coach while role/membership is still resolving. */
+  function currentShellRole() {
+    try {
+      const prog = root.OFFGRD_PROGRAM;
+      if (prog && prog.shellRole) return prog.shellRole;
+    } catch (e) {}
+    try {
+      if (root.OFFGRD_HAS_LIKELY_SESSION && root.OFFGRD_HAS_LIKELY_SESSION()) return "neutral";
+    } catch (e) {}
+    return "coach";
+  }
+
   function activePhases() {
-    return isPlayerRole() ? PHASES_PLAYER : PHASES;
+    const sr = currentShellRole();
+    if (sr === "player") return PHASES_PLAYER;
+    if (sr === "neutral") return PHASES_NEUTRAL;
+    return PHASES;
   }
 
   function activeSetup() {
-    return isPlayerRole() ? SETUP_PLAYER : SETUP_ITEMS;
+    const sr = currentShellRole();
+    if (sr === "player" || sr === "neutral") return SETUP_PLAYER;
+    return SETUP_ITEMS;
   }
 
   function isRedesign() {
@@ -535,6 +555,9 @@
       'background:var(--rd-surface);border-bottom:1px solid var(--rd-border);}',
       'html.rd-on #rdShell{display:flex;}',
       'html.rd-on .topbar,html.rd-on #navbar{display:none!important;}',
+      /* Neutral hold — context bar only until role resolves (no coach phase flash). */
+      'html.rd-on.rd-neutral #rdNavBody{display:none!important;}',
+      'html.rd-on.rd-neutral body{padding-bottom:0!important;}',
       /* Player flat phase bar — no coach sub-tool pills */
       'html.rd-on.rd-player #rdTools{display:none!important;}',
       'html.rd-on.rd-player #rdPhases{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:6px;padding:8px 12px;width:100%;}',
@@ -1956,6 +1979,7 @@
   function maybePlayerLanding() {
     if (_playerLandingDone) return;
     if (appKind() !== "scout") return;
+    if (!isRoleResolved() || currentShellRole() !== "player") return;
     if (!isPlayerRole()) return;
     _playerLandingDone = true;
     /* Render the landing view once on load so This Week populates without a click.
@@ -1995,16 +2019,21 @@
     }
   }
 
+  function applyShellRoleClasses(role) {
+    try {
+      document.documentElement.classList.toggle("rd-player", role === "player");
+      document.documentElement.classList.toggle("rd-neutral", role === "neutral");
+    } catch (e) {}
+  }
+
   let _shellRole = null;
   function rebuildShellIfNeeded() {
     const shell = document.getElementById("rdShell");
     if (!shell || !isRedesign()) return false;
-    const role = isPlayerRole() ? "player" : "coach";
+    const role = currentShellRole();
     if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
     _shellRole = role;
-    try {
-      document.documentElement.classList.toggle("rd-player", role === "player");
-    } catch (e) {}
+    applyShellRoleClasses(role);
     shell.innerHTML = buildShellHtml();
     wireShell(shell);
     adoptAcct();
@@ -2044,9 +2073,7 @@
     }
 
     document.documentElement.classList.add("rd-on");
-    try {
-      document.documentElement.classList.toggle("rd-player", isPlayerRole());
-    } catch (e) {}
+    applyShellRoleClasses(currentShellRole());
     ensureCss();
     patchApplyTeamColors();
     setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
@@ -2060,7 +2087,7 @@
       const top = document.querySelector(".topbar");
       if (top && top.parentNode) top.parentNode.insertBefore(shell, top);
       else document.body.insertBefore(shell, document.body.firstChild);
-      _shellRole = isPlayerRole() ? "player" : "coach";
+      _shellRole = currentShellRole();
       shell.innerHTML = buildShellHtml();
       wireShell(shell);
     } else {
@@ -2139,14 +2166,22 @@
     setTimeout(boot, 0);
   }
 
+  function isRoleResolved() {
+    try {
+      const prog = root.OFFGRD_PROGRAM;
+      if (prog && typeof prog.roleResolved === "boolean") return prog.roleResolved;
+    } catch (e) {}
+    return true;
+  }
+
   /* Role may resolve after first paint — rebuild player/coach shell then. */
   document.addEventListener("offgrd-program-ready", function () {
     if (queryFlag() === 0 || !isRedesign()) return;
     try {
       applyRedesignShell();
       rebuildShellIfNeeded();
-      /* Landing only once — never clobber an active player selection. */
-      maybePlayerLanding();
+      /* Landing only once role is known — never clobber an active player selection. */
+      if (isRoleResolved()) maybePlayerLanding();
     } catch (e) {}
   });
 
@@ -2176,6 +2211,7 @@
     PHASES: PHASES,
     PHASES_PLAYER: PHASES_PLAYER,
     isPlayerRole: isPlayerRole,
+    currentShellRole: currentShellRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
     markPlayerLandingDone: markPlayerLandingDone
   };

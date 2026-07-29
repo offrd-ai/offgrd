@@ -836,7 +836,21 @@
     }
   }
 
+  function syncModeSegRole(){
+    var seg = document.getElementById("modeSeg");
+    if(!seg) return;
+    var author = seg.querySelector('[data-mode="author"]');
+    if(!author) return;
+    var show = !!(prog().roleResolved && isCoach());
+    author.hidden = !show;
+    author.style.display = show ? "" : "none";
+    try{
+      if(!show && window.MODE === "author" && typeof window.setMode === "function") window.setMode("train");
+    }catch(e){}
+  }
+
   function applyQbPlayerUI(){
+    syncModeSegRole();
     if(!isPlayer()) return;
     try{
       if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.applyRedesignShell){
@@ -876,6 +890,7 @@
   }
 
   function apply(){
+    syncModeSegRole();
     /* Player chrome can be known before TEAM+ROLE (assumePlayer). Still apply
        player UI so mobile/desktop don't disagree about who he is. */
     if(!prog().ready && !(prog().isPlayer && prog().isPlayer())) return;
@@ -886,6 +901,7 @@
   }
 
   document.addEventListener("offgrd-program-ready", apply);
+  syncModeSegRole();
   if(prog().ready) apply();
   var n = 0, t = setInterval(function(){
     if(prog().ready || ++n > 40){ clearInterval(t); apply(); }

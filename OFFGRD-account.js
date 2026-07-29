@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=146";
+import { Cloud } from "./OFFGRD-cloud.js?v=147";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -9,6 +9,7 @@ const SYNCABLE = ["playbook","scout"].includes(A.kind);
 const acct = document.getElementById("acct");
 let TEAM = null, ROLE = null, TEAMS = [], LINK_STATUS = null, CAN_CREATE_TEAM = false;
 let SESSION_USER = null;
+let _eligibilityChecked = false;
 const AKEY = "offgrd_team";
 const coachPortalUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.coachPortalUrl) || "https://getoffrd.com/high-school-coach/profile";
 
@@ -91,14 +92,39 @@ function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.
 
 /* ---------- school link (orphan team recovery) ---------- */
 async function refreshCreateEligibility(){
-  if(!Cloud.ready || !(await Cloud.session())){ CAN_CREATE_TEAM = false; return; }
+  if(!Cloud.ready || !(await Cloud.session())){ CAN_CREATE_TEAM = false; _eligibilityChecked = true; return; }
   try{ CAN_CREATE_TEAM = !!(await Cloud.canCreateTeam()); }
   catch(e){ CAN_CREATE_TEAM = false; }
+  _eligibilityChecked = true;
+}
+/** True once we know player vs coach chrome — no coach-shell guess before this. */
+function isRoleResolved(){
+  if(!SESSION_USER){
+    const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
+    if(likely && !_sessionResolved) return false;
+    return true;
+  }
+  if(ROLE && ROLE !== "player") return true;
+  if(ROLE === "player") return true;
+  if(_eligibilityChecked) return true;
+  return false;
+}
+function shellRole(){
+  if(!SESSION_USER){
+    const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
+    if(likely && !_sessionResolved) return "neutral";
+    return "coach";
+  }
+  if(!isRoleResolved()) return "neutral";
+  if(ROLE === "player" || assumePlayerChrome()) return "player";
+  return "coach";
 }
 function publishProgramRole(){
   window.OFFGRD_PROGRAM = {
     ready: !!(TEAM && ROLE),
     role: ROLE,
+    roleResolved: isRoleResolved(),
+    shellRole: shellRole(),
     teamId: TEAM && TEAM.id,
     isPlayer: () => ROLE === "player" || assumePlayerChrome(),
     isCoach: () => !!ROLE && ROLE !== "player",
@@ -110,6 +136,8 @@ function publishProgramRole(){
       teamId: TEAM && TEAM.id,
       role: ROLE,
       playerChrome: assumePlayerChrome(),
+      roleResolved: isRoleResolved(),
+      shellRole: shellRole(),
       cachedTeam: (function(){ try{ return localStorage.getItem(AKEY); }catch(e){ return null; } })()
     });
   }catch(e){}
@@ -442,7 +470,7 @@ async function finishProgramHydrate(u){
 
 async function onUser(u){
   if(!u){
-    SESSION_USER=null; TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
+    SESSION_USER=null; TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; _eligibilityChecked=false; clearInterval(_autoT);
     const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
     /* Token in storage but hydrate returned null — never wipe, keep retrying (capped). */
     if(likely){
@@ -459,6 +487,8 @@ async function onUser(u){
     publishProgramRole(); bar(null); return;
   }
   SESSION_USER = u;
+  _eligibilityChecked = false;
+  publishProgramRole();
   clearSessionRetry();
   _sessionRetryN = 0;
   try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}

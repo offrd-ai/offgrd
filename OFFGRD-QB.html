@@ -29,7 +29,7 @@
 <script src="OFFGRD-align-key.js?v=137"></script>
 <script src="OFFGRD-pos-glossary.js?v=137"></script>
 <script src="OFFGRD-autoderive.js?v=137"></script>
-<script src="OFFGRD-redesign.js?v=146"></script>
+<script src="OFFGRD-redesign.js?v=147"></script>
 <script src="OFFGRD-shell.js?v=113"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
@@ -119,7 +119,7 @@
  <div class="seg" id="modeSeg">
  <button class="on" data-mode="train">Train</button>
  <button data-mode="test">Test</button>
- <button data-mode="author">Author</button>
+ <button data-mode="author" hidden style="display:none">Author</button>
  <button data-mode="results">Results</button>
  </div>
  <span class="tag" id="ctxNote"></span>
@@ -4666,8 +4666,8 @@ init();
 <script src="OFFGRD-week-autotest.js?v=141"></script>
 <script type="module" src="OFFGRD-qb-cloud.js?v=146"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=146"></script>
-<script src="OFFGRD-role-gate.js?v=145"></script>
+<script type="module" src="OFFGRD-account.js?v=147"></script>
+<script src="OFFGRD-role-gate.js?v=147"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
