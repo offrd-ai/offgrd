@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=143";
+import { Cloud } from "./OFFGRD-cloud.js?v=144";
 
 function legacyBlitzAsDefCall(bc){
   if(!bc) return null;
@@ -178,10 +178,19 @@ window.QB = {
    * Coaches use activeWeekPlan. Handoff localStorage is warm-start only.
    */
   async weekContext(){
+    try{ console.log("[weekContext] start", {
+      cachedTeam: (function(){ try{ return localStorage.getItem("offgrd_team"); }catch(e){ return null; } })(),
+      ready: !!(window.OFFGRD_PROGRAM && window.OFFGRD_PROGRAM.ready)
+    }); }catch(e){}
     try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
-    const t = await activeTeam(); if(!t) return null;
+    const t = await activeTeam();
+    if(!t){
+      try{ console.warn("[weekContext] no team from myTeams/activeTeam"); }catch(e){}
+      return null;
+    }
     let role = null;
     try{ role = await Cloud.myRole(t.id); }catch(e){}
+    try{ console.log("[weekContext] team", t.id, "role", role); }catch(e){}
 
     let wp = null;
     if(role === "player" && Cloud.playerWeekPlan){
@@ -192,7 +201,10 @@ window.QB = {
     if(!wp){
       try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
     }
-    if(!wp) return null;
+    if(!wp){
+      try{ console.warn("[weekContext] no week plan for", t.id); }catch(e){}
+      return null;
+    }
 
     let coverages = [];
     try{
@@ -209,6 +221,7 @@ window.QB = {
         return typeof c === "string" ? { k:c, n:1 } : { k:(c && (c.k || c.coverage)) || "", n:(c && c.n) || 1 };
       }).filter(function(c){ return !!c.k; });
     }
+    try{ console.log("[weekContext] plan", wp.id, wp.opponent); }catch(e){}
     return { plan: wp, coverages: coverages, role: role, team: t };
   }
 };

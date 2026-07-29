@@ -760,6 +760,9 @@ function setWeekMode(on){
 
 let _wkTry=0;
 async function resolveWeekFromSession(){
+ /* Not gated on OFFGRD_PROGRAM.ready — that flag needs TEAM+ROLE and created a
+    chicken-egg when membership hadn't written offgrd_team yet. Always try. */
+ try{ console.log("[resolveWeek] try", _wkTry, "progReady", !!(window.OFFGRD_PROGRAM&&window.OFFGRD_PROGRAM.ready)); }catch(e){}
  if(!(window.QB && window.QB.ready && window.QB.weekContext)) return false;
  try{
   const wc=await window.QB.weekContext();
@@ -769,20 +772,24 @@ async function resolveWeekFromSession(){
   (wc.coverages||[]).forEach(c=>{ const n=normCov(c.k); if(n && !seen[n]){ seen[n]=1; WEEKCOVS.push(n); } });
   renderWeekBar();
   refreshStartBtnLabel();
+  try{ console.log("[resolveWeek] ok", WEEKPLAN && WEEKPLAN.id, WEEKPLAN && WEEKPLAN.opponent); }catch(e){}
   return true;
- }catch(e){ return false; }
+ }catch(e){ try{ console.warn("[resolveWeek] err", e && e.message); }catch(e2){} return false; }
 }
 function initWeek(){
  resolveWeekFromSession().then(ok=>{
   if(ok) return;
   /* Auth/membership often lands after first paint on a clean device — keep trying. */
-  if(_wkTry++<50) setTimeout(initWeek, 400);
+  if(_wkTry++<120) setTimeout(initWeek, 400);
  });
 }
-/* Session role/team resolved — resolve week even if early initWeek gave up. */
+/* Session role/team resolved — resolve week even if early initWeek gave up.
+   Event fires even when ready:false; restart the retry loop either way. */
 document.addEventListener("offgrd-program-ready", function(){
  _wkTry=0;
- resolveWeekFromSession();
+ resolveWeekFromSession().then(ok=>{
+  if(!ok) initWeek();
+ });
 });
 window.OFFGRD_RESOLVE_WEEK=resolveWeekFromSession;
 function pool(){ let p=[]; if(SOURCE!=="custom") p=p.concat(CONCEPTS); if(SOURCE!=="builtin") p=p.concat(CUSTOM); if(WEEKMODE) p=CUSTOM.filter(c=>weekPlayMatch({id:c.rowId,name:c.name})); return p; }
@@ -4640,9 +4647,9 @@ init();
 <script src="OFFGRD-mobile.js?v=137"></script>
 <script src="OFFGRD-scoutcards.js?v=137"></script>
 <script src="OFFGRD-week-autotest.js?v=141"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=143"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=144"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=143"></script>
+<script type="module" src="OFFGRD-account.js?v=144"></script>
 <script src="OFFGRD-role-gate.js?v=137"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>

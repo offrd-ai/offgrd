@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=143";
+import { Cloud } from "./OFFGRD-cloud.js?v=144";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -97,6 +97,14 @@ function publishProgramRole(){
     isCoach: () => !!ROLE && ROLE !== "player",
     canCreateTeam: () => CAN_CREATE_TEAM,
   };
+  try{
+    console.log("[program-ready]", {
+      ready: !!(TEAM && ROLE),
+      teamId: TEAM && TEAM.id,
+      role: ROLE,
+      cachedTeam: (function(){ try{ return localStorage.getItem(AKEY); }catch(e){ return null; } })()
+    });
+  }catch(e){}
   try{ document.dispatchEvent(new CustomEvent("offgrd-program-ready")); }catch(e){}
 }
 window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
@@ -212,12 +220,35 @@ function switchGuard(u){
   return false;
 }
 let _sessionResolved = false;
+let _sessionRetryT = null;
+function scheduleSessionRetry(){
+  if(_sessionRetryT) return;
+  let n = 0;
+  _sessionRetryT = setInterval(async function(){
+    n++;
+    try{
+      const u = (Cloud.ensureFreshSession ? await Cloud.ensureFreshSession() : await Cloud.session());
+      if(u){
+        clearInterval(_sessionRetryT); _sessionRetryT = null;
+        onUser(u);
+        return;
+      }
+    }catch(e){}
+    if(n >= 40){ clearInterval(_sessionRetryT); _sessionRetryT = null; }
+  }, 500);
+}
 async function onUser(u){
   if(!u){
     TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
     const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
-    /* Don't wipe offline cache during auth bootstrap when a token is still present. */
-    if(!_sessionResolved && likely){
+    /* Token in storage but hydrate returned null — never wipe, keep retrying.
+       (Previously _sessionResolved was set true before this ran, so the guard
+       never fired and a clean-device load cleared/stopped before membership.) */
+    if(likely){
+      try{ console.warn("[onUser] null user with likely session — retrying hydrate"); }catch(e){}
+      publishProgramRole(); bar(null); scheduleSessionRetry(); return;
+    }
+    if(!_sessionResolved){
       publishProgramRole(); bar(null); return;
     }
     try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
@@ -225,15 +256,31 @@ async function onUser(u){
     try{ if(window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
     publishProgramRole(); bar(null); return;
   }
+  if(_sessionRetryT){ clearInterval(_sessionRetryT); _sessionRetryT = null; }
   try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}
   try{ window.OFFGRD_SESSION_GATED = false; }catch(e){}
   if(switchGuard(u)) return;
   try{
+    try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
     TEAMS = await Cloud.myTeams();
+    try{ console.log("[onUser] myTeams", TEAMS.length, u.id); }catch(e){}
+    if(!TEAMS.length){
+      /* Auth can win the race before JWT is attached to PostgREST — one retry. */
+      await new Promise(function(r){ setTimeout(r, 400); });
+      try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
+      TEAMS = await Cloud.myTeams();
+      try{ console.log("[onUser] myTeams retry", TEAMS.length); }catch(e){}
+    }
     if(TEAMS.length){
       let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
       TEAM = TEAMS.find(t => t.id === saved) || TEAMS[0];
+      /* Always persist — clean phones have no handoff seed. */
+      try{ if(TEAM && TEAM.id) localStorage.setItem(AKEY, TEAM.id); }catch(e){}
       ROLE = await Cloud.myRole(TEAM.id);
+      if(!ROLE){
+        await new Promise(function(r){ setTimeout(r, 300); });
+        ROLE = await Cloud.myRole(TEAM.id);
+      }
     } else { TEAM = null; ROLE = null; }
     await refreshCreateEligibility();
     await refreshLinkStatus();
@@ -265,7 +312,15 @@ async function onUser(u){
     bar(u);
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
-    if(!TEAM){ let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){} if(!ob) openOnboard(); }
+    /* Don't open coach create-team onboard when membership failed — retry instead. */
+    if(!TEAM){
+      const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
+      if(likely) scheduleSessionRetry();
+      else {
+        let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
+        if(!ob) openOnboard();
+      }
+    }
     if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
     try{ if(A.onUser) A.onUser(u.email); }catch(e){}
   }catch(e){ console.error(e); bar(u); }
@@ -624,17 +679,19 @@ function pushBrand(name, brand){
 window.OFFGRD_PUSH_BRAND=pushBrand;   /* Scout's Team & logos editor calls this on save */
 function applyCloudBrand(){
   try{
-    const b=TEAM && TEAM.brand; if(!b || !b.name) return;
-    const brand={abbr:b.abbr||obAbbr(b.name), fg:b.fg||"#ffffff", bg:b.bg||"#13294B", logo:b.logo||""};
+    const b=TEAM && TEAM.brand; if(!b) return;
+    const brandName = b.name || (TEAM && TEAM.name) || "";
+    if(!brandName) return;
+    const brand={abbr:b.abbr||obAbbr(brandName), fg:b.fg||"#ffffff", bg:b.bg||"#13294B", logo:b.logo||""};
     let cur={}; try{ cur=JSON.parse(localStorage.getItem("offgrd_brands")||"{}"); }catch(e){}
     let curId=""; try{ curId=localStorage.getItem("offgrd_identity")||""; }catch(e){}
-    if(curId===b.name && JSON.stringify(cur[b.name]||{})===JSON.stringify(brand)) {
+    if(curId===brandName && JSON.stringify(cur[brandName]||{})===JSON.stringify(brand)) {
       /* still apply glossary — may have changed without name/colors */
-    } else if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(b.name, brand); }
+    } else if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, brand); }
     else{
-      cur[b.name]=brand;
+      cur[brandName]=brand;
       localStorage.setItem("offgrd_brands", JSON.stringify(cur));
-      localStorage.setItem("offgrd_identity", b.name);
+      localStorage.setItem("offgrd_identity", brandName);
     }
     /* Program position glossary (display-only labels) */
     try{
@@ -895,7 +952,9 @@ Cloud.onAuth(u=>{
     try{ if(Cloud.purgeForeignAuthTokens) Cloud.purgeForeignAuthTokens(); }catch(e){}
     /* offops.app → getoffrd.com hash hand-off (#at= / #rt=) before first session read */
     try{ await Cloud.consumeAuthHandOff(); }catch(e){}
-    const u = await Cloud.session();
+    let u = null;
+    try{ u = Cloud.ensureFreshSession ? await Cloud.ensureFreshSession() : await Cloud.session(); }catch(e){}
+    if(!u){ try{ u = await Cloud.session(); }catch(e){} }
     _sessionResolved = true;
     onUser(u);
     dbgInfo("sess:"+(u?u.email:"none"));

@@ -118,31 +118,58 @@ export const Cloud = {
   async signOut() { return sb.auth.signOut(); },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
   async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
+  /**
+   * Revive/refresh JWT before membership RPCs. Clean-device gameday often races
+   * getSession() before the client finishes hydrating storage — without this,
+   * myTeams returns [] and never retries.
+   */
+  async ensureFreshSession() {
+    if (!sb) return null;
+    try {
+      const { data } = await sb.auth.getSession();
+      let session = data && data.session ? data.session : null;
+      if (!session) return null;
+      const exp = session.expires_at ? (session.expires_at * 1000) : 0;
+      if (exp && exp - Date.now() < 60000 * 5) {
+        try {
+          const ref = await sb.auth.refreshSession();
+          if (ref && ref.data && ref.data.session) session = ref.data.session;
+        } catch (e) {}
+      }
+      return session.user || null;
+    } catch (e) {
+      return null;
+    }
+  },
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */
   /**
    * Programs for the signed-in user.
-   * Prefer schema select; on empty/error fall back to public membership RPCs
-   * (same path as getOFFRD Team Home) so clean player devices don't need a
-   * prior coach Scout sync to populate local caches.
+   * Session-first: public.offgrd_my_teams (team_members) does not depend on
+   * offgrd schema Accept-Profile or a coach-warmed device cache. Schema select
+   * and school membership RPC are fallbacks only.
    */
   async myTeams() {
-    let rows = [];
-    if (OG) {
-      try {
-        const { data, error } = await OG.from("teams").select("*").order("created_at");
-        if (!error) rows = data || [];
-        else console.warn("[Cloud.myTeams] schema", error.message);
-      } catch (e) {
-        console.warn("[Cloud.myTeams] schema", e && e.message);
-      }
-    }
-    if (rows.length) return rows;
+    try { await this.ensureFreshSession(); } catch (e) {}
 
+    /* 1) Membership via team_members — works with session alone. */
+    try {
+      const { data, error } = await sb.rpc("offgrd_my_teams");
+      if (error) console.warn("[Cloud.myTeams] offgrd_my_teams", error.message);
+      else if (Array.isArray(data) && data.length) {
+        try { console.log("[Cloud.myTeams] rpc", data.length, data.map(function (t) { return t && t.id; })); } catch (e) {}
+        return data;
+      }
+    } catch (e) {
+      console.warn("[Cloud.myTeams] offgrd_my_teams", e && e.message);
+    }
+
+    /* 2) School → program membership snapshot (Team Home path). */
     try {
       const { data: mem, error } = await sb.rpc("offgrd_my_player_membership");
       if (error) throw error;
+      try { console.log("[Cloud.myTeams] membership", mem && mem.is_member, mem && mem.team_id, mem && mem.error); } catch (e) {}
       if (mem && mem.team_id && mem.is_member) {
         let schedule = [];
         let brand = mem.brand || null;
@@ -166,7 +193,20 @@ export const Cloud = {
     } catch (e) {
       console.warn("[Cloud.myTeams] membership", e && e.message);
     }
-    return [];
+
+    /* 3) Direct schema select (coaches / Accept-Profile clients). */
+    let rows = [];
+    if (OG) {
+      try {
+        const { data, error } = await OG.from("teams").select("*").order("created_at");
+        if (!error) rows = data || [];
+        else console.warn("[Cloud.myTeams] schema", error.message);
+      } catch (e) {
+        console.warn("[Cloud.myTeams] schema", e && e.message);
+      }
+    }
+    try { console.log("[Cloud.myTeams] schema rows", rows.length); } catch (e) {}
+    return rows;
   },
   async createTeam(name) {
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
@@ -219,8 +259,19 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
   async myRole(teamId) {
-    const { data, error } = await sb.rpc("offgrd_my_role", { t: teamId });
-    if (error) throw error; return data;
+    try {
+      const { data, error } = await sb.rpc("offgrd_my_role", { t: teamId });
+      if (!error && data) return data;
+      if (error) console.warn("[Cloud.myRole]", error.message);
+    } catch (e) {
+      console.warn("[Cloud.myRole]", e && e.message);
+    }
+    /* Fallback when schema role RPC is empty but membership exists. */
+    try {
+      const { data: mem } = await sb.rpc("offgrd_my_player_membership");
+      if (mem && mem.is_member && mem.team_id === teamId) return "player";
+    } catch (e) {}
+    return null;
   },
   async setMyPosition(teamId, pos) {
     const { error } = await sb.rpc("offgrd_set_my_position", { t: teamId, pos });
