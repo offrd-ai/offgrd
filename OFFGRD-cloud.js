@@ -229,6 +229,13 @@ export const Cloud = {
     if (error) throw error;
     return !!data;
   },
+  /** Team Home membership snapshot — school, team_id, is_member, brand. */
+  async playerMembership() {
+    try { await this.ensureFreshSession(); } catch (e) {}
+    const { data, error } = await sb.rpc("offgrd_my_player_membership");
+    if (error) throw error;
+    return data || null;
+  },
   async playerWeekPlan(teamId) {
     const { data, error } = await sb.rpc("offgrd_player_week_plan", { t: teamId });
     if (error) throw error;

@@ -876,7 +876,9 @@
   }
 
   function apply(){
-    if(!prog().ready) return;
+    /* Player chrome can be known before TEAM+ROLE (assumePlayer). Still apply
+       player UI so mobile/desktop don't disagree about who he is. */
+    if(!prog().ready && !(prog().isPlayer && prog().isPlayer())) return;
     var kind = window.OFFGRD_APP && window.OFFGRD_APP.kind;
     if(kind === "playbook") applyPlaybookGate();
     else if(kind === "scout"){ if(isPlayer()){ applyScoutPlayerUI(); ensurePlayerLandingRendered(); } }

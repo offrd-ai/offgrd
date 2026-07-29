@@ -737,7 +737,12 @@ function setWeekMode(on){
  if(WEEKMODE){
  SOURCE="custom";
  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src==="custom"));
- if(note) note.textContent="Week plays ON: pool uses this week\u2019s install only. This does not make builder tests count \u2014 tap your week-test cards above for the week test.";
+ if(note){
+  const hasStrip=!!(document.getElementById("weekAssignStrip")&&document.getElementById("weekAssignStrip").style.display!=="none"&&document.getElementById("weekAssignStrip").innerHTML);
+  note.textContent=hasStrip
+   ?"Week plays ON: pool uses this week\u2019s install only. This does not make builder tests count \u2014 tap your week-test cards above for the week test."
+   :"Week plays ON: pool uses this week\u2019s install only. Builder runs are practice \u2014 they do not count toward your week test.";
+ }
  RQLABS.clear();
  p=loadCustom().then(()=>{
  rebuildPool();
@@ -4159,9 +4164,16 @@ async function startTest(opts){
  try{
    const kn=document.getElementById("kindNote");
    if(kn){
-     kn.textContent=repContext==="week_test"
-       ?("Week test \u2014 counts toward Daily Focus"+(WEEKPLAN&&WEEKPLAN.opponent?(" vs "+WEEKPLAN.opponent):""))
-       :"Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above to take the real one.";
+     if(repContext==="week_test"){
+       kn.textContent="Week test \u2014 counts toward Daily Focus"+(WEEKPLAN&&WEEKPLAN.opponent?(" vs "+WEEKPLAN.opponent):"");
+     } else {
+       const hasStrip=!!(document.getElementById("weekAssignStrip")&&document.getElementById("weekAssignStrip").style.display!=="none");
+       kn.textContent=hasStrip
+         ?"Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above to take the real one."
+         :(WEEKPLAN
+           ?"Practice \u2014 doesn\u2019t count toward your week test. Use Your week test on the Train tab when it\u2019s ready."
+           :"Practice \u2014 doesn\u2019t count toward a week test until your coach shares this week\u2019s plan.");
+     }
    }
  }catch(e){}
  let myPositions=await resolveMyRosterPositions();
@@ -4520,7 +4532,12 @@ function setMode(m){
    try{
      const kn=document.getElementById("kindNote");
      if(kn){
-       kn.textContent="Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above.";
+       const hasStrip=!!(document.getElementById("weekAssignStrip")&&document.getElementById("weekAssignStrip").style.display!=="none");
+       kn.textContent=hasStrip
+         ?"Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above."
+         :(WEEKPLAN
+           ?"Practice \u2014 doesn\u2019t count toward your week test until you start it from Your week test."
+           :"Practice \u2014 doesn\u2019t count toward a week test until this week\u2019s plan is shared.");
      }
    }catch(e){}
  }
@@ -4647,10 +4664,10 @@ init();
 <script src="OFFGRD-mobile.js?v=137"></script>
 <script src="OFFGRD-scoutcards.js?v=137"></script>
 <script src="OFFGRD-week-autotest.js?v=141"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=144"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=145"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=144"></script>
-<script src="OFFGRD-role-gate.js?v=137"></script>
+<script type="module" src="OFFGRD-account.js?v=145"></script>
+<script src="OFFGRD-role-gate.js?v=145"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

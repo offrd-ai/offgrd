@@ -1,13 +1,14 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=144";
+import { Cloud } from "./OFFGRD-cloud.js?v=145";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
 const acct = document.getElementById("acct");
 let TEAM = null, ROLE = null, TEAMS = [], LINK_STATUS = null, CAN_CREATE_TEAM = false;
+let SESSION_USER = null;
 const AKEY = "offgrd_team";
 const coachPortalUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.coachPortalUrl) || "https://getoffrd.com/high-school-coach/profile";
 
@@ -16,6 +17,12 @@ const canEdit  = () => ["owner","coach_edit","coach"].includes(ROLE);
 const isAdmin  = () => ROLE === "owner";
 const INVITE_ROLES = [["coach_edit","Coach — can edit"],["coach_view","Coach — view only"],["player","Player — view only"]];
 const ALL_ROLES    = [["owner","Admin"],["coach_edit","Coach — Edit"],["coach_view","Coach — View"],["player","Player"]];
+/** Signed-in, not a coach role, cannot create a program → player chrome (avoids coach nav while ROLE is still null). */
+function assumePlayerChrome(){
+  if(ROLE === "player") return true;
+  if(ROLE && ROLE !== "player") return false;
+  return !!(SESSION_USER && !CAN_CREATE_TEAM);
+}
 
 /* ---------- styles (injected once) ---------- */
 (function(){
@@ -93,7 +100,7 @@ function publishProgramRole(){
     ready: !!(TEAM && ROLE),
     role: ROLE,
     teamId: TEAM && TEAM.id,
-    isPlayer: () => ROLE === "player",
+    isPlayer: () => ROLE === "player" || assumePlayerChrome(),
     isCoach: () => !!ROLE && ROLE !== "player",
     canCreateTeam: () => CAN_CREATE_TEAM,
   };
@@ -102,10 +109,14 @@ function publishProgramRole(){
       ready: !!(TEAM && ROLE),
       teamId: TEAM && TEAM.id,
       role: ROLE,
+      playerChrome: assumePlayerChrome(),
       cachedTeam: (function(){ try{ return localStorage.getItem(AKEY); }catch(e){ return null; } })()
     });
   }catch(e){}
   try{ document.dispatchEvent(new CustomEvent("offgrd-program-ready")); }catch(e){}
+  try{
+    if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
+  }catch(e){}
 }
 window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
   if(!TEAM) return null;
@@ -239,7 +250,7 @@ function scheduleSessionRetry(){
 }
 async function onUser(u){
   if(!u){
-    TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
+    SESSION_USER=null; TEAM=null; ROLE=null; TEAMS=[]; CAN_CREATE_TEAM=false; clearInterval(_autoT);
     const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
     /* Token in storage but hydrate returned null — never wipe, keep retrying.
        (Previously _sessionResolved was set true before this ran, so the guard
@@ -256,6 +267,7 @@ async function onUser(u){
     try{ if(window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
     publishProgramRole(); bar(null); return;
   }
+  SESSION_USER = u;
   if(_sessionRetryT){ clearInterval(_sessionRetryT); _sessionRetryT = null; }
   try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}
   try{ window.OFFGRD_SESSION_GATED = false; }catch(e){}
@@ -265,11 +277,26 @@ async function onUser(u){
     TEAMS = await Cloud.myTeams();
     try{ console.log("[onUser] myTeams", TEAMS.length, u.id); }catch(e){}
     if(!TEAMS.length){
-      /* Auth can win the race before JWT is attached to PostgREST — one retry. */
+      /* Auth can win the race before JWT is attached to PostgREST — retry + membership. */
       await new Promise(function(r){ setTimeout(r, 400); });
       try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
       TEAMS = await Cloud.myTeams();
       try{ console.log("[onUser] myTeams retry", TEAMS.length); }catch(e){}
+    }
+    if(!TEAMS.length && Cloud.playerMembership){
+      try{
+        const mem = await Cloud.playerMembership();
+        try{ console.log("[onUser] membership gate", mem && mem.is_member, mem && mem.team_id, mem && mem.error); }catch(e){}
+        if(mem && mem.team_id && mem.is_member){
+          TEAMS = [{
+            id: mem.team_id,
+            name: mem.team_name || "Program",
+            brand: mem.brand || null,
+            schedule: [],
+            high_school_id: mem.school_id || null
+          }];
+        }
+      }catch(e){ console.warn("[onUser] membership", e && e.message); }
     }
     if(TEAMS.length){
       let saved = null; try{ saved = localStorage.getItem(AKEY); }catch(e){}
@@ -281,6 +308,8 @@ async function onUser(u){
         await new Promise(function(r){ setTimeout(r, 300); });
         ROLE = await Cloud.myRole(TEAM.id);
       }
+      if(!ROLE) ROLE = "player"; /* member without role row — still player chrome */
+      try{ if(obEl) obEl.classList.remove("show"); }catch(e){}
     } else { TEAM = null; ROLE = null; }
     await refreshCreateEligibility();
     await refreshLinkStatus();
@@ -312,13 +341,28 @@ async function onUser(u){
     bar(u);
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
-    /* Don't open coach create-team onboard when membership failed — retry instead. */
+    /* Join onboard only when membership proves they are NOT on a roster.
+       (Hardcoded "Braden Biermann" / "3DBCC4" placeholders looked like live team
+       context — they were examples. Real members must never see that modal.) */
     if(!TEAM){
-      const likely = !!(window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION());
-      if(likely) scheduleSessionRetry();
-      else {
+      let mem = null;
+      try{ mem = Cloud.playerMembership ? await Cloud.playerMembership() : null; }catch(e){}
+      if(mem && mem.is_member && mem.team_id){
+        try{ console.warn("[onUser] member but myTeams empty — retrying hydrate"); }catch(e){}
+        scheduleSessionRetry();
+      } else if(mem && mem.ok === false && mem.error === "not_authenticated"){
+        scheduleSessionRetry();
+      } else {
+        scheduleSessionRetry();
         let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
-        if(!ob) openOnboard();
+        /* Delay onboard so a late membership RPC can win; only for true non-members. */
+        if(!ob && mem && mem.team_id && mem.is_member === false){
+          setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
+        } else if(!ob && mem && !mem.team_id && !mem.school_id){
+          setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
+        } else if(!ob && !mem){
+          setTimeout(function(){ if(!TEAM) openOnboard(); }, 2000);
+        }
       }
     }
     if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
@@ -783,10 +827,11 @@ function obPlayer(){
   const b=ensureOB().querySelector("#obBody");
   b.innerHTML='<p class="ogm-note">Your name (so your coaches see you, not an email address) and the join code from your coach.</p>';
   const r1=el('<div class="ogm-row" style="margin-top:10px"></div>');
-  const nm=el('<input class="ogm-in" placeholder="Your name (e.g. Braden Biermann)">');
+  /* Generic examples only — never use a real athlete/join code (that looked like live context). */
+  const nm=el('<input class="ogm-in" placeholder="Your name (e.g. Alex Rivera)">');
   r1.appendChild(nm);
   const r2=el('<div class="ogm-row" style="margin-top:8px"></div>');
-  const code=el('<input class="ogm-in" placeholder="Join code (e.g. 3DBCC4)" autocapitalize="characters">');
+  const code=el('<input class="ogm-in" placeholder="Join code from your coach" autocapitalize="characters">');
   const go=el('<button class="ogm-b go">Join team</button>');
   const stat=el('<p class="ogm-note"></p>');
   go.onclick=async()=>{ const cd=code.value.trim(); if(!cd){ stat.textContent="Enter the code."; return; } go.disabled=true;
