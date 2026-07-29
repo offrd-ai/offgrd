@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=146";
+import { Cloud } from "./OFFGRD-cloud.js?v=149";
 
 function legacyBlitzAsDefCall(bc){
   if(!bc) return null;
@@ -188,18 +188,26 @@ window.QB = {
       try{ console.warn("[weekContext] no team from myTeams/activeTeam"); }catch(e){}
       return null;
     }
-    let role = null;
-    try{ role = await Cloud.myRole(t.id); }catch(e){}
-    try{ console.log("[weekContext] team", t.id, "role", role); }catch(e){}
-
     let wp = null;
-    if(role === "player" && Cloud.playerWeekPlan){
+    let role = null;
+    if(window.OFFGRD_LOAD_WEEK_PLAN){
       try{
-        wp = planFromPlayerWeek(await Cloud.playerWeekPlan(t.id));
-      }catch(e){ console.warn("[weekContext] playerWeekPlan", e && e.message); }
+        wp = await window.OFFGRD_LOAD_WEEK_PLAN();
+        role = wp && wp._role;
+        if(wp && wp.linked === false) wp = null;
+      }catch(e){ console.warn("[weekContext] loadWeekPlan", e && e.message); }
     }
     if(!wp){
-      try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
+      try{ role = await Cloud.myRole(t.id); }catch(e){}
+      try{ console.log("[weekContext] team", t.id, "role", role); }catch(e){}
+      if(role === "player" && Cloud.playerWeekPlan){
+        try{
+          wp = planFromPlayerWeek(await Cloud.playerWeekPlan(t.id));
+        }catch(e){ console.warn("[weekContext] playerWeekPlan", e && e.message); }
+      }
+      if(!wp){
+        try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
+      }
     }
     if(!wp){
       try{ console.warn("[weekContext] no week plan for", t.id); }catch(e){}

@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=148";
+import { Cloud } from "./OFFGRD-cloud.js?v=149";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -164,11 +164,71 @@ async function resolveWeekTeamId(){
   const t = teams.find(x => x.id === saved) || teams[0];
   return t && t.id;
 }
-window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
+function normalizePlayerWeekPlan(pw, role){
+  if(!pw || pw.linked === false || !pw.id) return pw;
+  return {
+    linked: true,
+    _role: role || "player",
+    id: pw.id,
+    opponent: pw.opponent || "",
+    game_date: pw.game_date || null,
+    status: pw.status || "active",
+    buckets: pw.buckets || [],
+    gen: pw.gen || null,
+    test_spec: pw.test_spec || null,
+    def_aligns: pw.def_aligns || {},
+    notes: pw.notes || null,
+    practice: pw.practice || null,
+    player_share: pw.player_share || null
+  };
+}
+function normalizeCoachWeekPlan(wp){
+  if(!wp || !wp.id) return { linked: false, _role: "coach" };
+  return {
+    linked: true,
+    _role: "coach",
+    id: wp.id,
+    opponent: wp.opponent || "",
+    game_date: wp.game_date || null,
+    status: wp.status || "active",
+    buckets: wp.buckets || [],
+    gen: wp.gen || null,
+    test_spec: wp.test_spec || null,
+    def_aligns: wp.def_aligns || {},
+    notes: wp.notes || null,
+    practice: wp.practice || null,
+    player_share: wp.player_share || null
+  };
+}
+/** Single week resolver — same path as QB.weekContext / resolveWeekFromSession. */
+async function resolveWeekPlan(){
   const tid = await resolveWeekTeamId();
   if(!tid) return null;
-  return Cloud.playerWeekPlan(tid);
-};
+  let role = null;
+  try{ role = await Cloud.myRole(tid); }catch(e){}
+  if(!role){
+    try{
+      const mem = await Cloud.playerMembership ? await Cloud.playerMembership() : null;
+      if(mem && mem.is_member && mem.team_id === tid) role = "player";
+    }catch(e){}
+  }
+  const asPlayer = role === "player";
+  if(asPlayer){
+    try{
+      const pw = await Cloud.playerWeekPlan(tid);
+      if(!pw) return null;
+      if(pw.linked === false) return Object.assign({ _role: "player" }, pw);
+      return normalizePlayerWeekPlan(pw, "player");
+    }catch(e){ return null; }
+  }
+  try{
+    const wp = await Cloud.activeWeekPlan(tid);
+    if(!wp || !wp.id) return { linked: false, _role: "coach" };
+    return normalizeCoachWeekPlan(wp);
+  }catch(e){ return null; }
+}
+window.OFFGRD_LOAD_WEEK_PLAN = resolveWeekPlan;
+window.OFFGRD_LOAD_PLAYER_WEEK = resolveWeekPlan;
 window.OFFGRD_RESOLVE_WEEK_TEAM_ID = resolveWeekTeamId;
 window.OFFGRD_LOAD_RECRUITING_SNAPSHOT = async function(){
   if(!Cloud.recruitingSnapshot) return null;

@@ -2022,6 +2022,7 @@
   function applyShellRoleClasses(role) {
     try {
       document.documentElement.classList.toggle("rd-player", role === "player");
+      document.documentElement.classList.toggle("rd-coach", role === "coach");
       document.documentElement.classList.toggle("rd-neutral", role === "neutral");
     } catch (e) {}
   }
@@ -2032,6 +2033,7 @@
     if (!shell || !isRedesign()) return false;
     const role = currentShellRole();
     if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
+    try { console.log("[shell]", { shellRole: role, prev: _shellRole, rebuild: true }); } catch (e) {}
     _shellRole = role;
     applyShellRoleClasses(role);
     shell.innerHTML = buildShellHtml();
@@ -2088,6 +2090,7 @@
       if (top && top.parentNode) top.parentNode.insertBefore(shell, top);
       else document.body.insertBefore(shell, document.body.firstChild);
       _shellRole = currentShellRole();
+      try { console.log("[shell]", { shellRole: _shellRole, prev: null, initial: true }); } catch (e) {}
       shell.innerHTML = buildShellHtml();
       wireShell(shell);
     } else {
