@@ -57,7 +57,28 @@ async function activeTeam(){
   const teams = await Cloud.myTeams();
   if(!teams.length) return null;
   let s=null; try{ s=localStorage.getItem("offgrd_team"); }catch(e){}
-  return teams.find(t=>t.id===s) || teams[0];
+  const t = teams.find(x=>x.id===s) || teams[0];
+  /* Session membership is source of truth — warm handoff cache, never require it. */
+  try{ if(t && t.id) localStorage.setItem("offgrd_team", t.id); }catch(e){}
+  return t;
+}
+
+/** Map offgrd_player_week_plan jsonb → week_plans-shaped object for WEEKPLAN. */
+function planFromPlayerWeek(pw){
+  if(!pw || pw.linked === false || !pw.id) return null;
+  return {
+    id: pw.id,
+    opponent: pw.opponent || "",
+    game_date: pw.game_date || null,
+    status: pw.status || "active",
+    buckets: pw.buckets || [],
+    gen: pw.gen || null,
+    test_spec: pw.test_spec || null,
+    def_aligns: pw.def_aligns || {},
+    notes: pw.notes || null,
+    practice: pw.practice || null,
+    player_share: pw.player_share || null
+  };
 }
 window.QB = {
   ready: Cloud.ready,
@@ -151,12 +172,28 @@ window.QB = {
     try{ localStorage.setItem("offgrd_def_playbook_" + (teamId || "local"), JSON.stringify(book || {})); }catch(e){}
     return book;
   },
-  /* Phase B: active week plan + observed coverage distribution for its opponent */
+  /**
+   * Active week for this session: auth → membership → team → week.
+   * Players use offgrd_player_week_plan (includes test_spec without coach caches).
+   * Coaches use activeWeekPlan. Handoff localStorage is warm-start only.
+   */
   async weekContext(){
+    try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
     const t = await activeTeam(); if(!t) return null;
+    let role = null;
+    try{ role = await Cloud.myRole(t.id); }catch(e){}
+
     let wp = null;
-    try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
+    if(role === "player" && Cloud.playerWeekPlan){
+      try{
+        wp = planFromPlayerWeek(await Cloud.playerWeekPlan(t.id));
+      }catch(e){ console.warn("[weekContext] playerWeekPlan", e && e.message); }
+    }
+    if(!wp){
+      try{ wp = await Cloud.activeWeekPlan(t.id); }catch(e){ return null; }
+    }
     if(!wp) return null;
+
     let coverages = [];
     try{
       const games = await Cloud.listGames(t.id);
@@ -166,6 +203,12 @@ window.QB = {
       });
       coverages = Object.keys(counts).map(k=>({k, n:counts[k]})).sort((a,b)=>b.n-a.n);
     }catch(e){}
-    return { plan: wp, coverages };
+    /* Clean player devices have no scout season cache — use plan coverages. */
+    if(!coverages.length && wp.test_spec && Array.isArray(wp.test_spec.coverages)){
+      coverages = wp.test_spec.coverages.map(function(c){
+        return typeof c === "string" ? { k:c, n:1 } : { k:(c && (c.k || c.coverage)) || "", n:(c && c.n) || 1 };
+      }).filter(function(c){ return !!c.k; });
+    }
+    return { plan: wp, coverages: coverages, role: role, team: t };
   }
 };

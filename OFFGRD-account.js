@@ -239,6 +239,14 @@ async function onUser(u){
     await refreshLinkStatus();
     publishProgramRole();
     applyCloudBrand();
+    /* Hydrate schedule cache from team row so player pages don't depend on a
+       prior coach Scout sync on this device. Season scout charts stay empty. */
+    try{
+      if(TEAM && Array.isArray(TEAM.schedule)){
+        localStorage.setItem("offgrd_schedule_v1", JSON.stringify(TEAM.schedule));
+      }
+    }catch(e){}
+    try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}
     bar(u);
     if(TEAM) await pull(true);
     clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);   /* auto-sync */
