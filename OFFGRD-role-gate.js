@@ -160,6 +160,14 @@
         if(k && list.indexOf(k) < 0) list.push(k);
       });
     }
+    /* Same fallback as QB.weekContext — test_spec coverages when briefing isn't shared yet. */
+    if(!list.length && wp.test_spec && Array.isArray(wp.test_spec.coverages)){
+      wp.test_spec.coverages.forEach(function(c){
+        var n = typeof c === "string" ? c : (c && (c.k || c.coverage)) || "";
+        n = String(n);
+        if(n && list.indexOf(n) < 0) list.push(n);
+      });
+    }
     return list.slice(0, 8);
   }
 
@@ -364,7 +372,12 @@
         var _sc = document.getElementById("rdScope"); if(_sc) _sc.textContent = window.OFFGRD_PLAYER_SCOPE;
         var _sy = document.getElementById("rdSync"); if(_sy) _sy.textContent = "";
       } catch(e){}
-      if(!wp || wp.linked === false){
+      if(!wp){
+        /* Team/week may still be hydrating — never tell the kid coaches shared nothing. */
+        host.innerHTML = '<div class="panel"><p class="foot">Loading this week…</p></div>';
+        return;
+      }
+      if(wp.linked === false){
         host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;
       }
@@ -375,10 +388,14 @@
         if(window.Cloud && Cloud.ready){
           var u = await Cloud.user();
           uid = u && u.id;
-          try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
-          if(!tid){
-            var teams = await Cloud.myTeams();
-            tid = teams && teams[0] && teams[0].id;
+          if(window.OFFGRD_RESOLVE_WEEK_TEAM_ID){
+            tid = await window.OFFGRD_RESOLVE_WEEK_TEAM_ID();
+          } else {
+            try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
+            if(!tid){
+              var teams = await Cloud.myTeams();
+              tid = teams && teams[0] && teams[0].id;
+            }
           }
         }
       }catch(e){}
@@ -393,6 +410,14 @@
       else if(posLabel) h += '<p class="foot" style="margin:0 0 4px">Your position(s): <b>'+esc(posLabel)+'</b></p>';
 
       h += renderAssignedStripHtml(wp, positions, rows);
+
+      if(!wp.gen){
+        var covsOnly = coverageList(wp);
+        if(covsOnly.length){
+          h += '<div style="margin-top:10px"><div class="lbl">Coverages this week</div>'
+            +'<p style="margin:4px 0 0;'+rdBodyCss()+';font-weight:700">'+covsOnly.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
+        }
+      }
 
       if(wp.gen){
         if(positions.length){
@@ -869,6 +894,25 @@
     }
   }
 
+  function playerViewHasContent(host){
+    if(!host) return false;
+    var t = (host.innerText || "").trim();
+    if(t.length < 20) return false;
+    if(/Loading this week/i.test(t)) return false;
+    if(/haven't shared a game plan yet/i.test(t)) return false;
+    if(/Sign in and join your program/i.test(t)) return false;
+    if(/No practice script shared yet/i.test(t)) return false;
+    return true;
+  }
+
+  function refreshPlayerWeekSurfaces(){
+    _playerWeekCache = null;
+    var v = window.CURRENT_VIEW;
+    if(!isPlayer()) return;
+    if(v === "thisweek" || !v) renderPlayerWeek();
+    else if(v === "practice") loadPlayerPractice();
+  }
+
   var _playerRenderWatch = false;
   /* Self-heal: on player load, multiple init paths (base app, redesign shell, role gate)
      race and can leave the landing view hidden/empty. Retry setView on the current player
@@ -883,7 +927,7 @@
       var v = window.CURRENT_VIEW;
       if(!(v === "thisweek" || v === "practice" || v === "recruiting")) v = "thisweek";
       var host = document.getElementById("view-" + v);
-      var done = host && host.offsetParent !== null && (host.innerText || "").trim().length > 20;
+      var done = playerViewHasContent(host);
       if(done || ++tries > 24){ clearInterval(iv); return; }
       try{ if(window.setView) window.setView(v); }catch(e){}
     }, 200);
@@ -901,6 +945,7 @@
   }
 
   document.addEventListener("offgrd-program-ready", apply);
+  document.addEventListener("offgrd-program-ready", refreshPlayerWeekSurfaces);
   syncModeSegRole();
   if(prog().ready) apply();
   var n = 0, t = setInterval(function(){

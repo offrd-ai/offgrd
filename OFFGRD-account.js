@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=147";
+import { Cloud } from "./OFFGRD-cloud.js?v=148";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -146,10 +146,30 @@ function publishProgramRole(){
     if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.rebuildShellIfNeeded) OFFGRD_REDESIGN.rebuildShellIfNeeded();
   }catch(e){}
 }
+async function resolveWeekTeamId(){
+  if(TEAM && TEAM.id) return TEAM.id;
+  if(!Cloud.ready) return null;
+  try{ if(Cloud.ensureFreshSession) await Cloud.ensureFreshSession(); }catch(e){}
+  let teams = [];
+  try{ teams = await Cloud.myTeams(); }catch(e){ teams = []; }
+  if(!teams.length && Cloud.playerMembership){
+    try{
+      const mem = await Cloud.playerMembership();
+      if(mem && mem.team_id && mem.is_member) return mem.team_id;
+    }catch(e){}
+  }
+  if(!teams.length) return null;
+  let saved = null;
+  try{ saved = localStorage.getItem(AKEY); }catch(e){}
+  const t = teams.find(x => x.id === saved) || teams[0];
+  return t && t.id;
+}
 window.OFFGRD_LOAD_PLAYER_WEEK = async function(){
-  if(!TEAM) return null;
-  return Cloud.playerWeekPlan(TEAM.id);
+  const tid = await resolveWeekTeamId();
+  if(!tid) return null;
+  return Cloud.playerWeekPlan(tid);
 };
+window.OFFGRD_RESOLVE_WEEK_TEAM_ID = resolveWeekTeamId;
 window.OFFGRD_LOAD_RECRUITING_SNAPSHOT = async function(){
   if(!Cloud.recruitingSnapshot) return null;
   return Cloud.recruitingSnapshot();
