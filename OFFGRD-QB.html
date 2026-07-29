@@ -737,7 +737,7 @@ function setWeekMode(on){
  if(WEEKMODE){
  SOURCE="custom";
  [].forEach.call(document.querySelectorAll("#srcSeg button"),b=>b.classList.toggle("on",b.dataset.src==="custom"));
- if(note) note.textContent="Week plays ON: pool uses this week\u2019s install only. This does not make builder tests count \u2014 tap \u25A2 Alignment / Coverage above for the week test.";
+ if(note) note.textContent="Week plays ON: pool uses this week\u2019s install only. This does not make builder tests count \u2014 tap your week-test cards above for the week test.";
  RQLABS.clear();
  p=loadCustom().then(()=>{
  rebuildPool();
@@ -4154,7 +4154,7 @@ async function startTest(opts){
    if(kn){
      kn.textContent=repContext==="week_test"
        ?("Week test \u2014 counts toward Daily Focus"+(WEEKPLAN&&WEEKPLAN.opponent?(" vs "+WEEKPLAN.opponent):""))
-       :"Practice \u2014 doesn\u2019t count toward your week test. Tap \u25A2 Alignment / Coverage above to take the real one.";
+       :"Practice \u2014 doesn\u2019t count toward your week test. Tap your week-test cards above to take the real one.";
    }
  }catch(e){}
  let myPositions=await resolveMyRosterPositions();
@@ -4467,7 +4467,7 @@ function readinessHTML(roster,rows){
   +'<b style="color:var(--navy)">Your week vs '+esc(opp)+':</b> <span style="font-weight:800;color:'+READY_DOT[st.s]+'">'+esc(st.label)+'</span>'
   +kindsHtml
   +' <span class="tag">'+st.tests+' week test'+(st.tests===1?"":"s")+(st.tests?(' \u2014 avg '+Math.round(st.avg*100)+'%'):'')+(due?(' \u2014 '+esc(due)):'')+'</span>'
-  +(st.s==="green"?'':' <span class="tag">\u2014 tap \u25A2 Alignment / Coverage on the week checklist (Train tab) to count.</span>')
+  +(st.s==="green"?'':' <span class="tag">\u2014 tap your week-test cards on the week checklist (Train tab) to count.</span>')
   +'</div>';
 }
 /* ---------- coach results ---------- */
@@ -4640,9 +4640,9 @@ init();
 <script src="OFFGRD-mobile.js?v=137"></script>
 <script src="OFFGRD-scoutcards.js?v=137"></script>
 <script src="OFFGRD-week-autotest.js?v=141"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=142"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=143"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=142"></script>
+<script type="module" src="OFFGRD-account.js?v=143"></script>
 <script src="OFFGRD-role-gate.js?v=137"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>

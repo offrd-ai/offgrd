@@ -1,7 +1,7 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=113";
+import { Cloud } from "./OFFGRD-cloud.js?v=143";
 import { openAuthModal } from "./OFFGRD-auth.js?v=73";
 
 const A = window.OFFGRD_APP || {};
@@ -239,11 +239,26 @@ async function onUser(u){
     await refreshLinkStatus();
     publishProgramRole();
     applyCloudBrand();
-    /* Hydrate schedule cache from team row so player pages don't depend on a
-       prior coach Scout sync on this device. Season scout charts stay empty. */
+    /* Session hydrate: schedule + season from RPCs — never require a prior coach
+       Scout sync on this device (that's what left clean phones with empty caches). */
     try{
       if(TEAM && Array.isArray(TEAM.schedule)){
         localStorage.setItem("offgrd_schedule_v1", JSON.stringify(TEAM.schedule));
+      }
+    }catch(e){}
+    try{
+      if(TEAM && Cloud.listGames){
+        const games = await Cloud.listGames(TEAM.id).catch(function(){ return []; });
+        if(games && games.length){
+          const mapped = games.map(function(r){
+            return {
+              key: (r.opponent+"|"+r.week+"|"+r.side).toLowerCase(),
+              opponent: r.opponent, week: r.week, side: r.side, source: r.source,
+              rows: r.rows, cid: r.id
+            };
+          });
+          localStorage.setItem("offgrd_season_v2", JSON.stringify(mapped));
+        }
       }
     }catch(e){}
     try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}

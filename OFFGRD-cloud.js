@@ -121,9 +121,52 @@ export const Cloud = {
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */
+  /**
+   * Programs for the signed-in user.
+   * Prefer schema select; on empty/error fall back to public membership RPCs
+   * (same path as getOFFRD Team Home) so clean player devices don't need a
+   * prior coach Scout sync to populate local caches.
+   */
   async myTeams() {
-    const { data, error } = await OG.from("teams").select("*").order("created_at");
-    if (error) throw error; return data || [];
+    let rows = [];
+    if (OG) {
+      try {
+        const { data, error } = await OG.from("teams").select("*").order("created_at");
+        if (!error) rows = data || [];
+        else console.warn("[Cloud.myTeams] schema", error.message);
+      } catch (e) {
+        console.warn("[Cloud.myTeams] schema", e && e.message);
+      }
+    }
+    if (rows.length) return rows;
+
+    try {
+      const { data: mem, error } = await sb.rpc("offgrd_my_player_membership");
+      if (error) throw error;
+      if (mem && mem.team_id && mem.is_member) {
+        let schedule = [];
+        let brand = mem.brand || null;
+        let name = mem.team_name || "Program";
+        try {
+          const { data: pub } = await sb.rpc("offgrd_public_schedule", { t: mem.team_id });
+          if (pub) {
+            if (Array.isArray(pub.schedule)) schedule = pub.schedule;
+            if (pub.brand) brand = pub.brand;
+            if (pub.name) name = pub.name;
+          }
+        } catch (e) {}
+        return [{
+          id: mem.team_id,
+          name: name,
+          brand: brand,
+          schedule: schedule,
+          high_school_id: mem.school_id || null
+        }];
+      }
+    } catch (e) {
+      console.warn("[Cloud.myTeams] membership", e && e.message);
+    }
+    return [];
   },
   async createTeam(name) {
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
@@ -267,6 +310,14 @@ export const Cloud = {
 
   /* ---------- scouting games (season library) ---------- */
   async listGames(teamId) {
+    try {
+      const { data, error } = await sb.rpc("offgrd_team_scouting", { t: teamId });
+      if (!error) return data || [];
+      console.warn("[Cloud.listGames] rpc", error.message);
+    } catch (e) {
+      console.warn("[Cloud.listGames] rpc", e && e.message);
+    }
+    if (!OG) return [];
     const { data, error } = await OG.from("scouting_games").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
     if (error) throw error; return data || [];
   },
@@ -398,6 +449,18 @@ export const Cloud = {
 
   /* ---------- week plans (Phase A of the education engine) ---------- */
   async activeWeekPlan(teamId) {
+    try {
+      const { data, error } = await sb.rpc("offgrd_active_week_plan", { t: teamId });
+      if (!error) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) return row;
+      } else {
+        console.warn("[Cloud.activeWeekPlan] rpc", error.message);
+      }
+    } catch (e) {
+      console.warn("[Cloud.activeWeekPlan] rpc", e && e.message);
+    }
+    if (!OG) return null;
     const { data, error } = await OG.from("week_plans").select("*")
       .eq("team_id", teamId).eq("status", "active").maybeSingle();
     if (error) throw error; return data || null;
