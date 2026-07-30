@@ -2188,12 +2188,13 @@
     } catch (e) {}
   });
 
-  /* Re-apply accent when cloud brand lands (may overwrite earlier wrap) */
+  /* Re-apply accent when cloud brand lands — CSS only; cache write is OFFGRD_persistBrand (account). */
   const prevBrand = root.OFFGRD_BRAND;
-  root.OFFGRD_BRAND = function () {
+  root.OFFGRD_BRAND = function (name, brand) {
     if (typeof prevBrand === "function") {
       try { prevBrand.apply(this, arguments); } catch (e) {}
     }
+    if (brand && brand.bg) noteRawTeamHex(brand.bg);
     if (isRedesign()) applyTokens(getBase());
   };
 

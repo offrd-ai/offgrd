@@ -8,9 +8,13 @@
 /* Supabase client is loaded locally via <script src="vendor/supabase.js"> (window.supabase) — no external CDN. */
 const createClient = (typeof window !== "undefined" && window.supabase && window.supabase.createClient) ? window.supabase.createClient : null;
 const cfg = (typeof window !== "undefined" && window.OFFGRD_CONFIG) || {};
-const sb = createClient ? createClient(cfg.url || "", cfg.anonKey || "", {
-  auth: { persistSession: true, autoRefreshToken: true }
-}) : null;
+let sb = (typeof window !== "undefined" && window.__OFFRD_SUPABASE__) || null;
+if (!sb && createClient) {
+  sb = createClient(cfg.url || "", cfg.anonKey || "", {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
+  if (typeof window !== "undefined") window.__OFFRD_SUPABASE__ = sb;
+}
 /* Consolidation (Sprint 1 §5): OFFGRD tables now live in the `offgrd` schema of the authority
    project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
 const OG = sb ? sb.schema("offgrd") : null;
@@ -47,6 +51,21 @@ function purgeForeignAuthTokens(expectedRef) {
   return kill.length;
 }
 const EXPECTED_REF = projectRefFromUrl(cfg.url);
+
+let _myTeamsInflight = null;
+let _myTeamsLoadCount = 0;
+let _myTeamsCountTimer = null;
+function _noteMyTeamsCall() {
+  _myTeamsLoadCount++;
+  if (_myTeamsCountTimer) clearTimeout(_myTeamsCountTimer);
+  _myTeamsCountTimer = setTimeout(function () {
+    try {
+      console.log("[Cloud.myTeams] calls per load:", _myTeamsLoadCount);
+    } catch (e) {}
+    _myTeamsLoadCount = 0;
+    _myTeamsCountTimer = null;
+  }, 6000);
+}
 
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
@@ -151,6 +170,14 @@ export const Cloud = {
    * and school membership RPC are fallbacks only.
    */
   async myTeams() {
+    _noteMyTeamsCall();
+    if (_myTeamsInflight) return _myTeamsInflight;
+    _myTeamsInflight = this._myTeamsImpl().finally(function () {
+      _myTeamsInflight = null;
+    });
+    return _myTeamsInflight;
+  },
+  async _myTeamsImpl() {
     try { await this.ensureFreshSession(); } catch (e) {}
 
     /* 1) Membership via team_members — works with session alone. */

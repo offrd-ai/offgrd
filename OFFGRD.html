@@ -1,4 +1,4 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v134: obs fold â€” explicit beats carried (protect amend from offline sticky) -->
+<!-- v134: obs fold — explicit beats carried (protect amend from offline sticky) -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -256,22 +256,23 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=146"></script>
-<script src="supabase.js?v=31"></script>
-<script src="OFFGRD-cache-gate.js?v=111"></script>
-<script src="OFFGRD-render.js?v=116"></script>
-<script src="OFFGRD-pos-glossary.js?v=107"></script>
-<script src="OFFGRD-autoderive.js?v=97"></script>
-<script src="OFFGRD-scoutcards.js?v=97"></script>
-<script src="OFFGRD-tendencies.js?v=97"></script>
-<script src="OFFGRD-week-autotest.js?v=97"></script>
-<script src="OFFGRD-weeklypackage.js?v=97"></script>
-<script src="OFFGRD-telestrate.js?v=97"></script>
-<script src="OFFGRD-redesign.js?v=149"></script>
-<script src="OFFGRD-shell.js?v=113"></script>
-<script src="OFFGRD-caller-outcome.js?v=143"></script>
-<script src="OFFGRD-caller-log.js?v=142"></script>
-<script src="OFFGRD-caller-select.js?v=1"></script>
+<script src="OFFGRD-config.js?v=150"></script>
+<script src="OFFGRD-brand-persist.js?v=150"></script>
+<script src="supabase.js?v=150"></script>
+<script src="OFFGRD-cache-gate.js?v=150"></script>
+<script src="OFFGRD-render.js?v=150"></script>
+<script src="OFFGRD-pos-glossary.js?v=150"></script>
+<script src="OFFGRD-autoderive.js?v=150"></script>
+<script src="OFFGRD-scoutcards.js?v=150"></script>
+<script src="OFFGRD-tendencies.js?v=150"></script>
+<script src="OFFGRD-week-autotest.js?v=150"></script>
+<script src="OFFGRD-weeklypackage.js?v=150"></script>
+<script src="OFFGRD-telestrate.js?v=150"></script>
+<script src="OFFGRD-redesign.js?v=150"></script>
+<script src="OFFGRD-shell.js?v=150"></script>
+<script src="OFFGRD-caller-outcome.js?v=150"></script>
+<script src="OFFGRD-caller-log.js?v=150"></script>
+<script src="OFFGRD-caller-select.js?v=150"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -284,7 +285,7 @@
       <button class="ghost" id="manageBtn">Manage</button>
       <button class="ghost" id="scoutCardsBtn" title="Printable scout cards">Scout cards</button>
       <button class="ghost" id="tendencyBtn" title="Auto tendency reports from scout data">Tendencies</button>
-      <button class="ghost" id="telestrateBtn" title="Draw on film â€” still-frame telestration">Film</button>
+      <button class="ghost" id="telestrateBtn" title="Draw on film — still-frame telestration">Film</button>
       <button class="ghost" id="schedBtn">Schedule</button>
       <button class="ghost" id="brandBtn">Team &amp; logos</button>
       <button class="ghost" id="darkBtn">Booth mode</button>
@@ -309,8 +310,8 @@
     <div style="flex:1 1 300px">
       <div class="lbl" style="margin-bottom:7px">Scout mode</div>
       <div class="seg" id="seg-scoutmode" style="flex-wrap:wrap">
-        <button class="on" data-sm="defense">Defense â€” predict their coverage</button>
-        <button data-sm="offense">Offense â€” predict their run/pass</button>
+        <button class="on" data-sm="defense">Defense — predict their coverage</button>
+        <button data-sm="offense">Offense — predict their run/pass</button>
       </div>
     </div>
     <div style="flex:0 1 320px">
@@ -323,11 +324,11 @@
   <div class="panel">
     <div class="presetrow">
       <span class="lbl" style="margin:0 6px 0 0">Quick situations</span>
-      <button class="preset" data-preset="3rd6">3RD &amp; 6 Â· trips</button>
+      <button class="preset" data-preset="3rd6">3RD &amp; 6 · trips</button>
       <button class="preset" data-preset="3rdlong">3RD &amp; LONG</button>
       <button class="preset" data-preset="2ndmed">2ND &amp; MEDIUM</button>
       <button class="preset" data-preset="1st10">1ST &amp; 10</button>
-      <button class="preset" data-preset="rz">RED ZONE â€” 1ST</button>
+      <button class="preset" data-preset="rz">RED ZONE — 1ST</button>
       <button class="preset" data-preset="4thshort">4TH &amp; SHORT</button>
     </div>
 
@@ -364,13 +365,13 @@
   <!-- TENDENCY GRID (self-scout) -->
   <div class="panel">
     <details id="gridDetails">
-      <summary>Full tendency grid â€” Down â€” Distance (self-scout)</summary>
+      <summary>Full tendency grid — Down — Distance (self-scout)</summary>
       <div id="grid"></div>
     </details>
   </div>
 
   <div class="foot panel" style="box-shadow:none;background:transparent;border:none;padding:0 4px">
-    Coverage % is the share of matching snaps â€” a probability from this DC's history, not a guarantee. Confidence reflects how many snaps it's based on and how clear the top call is. Small-sample situations are widened automatically and flagged. Everything runs locally; no internet required during a game.
+    Coverage % is the share of matching snaps — a probability from this DC's history, not a guarantee. Confidence reflects how many snaps it's based on and how clear the top call is. Small-sample situations are widened automatically and flagged. Everything runs locally; no internet required during a game.
   </div>
 
   </div><!-- /view-scout -->
@@ -397,7 +398,7 @@
         <div class="field"><div class="lbl">Week / game label</div><input id="imp-week" placeholder="e.g. Wk 3 or 2024" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
       </div>
       <div class="field" style="margin-bottom:10px">
-        <div class="lbl">Other team in this film <span class="foot" style="font-weight:400">(optional â€” fill in to scout BOTH teams from one file)</span></div>
+        <div class="lbl">Other team in this film <span class="foot" style="font-weight:400">(optional — fill in to scout BOTH teams from one file)</span></div>
         <input id="imp-opp2" placeholder="e.g. Lafayette" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
       </div>
       <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
@@ -417,13 +418,13 @@
         </div>
       </div>
       <p class="foot" id="imp-persp-hint" style="margin:0 0 10px"></p>
-      <p><b>Works directly with Hudl.</b> In Hudl Classic â€” Reports / Breakdown, hit <b>Export to Excel</b> â€” upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK?). One row per snap; header row required.</p>
+      <p><b>Works directly with Hudl.</b> In Hudl Classic — Reports / Breakdown, hit <b>Export to Excel</b> — upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK?). One row per snap; header row required.</p>
       <p style="color:var(--muted)">Only <code>coverage</code> is required. Everything else is optional and auto-mapped:</p>
       <ul style="margin:6px 0 0 0;padding-left:18px;color:var(--muted)">
-        <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> â†’ Cover 3 / Cover 4 / 2-man, etc.</li>
+        <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> ? Cover 3 / Cover 4 / 2-man, etc.</li>
         <li><b>Pressure</b> is inferred when a <code>BLITZ</code>/stunt column has a value (or use an explicit <code>pressure</code> 1/0).</li>
         <li><b>Field zone</b> reads from a zone column or is derived from <code>YARD LN</code>; an <code>ODK</code> column auto-filters to defensive snaps only.</li>
-        <li>After loading, the box below lists exactly which columns it mapped â€” check it once for a new Hudl export.</li>
+        <li>After loading, the box below lists exactly which columns it mapped — check it once for a new Hudl export.</li>
       </ul>
       <div style="margin-top:12px"><input type="file" id="fileIn" accept=".csv,.xlsx,.xls,text/csv"></div>
       <textarea id="csvText" placeholder="date,opponent,qtr,scoreMargin,down,distance,fieldZone,hash,personnel,formation,front,coverage,pressure,blitz,result&#10;2025-09-06,State,1,0,1,10,OWN,M,11,Trips,42 OVER-G,Cover 3,0,,inc"></textarea>
@@ -478,11 +479,11 @@
 
 /* ---------- Coverage "how to attack" knowledge ---------- */
 const BEATERS = {
-  "Cover 0":   {type:"MAN â€” no deep help", attack:"Zero blitz. Get the ball out hot. Beat man with rubs/mesh, isolate your best WR, RB on a wheel or angle vs a LB.", tags:["mesh","slant-flat hot","RB wheel","iso fade","pick/rub"]},
+  "Cover 0":   {type:"MAN — no deep help", attack:"Zero blitz. Get the ball out hot. Beat man with rubs/mesh, isolate your best WR, RB on a wheel or angle vs a LB.", tags:["mesh","slant-flat hot","RB wheel","iso fade","pick/rub"]},
   "Cover 1":   {type:"MAN-free", attack:"Single-high man. Crossers and mesh to create natural picks, attack the post-safety with a deep dig or post, build in a scramble drill.", tags:["mesh/crossers","deep dig","post on FS","under routes","scramble drill"]},
   "Cover 2":   {type:"2-high ZONE", attack:"Two deep, five under. Hit the hole between the safeties (seam/sail), high-low the corner with smash, flood a flat defender three levels.", tags:["seam between safeties","smash (hi-lo corner)","sail/flood","4 verts vs 2 safS","deep middle"]},
   "2-man":     {type:"MAN-under, 2 deep", attack:"Man under, two deep zone. Pick concepts and shallow crossers destroy trail technique; back-shoulder vs outside leverage; RB free release.", tags:["pick/rub","shallow cross","back-shoulder","mesh","RB check-release"]},
-  "Cover 3":   {type:"single-high ZONE", attack:"Beat the rotation, not the boundary. Attack the FIELD third â€” curl-flat, flood, and seam behind the buzz/curl defender.", tags:["curl-flat","flood (field)","seam vs buzz","smash","4 verts bender"]},
+  "Cover 3":   {type:"single-high ZONE", attack:"Beat the rotation, not the boundary. Attack the FIELD third — curl-flat, flood, and seam behind the buzz/curl defender.", tags:["curl-flat","flood (field)","seam vs buzz","smash","4 verts bender"]},
   "Cover 4":   {type:"QUARTERS", attack:"Safeties carry verticals, so the flat is soft. Hit curl-flat and out routes, dig/over the middle, RB swing; vertical to occupy the safety then break.", tags:["curl-flat","out routes","dig/over","RB swing","double move off vert"]},
   "Cover 6":   {type:"quarter-quarter-half", attack:"Split-field. Attack the Cover-2 side seam/flag and the quarters side with a dig; formation into the boundary to find the soft rotation.", tags:["C2-side seam","flag/corner","dig vs quarters","boundary flood","motion to ID"]},
   "Man":       {type:"MAN (Assist)", attack:"Man coverage. Beat it with rubs/mesh/picks, isolate your best matchup, option/choice routes, and a built-in scramble drill. Tag the specific shell (Cover 0/1/2-man) to sharpen this.", tags:["mesh/picks","iso matchup","crossers","option routes","scramble drill"]},
@@ -744,7 +745,7 @@ function render(){
       '<div class="reslead">Coverage predictor</div>'+
       '<div class="callline"><div class="callname" style="font-size:30px">No coverage data yet</div></div>'+
       (noDef
-        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button class="rd-scout-cta" onclick="showGetStarted()" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer')+'">Get started â†’</button></div>'
+        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button class="rd-scout-cta" onclick="showGetStarted()" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer')+'">Get started ?</button></div>'
         : '<p class="foot">No charted snaps fit this exact situation. Loosen a filter or pick a different look.</p>');
     renderGrid(useRec); return;
   }
@@ -759,7 +760,7 @@ function render(){
   const pressedRows=rows.filter(rw=>+rw.pressure===1);
   const blitz=weightedDist(pressedRows,"blitz",useRec);
   const pr=pressureRate(rows,useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" Â· "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist + (sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const noPrW=1-pr;
   const untagged=rows.length-covRows.length;
 
@@ -773,22 +774,22 @@ function render(){
 
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">'+leadName+' Â· '+sitTxt+(sit.opp!=="ANY"?" Â· vs "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">'+leadName+' · '+sitTxt+(sit.opp!=="ANY"?" · vs "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(headK)+'</div>'+(showPct?'<div class="callpct">'+pctTxt(headPct)+'</div>':'')+((useCoverage&&covS.arr[1])?'<div class="sub" style="align-self:flex-end;padding-bottom:9px">then '+esc(covS.arr[1].k)+' '+pctTxt(covS.arr[1].pct)+'</div>':'')+'</div>'+
     '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span>'+
-      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" Â· recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">Â· Thin sample â€” widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
-    (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet â€” showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
+      '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">· Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+    (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet — showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' Â· top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
-      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"?")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" Â· then "+esc(front.arr[1].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' · top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
+      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"?")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" · then "+esc(front.arr[1].k):"")+'</div></div>'+
       (useCoverage
         ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(behind.k):"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
         : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
     '</div>'+
     (bt
-      ? '<div class="attack"><div class="h">Attack â€” '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" Â· ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
-      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here â€” pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
+      ? '<div class="attack"><div class="h">Attack — '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
+      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here — pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
     (useCoverage? '<div class="dist"><div class="lbl">Coverage distribution (observed)'+(untagged>0?' <span style="color:var(--muted);font-weight:600">('+untagged+' untagged)</span>':'')+'</div>'+cov.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join("")+'</div>' : '')+
     '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="?"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
     '<div class="dist"><div class="lbl">Pressure distribution</div>'+
@@ -800,7 +801,7 @@ function render(){
         '<tr class="tagrow"><td>'+esc(rw.date||"")+'</td><td>'+esc(rw.opponent||"")+'</td>'+
         '<td>'+rw.down+'&amp;'+rw.distance+'</td><td>'+esc(zlbl(rw.fieldZone))+'</td><td>'+esc(rw.hash||"")+'</td>'+
         '<td>'+esc(rw.personnel||"")+'</td><td>'+esc(rw.formation||"")+'</td><td>'+esc(rw.front||"")+'</td>'+
-        '<td><b>'+esc(rw.coverage||"")+'</b></td><td>'+(+rw.pressure===1?"âœ“":"")+'</td><td>'+esc(rw.blitz||"")+'</td><td>'+esc(rw.result||"")+'</td></tr>'
+        '<td><b>'+esc(rw.coverage||"")+'</b></td><td>'+(+rw.pressure===1?"?":"")+'</td><td>'+esc(rw.blitz||"")+'</td><td>'+esc(rw.result||"")+'</td></tr>'
       ).join("")+
       '</tbody></table></details>';
 
@@ -815,7 +816,7 @@ function bar(name,pct,count,cls){
 function fieldBoundaryNote(rows){
   const top=weightedDist(rows,"coverage",false).arr[0];
   if(!top || !/Cover 3/i.test(top.k)) return "";
-  return '<div class="beat" style="color:var(--muted)">Vs '+esc(top.k)+': attack the field rotation, not the boundary â€” flood the wide side and work the seam behind the buzz defender.</div>';
+  return '<div class="beat" style="color:var(--muted)">Vs '+esc(top.k)+': attack the field rotation, not the boundary — flood the wide side and work the seam behind the buzz defender.</div>';
 }
 function renderGrid(useRec){
   const host=document.getElementById("grid"); if(!host) return;
@@ -842,7 +843,7 @@ function renderGrid(useRec){
       const pr=pressureRate(cell,useRec);
       const prc = pr>0.45?"var(--bad)":pr>0.3?"var(--warn)":"var(--muted)";
       html+='<td class="gcell" style="'+heat(pr)+'"><div class="gc">'+esc(head?head.k:"?")+'</div>'+
-        '<div class="gp">'+(head?Math.round(head.pct*100)+'% Â· ':'')+'n='+cell.length+'</div>'+
+        '<div class="gp">'+(head?Math.round(head.pct*100)+'% · ':'')+'n='+cell.length+'</div>'+
         '<div class="gpr" style="color:'+prc+'">'+Math.round(pr*100)+'% press</div></td>';
     });
     html+='</tr>';
@@ -920,8 +921,8 @@ function parseOffense(text){
   }
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+
     (skipped?"Skipped "+skipped+" non-offensive plays. ":"")+
-    (ci.play<0?"â€” No play/concept column found â€” required. ":"")+
-    (ci.gain<0?"â€” No GN/LS yards column â€” success canâ€™t be scored. ":"");
+    (ci.play<0?"— No play/concept column found — required. ":"")+
+    (ci.gain<0?"— No GN/LS yards column — success can’t be scored. ":"");
   return out;
 }
 function offPool(level,target){
@@ -952,13 +953,13 @@ function playStatsVsCoverage(play,target){
 }
 function setCallMode(m){ CALL_MODE=m; render(); }
 function callSheetHTML(cov, useRec){
-  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls Â· '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
+  const head='<div class="calls"><div class="lbl" style="display:flex;align-items:center;gap:7px">'+crest(OUR_TEAM,20)+'Best calls · '+esc(OUR_TEAM)+' plays vs the predicted look</div>';
   if(!OFF_DATA.length){
     return head+'<div class="callsempty">Import your offensive self-scout (play/concept, the coverage faced, DN, DIST, and GN/LS yards) to turn this prediction into a ranked call sheet. <br><button class="btnp" onclick="openImport(\'offense\')">Import offense</button></div></div>';
   }
   const toggle='<div class="seg" style="max-width:360px;margin:2px 0 9px">'+
-    '<button'+(CALL_MODE!=="robust"?' class="on"':'')+' onclick="setCallMode(\'exact\')">Exact Â· this D&amp;D</button>'+
-    '<button'+(CALL_MODE==="robust"?' class="on"':'')+' onclick="setCallMode(\'robust\')">Robust Â· EV vs mix</button>'+
+    '<button'+(CALL_MODE!=="robust"?' class="on"':'')+' onclick="setCallMode(\'exact\')">Exact · this D&amp;D</button>'+
+    '<button'+(CALL_MODE==="robust"?' class="on"':'')+' onclick="setCallMode(\'robust\')">Robust · EV vs mix</button>'+
     '</div>';
   const plays=Array.from(new Set(OFF_DATA.map(r=>r.play)));
   let ranked=[], note='';
@@ -971,15 +972,15 @@ function callSheetHTML(cov, useRec){
     });
     rankCalls(ranked);
     const mixStr=mix.map(m=>m.k.replace("Cover ","C")+" "+Math.round(m.pct*100)).join(" / ");
-    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' Â· plays with more reps rank higher</div>';
+    note='<div class="callnote">Expected success across the predicted mix: '+esc(mixStr)+' · plays with more reps rank higher</div>';
   } else {
     const target=cov.arr[0].k; let widened=false;
     plays.forEach(pl=>{ const st=playStatsVsCoverage(pl,target); if(st){ if(st.level>0)widened=true; ranked.push({play:pl, sr:st.sr, xr:st.xr, n:st.n}); } });
     rankCalls(ranked);
-    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% Â· best plays first, more reps rank higher'+(widened?' Â· <span style="color:var(--warn)">widened â€” few reps here</span>':'')+'</div>';
+    note='<div class="callnote">Success rate vs '+esc(target)+' '+Math.round(cov.arr[0].pct*100)+'% · best plays first, more reps rank higher'+(widened?' · <span style="color:var(--warn)">widened — few reps here</span>':'')+'</div>';
   }
   if(!ranked.length){
-    return head+toggle+'<div class="callsempty">Not enough offensive reps tagged for this look yet â€” import more self-scout (with GN/LS yards) and your best calls will appear.</div></div>';
+    return head+toggle+'<div class="callsempty">Not enough offensive reps tagged for this look yet — import more self-scout (with GN/LS yards) and your best calls will appear.</div></div>';
   }
   const item=(p,i)=>'<div class="callitem"><div class="cn">'+esc(p.play)+'</div><div class="track" style="flex:1"><div class="fill cov'+(i?" alt":"")+'" style="width:'+Math.max(3,Math.round(p.sr*100))+'%">'+Math.round(p.sr*100)+'%</div></div><div class="xchip">'+Math.round(p.xr*100)+'% expl</div><div class="cnn">'+p.n+' rep'+(p.n===1?'':'s')+(p.n<4?' <span style="color:var(--warn)">? few</span>':'')+'</div></div>';
   const grp=(label,arr)=>'<div class="foot" style="color:var(--accent);font-weight:800;margin-top:8px">'+label+'</div>'+(arr.length?arr.map(item).join(""):'<div class="foot">? no reps vs this look</div>');
@@ -995,7 +996,7 @@ function openImport(mode){
   document.querySelectorAll("#seg-importmode button").forEach(x=>{ if(x.dataset.mode===IMPORT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
   const note=document.getElementById("importModeNote");
   if(note) note.textContent = IMPORT_MODE==="full"
-    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense (D rows), their defense (O rows w/ coverage/front/blitz), and your call sheet (O rows w/ OFF PLAY) Â· all tagged to the Opponent + Week you enter below."
+    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense (D rows), their defense (O rows w/ coverage/front/blitz), and your call sheet (O rows w/ OFF PLAY) · all tagged to the Opponent + Week you enter below."
     : IMPORT_MODE==="offense"
     ? "Our-offense mode (call sheet): needs PLAY/CONCEPT, the COVERAGE faced, DN, DIST, and GN/LS. ODK filters to offensive snaps."
     : IMPORT_MODE==="scout"
@@ -1073,7 +1074,7 @@ function parseScout(text,forceKeep){
       direction:(at(c,ci.dir).toUpperCase().slice(0,1).match(/[RLM]/)||[""])[0], motion:motion,
       gain:(gs===""?null:+gs), result:at(c,find(ALIASES.result||["result"]))});
   });
-  LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"â€” No PLAY TYPE (run/pass) column found â€” required. ":"");
+  LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"— No PLAY TYPE (run/pass) column found — required. ":"");
   return out;
 }
 function renderOffense(){
@@ -1092,17 +1093,17 @@ function renderOffense(){
   const motionRate=weightedShare(rows,r=>+r.motion===1,useRec);
   const form=weightedDist(rows.filter(r=>r.formation),"formation",useRec);
   const pers=weightedDist(rows.filter(r=>r.personnel),"personnel",useRec);
-  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" Â· "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
+  const sitTxt=ordinal(sit.down)+" & "+sit.dist+(sit.zone!=="ANY"?" · "+(sit.zone==="REDZONE"?"RED ZONE":sit.zone):"");
   const isRun=/run/i.test(top.k);
   const note = isRun
     ? "Run-leaning here ("+pctTxt(top.pct)+(dir.arr[0]?", most often to the "+dirLabel(dir.arr[0].k):"")+"). Set the front/strength that way, fit your gaps; expect "+esc(form.arr[0]?form.arr[0].k:"their base")+(pers.arr[0]?" / "+esc(pers.arr[0].k):"")+"."
-    : "Pass-leaning here ("+pctTxt(top.pct)+"). Motion on "+pctTxt(motionRate)+" of snaps â€” ID coverage/pressure pre-snap; watch "+esc(form.arr[0]?form.arr[0].k:"their spread")+".";
+    : "Pass-leaning here ("+pctTxt(top.pct)+"). Motion on "+pctTxt(motionRate)+" of snaps — ID coverage/pressure pre-snap; watch "+esc(form.arr[0]?form.arr[0].k:"their spread")+".";
   res.innerHTML=
     perspectiveBanner()+
-    '<div class="reslead">Most likely Â· '+sitTxt+(sit.opp!=="ANY"?" Â· "+esc(sit.opp):"")+'</div>'+
+    '<div class="reslead">Most likely · '+sitTxt+(sit.opp!=="ANY"?" · "+esc(sit.opp):"")+'</div>'+
     '<div class="callline"><div class="callname">'+esc(top.k.toUpperCase())+'</div><div class="callpct">'+pctTxt(top.pct)+'</div></div>'+
-    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" Â· recency-weighted":"")+'</span></div>'+
-    (relaxed.length?'<div class="widen">Â· Thin sample â€” widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
+    '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" · recency-weighted":"")+'</span></div>'+
+    (relaxed.length?'<div class="widen">· Thin sample — widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     '<div class="cards">'+
       '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?dirLabel(dir.arr[0].k):"?")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
       '<div class="card"><div class="k">Motion rate</div><div class="v gold">'+pctTxt(motionRate)+'</div><div class="s">'+(motionRate>0.2?"motion-heavy":"low motion")+'</div></div>'+
@@ -1139,7 +1140,7 @@ function renderOffenseGrid(useRec){
       if(cell.length<2){ html+='<td class="gcell empty"><div class="gc">?</div><div class="gp">'+cell.length+' snap'+(cell.length===1?"":"s")+'</div></td>'; return; }
       const runRate=weightedShare(cell,r=>/run/i.test(r.playType),useRec);
       const lead=runRate>=0.5?"RUN":"PASS"; const pc=Math.round((runRate>=0.5?runRate:1-runRate)*100);
-      html+='<td class="gcell" style="'+heat(Math.abs(runRate-0.5)*2)+'"><div class="gc">'+lead+'</div><div class="gp">'+pc+'% Â· n='+cell.length+'</div><div class="gpr" style="color:var(--muted)">'+Math.round(runRate*100)+'% run</div></td>';
+      html+='<td class="gcell" style="'+heat(Math.abs(runRate-0.5)*2)+'"><div class="gc">'+lead+'</div><div class="gp">'+pc+'% · n='+cell.length+'</div><div class="gpr" style="color:var(--muted)">'+Math.round(runRate*100)+'% run</div></td>';
     });
     html+='</tr>';
   });
@@ -1172,18 +1173,18 @@ function upsertGame(opp,week,side,source,rows){
   const rowSrc=(source==="live_call")?"live_call":"scout_import";
   rows.forEach(r=>{
     r.opponent=opp; r.gameWeek=week; if(!r.date) r.date=week;
-    /* Additive source tag â€” bestCallsFor / gamesRows stay one dataset */
+    /* Additive source tag — bestCallsFor / gamesRows stay one dataset */
     if(!r.source) r.source=rowSrc;
   });
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
   saveGames(); rebuildActive(); return existed;
 }
-function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" Â· "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
+function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
 /* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
 function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); const p=document.getElementById("schedPid"); if(p){ p.innerHTML = SCHED_TEAM_ID ? ('Program ID for your OFFRD link: <code>'+esc(SCHED_TEAM_ID)+'</code> <button class="ghost" style="padding:2px 8px" onclick="schedCopyId()">Copy</button>') : '<span class="foot">Sign in to your program to see your OFFRD link ID.</span>'; } renderSchedule(); } }
 function schedCopyId(){ try{ navigator.clipboard.writeText(SCHED_TEAM_ID); const p=document.getElementById("schedPid"); if(p){ const b=p.querySelector("button"); if(b){ b.textContent="Copied ?"; setTimeout(function(){ b.textContent="Copy"; },1200); } } }catch(e){} }
-function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only â€” a coach can edit."; }
+function scheduleSave(){ try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} if(window.OFFGRD_SCHEDULE_PUSH) window.OFFGRD_SCHEDULE_PUSH(SCHEDULE); const m=document.getElementById("schedMsg"); if(m) m.textContent = SCHED_EDIT ? "Saved to your program." : "View only — a coach can edit."; }
 function schedField(id,field,val){ const g=SCHEDULE.find(x=>x.id===id); if(!g) return; g[field]=(field==="opponent")?String(val==null?"":val).trim():val; scheduleSave(); }
 function schedDel(id){ SCHEDULE=SCHEDULE.filter(g=>g.id!==id); renderSchedule(); scheduleSave(); }
 function schedAdd(){ SCHEDULE.push({id:schedUID(),date:"",opponent:"",ha:"H",site:"",time:"",us:"",them:""}); renderSchedule(); scheduleSave(); }
@@ -1194,7 +1195,7 @@ function schedScoutCounts(opp){ let off=0,def=0; if(opp) GAMES.forEach(g=>{ if(g
 function schedStatusLine(g){
   const opp=(g.opponent||"").trim(); if(!opp) return '';
   const sc=schedScoutCounts(opp);
-  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">Â· scouting</span> <span class="foot">off '+sc.off+' Â· def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
+  const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">· scouting</span> <span class="foot">off '+sc.off+' · def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
   const isPlan=WEEK&&WEEK.opponent===opp;
   const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">? this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">? Plan this week</button>':'');
   return '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px">'+scout+' '+planChip+'</div>';
@@ -1241,7 +1242,7 @@ function renderSchedule(){
       +schedStatusLine(g)
       +'</div>';
   }).join("");
-  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date Â· Home/Away Â· opponent Â· site Â· time Â· your score Â· opp score &nbsp;?&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
+  host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score · opp score &nbsp;?&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
 }
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
@@ -1255,15 +1256,15 @@ function renderManager(){
     const list=byOpp[opp];
     const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
     const nG=dates.length||list.length;
-    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" Â· "+dates[dates.length-1]):"";
+    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" · "+dates[dates.length-1]):"";
     const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
-    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" Â· ")||"no snaps";
+    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
     const isNext=WEEK&&WEEK.opponent===opp;
     const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">\u25b6 NEXT'+(weekCountdown()?" \u00b7 "+esc(weekCountdown()):"")+'</span>':"";
     const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
     html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
-      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' Â· '+esc(range):"")+'</span>'+nextBadge
+      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
       +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ?</button></div>'
       +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
       +'<table><tbody>'+grows+'</tbody></table></div>';
@@ -1282,7 +1283,7 @@ function importSeason(text){
   }catch(e){ document.getElementById("mgrMsg").textContent="That does not look like a valid OFFGRD season file."; }
 }
 function clearSeason(){ if(typeof confirm==="function" && !confirm("Clear ALL games from the library? Export first if you want a backup.")) return; GAMES=[]; saveGames(); rebuildActive(); buildControls(); render(); renderManager(); document.getElementById("mgrMsg").textContent="Library cleared."; }
-function openManager(){ document.getElementById("mgr").classList.add("show"); renderManager(); const st=document.getElementById("mgrStore"); if(st){ let ok=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok=true; }catch(e){} st.textContent= ok?"Auto-save: ON for this browser. Use Export to back up or share with staff.":"Auto-save unavailable in this browser â€” use Export/Import season file to keep your data."; } }
+function openManager(){ document.getElementById("mgr").classList.add("show"); renderManager(); const st=document.getElementById("mgrStore"); if(st){ let ok=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok=true; }catch(e){} st.textContent= ok?"Auto-save: ON for this browser. Use Export to back up or share with staff.":"Auto-save unavailable in this browser — use Export/Import season file to keep your data."; } }
 
 /* ---------- TEAM BRANDING / CRESTS ---------- */
 let OUR_TEAM="Your Team"; let USER_BRANDS={};
@@ -1340,8 +1341,8 @@ let CURRENT_VIEW="scout";
 let PLAN_BUCKETS=null;
 let PENDING=null;
 let PLAN_SIDE="off"; let LIVE_SNAPS=[]; const LIVE_KEY="offgrd_live_v1";
-/* Call log: append-only events (OFFGRD-caller-log.js). Fold â†’ CALLER_LOG + gamesRows.
-   Multi-device: no claim/lock â€” any coach on the team appends to the same gameId. */
+/* Call log: append-only events (OFFGRD-caller-log.js). Fold ? CALLER_LOG + gamesRows.
+   Multi-device: no claim/lock — any coach on the team appends to the same gameId. */
 let CALLER_LOG=[];
 let CALLER_EVENTS=[];
 let CALLER_COLLISIONS=[];
@@ -1352,7 +1353,7 @@ let CALLER_SEQ=0;
 let CALLER_FLASH_ID=null;
 let CALLER_FLASH_UNTIL=0;
 let _callerFlashT=null;
-const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot â€” migrated once into events */
+const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot — migrated once into events */
 let CALLER_SESSION=null; /* {opp, week, gameId} */
 let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false};
 /** playIndex being edited via Edit last play (correction), or null */
@@ -1364,7 +1365,7 @@ let _callerSyncT=null;
 let _callerChan=null;
 function fmtPct(x){return Math.round(x*100)+"%";}
 function oppRows(side){ return gamesRows(side).filter(r=>sit.opp==="ANY"||r.opponent===sit.opp); }
-/* Opponent + Games(scope) + This-season Â· same pool Scout grids / Report / Package use. */
+/* Opponent + Games(scope) + This-season · same pool Scout grids / Report / Package use. */
 function yearOnlyOn(){ try{ return !!(document.getElementById("tg-thisyear")&&document.getElementById("tg-thisyear").checked); }catch(e){ return false; } }
 function scopedOppRows(side){
   return oppRows(side).filter(rw=>{
@@ -1382,7 +1383,7 @@ function scopeLabelText(){
 }
 function updateDatBadge(){
   const el=document.getElementById("datbadge"); if(!el) return;
-  /* Same scoped pool as Tendencies report + Package snapshot â€” never mode-side-only */
+  /* Same scoped pool as Tendencies report + Package snapshot — never mode-side-only */
   const def=scopedOppRows("def"), off=scopedOppRows("off");
   const nGames=uniq(def.concat(off).map(r=>r.date)).filter(Boolean).length;
   const oppBit=(sit.opp&&sit.opp!=="ANY")?(" \u00B7 "+sit.opp):"";
@@ -1413,7 +1414,7 @@ function playKind(pl){ let run=0,pass=0; gamesRows("ours").forEach(r=>{ if(r.pla
 function callerLearnSuccess(r){
   const O=window.OFFGRD_CALLER_OUTCOME;
   if(O&&O.learningSuccess){
-    /* Prefer concept on live rows; gamesRows already maps learning â†’ success */
+    /* Prefer concept on live rows; gamesRows already maps learning ? success */
     if(r&&(r.concept!=null||r.conceptOverride!=null)) return O.learningSuccess(r);
   }
   return (r&&r.success!=null)?r.success:null;
@@ -1485,8 +1486,8 @@ function openWeekPicker(i){
   const list=box.querySelector("#wkpList"), q=box.querySelector("#wkpQ");
   const rf=()=>{ const s=q.value.trim().toLowerCase();
     const items=(PBOOK||[]).filter(p=>!s||((p.name||"")+" "+(p.family||"")+" "+(p.formation||"")).toLowerCase().indexOf(s)>=0).slice(0,40);
-    list.innerHTML=items.length?items.map(p=>'<div class="wkpRow" data-nm="'+esc(p.name)+'" data-id="'+esc(p.id)+'" style="display:flex;justify-content:space-between;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer"><b>'+esc(p.name)+'</b><span class="foot">'+esc([p.formation,p.family].filter(Boolean).join(" Â· "))+'</span></div>').join("")
-      :'<p class="foot">'+((PBOOK&&PBOOK.length)?"No matches.":"No playbook loaded â€” sign in, or draw plays in the Playbook.")+'</p>';
+    list.innerHTML=items.length?items.map(p=>'<div class="wkpRow" data-nm="'+esc(p.name)+'" data-id="'+esc(p.id)+'" style="display:flex;justify-content:space-between;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer"><b>'+esc(p.name)+'</b><span class="foot">'+esc([p.formation,p.family].filter(Boolean).join(" · "))+'</span></div>').join("")
+      :'<p class="foot">'+((PBOOK&&PBOOK.length)?"No matches.":"No playbook loaded — sign in, or draw plays in the Playbook.")+'</p>';
     [].forEach.call(list.querySelectorAll(".wkpRow"),r=>{ r.onclick=()=>{ planCommit(i, r.dataset.nm, r.dataset.id); _wkPick.style.display="none"; }; });
   };
   q.oninput=rf; q.onkeydown=e=>{ if(e.key==="Enter"&&q.value.trim()){ planCommit(i, q.value.trim(), null); _wkPick.style.display="none"; } };
@@ -1497,7 +1498,7 @@ function weekBarHTML(){
   const wrap=inner=> rd
     ? '<div class="rd-week-bar">'+inner+'</div>'
     : '<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+inner+'</div>';
-  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" Â· a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">Â· Start new week</button>':""));
+  if(!WEEK) return wrap('<b>This week</b><span class="foot">No active week plan'+(WEEK_EDIT?"":" · a coach starts one here")+'.</span>'+(WEEK_EDIT?'<button class="ghost no-print" id="wkStart" style="font-weight:800">· Start new week</button>':""));
   const opps=uniq(GAMES.map(g=>g.opponent)).filter(Boolean); if(WEEK.opponent&&opps.indexOf(WEEK.opponent)<0) opps.unshift(WEEK.opponent);
   const cd=weekCountdown();
   const fld=rd?'':'background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;';
@@ -1521,10 +1522,10 @@ function weekPlayerShareHTML(){
   return rd
     ? '<div class="no-print rd-share-open"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
       +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
-      +'<p class="foot" style="margin:6px 0 0">Players see only what you check â€” in their <b>This Week</b> tab.</p></div>'
+      +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>'
     : '<div class="no-print" style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:9px 12px;margin-bottom:10px"><div class="lbl" style="margin:0 0 6px">Share with players (read-only)</div>'
     +row("briefing","Briefing")+row("plays","Plays")+row("scout","Scout notes")+row("practice","Practice script")
-    +'<p class="foot" style="margin:6px 0 0">Players see only what you check â€” in their <b>This Week</b> tab.</p></div>';
+    +'<p class="foot" style="margin:6px 0 0">Players see only what you check — in their <b>This Week</b> tab.</p></div>';
 }
 function wireWeekPlayerShare(host){
   if(!host || !WEEK || !WEEK_EDIT) return;
@@ -1546,27 +1547,27 @@ function weekGenHTML(){
     if(!WEEK_EDIT) return "";
     return rd
       ? '<div class="no-print rd-gen-empty" style="border-style:dashed">'+genBtn
-        +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation â€” generated once, saved for the whole program.</span></div>'
+        +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>'
       : '<div class="no-print" style="background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+genBtn
-      +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation â€” generated once, saved for the whole program.</span></div>';
+      +'<span class="foot">Claude turns this plan + your scout data into a scouting narrative, per-play whys, position notes, and player remediation — generated once, saved for the whole program.</span></div>';
   }
   const defSide=(PLAN_SIDE==="def"), d=g.defense||null;
   let h=(rd?'<details class="rd-week-brief"':'<details style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px"')+'>'
-    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">Â· Week briefing Â· '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
+    +'<summary style="font-weight:800;cursor:pointer;'+(rd?'':'color:var(--ink)')+'">· Week briefing · '+(defSide?'our defense vs ':'vs ')+esc(WEEK.opponent||"")+' <span class="foot">(generated '+esc(String(g.generated_at||"").slice(0,10))+')</span></summary>';
   if(defSide){
     if(!d||!d.narrative){
-      h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed â€” hit Regenerate below to add our defense vs their offense.</p>';
+      h+='<p class="foot" style="margin-top:8px">This briefing was generated before the defensive section existed — hit Regenerate below to add our defense vs their offense.</p>';
     } else {
       h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(d.narrative||"")+'</div>';
       if(Array.isArray(d.keys)&&d.keys.length){ h+='<div class="lbl" style="margin-top:10px">Defensive keys</div>'; d.keys.forEach((k,i)=>{ const kt=(typeof k==="string")?k:String((k&&(k.text||k.key))||""); if(kt) h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(kt)+'</div>'; }); }
-      if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> â€” '+esc(d.situations[nm])+'</div>'; }); }
+      if(d.situations&&Object.keys(d.situations).length){ h+='<div class="lbl" style="margin-top:10px">Situation answers</div>'; Object.keys(d.situations).forEach(nm=>{ if(d.situations[nm]) h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(d.situations[nm])+'</div>'; }); }
       if(d.positions&&Object.keys(d.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(d.positions).forEach(ps=>{ if(d.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(d.positions[ps])+'</div>'; }); }
     }
   } else {
     h+='<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;line-height:1.55">'+esc(g.narrative||"")+'</div>';
     if(Array.isArray(g.keys)&&g.keys.length){ h+='<div class="lbl" style="margin-top:10px">Keys to the game</div>'; g.keys.forEach((k,i)=>{ const kt=(typeof k==="string")?k:String((k&&(k.text||k.key))||""); if(kt) h+='<div style="font-size:14px;font-weight:700;margin:2px 0">'+(i+1)+'. '+esc(kt)+'</div>'; }); }
-    if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> â€” '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
-    if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection â€” why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> â€” '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.plays&&Object.keys(g.plays).length){ h+='<div class="lbl" style="margin-top:10px">Why these calls</div>'; Object.keys(g.plays).forEach(nm=>{ const p=g.plays[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+'</b> — '+esc(p.why||"")+(p.coaching?' <span class="foot">Coach it: '+esc(p.coaching)+'</span>':'')+'</div>'; }); }
+    if(g.ol&&Object.keys(g.ol).length){ h+='<div class="lbl" style="margin-top:10px">O-line protection — why it holds up</div>'; Object.keys(g.ol).forEach(nm=>{ const o=g.ol[nm]||{}; h+='<div style="font-size:13px;margin:4px 0"><b>'+esc(nm)+(o.front?' vs '+esc(o.front):'')+'</b> — '+esc(o.why||"")+(o.coaching?' <span class="foot">Coach it: '+esc(o.coaching)+'</span>':'')+'</div>'; }); }
     if(g.positions&&Object.keys(g.positions).length){ h+='<div class="lbl" style="margin-top:10px">Position notes</div>'; Object.keys(g.positions).forEach(ps=>{ if(g.positions[ps]) h+='<div style="font-size:13px;margin:3px 0"><b>'+esc(ps)+':</b> '+esc(g.positions[ps])+'</div>'; }); }
   }
   h+=(genBtn?('<div class="no-print" style="margin-top:10px">'+genBtn+'</div>'):'')+'</details>';
@@ -1597,7 +1598,7 @@ function wireWeekUI(host){
     setView("package");
     const off=scopedOppRows("off"), def=scopedOppRows("def");
     const ctx={ week:WEEK, canEdit:WEEK_EDIT, defRows:def, offRows:off, opponent:sit.opp, playbook:PBOOK, games:GAMES, scopeLabel:(typeof scopeLabelText==="function"?scopeLabelText():"") };
-    /* Click returns immediately Â· assemble runs on a later turn (same path as Regenerate). */
+    /* Click returns immediately · assemble runs on a later turn (same path as Regenerate). */
     OFFGRD_WEEKLY_PACKAGE.scheduleGenerate(ctx, false, { confirm:false });
     setTimeout(function(){ try{ pb.disabled=false; pb.textContent=old; }catch(e){} }, 0);
   };
@@ -1612,7 +1613,7 @@ function renderPackage(){
     host.innerHTML='<div class="panel"><p class="foot">Start a week plan in <b>Game Plan</b>, then generate the weekly package.</p></div>';
     return;
   }
-  /* Skip full rebuild only while a *fresh* generate is in flight. Stale busy â€” force clear so Package can recover. */
+  /* Skip full rebuild only while a *fresh* generate is in flight. Stale busy — force clear so Package can recover. */
   if(OFFGRD_WEEKLY_PACKAGE.isBusy&&OFFGRD_WEEKLY_PACKAGE.isBusy()){
     if(host.querySelector("#wkpkgRoot")) return;
     try{ if(OFFGRD_WEEKLY_PACKAGE.resetBusy) OFFGRD_WEEKLY_PACKAGE.resetBusy("renderPackage no shell"); }catch(e){}
@@ -1659,9 +1660,9 @@ function matchupMatrix(def,by){
 /* ----- REPORT ----- */
 function mineTells(off,def){
   const T=[];
-  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" Â· "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" Â· "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" Â· "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" Â· "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
-  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="?"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" Â· "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
+  uniq(off.map(r=>r.formation)).forEach(f=>{ if(!f)return; const g=off.filter(r=>r.formation===f); if(g.length>=5){ const run=runShare(g); if(run>=0.7)T.push({txt:f+" · "+Math.round(run*100)+"% run",n:g.length,w:run}); else if(run<=0.3)T.push({txt:f+" · "+Math.round((1-run)*100)+"% pass",n:g.length,w:1-run}); } });
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
+  [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="?"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" · "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
   T.sort((a,b)=>b.w-a.w); const seen={}, out=[]; T.forEach(t=>{ if(!seen[t.txt]){seen[t.txt]=1;out.push(t);} }); return out.slice(0,8);
 }
 function renderReport(){
@@ -1678,8 +1679,8 @@ function renderReport(){
     const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
       opponent: opp,
-      title: oppName+" Â· tendency report",
-      subtitle: "Scope: "+scopeLab+" Â· opponent filter â€” self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
+      title: oppName+" · tendency report",
+      subtitle: "Scope: "+scopeLab+" · opponent filter — self-scout excluded. Coverage/front/blitz use defensive snaps; run/pass use offensive. Terminology from your imports.",
       scopeLabel: scopeLab
     });
     /* Classic combined page: Top tells above heat tables when redesign is off */
@@ -1723,7 +1724,7 @@ function renderReport(){
     h+=`</table>`;
     const bz=weightedDist(def.filter(r=>+r.pressure===1&&r.blitz),"blitz",false).arr.slice(0,3);
     if(bz.length) h+=`<p class="foot">Pressures: ${bz.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")}</p>`;
-  } else h+=`<p class="foot">No defense data yet Â· tag fronts/blitzes/coverages and import as Defense.</p>`;
+  } else h+=`<p class="foot">No defense data yet · tag fronts/blitzes/coverages and import as Defense.</p>`;
   h+=`</div></div></div>`;
   if(def.length){
     const by=def.some(r=>r.personnel)?"personnel":"formation";
@@ -1731,7 +1732,7 @@ function renderReport(){
     if(M.length){
       h+=`<div class="panel"><div class="lbl">How they line up vs your ${by==="personnel"?"personnel groupings":"formations"}</div><table class="plan-tbl"><tr><th>${by==="personnel"?"Personnel":"Formation"}</th><th>Front</th><th>Coverage</th><th>Press%</th><th>Snaps</th></tr>`;
       M.forEach(m=>{ h+=`<tr><td><b>${esc(m.g)}</b></td><td>${m.fr.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"?"}</td><td>${m.cov.map(d=>esc(d.k)+" "+fmtPct(d.pct)).join(" &middot; ")||"?"}</td><td>${fmtPct(m.pr)}</td><td>${m.n}${m.n<4?' <span class="foot">(low)</span>':''}</td></tr>`; });
-      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} Â· use it to predict their look. Under 4 snaps = low sample.</p></div>`;
+      h+=`</table><p class="foot">How their defense aligns vs each of your ${by==="personnel"?"personnel groupings":"formations"} · use it to predict their look. Under 4 snaps = low sample.</p></div>`;
     }
   }
   host.innerHTML=h;
@@ -1787,7 +1788,7 @@ function renderPlan(){
 function setPlanSide(sde){ PLAN_SIDE=sde; renderPlan(); }
 /* ---------- Practice script (auto-drafted from the week plan; printable; live rep-marking) ---------- */
 function practiceSave(){ if(!WEEK) return; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(WEEK_EDIT && window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({practice:WEEK.practice}); }
-function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team Â· "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
+function draftPractice(){ const periods=[{name:"Individual",plays:[]},{name:"7-on-7",plays:[]}]; ((WEEK&&WEEK.buckets)||[]).forEach(b=>{ if(b.plays&&b.plays.length) periods.push({name:"Team · "+b.name, plays:b.plays.map(p=>({id:p.id||null,name:p.name,reps:2,good:0,needs:0}))}); }); if(periods.length===2) periods.push({name:"Team",plays:[]}); return {periods:periods}; }
 function practiceRedraft(){ if(!confirm("Re-draft the script from the current game plan? Replaces the periods (rep counts and marks reset).")) return; WEEK.practice=draftPractice(); practiceSave(); renderPractice(); }
 function practiceAddPeriod(){ WEEK.practice=WEEK.practice||draftPractice(); WEEK.practice.periods.push({name:"New period",plays:[]}); practiceSave(); renderPractice(); }
 function renderPractice(){
@@ -1838,7 +1839,7 @@ function wirePractice(host){
   [].forEach.call(host.querySelectorAll("[data-pdel]"),el=>{ el.onclick=()=>{ const a=el.dataset.pdel.split(":").map(Number); WEEK.practice.periods[a[0]].plays.splice(a[1],1); practiceSave(); renderPractice(); }; });
   [].forEach.call(host.querySelectorAll(".paddsel"),el=>{ el.onchange=()=>{ const v=el.value; if(!v) return; const p=(PBOOK||[]).find(x=>String(x.id||x.name)===v); if(p){ WEEK.practice.periods[+el.dataset.pi].plays.push({id:p.id||null,name:p.name,reps:2,good:0,needs:0}); practiceSave(); renderPractice(); } }; });
 }
-/** Caller / plan distance label â†’ representative yards. Null if unrecognised (never invent 10+). */
+/** Caller / plan distance label ? representative yards. Null if unrecognised (never invent 10+). */
 const CALLER_DB_BUCKETS=["1-3","4-6","7-9","10+"];
 function dbToNum(db){
   if(db==="1-3") return 2;
@@ -1853,16 +1854,16 @@ function suggestDef(off,dn,db){
   const form=weightedDist(off.filter(r=>r.formation),"formation",false).arr[0];
   const motion=off.length?off.filter(r=>+r.motion===1).length/off.length:0;
   let front,cover,press,note;
-  if(run>=0.65){ front="Base / heavy â€” load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" Â· set strength to the run, stay gap-sound."; }
-  else if(run<=0.35){ front="Nickel / lighter box"; cover="Two-high: Cover 2 / Quarters, mix man"; press="Rush 4 + sim pressure; DB blitz vs empty"; note="Pass-heavy ("+fmtPct(1-run)+") Â· 2-high, disguise, get hands on routes."; }
-  else { front="Multiple â€” even/odd mix"; cover="Cover 3 base, mix Cover 1"; press="Situational pressure"; note="Balanced ("+fmtPct(run)+" run) Â· stay multiple, play your keys, disguise."; }
-  if(+dn===3 && db==="10+"){ cover="Two-high zone (Cover 2/4) Â· keep it underneath"; press="Zone/sim pressure, don't get gashed"; }
-  if(db==="1-3"){ front="Heavy front â€” short yardage"; cover="Cover 0 / Cover 1 man"; press="Run blitz / squeeze gaps"; }
+  if(run>=0.65){ front="Base / heavy — load the box"; cover="Single-high: Cover 3 / Cover 1"; press="Run blitz available (Double A / edge)"; note="Run-heavy ("+fmtPct(run)+")"+(dir?", mostly to the "+dirLabel(dir.k):"")+" · set strength to the run, stay gap-sound."; }
+  else if(run<=0.35){ front="Nickel / lighter box"; cover="Two-high: Cover 2 / Quarters, mix man"; press="Rush 4 + sim pressure; DB blitz vs empty"; note="Pass-heavy ("+fmtPct(1-run)+") · 2-high, disguise, get hands on routes."; }
+  else { front="Multiple — even/odd mix"; cover="Cover 3 base, mix Cover 1"; press="Situational pressure"; note="Balanced ("+fmtPct(run)+" run) · stay multiple, play your keys, disguise."; }
+  if(+dn===3 && db==="10+"){ cover="Two-high zone (Cover 2/4) · keep it underneath"; press="Zone/sim pressure, don't get gashed"; }
+  if(db==="1-3"){ front="Heavy front — short yardage"; cover="Cover 0 / Cover 1 man"; press="Run blitz / squeeze gaps"; }
   return {front:front,cover:cover,press:press,note:note,run:run,motion:motion,form:form,dir:dir};
 }
 function renderDefPlanBody(oppName){
   const off=oppRows("off");
-  if(!off.length) return `<p class="foot">No offense data for ${esc(oppName)} yet â€” import their offense (or a full game) to build the defensive plan.</p>`;
+  if(!off.length) return `<p class="foot">No offense data for ${esc(oppName)} yet — import their offense (or a full game) to build the defensive plan.</p>`;
   let h=`<table class="plan-tbl"><tr><th>Situation</th><th>They do</th><th>Suggested defense</th></tr>`;
   planBuckets().forEach(b=>{
     const m=r=>(b.dn==="ANY"||r.down===+b.dn)&&(b.db==="ANY"||distBucket(r.distance)===b.db)&&((b.zone||"ANY")==="ANY"||r.fieldZone===b.zone);
@@ -1876,7 +1877,7 @@ function renderDefPlanBody(oppName){
     const defStr=`<b>${esc(sg.front)}</b><br>${esc(sg.cover)}<br><span class="foot">${esc(sg.press)}</span>`;
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}</td><td>${doStr}</td><td>${defStr}</td></tr>`;
   });
-  h+=`</table><p class="foot" style="margin-top:8px">Defensive suggestions come from the opponent's run/pass, direction &amp; formation tendencies Â· adapt to your scheme &amp; personnel.</p>`;
+  h+=`</table><p class="foot" style="margin-top:8px">Defensive suggestions come from the opponent's run/pass, direction &amp; formation tendencies · adapt to your scheme &amp; personnel.</p>`;
   return h;
 }
 function loadLive(){ try{ const x=localStorage.getItem(LIVE_KEY); if(x){ const a=JSON.parse(x); if(Array.isArray(a)) LIVE_SNAPS=a; } }catch(e){} }
@@ -1958,18 +1959,18 @@ function previewImport(){
       const hd=(cvi>=0&&(c[cvi]||"").trim())||(fri>=0&&(c[fri]||"").trim()); if(hd) defByODK[k]=(defByODK[k]||0)+1;
     });
     if(oi>=0) H2+='<p style="font-size:13px;margin:2px 0">ODK column: '+Object.keys(odkDist).sort().map(k=>'<b>'+esc(k)+'</b> '+odkDist[k]).join(" &middot; ")+'</p>';
-    else H2+='<p style="font-size:13px;margin:2px 0">No ODK column â€” every row treated as one side.</p>';
+    else H2+='<p style="font-size:13px;margin:2px 0">No ODK column — every row treated as one side.</p>';
     let warns=[];
     const hasO=(odkDist.O||0)>0, hasD=(odkDist.D||0)>0;
     if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected (O and D snaps). If this is "+esc(nameA)+"?s own film, set ODK ?O? = their offense so O/D aren?t swapped.");
     teams.forEach(T=>{
       const ok=keepFor(T,"off"), dk=keepFor(T,"def");
       const oN=offByODK[ok]||0, dN=defByODK[dk]||0, oOpp=offByODK[ok==="O"?"D":"O"]||0;
-      if((IMPORT_MODE==="full"||IMPORT_MODE==="scout") && oN===0 && oOpp>0) warns.push(esc(T)+": 0 offense snaps on ODK="+ok+", but "+oOpp+" on the other side Â· perspective may be flipped.");
-      if((IMPORT_MODE==="full"||IMPORT_MODE==="defense") && dN===0 && (odkDist[dk]||0)>0) warns.push(esc(T)+": "+(odkDist[dk]||0)+" ODK="+dk+" snaps but none tagged with coverage/front â€” no defense captured (untagged rows, or perspective flipped).");
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="scout") && oN===0 && oOpp>0) warns.push(esc(T)+": 0 offense snaps on ODK="+ok+", but "+oOpp+" on the other side · perspective may be flipped.");
+      if((IMPORT_MODE==="full"||IMPORT_MODE==="defense") && dN===0 && (odkDist[dk]||0)>0) warns.push(esc(T)+": "+(odkDist[dk]||0)+" ODK="+dk+" snaps but none tagged with coverage/front — no defense captured (untagged rows, or perspective flipped).");
     });
     if(warns.length) H2+='<div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">'+warns.map(w=>"? "+w).join("<br>")+'</div>';
-    else H2+='<p class="foot" style="margin:2px 0">Looks consistent â€” no inversion or blank-tag flags.</p>';
+    else H2+='<p class="foot" style="margin:2px 0">Looks consistent — no inversion or blank-tag flags.</p>';
     H+=H2;
   })();
   const cl=rawCleanup(txt);
@@ -2008,7 +2009,7 @@ function callerSignalMap(){
   }catch(e){}
   return map;
 }
-/* ----- LIVE CALLER â€” event log â†’ fold â†’ gamesRows (Slice 1 multi-device) ----- */
+/* ----- LIVE CALLER — event log ? fold ? gamesRows (Slice 1 multi-device) ----- */
 function callerEngine(){ return window.OFFGRD_CALLER||null; }
 function callerBridge(){ return window.OFFGRD_CALLER_BRIDGE||null; }
 function callerSessionDate(){
@@ -2052,7 +2053,7 @@ function callerExpectSample(){
   const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
   return {g:g, cov:cov, target:cov?cov.k:null, def:def};
 }
-/** Fold output entry â†’ offense row (identical shape to parseOffense / Hudl ours). */
+/** Fold output entry ? offense row (identical shape to parseOffense / Hudl ours). */
 function callerEntryToRow(l){
   const down=+l.dn||1;
   const distance=(typeof dbToNum==="function"?dbToNum(l.db):null);
@@ -2070,7 +2071,7 @@ function callerEntryToRow(l){
     coverage: l.coverage||"",
     front: front,
     pressure: pressure,
-    /* Sticky carry audit â€” future models can weight explicit higher */
+    /* Sticky carry audit — future models can weight explicit higher */
     frontCarried: !!(front&&l.frontCarried),
     pressureCarried: !!(pressure&&l.pressureCarried),
     formation: null,
@@ -2140,14 +2141,14 @@ function callerObsChipHtml(){
     }).join("");
   }
   let h=`<div class="panel no-print" data-acc-skip style="margin-top:8px">`;
-  h+=`<div class="lbl">Front <span class="foot" style="font-weight:600">(optional Â· sticky)</span></div>`;
+  h+=`<div class="lbl">Front <span class="foot" style="font-weight:600">(optional · sticky)</span></div>`;
   h+=`<div class="seg covlog" style="flex-wrap:wrap;display:flex;margin-bottom:8px">${chips("front", book.fronts)}</div>`;
-  h+=`<div class="lbl">Pressure <span class="foot" style="font-weight:600">(optional Â· sticky)</span></div>`;
+  h+=`<div class="lbl">Pressure <span class="foot" style="font-weight:600">(optional · sticky)</span></div>`;
   h+=`<div class="seg covlog" style="flex-wrap:wrap;display:flex">${chips("pressure", book.pressures)}</div>`;
   if((cs.front||cs.pressure)&&!cs.frontJustSet&&!cs.pressureJustSet&&CALLER_LOG.length){
-    h+=`<p class="foot" style="margin:6px 0 0">Carrying last look â€” tap to change; never required.</p>`;
+    h+=`<p class="foot" style="margin:6px 0 0">Carrying last look — tap to change; never required.</p>`;
   } else {
-    h+=`<p class="foot" style="margin:6px 0 0">Tap what they showed â€” or leave blank.</p>`;
+    h+=`<p class="foot" style="margin:6px 0 0">Tap what they showed — or leave blank.</p>`;
   }
   h+=`</div>`;
   return h;
@@ -2215,10 +2216,10 @@ function callerRefold(){
   CALLER_ACTIVITY=folded.activity||[];
   callerSyncToGames();
 }
-/** Write folded (non-superseded) calls into GAMES ours â€” one dataset for bestCallsFor. */
+/** Write folded (non-superseded) calls into GAMES ours — one dataset for bestCallsFor. */
 function callerSyncToGames(){
   const sess=callerEnsureSession();
-  /* Special teams never enter the offensive "ours" dataset â€” bestCallsFor/playKind stay offense-only. */
+  /* Special teams never enter the offensive "ours" dataset — bestCallsFor/playKind stay offense-only. */
   const rows=CALLER_LOG.filter(l=>!callerIsST(l)).map(callerEntryToRow);
   const k=gameKey(sess.opp, sess.week, "ours");
   const prev=GAMES.find(g=>g.key===k);
@@ -2374,7 +2375,7 @@ function loadCallerSession(){
     callerRefold();
     return;
   }
-  /* migrate v1 snapshot â†’ events */
+  /* migrate v1 snapshot ? events */
   try{
     const x=localStorage.getItem(CALLER_KEY);
     if(!x) return;
@@ -2430,7 +2431,7 @@ function callerAgo(ts){
   if(s<60) return s+"s ago";
   return Math.round(s/60)+"m ago";
 }
-/** Selection / ON CALL â€” always from folded CALLER_LOG (survives refresh + multi-device). */
+/** Selection / ON CALL — always from folded CALLER_LOG (survives refresh + multi-device). */
 function callerOnCall(){
   const E=callerEngine();
   if(E&&E.onCallFromLog) return E.onCallFromLog(CALLER_LOG);
@@ -2467,7 +2468,7 @@ function callerConfirmSit(){
   callerSaveLocal();
   renderCaller();
 }
-/** After grading â€” suggest next D&D as inferred, or flag needs-input (turnover/penalty). */
+/** After grading — suggest next D&D as inferred, or flag needs-input (turnover/penalty). */
 function callerMaybeAdvanceAfterGrade(entry){
   const O=callerOut();
   if(!O||!O.inferNextSituation||!entry||!entry.result) return;
@@ -2548,7 +2549,7 @@ function callerEditPanelHtml(){
   const buckets=isST?(O.stSetFor&&O.stSetFor(stKind)||[]):(O?O.RESULT_BUCKETS:[]);
   const flags=O?O.FLAGS:[];
   let h=`<div class="caller-edit-panel no-print" role="dialog" aria-label="Edit last play">`;
-  h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px"><span class="pl"><b>Edit last play</b> â€” keeps the call, fixes details</span>`;
+  h+=`<div class="persp" style="border:none;padding:0;margin-bottom:8px"><span class="pl"><b>Edit last play</b> — keeps the call, fixes details</span>`;
   h+=`<button type="button" class="ghost" style="margin-left:auto" onclick="callerCloseEdit()">Close</button></div>`;
   h+=`<p class="foot" style="margin:0 0 8px">Appends a correction (original stays in the log). Not the same as Undo call.</p>`;
   h+=`<div class="grid" style="gap:8px">`;
@@ -2558,8 +2559,8 @@ function callerEditPanelHtml(){
   h+=`<div><div class="lbl">Hash</div><select id="callerEditHash" style="width:100%;min-height:44px">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([v,l])=>`<option value="${v}"${entry.hash===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   h+=`<div><div class="lbl">Field</div><select id="callerEditZone" style="width:100%;min-height:44px">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([v,l])=>`<option value="${v}"${entry.zone===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   if(buckets.length){
-    h+=`<div><div class="lbl">Result</div><select id="callerEditResult" style="width:100%;min-height:44px"><option value="">â€”</option>`+buckets.map(b=>`<option value="${b.id}"${entry.result===b.id?" selected":""}>${b.label}</option>`).join("")+`</select></div>`;
-    if(!isST) h+=`<div><div class="lbl">Flag</div><select id="callerEditFlag" style="width:100%;min-height:44px"><option value="">â€”</option>`+flags.map(f=>`<option value="${f.id}"${entry.flag===f.id?" selected":""}>${f.label}</option>`).join("")+`</select></div>`;
+    h+=`<div><div class="lbl">Result</div><select id="callerEditResult" style="width:100%;min-height:44px"><option value="">—</option>`+buckets.map(b=>`<option value="${b.id}"${entry.result===b.id?" selected":""}>${b.label}</option>`).join("")+`</select></div>`;
+    if(!isST) h+=`<div><div class="lbl">Flag</div><select id="callerEditFlag" style="width:100%;min-height:44px"><option value="">—</option>`+flags.map(f=>`<option value="${f.id}"${entry.flag===f.id?" selected":""}>${f.label}</option>`).join("")+`</select></div>`;
   }
   h+=`</div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:12px">`;
@@ -2585,7 +2586,7 @@ function callerGrade(i, resultId){
   }
   renderCaller();
 }
-/** Optional flag â€” only when result misleads. Toggle off if same. */
+/** Optional flag — only when result misleads. Toggle off if same. */
 function callerSetFlag(i, flagId){
   const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
   const next=(entry.flag===flagId?null:flagId);
@@ -2615,7 +2616,7 @@ function callerSetConcept(i, conceptId){
   });
   renderCaller();
 }
-/** @deprecated hit/miss â€” routes to buckets via legacy ids still folded */
+/** @deprecated hit/miss — routes to buckets via legacy ids still folded */
 function callerResult(i,res){ callerGrade(i,res); }
 function callerResultChipsHtml(l, i, opts){
   opts=opts||{};
@@ -2712,7 +2713,7 @@ function callerRatesHtml(){
   if(r.successRate!=null) bits.push(Math.round(r.successRate*100)+"% success");
   if(r.explosiveRate!=null) bits.push(Math.round(r.explosiveRate*100)+"% explosive");
   if(r.pending) bits.push(r.pending+" need results");
-  return bits.length?`<p class="foot caller-rates">${bits.join(" Â· ")}</p>`:"";
+  return bits.length?`<p class="foot caller-rates">${bits.join(" · ")}</p>`:"";
 }
 function callerCallItemHtml(l, i, opts){
   opts=opts||{};
@@ -2725,7 +2726,7 @@ function callerCallItemHtml(l, i, opts){
   let meta="";
   if(l.result&&O){
     const lbl=O.resultLabel?O.resultLabel(l.result):((O.RESULT_BUCKETS.find(x=>x.id===l.result)||{}).label||l.result);
-    meta=`<span class="foot">${esc(lbl)}${l.negated?" Â· neg":""}${l.concept?" Â· "+esc(O.conceptLabel(l.conceptOverride||l.concept)):""}</span>`;
+    meta=`<span class="foot">${esc(lbl)}${l.negated?" · neg":""}${l.concept?" · "+esc(O.conceptLabel(l.conceptOverride||l.concept)):""}</span>`;
   } else if(l.result==="hit"||l.result==="miss"){
     meta=`<span class="foot">${l.result}</span>`;
   }
@@ -2736,18 +2737,18 @@ function callerUiChrome(){
   h+=callerOnCallBarHtml();
   h+=callerEditPanelHtml();
   if(CALLER_PEERS.length){
-    h+=`<p class="foot caller-presence no-print" style="margin:0 0 8px">${CALLER_PEERS.map(p=>esc(p.label||"Coach")+" Â· active").join(" Â· ")}</p>`;
+    h+=`<p class="foot caller-presence no-print" style="margin:0 0 8px">${CALLER_PEERS.map(p=>esc(p.label||"Coach")+" · active").join(" · ")}</p>`;
   }
   const remote=CALLER_ACTIVITY.filter(a=>a.deviceId!==callerDeviceId()).slice(-1)[0];
   if(remote){
-    h+=`<p class="foot no-print" style="margin:0 0 8px;color:var(--accent2)">Play ${remote.playIndex+1} Â· <b>${esc(remote.play||"?")}</b> â€” logged by ${esc(remote.actorLabel||"teammate")} ${callerAgo(remote.clientTs)}</p>`;
+    h+=`<p class="foot no-print" style="margin:0 0 8px;color:var(--accent2)">Play ${remote.playIndex+1} · <b>${esc(remote.play||"?")}</b> — logged by ${esc(remote.actorLabel||"teammate")} ${callerAgo(remote.clientTs)}</p>`;
   }
   if(CALLER_COLLISIONS.length){
     h+=`<div class="panel caller-collision no-print" style="border-color:var(--warn);background:#fff8e8;margin-bottom:10px">`;
     CALLER_COLLISIONS.forEach(function(c,ix){
       const a=(c.keep.payload&&c.keep.payload.play)||"?";
       const b=(c.drop.payload&&c.drop.payload.play)||"?";
-      h+=`<p style="margin:0 0 6px;font-weight:700">Two calls for play ${c.playIndex+1} â€” keep ${esc(a)} or ${esc(b)}?</p>`;
+      h+=`<p style="margin:0 0 6px;font-weight:700">Two calls for play ${c.playIndex+1} — keep ${esc(a)} or ${esc(b)}?</p>`;
       h+=`<div class="seg">`;
       h+=`<button type="button" onclick="callerResolveCollision(${ix},'keep')">Keep ${esc(a)}</button>`;
       h+=`<button type="button" onclick="callerResolveCollision(${ix},'drop')">Keep ${esc(b)}</button>`;
@@ -2775,7 +2776,7 @@ function callerUndoLast(){
 }
 
 function callerSelect(){ return window.OFFGRD_CALLER_SELECT||null; }
-/* SINGLE RANKING SEAM â€” the only place the caller reads play ranking.
+/* SINGLE RANKING SEAM — the only place the caller reads play ranking.
    Suggester v2 (football priors + scouted + observed drift) swaps in HERE
    without touching any selection UI. Returns {target, cov, list:[{play,sr,n,kind}]}
    ranked best-first. Math is unchanged: it wraps bestCallsFor()/rankCalls(). */
@@ -2791,11 +2792,11 @@ function callerRankedCalls(){
 function callerCallReason(entry, cov){
   if(!entry) return "";
   const pct=Math.round((entry.sr||0)*100)+"% on "+(entry.n||0);
-  return cov ? `beats their ${cov.k} Â· ${pct}` : `${pct}`;
+  return cov ? `beats their ${cov.k} · ${pct}` : `${pct}`;
 }
 /* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
-   in his order, with the suggester woven in as marks â€” not a competing screen.
-   Every tap here flows into callerLog() â†’ the identical ON CALL / outcome path. */
+   in his order, with the suggester woven in as marks — not a competing screen.
+   Every tap here flows into callerLog() ? the identical ON CALL / outcome path. */
 function callerCallSheetHtml(){
   const S=callerSelect();
   const cs=callerSit;
@@ -2811,14 +2812,14 @@ function callerCallSheetHtml(){
   const sigTag=nm=>sigMap[nm]!=null?`<span class="sig">${esc(String(sigMap[nm]))}</span>`:`<span class="sig sig-empty"></span>`;
   const topInBucket= !!(top && bucket && S && S.playInBucket(bucket, top.play));
   let h="";
-  /* Tier 2 â€” "Best now" strip only when the suggester's pick isn't on the matched sheet. */
+  /* Tier 2 — "Best now" strip only when the suggester's pick isn't on the matched sheet. */
   if(top && !topInBucket){
     const on=onCall&&onCall.play===top.play;
     h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now</div>`;
     h+=`<button type="button" class="rd-gd-bestnow-row${on?" oncall":""}" onclick="callerLog('${escN(top.play)}')">${sigTag(top.play)}<span class="nm">${esc(top.play)}</span><span class="cta">${on?"On call":"Call it"}</span></button>`;
     h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov))}</p></div>`;
   }
-  /* Tier 1 â€” the call sheet (matched bucket) or the best-options fallback. */
+  /* Tier 1 — the call sheet (matched bucket) or the best-options fallback. */
   h+=`<div class="rd-gd-sheet">`;
   h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Best options"}</span><button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button></div>`;
   if(bucket && Array.isArray(bucket.plays) && bucket.plays.length){
@@ -2835,10 +2836,10 @@ function callerCallSheetHtml(){
       h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
-    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> â€” ${esc(callerCallReason(top, ranked.cov))}</p>`;
+    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> — ${esc(callerCallReason(top, ranked.cov))}</p>`;
   } else if(ranked.list.length){
-    /* No authored bucket for this down/distance â€” surface the suggester's ranked list as the sheet. */
-    h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} â€” best from your reps:</p>`;
+    /* No authored bucket for this down/distance — surface the suggester's ranked list as the sheet. */
+    h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} — best from your reps:</p>`;
     h+=`<div class="rd-gd-sheet-list">`;
     ranked.list.slice(0,6).forEach((r)=>{
       const nm=r.play; const on=onCall&&onCall.play===nm;
@@ -2846,14 +2847,14 @@ function callerCallSheetHtml(){
     });
     h+=`</div>`;
   } else {
-    h+=`<p class="rd-gd-sheet-sub">${ranked.target?"No reps for this look yet â€” widen hash/field, or open the playbook.":"Tap the playbook to call any play."}</p>`;
+    h+=`<p class="rd-gd-sheet-sub">${ranked.target?"No reps for this look yet — widen hash/field, or open the playbook.":"Tap the playbook to call any play."}</p>`;
   }
   h+=`</div>`;
   return h;
 }
-/* Tier 3 â€” full playbook escape hatch. One tap from the call screen; searchable
-   by name (type "hou" â†’ HOUSTON), family chips, recent + hot surfaced. Any play
-   callable in â‰¤2 taps. Calling flows through the same callerLog() path. */
+/* Tier 3 — full playbook escape hatch. One tap from the call screen; searchable
+   by name (type "hou" ? HOUSTON), family chips, recent + hot surfaced. Any play
+   callable in =2 taps. Calling flows through the same callerLog() path. */
 let _callerPB=null, _callerPBFilter="";
 function callerOpenPlaybook(){
   if(!_callerPB){
@@ -2880,7 +2881,7 @@ function _callerPBBuild(query){
   const fams=(S&&S.families)?S.families(pbook):[];
   let h=`<div class="caller-pb-box" role="dialog" aria-label="Playbook">`;
   h+=`<div class="caller-pb-head"><b>Playbook</b><button type="button" class="caller-pb-close" onclick="callerClosePlaybook()">Close</button></div>`;
-  h+=`<input id="callerPBQ" class="caller-pb-q" placeholder="Search plays â€” type a name" value="${esc(query||"")}" autocomplete="off" autocapitalize="off" spellcheck="false">`;
+  h+=`<input id="callerPBQ" class="caller-pb-q" placeholder="Search plays — type a name" value="${esc(query||"")}" autocomplete="off" autocapitalize="off" spellcheck="false">`;
   if(fams.length>1){
     h+=`<div class="caller-pb-chips"><button type="button" class="caller-pb-chip${_callerPBFilter?"":" on"}" onclick="callerPlaybookFilter('')">All</button>`;
     fams.forEach(f=>{ const fe=String(f).replace(/'/g,""); h+=`<button type="button" class="caller-pb-chip${_callerPBFilter.toLowerCase()===String(f).toLowerCase()?" on":""}" onclick="callerPlaybookFilter('${esc(fe)}')">${esc(f)}</button>`; });
@@ -2912,11 +2913,11 @@ function _callerPBRenderList(query){
     if(hot.length){ h+=`<div class="caller-pb-sec">Hot today</div><div class="caller-pb-quick">`+hot.map(nm=>`<button type="button" class="caller-pb-quickbtn hot" onclick="callerPlaybookCall('${escN(nm)}')">${sigTag(nm)}${esc(nm)}</button>`).join("")+`</div>`; }
   }
   if(items.length){
-    h+=items.map(p=>{ const nm=p&&p.name; if(!nm) return ""; const meta=[p.formation,p.family||p.type].filter(Boolean).join(" Â· ");
+    h+=items.map(p=>{ const nm=p&&p.name; if(!nm) return ""; const meta=[p.formation,p.family||p.type].filter(Boolean).join(" · ");
       return `<button type="button" class="caller-pb-row" onclick="callerPlaybookCall('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span><span class="meta">${esc(meta)}</span><span class="cta">Call</span></button>`;
     }).join("");
   } else {
-    h+=`<p class="foot">${pbook.length?"No matches.":"No playbook loaded â€” sign in on a device with your program's plays."}</p>`;
+    h+=`<p class="foot">${pbook.length?"No matches.":"No playbook loaded — sign in on a device with your program's plays."}</p>`;
   }
   list.innerHTML=h;
 }
@@ -2940,21 +2941,21 @@ function renderCaller(){
     const sitBits=[(ordinal(+cs.dn)+"").toUpperCase()+" & "+cs.db];
     if(zoneLbl) sitBits.push(zoneLbl);
     if(hashLbl) sitBits.push(hashLbl);
-    const sitTxt=sitBits.join(" Â· ");
+    const sitTxt=sitBits.join(" · ");
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
     let h=`<div class="rd-gd" data-acc-skip>`;
-    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth âœ“":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth ?":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
     h+=callerStickyBarHtml(sitTxt);
     h+=`<div class="rd-gd-cols">`;
     h+=`<div class="rd-gd-col-main">`;
-    /* Situation always expanded â€” never behind <details>. Inferred advance is visually distinct. */
+    /* Situation always expanded — never behind <details>. Inferred advance is visually distinct. */
     const sitInf=!!cs.inferred;
     const sitNeed=!!cs.needsInput;
     h+=`<div id="caller-sit-anchor" class="rd-gd-sit${sitInf?" rd-gd-sit-inferred":""}${sitNeed?" rd-gd-sit-needs":""}">`;
     h+=`<div class="rd-gd-sit-txt">${esc(sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">set situation</span>':""}</div>`;
     if(sitInf){
-      h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">Suggested from last result â€” confirm or tap a chip</span>`;
+      h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">Suggested from last result — confirm or tap a chip</span>`;
       h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm</button></div>`;
     }
     h+=`<div class="rd-gd-sit-grid">`;
@@ -2969,20 +2970,20 @@ function renderCaller(){
     h+=callerStRowHtml();
     h+=`</div>`; /* /rd-gd-col-main */
     h+=`<div class="rd-gd-col-side">`;
-    /* Reference (front/pressure Â· expect Â· they showed) â€” demoted behind a tap, never between situation and call. */
-    h+=`<details class="rd-gd-ref no-print"><summary class="rd-gd-ref-sum">Reference â€” front Â· expect Â· they showed</summary><div class="rd-gd-ref-body">`;
+    /* Reference (front/pressure · expect · they showed) — demoted behind a tap, never between situation and call. */
+    h+=`<details class="rd-gd-ref no-print"><summary class="rd-gd-ref-sum">Reference — front · expect · they showed</summary><div class="rd-gd-ref-body">`;
     h+=callerObsChipHtml();
     h+=`<div class="rd-gd-expect"><div class="lbl">Expect</div><div class="body">`;
     if(g.length){
       h+=cov?`<b>${esc(cov.k)}</b> ${fmtPct(cov.pct)}`:"?";
-      if(fr) h+=` Â· ${esc(fr.k)} front`;
-      h+=` Â· ${fmtPct(pr)} pressure Â· ${g.length} snaps`;
-      if(liveM.length) h+=` Â· ${liveM.length} live`;
-    } else h+=`No sample â€” try widening hash/field.`;
+      if(fr) h+=` · ${esc(fr.k)} front`;
+      h+=` · ${fmtPct(pr)} pressure · ${g.length} snaps`;
+      if(liveM.length) h+=` · ${liveM.length} live`;
+    } else h+=`No sample — try widening hash/field.`;
     h+=`</div></div>`;
-    h+=`<div class="rd-gd-panel no-print"><div class="lbl">They showed â€” log it</div><div class="seg covlog" style="flex-wrap:wrap;display:flex">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button type="button" onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
-    if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot" style="margin-top:8px">Logged this game: <b>${liveAll.length}</b> Â· ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" Â· ")} <button type="button" class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; }
-    else h+=`<p class="foot" style="margin-top:8px">Tap the coverage they ran â€” it blends into the prediction live.</p>`;
+    h+=`<div class="rd-gd-panel no-print"><div class="lbl">They showed — log it</div><div class="seg covlog" style="flex-wrap:wrap;display:flex">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button type="button" onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
+    if(liveAll.length){ const ld=weightedDist(liveAll.filter(r=>r.coverage),"coverage",false); h+=`<p class="foot" style="margin-top:8px">Logged this game: <b>${liveAll.length}</b> · ${ld.arr.slice(0,4).map(x=>esc(x.k)+" "+Math.round(x.pct*100)+"%").join(" · ")} <button type="button" class="ghost no-print" style="padding:2px 8px;margin-left:6px" onclick="liveClear()">New game</button></p>`; }
+    else h+=`<p class="foot" style="margin-top:8px">Tap the coverage they ran — it blends into the prediction live.</p>`;
     h+=`</div>`;
     h+=`</div></details>`; /* /rd-gd-ref-body + /details */
     h+=`<div class="rd-gd-panel"><div class="lbl">Results</div>`;
@@ -3049,7 +3050,7 @@ function callerSet(k,v){
 function callerLog(play){
   const E=callerEngine();
   callerEnsureSession();
-  /* Silent de-dup: same play within window already on the sheet â€” re-confirm, do not append. */
+  /* Silent de-dup: same play within window already on the sheet — re-confirm, do not append. */
   if(E&&E.wouldDedupCall){
     const hit=E.wouldDedupCall(CALLER_LOG, play, Date.now());
     if(hit){
@@ -3095,7 +3096,7 @@ function callerLog(play){
   }
   renderCaller();
 }
-/** Special-teams call (Punt / Field Goal) â€” reuses the call/ON CALL/undo/edit path, tagged playType. */
+/** Special-teams call (Punt / Field Goal) — reuses the call/ON CALL/undo/edit path, tagged playType. */
 function callerLogST(kind){
   if(kind!=="fg"&&kind!=="punt") return;
   const E=callerEngine();
@@ -3136,28 +3137,28 @@ function callerIsST(l){
   if(O&&O.isSpecialEntry) return O.isSpecialEntry(l);
   return !!(l&&(l.playType==="fg"||l.playType==="punt"));
 }
-/** 4th-down special-teams options â€” Go for it / Punt / Field Goal. */
+/** 4th-down special-teams options — Go for it / Punt / Field Goal. */
 function callerStRowHtml(){
   if(+callerSit.dn!==4) return "";
   const on=callerOnCall();
   const fgOn=on&&on.play==="Field Goal";
   const puntOn=on&&on.play==="Punt";
-  let h=`<div class="rd-gd-st no-print" data-acc-skip><div class="lbl">4th down â€” special teams</div><div class="rd-gd-st-row">`;
+  let h=`<div class="rd-gd-st no-print" data-acc-skip><div class="lbl">4th down — special teams</div><div class="rd-gd-st-row">`;
   h+=`<button type="button" class="rd-gd-st-btn" onclick="callerJumpTop()">Go for it</button>`;
-  h+=`<button type="button" class="rd-gd-st-btn${puntOn?" on":""}" onclick="callerLogST('punt')">${puntOn?"Punt Â· on call":"Punt"}</button>`;
-  h+=`<button type="button" class="rd-gd-st-btn${fgOn?" on":""}" onclick="callerLogST('fg')">${fgOn?"Field Goal Â· on call":"Field Goal"}</button>`;
+  h+=`<button type="button" class="rd-gd-st-btn${puntOn?" on":""}" onclick="callerLogST('punt')">${puntOn?"Punt · on call":"Punt"}</button>`;
+  h+=`<button type="button" class="rd-gd-st-btn${fgOn?" on":""}" onclick="callerLogST('fg')">${fgOn?"Field Goal · on call":"Field Goal"}</button>`;
   h+=`</div></div>`;
   return h;
 }
-/** Small ST readout â€” FG accuracy + punt inside-20. */
+/** Small ST readout — FG accuracy + punt inside-20. */
 function callerStStatsHtml(){
   const O=callerOut(); if(!O||!O.fgStats) return "";
   const fg=O.fgStats(CALLER_LOG), pu=O.puntStats(CALLER_LOG);
   if(!fg.attempts&&!pu.punts) return "";
   const bits=[];
   if(fg.attempts) bits.push(`FG ${fg.made}/${fg.attempts}${fg.pct!=null?" ("+Math.round(fg.pct*100)+"%)":""}`);
-  if(pu.punts){ let p=`Punts ${pu.punts}`; if(pu.inside20Rate!=null) p+=` Â· ${Math.round(pu.inside20Rate*100)}% inside 20`; if(pu.fakesConverted) p+=` Â· ${pu.fakesConverted} fake conv`; bits.push(p); }
-  return `<p class="foot caller-st-stats">${bits.join(" Â· ")}</p>`;
+  if(pu.punts){ let p=`Punts ${pu.punts}`; if(pu.inside20Rate!=null) p+=` · ${Math.round(pu.inside20Rate*100)}% inside 20`; if(pu.fakesConverted) p+=` · ${pu.fakesConverted} fake conv`; bits.push(p); }
+  return `<p class="foot caller-st-stats">${bits.join(" · ")}</p>`;
 }
 function callerResult(i,res){
   const entry=CALLER_LOG[i]; if(!entry) return;
@@ -3211,7 +3212,7 @@ function splitCSVLine(line){
   }
   out.push(cur); return out;
 }
-/* Field aliases Â· covers our own headers AND Hudl Classic breakdown column names.
+/* Field aliases · covers our own headers AND Hudl Classic breakdown column names.
    Hudl exports are team-customized, so we match generously and case-insensitively. */
 const ALIASES={
   date:["date","game","game date","gamedate"],
@@ -3261,7 +3262,7 @@ function zoneFromYardLine(raw){
   const num=parseInt(s.replace(/[^0-9]/g,""),10);
   if(opp){ return (!isNaN(num)&&num<=20)?"REDZONE":"PLUS"; }
   if(own) return "OWN";
-  return ""; // ambiguous Â· leave unset so red-zone filter isn't polluted
+  return ""; // ambiguous · leave unset so red-zone filter isn't polluted
 }
 function parseCSV(text,forceKeep){
   const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.trim().length);
@@ -3347,12 +3348,12 @@ function setBooth(on){
   if(rd){
     document.documentElement.classList.toggle("rd-booth",!!on);
     try{ document.body.classList.remove("dark"); }catch(e){}
-    const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode âœ“":"Booth mode";
+    const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode ?":"Booth mode";
     try{ document.querySelector('meta[name="theme-color"]').setAttribute("content",on?"#0E1116":"#13294B"); }catch(e){}
     try{ if(OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI(); }catch(e){}
   } else {
     document.body.classList.toggle("dark",on);
-    const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode âœ“":"Booth mode";
+    const b=document.getElementById("darkBtn"); if(b) b.textContent=on?"Booth mode ?":"Booth mode";
     try{ document.querySelector('meta[name="theme-color"]').setAttribute("content",on?"#0b1017":"#13294B"); }catch(e){}
   }
 }
@@ -3474,7 +3475,7 @@ function saveBrands(){ try{ localStorage.setItem("offgrd_brands", JSON.stringify
 function loadIdentity(){ try{ return localStorage.getItem("offgrd_identity")||""; }catch(e){ return ""; } }
 function saveIdentity(name){ try{ localStorage.setItem("offgrd_identity", name||""); }catch(e){} }
 function idealInk(hex){ hex=(hex||"").replace("#",""); if(hex.length===3) hex=hex.split("").map(c=>c+c).join(""); if(hex.length<6) return "#ffffff"; const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255; const f=c=>c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4); const L=0.2126*f(r)+0.7152*f(g)+0.0722*f(b); return L>0.55?"#08111d":"#ffffff"; }
-function applyTeamColors(){ try{ const known=USER_BRANDS[OUR_TEAM]||TEAMS[OUR_TEAM]; const root=document.body; if(known&&known.bg){ root.style.setProperty("--accent",known.bg); root.style.setProperty("--accent-ink", idealInk(known.bg)); try{ document.documentElement.setAttribute("data-team-hex",known.bg); }catch(e2){} } else { root.style.removeProperty("--accent"); root.style.removeProperty("--accent-ink"); try{ document.documentElement.removeAttribute("data-team-hex"); }catch(e2){} } /* Redesign accent is tuned for legibility on Night/Chalk Â· overrides chrome accent when flag on. */ if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()&&OFFGRD_REDESIGN.applyTokens) OFFGRD_REDESIGN.applyTokens(); }catch(e){} }
+function applyTeamColors(){ try{ const known=USER_BRANDS[OUR_TEAM]||TEAMS[OUR_TEAM]; const root=document.body; if(known&&known.bg){ root.style.setProperty("--accent",known.bg); root.style.setProperty("--accent-ink", idealInk(known.bg)); try{ document.documentElement.setAttribute("data-team-hex",known.bg); }catch(e2){} } else { root.style.removeProperty("--accent"); root.style.removeProperty("--accent-ink"); try{ document.documentElement.removeAttribute("data-team-hex"); }catch(e2){} } /* Redesign accent is tuned for legibility on Night/Chalk · overrides chrome accent when flag on. */ if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()&&OFFGRD_REDESIGN.applyTokens) OFFGRD_REDESIGN.applyTokens(); }catch(e){} }
 function fileToDataURL(file,cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
 function logoKey(name){ const s=String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-+|-+$)/g,"").slice(0,40); return s||"logo"; }
 function logoFromFile(file,key,cb){ if(typeof key==="function"){ cb=key; key=null; } if(!file){ cb(null); return; } const fr=new FileReader(); fr.onload=function(){ const src=fr.result; const img=new Image(); img.onload=function(){ try{ const max=160; let w=img.width||max, h=img.height||max; if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } } const c=document.createElement("canvas"); c.width=w; c.height=h; const cx=c.getContext("2d"); cx.clearRect(0,0,w,h); cx.drawImage(img,0,0,w,h); const dataUrl=c.toDataURL("image/png"); if(key && window.OFFGRD_UPLOAD_LOGO && c.toBlob){ c.toBlob(function(blob){ if(!blob){ cb(dataUrl); return; } window.OFFGRD_UPLOAD_LOGO(key, blob).then(function(url){ cb(url||dataUrl); }).catch(function(){ cb(dataUrl); }); }, "image/png"); } else { cb(dataUrl); } }catch(e){ cb(src); } }; img.onerror=function(){ cb(src); }; img.src=src; }; fr.onerror=function(){ cb(null); }; fr.readAsDataURL(file); }
@@ -3493,7 +3494,7 @@ function brandingHTML(){
      +'<label class="lbl" style="display:flex;align-items:center;gap:6px">Primary <input type="color" id="brBg" value="'+(me.bg||"#13294B")+'"></label>'
      +'<label class="lbl" style="display:flex;align-items:center;gap:6px">Text <input type="color" id="brFg" value="'+(me.fg||"#ffffff")+'"></label>'
      +'<button class="ghost" id="brLogoBtn">Upload logo</button><button class="ghost" id="brLogoClr">Use initials</button></div>'
-   +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Position names</div><p class="foot" style="margin:4px 0 8px">What your staff calls each spot â€” shared with the whole program.</p><div id="brPosGlossary"></div></div>'
+   +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Position names</div><p class="foot" style="margin:4px 0 8px">What your staff calls each spot — shared with the whole program.</p><div id="brPosGlossary"></div></div>'
    +'<div style="margin-top:14px"><button id="brSave" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Save team</button> <span id="brMsg" class="foot"></span></div>'
    +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Opponent logos</div>'+opphtml+'</div>'
    +'<input type="file" id="brFile" accept="image/*" style="display:none"><input type="file" id="brOppFile" accept="image/*" style="display:none">'
@@ -3565,10 +3566,10 @@ OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); loadCallerSession(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
 window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames(); else saveGames();buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}}};
-/* week plan hook Â· account.js feeds the active week_plans row here on every pull.
-   Registered at TOP LEVEL, synchronously (the Playbook sync lesson Â· never move into DOMContentLoaded). */
+/* week plan hook · account.js feeds the active week_plans row here on every pull.
+   Registered at TOP LEVEL, synchronously (the Playbook sync lesson · never move into DOMContentLoaded). */
 window.OFFGRD_WEEK={set:function(wp,ce){
-  /* Light signature Â· never JSON.stringify the full week (gen can be huge; freezes Regenerate). */
+  /* Light signature · never JSON.stringify the full week (gen can be huge; freezes Regenerate). */
   function weekSig(w){ if(!w) return ""; return [w.id||"",w.updated_at||"",w.opponent||"",w.game_date||"",(w.gen&&w.gen.package_generated_at)||"",(w.gen&&w.gen.inputs_hash)||"",(w.gen&&w.gen.package_status)||"",(Array.isArray(w.buckets)?w.buckets.length:0)].join("|"); }
   const changed = weekSig(wp)!==weekSig(WEEK) || WEEK_EDIT!==!!ce;
   WEEK_EDIT=!!ce;
@@ -3614,7 +3615,7 @@ render();
 if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
 else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
 else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
-/* Redesign sub-app â€” main handoff: ?view= or sessionStorage.offgrd_rd_view or persisted offgrd_view */
+/* Redesign sub-app — main handoff: ?view= or sessionStorage.offgrd_rd_view or persisted offgrd_view */
 try{
   const m=(location.search||"").match(/[?&]view=([a-z]+)/i);
   let want=m?m[1]:"";
@@ -3623,9 +3624,9 @@ try{
   if(want && typeof setView==="function" && ["scout","plan","package","caller","report","practice"].indexOf(want)>=0) setView(want);
 }catch(e){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=149"></script>
-<script src="OFFGRD-role-gate.js?v=149"></script>
-<script src="OFFGRD-mobile.js?v=97"></script>
+<script type="module" src="OFFGRD-account.js?v=150"></script>
+<script src="OFFGRD-role-gate.js?v=150"></script>
+<script src="OFFGRD-mobile.js?v=150"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=149";
-import { openAuthModal } from "./OFFGRD-auth.js?v=73";
+import { Cloud } from "./OFFGRD-cloud.js?v=150";
+import { openAuthModal } from "./OFFGRD-auth.js?v=150";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -519,6 +519,7 @@ async function finishProgramHydrate(u){
   await refreshCreateEligibility();
   await refreshLinkStatus();
   publishProgramRole();
+  /* Init order: cloud module loaded (static import) → TEAM hydrated → persist brand → CSS hook */
   applyCloudBrand();
   try{
     if(TEAM && Array.isArray(TEAM.schedule)){
@@ -908,7 +909,8 @@ function obReadLogo(file, cb){
 function obApplyBrand(name, bg, fg, logo){
   const brand={abbr:obAbbr(name), fg:fg, bg:bg, logo:logo||""};
   pushBrand(name, brand);   /* cloud: whole staff sees the same crest */
-  if(window.OFFGRD_BRAND){ try{ window.OFFGRD_BRAND(name, brand); return; }catch(e){} }
+  if(window.OFFGRD_persistBrand){ window.OFFGRD_persistBrand(name, brand); }
+  else if(window.OFFGRD_BRAND){ try{ window.OFFGRD_BRAND(name, brand); return; }catch(e){} }
   /* not on the Scout page: write the same storage Scout reads on next load */
   try{
     const bs=JSON.parse(localStorage.getItem("offgrd_brands")||"{}");
@@ -933,20 +935,40 @@ function pushBrand(name, brand){
 window.OFFGRD_PUSH_BRAND=pushBrand;   /* Scout's Team & logos editor calls this on save */
 function applyCloudBrand(){
   try{
-    const b=TEAM && TEAM.brand; if(!b) return;
-    const brandName = b.name || (TEAM && TEAM.name) || "";
-    if(!brandName) return;
-    const brand={abbr:b.abbr||obAbbr(brandName), fg:b.fg||"#ffffff", bg:b.bg||"#13294B", logo:b.logo||""};
-    let cur={}; try{ cur=JSON.parse(localStorage.getItem("offgrd_brands")||"{}"); }catch(e){}
-    let curId=""; try{ curId=localStorage.getItem("offgrd_identity")||""; }catch(e){}
-    if(curId===brandName && JSON.stringify(cur[brandName]||{})===JSON.stringify(brand)) {
-      /* still apply glossary — may have changed without name/colors */
-    } else if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, brand); }
-    else{
-      cur[brandName]=brand;
-      localStorage.setItem("offgrd_brands", JSON.stringify(cur));
-      localStorage.setItem("offgrd_identity", brandName);
+    const b=TEAM && TEAM.brand;
+    const brandName = (b && b.name) || (TEAM && TEAM.name) || "";
+    if(!brandName){
+      try{ console.warn("[brand] empty: no team name (teamId=", TEAM && TEAM.id, ")"); }catch(e){}
+      return;
     }
+    if(!b || !b.bg){
+      try{
+        console.warn(
+          "[brand] empty cache: team",
+          brandName,
+          "has no brand.bg from session (teamId=",
+          TEAM && TEAM.id,
+          ") — accent will use fallback until coach saves Team & logos or RPC returns brand"
+        );
+      }catch(e){}
+      return;
+    }
+    const brand={
+      abbr: (b.abbr && String(b.abbr).trim()) || obAbbr(brandName),
+      fg: b.fg || "#ffffff",
+      bg: b.bg || "#13294B",
+      logo: b.logo || "",
+    };
+    const persist = window.OFFGRD_persistBrand;
+    if(!persist){
+      try{ console.warn("[brand] OFFGRD_persistBrand missing — load OFFGRD-brand-persist.js before account"); }catch(e){}
+      return;
+    }
+    const entry = persist(brandName, brand);
+    if(!entry) return;
+    try{ console.log("[brand] hydrated", brandName, entry.bg, "abbr=", entry.abbr); }catch(e){}
+    /* CSS-only hook on QB (redesign wrapper); Scout hook also updates in-page crest */
+    if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, entry); }
     /* Program position glossary (display-only labels) */
     try{
       if(b.posGlossary && window.OFFGRD_POS_GLOSSARY_ON_BRAND) window.OFFGRD_POS_GLOSSARY_ON_BRAND(b);
