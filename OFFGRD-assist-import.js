@@ -114,6 +114,32 @@
     return txt;
   }
 
+  /**
+   * Excel/SheetJS coerces Hudl DEF FRONT "4-3" → Apr 3 → "3-Apr" (and "3-4" → "4-Mar").
+   * Reverse that swap when the value looks like a locale month-day label.
+   * Real fronts ("4-3", "42 OVER-G", "BEAR") pass through unchanged.
+   */
+  function normalizeDefFront(value) {
+    if (value == null) return value;
+    var s = String(value).trim();
+    if (!s) return s;
+    var months = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
+    };
+    /* 3-Apr / 3-APR → 4-3  (Excel displayed Apr 3 after coercing typed "4-3") */
+    var m = s.match(/^(\d{1,2})-([A-Za-z]{3,4})(.*)$/);
+    if (m && months[m[2].toLowerCase()] != null) {
+      return String(months[m[2].toLowerCase()]) + "-" + String(parseInt(m[1], 10)) + (m[3] || "");
+    }
+    /* Apr-3 / APR-3 → 4-3 */
+    m = s.match(/^([A-Za-z]{3,4})-(\d{1,2})(.*)$/);
+    if (m && months[m[1].toLowerCase()] != null) {
+      return String(months[m[1].toLowerCase()]) + "-" + String(parseInt(m[2], 10)) + (m[3] || "");
+    }
+    return s;
+  }
+
   /** Mirror of offgrd.normalize_off_structure / formationCanon.normalizeOffStructure */
   function normalizeOffStructure(value) {
     if (value == null) return null;
@@ -415,7 +441,9 @@
       var success = isSuccessVal(down, distance, gain);
 
       var coverage = normCoverage(cellAt(cells, parsed.headers, map, "coverage"));
-      var front = cellAt(cells, parsed.headers, map, "front") || null;
+      var frontRaw = cellAt(cells, parsed.headers, map, "front");
+      var front = frontRaw ? normalizeDefFront(frontRaw) : null;
+      if (front === "") front = null;
       var pressureRaw = cellAt(cells, parsed.headers, map, "pressure");
       var pressure = pressureRaw ? String(pressureRaw).trim() : null;
       if (front || coverage || pressure) defFilled++;
@@ -980,5 +1008,9 @@
     detectPresetMap: detectPresetMap,
     buildSnaps: buildSnaps,
     normalizeOffStructure: normalizeOffStructure,
+    normalizeDefFront: normalizeDefFront,
+    parseText: parseText,
   };
+  /* Shared with OFFGRD.html sheet/CSV paths */
+  if (typeof root.normalizeDefFront !== "function") root.normalizeDefFront = normalizeDefFront;
 })(typeof window !== "undefined" ? window : globalThis);
