@@ -315,7 +315,7 @@
 <script src="OFFGRD-caller-outcome.js?v=219"></script>
 <script src="OFFGRD-formations-data.js?v=220"></script>
 <script src="OFFGRD-formation-canon.js?v=220"></script>
-<script src="OFFGRD-assist-import.js?v=152"></script>
+<script src="OFFGRD-assist-import.js?v=153"></script>
 <script src="OFFGRD-caller-log.js?v=219"></script>
 <script src="OFFGRD-caller-sync.js?v=219"></script>
 <script src="OFFGRD-caller-analysis.js?v=219"></script>
@@ -1074,6 +1074,7 @@ function callSheetHTML(cov, useRec){
 }
 function openImport(mode){
   IMPORT_MODE=mode||"defense";
+  try{ window.IMPORT_MODE=IMPORT_MODE; }catch(e){}
   document.getElementById("modal").classList.add("show");
   updateImportPerspUI();
   document.querySelectorAll("#seg-importmode button").forEach(x=>{ if(x.dataset.mode===IMPORT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
@@ -4599,12 +4600,20 @@ document.getElementById("loadCsv").onclick=function(){
   try{
     if(window.OFFGRD_ASSIST_IMPORT&&OFFGRD_ASSIST_IMPORT.onPreviewClick&&OFFGRD_ASSIST_IMPORT.onPreviewClick()) return;
   }catch(e){ console.warn("assist preview",e); }
+  /* Never run classic preview while Auto-Scout mode is selected. */
+  if(IMPORT_MODE==="autoscout"||(window.IMPORT_MODE==="autoscout")) return;
   previewImport();
 };
 document.getElementById("commitBtn").onclick=function(){
   try{
     if(window.OFFGRD_ASSIST_IMPORT&&OFFGRD_ASSIST_IMPORT.onCommitClick&&OFFGRD_ASSIST_IMPORT.onCommitClick()) return;
   }catch(e){ console.warn("assist commit",e); }
+  /* Hard gate: Auto-Scout must never fall through to upsertGame → scouting_games. */
+  if(IMPORT_MODE==="autoscout"||(window.IMPORT_MODE==="autoscout")){
+    const msg=document.getElementById("importMsg");
+    if(msg) msg.textContent="Auto-Scout commit blocked — Assist module did not handle Commit. Reload and retry.";
+    return;
+  }
   commitPending();
 };
 ["imp-opp","imp-opp2"].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input",updateImportPerspUI); });
@@ -4616,6 +4625,33 @@ function ensureXLSX(cb){
   /* local (vendored, works offline) first; CDN as fallback */
   tryLoad("xlsx.full.min.js?v=219", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
+/* Excel "4-3" DEF FRONT must not become "3-Apr". Prefer cell display text (.w);
+   never let SheetJS emit Date locale strings into the paste buffer. */
+function sheetToCsvRaw(ws){
+  if(!ws) return "";
+  const ref=XLSX.utils.decode_range(ws["!ref"]||"A1");
+  const lines=[];
+  for(let R=ref.s.r;R<=ref.e.r;R++){
+    const row=[];
+    for(let C=ref.s.c;C<=ref.e.c;C++){
+      const cell=ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if(!cell){ row.push(""); continue; }
+      let v="";
+      if(cell.w!=null && String(cell.w).length) v=String(cell.w);
+      else if(cell.t==="d" && cell.v){
+        /* Date cell without .w — reconstruct m-d (Hudl front 4-3 / 3-4), never locale month names */
+        const d=(cell.v instanceof Date)?cell.v:new Date(cell.v);
+        if(!isNaN(d.getTime())) v=String(d.getMonth()+1)+"-"+String(d.getDate());
+        else v=String(cell.v);
+      } else if(cell.v==null) v="";
+      else v=String(cell.v);
+      if(/[",\n\r]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
+      row.push(v);
+    }
+    lines.push(row.join(","));
+  }
+  return lines.join("\n");
+}
 document.getElementById("fileIn").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
   const msg=document.getElementById("importMsg");
@@ -4624,11 +4660,19 @@ document.getElementById("fileIn").onchange=e=>{
     ensureXLSX(err=>{
       if(err){ alert("Couldn\u2019t load the Excel reader (are you offline?). In Excel, use File \u2192 Save As \u2192 CSV and upload that instead."); if(msg) msg.textContent=""; return; }
       const rd=new FileReader();
-      rd.onload=()=>{ try{ const wb=XLSX.read(new Uint8Array(rd.result),{type:"array"}); const ws=wb.Sheets[wb.SheetNames[0]]; document.getElementById("csvText").value=XLSX.utils.sheet_to_csv(ws); if(msg) msg.textContent="Excel loaded \u2014 click Preview import."; }catch(ex){ alert("Couldn\u2019t read that Excel file \u2014 try saving it as CSV. ("+ex.message+")"); if(msg) msg.textContent=""; } };
+      rd.onload=()=>{
+        try{
+          const wb=XLSX.read(new Uint8Array(rd.result),{type:"array",cellDates:false,cellText:true,raw:true});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          document.getElementById("csvText").value=sheetToCsvRaw(ws);
+          if(msg) msg.textContent="Excel loaded \u2014 click Preview import.";
+        }catch(ex){ alert("Couldn\u2019t read that Excel file \u2014 try saving it as CSV. ("+ex.message+")"); if(msg) msg.textContent=""; }
+      };
       rd.readAsArrayBuffer(f);
     });
   } else {
-    const rd=new FileReader(); rd.onload=()=>{ document.getElementById("csvText").value=rd.result; }; rd.readAsText(f);
+    /* CSV: plain text — no SheetJS date coercion */
+    const rd=new FileReader(); rd.onload=()=>{ document.getElementById("csvText").value=rd.result; if(msg) msg.textContent="CSV loaded \u2014 click Preview import."; }; rd.readAsText(f);
   }
 };
 document.getElementById("manageBtn").onclick=openManager;
@@ -4880,7 +4924,7 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=152"></script>
+<script type="module" src="OFFGRD-account.js?v=153"></script>
 <script src="OFFGRD-role-gate.js?v=219"></script>
 <script src="OFFGRD-mobile.js?v=219"></script>
 <script>

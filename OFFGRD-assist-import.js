@@ -926,24 +926,45 @@
     else if (commitBtn) commitBtn.textContent = "Commit to season";
   }
 
+  /**
+   * Mode detection must NOT rely solely on window.IMPORT_MODE — OFFGRD.html
+   * declares `let IMPORT_MODE` (script-local), so window.IMPORT_MODE was always
+   * undefined and Assist commit silently fell through to commitPending →
+   * scouting_games (BUG: tag_source='human' via bridge). Prefer the active
+   * mode button + assist panel visibility; mirror onto window when present.
+   */
   function isAssistMode() {
-    return root.IMPORT_MODE === "autoscout";
+    if (root.IMPORT_MODE === "autoscout") return true;
+    try {
+      var on = document.querySelector("#seg-importmode button.on");
+      if (on && on.getAttribute("data-mode") === "autoscout") return true;
+      var panel = document.getElementById("assistImportPanel");
+      if (panel && panel.style.display !== "none" && panel.offsetParent !== null) {
+        /* panel shown — still require the mode button when present */
+        if (on) return on.getAttribute("data-mode") === "autoscout";
+      }
+    } catch (e) {}
+    return false;
   }
 
   function onPreviewClick() {
-    if (isAssistMode()) {
-      preview();
-      return true;
-    }
-    return false;
+    if (!isAssistMode()) return false;
+    Promise.resolve(preview()).catch(function (e) {
+      console.warn("assist preview", e);
+      var msg = document.getElementById("importMsg");
+      if (msg) msg.textContent = "Auto-Scout preview failed: " + (e && e.message ? e.message : e);
+    });
+    return true;
   }
 
   function onCommitClick() {
-    if (isAssistMode()) {
-      commit();
-      return true;
-    }
-    return false;
+    if (!isAssistMode()) return false;
+    Promise.resolve(commit()).catch(function (e) {
+      console.warn("assist commit", e);
+      var msg = document.getElementById("importMsg");
+      if (msg) msg.textContent = "Auto-Scout commit failed: " + (e && e.message ? e.message : e);
+    });
+    return true;
   }
 
   root.OFFGRD_ASSIST_IMPORT = {
@@ -955,6 +976,7 @@
     setAssistChrome: setAssistChrome,
     onPreviewClick: onPreviewClick,
     onCommitClick: onCommitClick,
+    isAssistMode: isAssistMode,
     detectPresetMap: detectPresetMap,
     buildSnaps: buildSnaps,
     normalizeOffStructure: normalizeOffStructure,
