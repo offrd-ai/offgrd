@@ -413,27 +413,117 @@ export const Cloud = {
     }
     if (!OG) return [];
     const { data, error } = await OG.from("scouting_games").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
-    if (error) throw error; return data || [];
+    if (error) throw error;
+    /* Direct-select fallback: apply tombstones client-side (RPC path filters server-side). */
+    const tombs = await this.listGameTombstones(teamId);
+    if (!tombs.length) return data || [];
+    return (data || []).filter((g) => !tombs.some((t) => {
+      if (t.game_id && g.id && String(t.game_id) === String(g.id)) return true;
+      return t.natural_key === this.gameNaturalKey(g.opponent, g.week, g.side);
+    }));
+  },
+  /**
+   * v212 tombstones — natural key is load-bearing (id rotates on re-INSERT).
+   * Matches offgrd.scouting_natural_key / client gameNaturalKey.
+   */
+  gameNaturalKey(opp, week, side) {
+    return String(opp || "?").trim().toLowerCase() + "|" + String(week || "?").trim().toLowerCase() + "|" + String(side || "");
+  },
+  async listGameTombstones(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scouting_game_tombstones")
+      .select("id,team_id,natural_key,opponent,week,side,game_id,reason")
+      .eq("team_id", teamId);
+    if (error) {
+      /* Pre-v212 schema: table missing — treat as no tombstones. */
+      console.warn("[Cloud.listGameTombstones]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+  async isGameTombstoned(teamId, game, tombs) {
+    if (!teamId || !game) return false;
+    const list = Array.isArray(tombs) ? tombs : await this.listGameTombstones(teamId);
+    if (!list.length) return false;
+    const key = this.gameNaturalKey(game.opponent, game.week, game.side);
+    const gid = game.id || game.cid || null;
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i];
+      if (gid && t.game_id && String(t.game_id) === String(gid)) return true;
+      if (t.natural_key && t.natural_key === key) return true;
+    }
+    return false;
+  },
+  _isTombstoneError(err) {
+    if (!err) return false;
+    if (err.code === "TOMBSTONED" || err.code === "23514") return true;
+    const msg = String(err.message || err.details || err.hint || "");
+    return /scouting_game tombstoned/i.test(msg) || /tombstoned/i.test(msg);
   },
   async saveGame(teamId, game) {
-    const row = { team_id: teamId, opponent: game.opponent, week: game.week, side: game.side, source: game.source, rows: game.rows };
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const nk = this.gameNaturalKey(game.opponent, game.week, game.side);
+    /* v212: refuse upsert when id OR natural key is tombstoned (id-rotation proof). */
+    if (await this.isGameTombstoned(teamId, game)) {
+      const err = new Error("scouting_game tombstoned: " + nk);
+      err.code = "TOMBSTONED";
+      throw err;
+    }
+    const row = {
+      team_id: teamId,
+      opponent: game.opponent,
+      week: game.week,
+      side: game.side,
+      source: game.source,
+      rows: game.rows,
+    };
     if (game.id) row.id = game.id;
+    else {
+      /* Natural-key resolve — never INSERT a second blob for opponent|week|side. */
+      try {
+        const { data: existing } = await OG.from("scouting_games")
+          .select("id")
+          .eq("team_id", teamId)
+          .eq("opponent", game.opponent)
+          .eq("week", game.week)
+          .eq("side", game.side)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing && existing.id) row.id = existing.id;
+      } catch (e) {
+        /* fall through to upsert; duplicate risk only if lookup fails */
+      }
+    }
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
-    if (error) throw error; return data;
+    if (error) {
+      /* Trigger path (stale v211 / tombs not loaded): map to TOMBSTONED — never retry-storm. */
+      if (this._isTombstoneError(error)) {
+        const err = new Error(error.message || ("scouting_game tombstoned: " + nk));
+        err.code = "TOMBSTONED";
+        err.cause = error;
+        throw err;
+      }
+      throw error;
+    }
+    return data;
   },
   async deleteGame(id) { const { error } = await OG.from("scouting_games").delete().eq("id", id); if (error) throw error; },
 
   /* ---------- live caller event log (multi-device, append-only) ---------- */
-  async activeCallerGame(teamId) {
+  async activeCallerGame(teamId, side) {
     if (!OG || !teamId) return null;
-    const { data, error } = await OG.from("caller_games").select("*")
-      .eq("team_id", teamId).eq("status", "active").maybeSingle();
+    const sideKey = side === "defense" ? "defense" : side === "offense" ? "offense" : null;
+    let q = OG.from("caller_games").select("*").eq("team_id", teamId).eq("status", "active");
+    if (sideKey) q = q.eq("side", sideKey);
+    const { data, error } = await q.maybeSingle();
     if (error) throw error;
     return data || null;
   },
   async ensureCallerGame(teamId, meta) {
     if (!OG || !teamId) return null;
-    const existing = await this.activeCallerGame(teamId);
+    const side = (meta && meta.side) === "defense" ? "defense" : "offense";
+    const existing = await this.activeCallerGame(teamId, side);
     if (existing) return existing;
     const row = {
       team_id: teamId,
@@ -442,12 +532,13 @@ export const Cloud = {
       game_date: (meta && meta.game_date) || null,
       status: "active",
       created_by: (meta && meta.created_by) || null,
+      side: side,
     };
     if (meta && meta.id) row.id = meta.id;
     const { data, error } = await OG.from("caller_games").insert(row).select().single();
     if (error) {
-      /* race: another device created active game */
-      const again = await this.activeCallerGame(teamId);
+      /* race: another device created active game for this side */
+      const again = await this.activeCallerGame(teamId, side);
       if (again) return again;
       throw error;
     }
@@ -457,6 +548,65 @@ export const Cloud = {
     if (!OG || !gameId) return;
     const { error } = await OG.from("caller_games").update({ status: "archived" }).eq("id", gameId);
     if (error) throw error;
+  },
+  /**
+   * Land proposed Monday Focus payload on the game row (sync path).
+   * Never calls start_tracked_focus — coach confirm only.
+   */
+  async upsertCallerGameMondayFocus(gameId, mondayFocus) {
+    if (!OG || !gameId || !mondayFocus) return null;
+    const { data, error } = await OG.from("caller_games")
+      .update({ monday_focus: mondayFocus })
+      .eq("id", gameId)
+      .select("id, monday_focus")
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  async getCallerGameMondayFocus(gameId) {
+    if (!OG || !gameId) return null;
+    const { data, error } = await OG.from("caller_games").select("id, monday_focus").eq("id", gameId).maybeSingle();
+    if (error) throw error;
+    return (data && data.monday_focus) || null;
+  },
+  /**
+   * Coach-confirmed hand-off — sole write into Focus chain for game tags.
+   * Maps to public.start_tracked_focus (tracked cell + next-test up-weight).
+   * Does NOT touch focus_today_overrides (headline stays rep-earned).
+   */
+  async startTrackedFocusFromGame(opts) {
+    if (!sb || !opts || !opts.schoolId || !opts.positionGroup || !opts.kind) {
+      throw new Error("startTrackedFocusFromGame: schoolId, positionGroup, kind required");
+    }
+    const { data, error } = await sb.rpc("start_tracked_focus", {
+      p_school_id: opts.schoolId,
+      p_team_id: opts.teamId || null,
+      p_position_group: opts.positionGroup,
+      p_kind: opts.kind,
+      p_subskill: opts.subskill || null,
+      p_baseline_accuracy: opts.baselineAccuracy != null ? opts.baselineAccuracy : null,
+      p_player_id: null,
+      p_player_name: null,
+      p_group_focus_id: null,
+      p_source_tag: opts.sourceTag || "livetag_monday",
+      p_with_emphasis: opts.withEmphasis !== false,
+      p_weight: opts.weight != null ? opts.weight : 2.0,
+      p_scheme_type: opts.schemeType || null,
+      p_scheme_value: opts.schemeValue || null,
+      p_dimension: opts.dimension || null,
+      p_baseline_correct: opts.baselineCorrect != null ? opts.baselineCorrect : null,
+      p_baseline_attempts: opts.baselineAttempts != null ? opts.baselineAttempts : null,
+    });
+    if (error) throw error;
+    return data;
+  },
+  /** Archive the live game for a side — frees one-active-per-side for Clear → new session. */
+  async archiveActiveCallerGame(teamId, side) {
+    if (!OG || !teamId) return null;
+    const g = await this.activeCallerGame(teamId, side);
+    if (!g || !g.id) return null;
+    await this.archiveCallerGame(g.id);
+    return g;
   },
   async listCallerEvents(teamId, gameId) {
     if (!OG || !teamId || !gameId) return [];
@@ -477,6 +627,7 @@ export const Cloud = {
         seq: r.seq,
         superseded: !!r.superseded,
         teamId: r.team_id,
+        side: r.side === "defense" ? "defense" : "offense",
       };
     });
   },
@@ -496,6 +647,7 @@ export const Cloud = {
         client_ts: e.clientTs,
         seq: e.seq,
         superseded: !!e.superseded,
+        side: e.side === "defense" ? "defense" : "offense",
       };
     });
     const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");
@@ -514,19 +666,37 @@ export const Cloud = {
     const ctx = (r.rep_context === "week_test" || r.rep_context === "practice")
       ? r.rep_context
       : (r.week_plan_id ? "week_test" : "practice");
+    const u = await this.session();
+    if (!u) throw new Error("Sign in to save your score.");
+    /* Client-generated id = idempotent retry key for offline queue (no schema change). */
+    const id = (r && (r.id || r.clientId)) || null;
     const row = {
       team_id: teamId,
+      user_id: u.id,
       quiz: r.quiz || "Test",
       score: r.score|0,
       total: r.total|0,
       detail: r.detail || [],
       rep_context: ctx
     };
+    if (id) row.id = id;
     if (ctx === "week_test" && r.week_plan_id) row.week_plan_id = r.week_plan_id;
     if (r.kind) row.kind = r.kind;
     if (r.position) row.position = r.position;
-    const { data, error } = await OG.from("qb_results").insert(row).select().single();
-    if (error) throw error; return data;
+    const { data, error } = await OG.from("qb_results")
+      .upsert(row, { onConflict: "id", ignoreDuplicates: true })
+      .select()
+      .maybeSingle();
+    if (error) {
+      /* 23505 / unique — already in DB (response lost on dead connection). Treat as synced. */
+      const code = error.code;
+      const msg = String(error.message || error.details || "");
+      if (code === "23505" || /23505|duplicate key|unique constraint|already exists/i.test(msg)) {
+        return { id: id || null, deduped: true };
+      }
+      throw error;
+    }
+    return data || { id: id || null, deduped: true };
   },
   async listQuizResults(teamId) {
     const { data, error } = await OG.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
@@ -640,7 +810,194 @@ export const Cloud = {
   async plan(teamId) {
     const { data } = await OG.from("teams").select("plan, plan_status").eq("id", teamId).single();
     return data || { plan: "free", plan_status: "active" };
-  }
+  },
+
+  /* ---------- Auto-Scout import (scout_snaps / film_column_maps / jobs) ---------- */
+  async getFilmColumnMap(teamId, provider) {
+    if (!OG || !teamId) return null;
+    const { data, error } = await OG.from("film_column_maps")
+      .select("id,team_id,provider,map,created_at")
+      .eq("team_id", teamId)
+      .eq("provider", provider || "hudl-assist")
+      .maybeSingle();
+    if (error) {
+      console.warn("[Cloud.getFilmColumnMap]", error.message);
+      return null;
+    }
+    return data;
+  },
+  async saveFilmColumnMap(teamId, provider, map) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId) throw new Error("team_id required");
+    const row = {
+      team_id: teamId,
+      provider: provider || "hudl-assist",
+      map: map || {},
+    };
+    const { data, error } = await OG.from("film_column_maps")
+      .upsert(row, { onConflict: "team_id,provider" })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  async createAutoScoutJob(row) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const { data, error } = await OG.from("auto_scout_jobs")
+      .insert({
+        team_id: row.team_id,
+        opponent_id: row.opponent_id || null,
+        opponent: row.opponent || null,
+        week_plan_id: row.week_plan_id || null,
+        source: row.source || "hudl-assist-csv",
+        clip_count: row.clip_count || 0,
+        done_count: row.done_count || 0,
+        skipped_count: row.skipped_count || 0,
+        status: row.status || "queued",
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  async updateAutoScoutJob(id, patch) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const { data, error } = await OG.from("auto_scout_jobs")
+      .update(patch || {})
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  /**
+   * Prior import batches for the same opponent-scout game key.
+   * Used by Assist commit supersede (v212 lesson — new batch id must not dupe).
+   */
+  async listImportBatchesForGame(teamId, opponent, week, side) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select("import_batch_id")
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import")
+      .not("import_batch_id", "is", null);
+    if (error) throw error;
+    const seen = Object.create(null);
+    const ids = [];
+    (data || []).forEach(function (r) {
+      const id = r && r.import_batch_id;
+      if (id && !seen[id]) {
+        seen[id] = true;
+        ids.push(id);
+      }
+    });
+    return ids;
+  },
+  async countImportSnapsForGame(teamId, opponent, week, side) {
+    if (!OG || !teamId) return 0;
+    const { count, error } = await OG.from("scout_snaps")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import");
+    if (error) throw error;
+    return count || 0;
+  },
+  /** RLS-gated delete of prior import rows for one game key (supersede). */
+  async deleteImportSnapsForGame(teamId, opponent, week, side) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const { error } = await OG.from("scout_snaps")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import");
+    if (error) throw error;
+  },
+  async upsertScoutSnapImport(pSnap) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("upsert_scout_snap_import_v1", {
+      p_snap: pSnap,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Review-gated scout_snaps corpus (Predict/Tendencies cutover).
+   * public.offgrd_scout_snaps_for_team — needs_review=false + review_hold=false.
+   */
+  async listScoutSnaps(teamId) {
+    if (!sb || !teamId) return [];
+    const { data, error } = await sb.rpc("offgrd_scout_snaps_for_team", { t: teamId });
+    if (error) {
+      console.warn("[Cloud.listScoutSnaps]", error.message);
+      throw error;
+    }
+    return data || [];
+  },
+
+  /**
+   * Map offgrd.scout_snaps → shape expected by OFFGRD_TENDENCIES / scopedOppRows.
+   * Pressure: classic bridge stores 0/1; Assist import stores BLITZ label in pressure —
+   * normalize to pressure=0|1 + blitz string so existing blitz-rate math keeps working.
+   */
+  scoutSnapToRow(s) {
+    if (!s) return null;
+    const pressureRaw = s.pressure;
+    let pressure = 0;
+    let blitz = "";
+    if (pressureRaw != null && String(pressureRaw).trim() !== "") {
+      const t = String(pressureRaw).trim();
+      if (/^(0|1)$/.test(t)) {
+        pressure = +t;
+      } else if (/^(true|false)$/i.test(t)) {
+        pressure = /^true$/i.test(t) ? 1 : 0;
+      } else {
+        pressure = 1;
+        blitz = t;
+      }
+    }
+    const mot = s.motion_type;
+    const motion =
+      mot && String(mot).toLowerCase() !== "none" && String(mot).trim() !== "" ? 1 : 0;
+    let success = null;
+    if (s.success === true || s.success === 1 || s.success === "1") success = 1;
+    else if (s.success === false || s.success === 0 || s.success === "0") success = 0;
+
+    return {
+      id: s.id,
+      date: s.play_date || s.week || "",
+      opponent: s.opponent || "",
+      side: s.side || "",
+      week: s.week || "",
+      down: s.down,
+      distance: s.distance,
+      fieldZone: s.field_zone || "",
+      hash: s.hash || "",
+      coverage: s.coverage || "",
+      front: s.front || "",
+      pressure: pressure,
+      blitz: blitz,
+      playType: s.play_type || "",
+      play: s.play || "",
+      formation: s.formation || "",
+      formation_family: s.formation_family || "",
+      personnel: s.off_personnel || "",
+      motion: motion,
+      motion_type: mot || "",
+      gain: s.gain,
+      success: success,
+      tag_source: s.tag_source || "",
+      clip_hash: s.clip_hash || null,
+    };
+  },
 };
 
 if (typeof window !== "undefined") window.Cloud = Cloud;
