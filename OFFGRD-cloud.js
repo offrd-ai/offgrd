@@ -920,6 +920,58 @@ export const Cloud = {
       .eq("tag_source", "import");
     if (error) throw error;
   },
+  /**
+   * List Auto-Scout import batches for the season manager.
+   * One row per import_batch_id (tag_source=import).
+   */
+  async listImportBatches(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select("import_batch_id, opponent, week, side, created_at")
+      .eq("team_id", teamId)
+      .eq("tag_source", "import")
+      .not("import_batch_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(8000);
+    if (error) throw error;
+    const by = Object.create(null);
+    (data || []).forEach(function (r) {
+      const id = r && r.import_batch_id;
+      if (!id) return;
+      if (!by[id]) {
+        by[id] = {
+          import_batch_id: id,
+          opponent: r.opponent || "Unknown",
+          week: r.week || "Wk?",
+          side: r.side || "",
+          n: 0,
+          created_at: r.created_at || null,
+        };
+      }
+      by[id].n++;
+      if (r.created_at && (!by[id].created_at || r.created_at < by[id].created_at)) {
+        by[id].created_at = r.created_at;
+      }
+    });
+    return Object.keys(by)
+      .map(function (k) {
+        return by[k];
+      })
+      .sort(function (a, b) {
+        return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+      });
+  },
+  /** Delete one import batch's scout_snaps rows (tag_source=import). */
+  async deleteImportSnapsByBatch(teamId, importBatchId) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId || !importBatchId) throw new Error("teamId and importBatchId required");
+    const { error } = await OG.from("scout_snaps")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import");
+    if (error) throw error;
+  },
   async upsertScoutSnapImport(pSnap) {
     if (!sb) throw new Error("Supabase unavailable");
     const { data, error } = await sb.schema("offgrd").rpc("upsert_scout_snap_import_v1", {

@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v222: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v223: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -257,10 +257,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=222"></script>
-<script src="OFFGRD-brand-persist.js?v=222"></script>
-<script src="supabase.js?v=222"></script>
-<script src="OFFGRD-cache-gate.js?v=222"></script>
+<script src="OFFGRD-config.js?v=223"></script>
+<script src="OFFGRD-brand-persist.js?v=223"></script>
+<script src="supabase.js?v=223"></script>
+<script src="OFFGRD-cache-gate.js?v=223"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -302,27 +302,27 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=222"></script>
-<script src="OFFGRD-pos-glossary.js?v=222"></script>
-<script src="OFFGRD-autoderive.js?v=222"></script>
-<script src="OFFGRD-scoutcards.js?v=222"></script>
-<script src="OFFGRD-tendencies.js?v=222"></script>
-<script src="OFFGRD-week-autotest.js?v=222"></script>
-<script src="OFFGRD-weeklypackage.js?v=222"></script>
-<script src="OFFGRD-telestrate.js?v=222"></script>
-<script src="OFFGRD-redesign.js?v=222"></script>
-<script src="OFFGRD-shell.js?v=222"></script>
-<script src="OFFGRD-caller-outcome.js?v=222"></script>
-<script src="OFFGRD-formations-data.js?v=222"></script>
-<script src="OFFGRD-formation-canon.js?v=222"></script>
-<script src="OFFGRD-assist-import.js?v=222"></script>
-<script src="OFFGRD-caller-log.js?v=222"></script>
-<script src="OFFGRD-caller-sync.js?v=222"></script>
-<script src="OFFGRD-caller-analysis.js?v=222"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=222"></script>
-<script src="OFFGRD-booth-ask.js?v=222"></script>
-<script src="OFFGRD-caller-select.js?v=222"></script>
-<script src="OFFGRD-dcaller.js?v=222"></script>
+<script src="OFFGRD-render.js?v=223"></script>
+<script src="OFFGRD-pos-glossary.js?v=223"></script>
+<script src="OFFGRD-autoderive.js?v=223"></script>
+<script src="OFFGRD-scoutcards.js?v=223"></script>
+<script src="OFFGRD-tendencies.js?v=223"></script>
+<script src="OFFGRD-week-autotest.js?v=223"></script>
+<script src="OFFGRD-weeklypackage.js?v=223"></script>
+<script src="OFFGRD-telestrate.js?v=223"></script>
+<script src="OFFGRD-redesign.js?v=223"></script>
+<script src="OFFGRD-shell.js?v=223"></script>
+<script src="OFFGRD-caller-outcome.js?v=223"></script>
+<script src="OFFGRD-formations-data.js?v=223"></script>
+<script src="OFFGRD-formation-canon.js?v=223"></script>
+<script src="OFFGRD-assist-import.js?v=223"></script>
+<script src="OFFGRD-caller-log.js?v=223"></script>
+<script src="OFFGRD-caller-sync.js?v=223"></script>
+<script src="OFFGRD-caller-analysis.js?v=223"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=223"></script>
+<script src="OFFGRD-booth-ask.js?v=223"></script>
+<script src="OFFGRD-caller-select.js?v=223"></script>
+<script src="OFFGRD-dcaller.js?v=223"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -463,7 +463,7 @@
             </select>
           </div>
         </div>
-        <p class="foot" style="margin:0 0 8px">Writes <b>scout_snaps</b> with <code>tag_source=import</code> (not the season library). Re-importing the same opponent/week/side asks to replace. DEF FRONT / COVERAGE / BLITZ map when present.</p>
+        <p class="foot" style="margin:0 0 8px">Writes <b>scout_snaps</b> with <code>tag_source=import</code> (not the season library). Re-importing the same opponent/week/side asks to replace. Delete a batch anytime under <b>Manage \u2192 Auto-Scout imports</b>. DEF FRONT / COVERAGE / BLITZ map when present.</p>
         <div id="assistMapGrid"></div>
       </div>
       <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
@@ -1350,33 +1350,105 @@ function renderSchedule(){
   }).join("");
   host.innerHTML=recH+'<div class="foot" style="margin:2px 0 7px">Date · Home/Away · opponent · site · time · your score · opp score &nbsp;?&nbsp; tap a crest to set that team&rsquo;s logo</div>'+body;
 }
+function mgrBridge(){ return window.OFFGRD_CALLER_BRIDGE||null; }
+function mgrCloud(){ const b=mgrBridge(); return b&&b.cloud?b.cloud:null; }
+function mgrTeamId(){ const b=mgrBridge(); return b&&b.getTeamId?b.getTeamId():null; }
 function renderManager(){
   const host=document.getElementById("mgrBody"); if(!host) return;
-  if(!GAMES.length){ host.innerHTML='<p class="foot">No games in the library yet. Import a game (with an Opponent + Week label) to start your season.</p>'; return; }
-  const byOpp={};
-  GAMES.forEach((g,i)=>{ (byOpp[g.opponent]=byOpp[g.opponent]||[]).push(Object.assign({_i:i},g)); });
-  const newestOf=list=>list.reduce((mx,g)=>{ const d=((g.rows[0]&&g.rows[0].date)||g.week||""); return d>mx?d:mx; },"");
-  const opps=Object.keys(byOpp).sort((a,b)=>newestOf(byOpp[b]).localeCompare(newestOf(byOpp[a])));
   let html="";
-  opps.forEach(opp=>{
-    const list=byOpp[opp];
-    const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
-    const nG=dates.length||list.length;
-    const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" · "+dates[dates.length-1]):"";
-    const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
-    const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
-    const isNext=WEEK&&WEEK.opponent===opp;
-    const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">\u25b6 NEXT'+(weekCountdown()?" \u00b7 "+esc(weekCountdown()):"")+'</span>':"";
-    const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
-    html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
-      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
-      +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
-      +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ?</button></div>'
-      +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
-      +'<table><tbody>'+grows+'</tbody></table></div>';
-  });
+  html+='<div class="lbl" style="margin:0 0 6px">Season library <span class="foot" style="font-weight:400">(scouting_games · classic import / caller)</span></div>';
+  if(!GAMES.length){
+    html+='<p class="foot" style="margin:0 0 14px">No games in the season library yet. Classic Defense/Full import still lands here.</p>';
+  } else {
+    const byOpp={};
+    GAMES.forEach((g,i)=>{ (byOpp[g.opponent]=byOpp[g.opponent]||[]).push(Object.assign({_i:i},g)); });
+    const newestOf=list=>list.reduce((mx,g)=>{ const d=((g.rows[0]&&g.rows[0].date)||g.week||""); return d>mx?d:mx; },"");
+    const opps=Object.keys(byOpp).sort((a,b)=>newestOf(byOpp[b]).localeCompare(newestOf(byOpp[a])));
+    opps.forEach(opp=>{
+      const list=byOpp[opp];
+      const dates=uniq(list.reduce((a,g)=>a.concat((g.rows||[]).map(r=>r.date)),[])).filter(Boolean).sort();
+      const nG=dates.length||list.length;
+      const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:dates[0]+" · "+dates[dates.length-1]):"";
+      const tot={off:0,def:0,ours:0}; list.forEach(g=>{ tot[g.side]=(tot[g.side]||0)+g.rows.length; });
+      const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
+      const isNext=WEEK&&WEEK.opponent===opp;
+      const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">\u25b6 NEXT'+(weekCountdown()?" \u00b7 "+esc(weekCountdown()):"")+'</span>':"";
+      const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
+      html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
+        +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
+        +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout ?</button></div>'
+        +'<div class="foot" style="margin:4px 0 6px">'+esc(sideStr)+'</div>'
+        +'<table><tbody>'+grows+'</tbody></table></div>';
+    });
+  }
+  html+='<div class="lbl" style="margin:16px 0 6px">Auto-Scout imports <span class="foot" style="font-weight:400">(scout_snaps · tag_source=import)</span></div>';
+  html+='<div id="mgrImportBody"><p class="foot">Loading Auto-Scout imports\u2026</p></div>';
   host.innerHTML=html;
+  renderImportManager();
 }
+async function renderImportManager(){
+  const host=document.getElementById("mgrImportBody"); if(!host) return;
+  const C=mgrCloud(); const teamId=mgrTeamId();
+  if(!C||!teamId||typeof C.listImportBatches!=="function"){
+    host.innerHTML='<p class="foot">Sign in to a program to manage Auto-Scout imports. These live in <code>scout_snaps</code> (not the season library above).</p>';
+    return;
+  }
+  try{
+    const batches=await C.listImportBatches(teamId);
+    if(!batches.length){
+      host.innerHTML='<p class="foot">No Auto-Scout import batches yet. Use <b>Import data \u2192 Auto-Scout</b> to commit a Hudl CSV.</p>';
+      return;
+    }
+    const byOpp={};
+    batches.forEach(b=>{ (byOpp[b.opponent]=byOpp[b.opponent]||[]).push(b); });
+    const opps=Object.keys(byOpp).sort((a,b)=>a.localeCompare(b));
+    let html="";
+    opps.forEach(opp=>{
+      const list=byOpp[opp];
+      const tot=list.reduce((s,b)=>s+(b.n||0),0);
+      const rows=list.map(b=>{
+        const id=String(b.import_batch_id||"");
+        const short=id?id.slice(0,8):"?";
+        const lbl=opp+" · "+b.week+" · "+(SIDE_LBL[b.side]||b.side)+" · "+(b.n||0)+" snaps";
+        return '<tr class="tagrow"><td>'+esc(b.week)+'</td><td>'+(SIDE_LBL[b.side]||esc(b.side)||"?")+'</td><td>'+(b.n||0)+' snaps</td><td class="foot" title="'+esc(id)+'">batch '+esc(short)+'\u2026</td>'
+          +'<td><button type="button" class="ghost" style="padding:3px 9px;color:var(--bad)" data-batch="'+esc(id)+'" data-label="'+esc(lbl)+'" onclick="deleteImportBatch(this)">Delete</button></td></tr>';
+      }).join("");
+      html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
+        +'<span class="foot">'+list.length+' import'+(list.length===1?"":"s")+' · '+tot+' snaps</span>'
+        +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout \u2192</button></div>'
+        +'<table><tbody>'+rows+'</tbody></table></div>';
+    });
+    host.innerHTML=html;
+  }catch(e){
+    host.innerHTML='<p class="foot" style="color:var(--bad)">Could not load Auto-Scout imports: '+esc(e&&e.message?e.message:e)+'</p>';
+  }
+}
+async function deleteImportBatch(btn){
+  const id=btn&&btn.getAttribute?btn.getAttribute("data-batch"):"";
+  const label=btn&&btn.getAttribute?btn.getAttribute("data-label"):id;
+  if(!id) return;
+  if(typeof confirm==="function" && !confirm("Delete Auto-Scout import?\n\n"+label+"\n\nRemoves scout_snaps for this import_batch_id only. Season library games are untouched.")) return;
+  const C=mgrCloud(); const teamId=mgrTeamId();
+  const msg=document.getElementById("mgrMsg");
+  if(!C||!teamId||typeof C.deleteImportSnapsByBatch!=="function"){
+    if(msg) msg.textContent="Sign in required to delete Auto-Scout imports.";
+    return;
+  }
+  if(msg) msg.textContent="Deleting import batch\u2026";
+  try{
+    await C.deleteImportSnapsByBatch(teamId, id);
+    try{ if(window.OFFGRD_REFRESH_SCOUT_SNAPS) await window.OFFGRD_REFRESH_SCOUT_SNAPS(); }catch(eR){}
+    try{ if(typeof buildControls==="function") buildControls(); }catch(eB){}
+    try{ if(typeof render==="function") render(); }catch(eRend){}
+    renderManager();
+    if(msg) msg.textContent="Deleted Auto-Scout import "+id.slice(0,8)+"\u2026";
+  }catch(e){
+    if(msg) msg.textContent="Delete failed: "+(e&&e.message?e.message:e);
+  }
+}
+window.deleteImportBatch=deleteImportBatch;
 function exportSeason(){
   const blob=new Blob([JSON.stringify(GAMES,null,1)],{type:"application/json"}); const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download="offgrd-season.json"; a.click(); URL.revokeObjectURL(url);
@@ -4623,7 +4695,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=222", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=223", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -4946,9 +5018,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=222"></script>
-<script src="OFFGRD-role-gate.js?v=222"></script>
-<script src="OFFGRD-mobile.js?v=222"></script>
+<script type="module" src="OFFGRD-account.js?v=223"></script>
+<script src="OFFGRD-role-gate.js?v=223"></script>
+<script src="OFFGRD-mobile.js?v=223"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
