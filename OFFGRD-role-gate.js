@@ -160,14 +160,6 @@
         if(k && list.indexOf(k) < 0) list.push(k);
       });
     }
-    /* Same fallback as QB.weekContext — test_spec coverages when briefing isn't shared yet. */
-    if(!list.length && wp.test_spec && Array.isArray(wp.test_spec.coverages)){
-      wp.test_spec.coverages.forEach(function(c){
-        var n = typeof c === "string" ? c : (c && (c.k || c.coverage)) || "";
-        n = String(n);
-        if(n && list.indexOf(n) < 0) list.push(n);
-      });
-    }
     return list.slice(0, 8);
   }
 
@@ -225,13 +217,21 @@
     var comp = AT.completionForPlayer(spec, rows || [], wp.id, wp.opponent);
     var chips = (comp.items || []).map(function(i){
       var mark = i.passed ? "\u2713" : (i.started ? "\u25D0" : "\u25A2");
-      var col = i.passed ? "#1d7a45" : (i.started ? "#b8860b" : "#7a8494");
+      var col = i.passed ? "#1d7a45" : (i.started ? "#b8860b" : "#13294B");
       var lab = String(i.label || i.kind).replace(" test", "").replace(" ID", "");
-      return '<span style="font-weight:800;color:'+col+';margin-right:10px">'+mark+' '+esc(lab)+(i.pct != null ? (" "+i.pct+"%") : "")+'</span>';
+      var cta = i.passed ? "Retake" : "Start";
+      /* Tap opens Reps Lab checklist entry for that kind (week_test). */
+      return '<a href="OFFGRD-QB.html#week-kind='+encodeURIComponent(i.kind)+'" style="display:inline-flex;align-items:center;gap:8px;margin:0 8px 6px 0;padding:10px 14px;border-radius:12px;border:2px solid '+col+';background:'+(i.passed?"rgba(29,122,69,.08)":"#fff")+';font-weight:800;font-size:14px;color:'+col+';text-decoration:none;box-shadow:0 1px 2px rgba(19,41,75,.12)">'
+        +'<span aria-hidden="true" style="font-size:16px">'+mark+'</span>'
+        +'<span>'+esc(lab)+(i.pct != null ? (" "+i.pct+"%") : "")+'</span>'
+        +'<span style="font-size:12px;font-weight:900;letter-spacing:.02em;padding:3px 8px;border-radius:999px;background:'+col+';color:#fff">'+cta+'</span>'
+        +'</a>';
     }).join("");
     var stLabel = comp.status === "passed" ? "Ready" : (comp.status === "started" ? "In progress" : "Not started");
     var stCol = comp.status === "passed" ? "#1d7a45" : (comp.status === "started" ? "#b8860b" : "#7a8494");
     var posLabel = positions.join(" + ");
+    var next = (comp.items || []).find(function(i){ return !i.passed; });
+    var ctaKind = next ? next.kind : ((comp.items[0] && comp.items[0].kind) || "align");
     var cta = "Start this week's test · "+comp.passed+"/"+comp.assigned+" passed";
     return '<div style="'+rdStripCss()+'">'
       +'<div style="font-size:11px;font-weight:800;'+rdMutedCss()+';text-transform:uppercase;letter-spacing:.04em">Your week test · '+esc(posLabel)+'</div>'
@@ -240,7 +240,7 @@
       +' · '+comp.passed+'/'+comp.assigned+' passed'
       +(spec.incomplete ? ' <span class="foot" style="color:#b8860b"> · some drills need coach keys</span>' : "")
       +'</div>'
-      +'<a href="OFFGRD-QB.html" class="btn go pw-week-cta" style="display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:48px;margin-top:12px;padding:14px 16px;border-radius:12px;font-weight:800;font-size:16px;text-decoration:none;text-align:center;background:var(--navy,#13294B);border:1px solid var(--navy,#13294B);color:#fff">'
+      +'<a href="OFFGRD-QB.html#week-kind='+encodeURIComponent(ctaKind)+'" class="btn go pw-week-cta" style="display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:48px;margin-top:12px;padding:14px 16px;border-radius:12px;font-weight:800;font-size:16px;text-decoration:none;text-align:center;background:var(--navy,#13294B);border:1px solid var(--navy,#13294B);color:#fff">'
       +esc(cta)+'</a>'
       +'</div>';
   }
@@ -357,26 +357,11 @@
     return h;
   }
 
-  function roleResolved(){
-    var p = prog();
-    return !!(p.roleResolved || (p.ready && (p.isCoach && p.isCoach() || p.isPlayer && p.isPlayer() && p.role === "player")));
-  }
-
-  function weekEmptyHtml(wp){
-    var coach = !!(wp && wp._role === "coach") || isCoach();
-    if(coach){
-      return '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3>'
-        +'<p class="foot">No active week plan yet. Start one in <b>Plan → Game Plan</b>, then share to players when ready.</p></div>';
-    }
-    return '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3>'
-      +'<p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
-  }
-
   async function renderPlayerWeek(){
     var host = document.getElementById("view-thisweek");
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading this week…</p></div>';
-    var load = window.OFFGRD_LOAD_WEEK_PLAN || window.OFFGRD_LOAD_PLAYER_WEEK;
+    var load = window.OFFGRD_LOAD_PLAYER_WEEK;
     if(!load){ host.innerHTML = '<div class="panel"><p class="foot">Sign in and join your program first.</p></div>'; return; }
     try{
       var wp = await load();
@@ -387,13 +372,8 @@
         var _sc = document.getElementById("rdScope"); if(_sc) _sc.textContent = window.OFFGRD_PLAYER_SCOPE;
         var _sy = document.getElementById("rdSync"); if(_sy) _sy.textContent = "";
       } catch(e){}
-      if(!wp){
-        /* Team/week may still be hydrating — never tell the kid coaches shared nothing. */
-        host.innerHTML = '<div class="panel"><p class="foot">Loading this week…</p></div>';
-        return;
-      }
-      if(wp.linked === false){
-        host.innerHTML = weekEmptyHtml(wp);
+      if(!wp || wp.linked === false){
+        host.innerHTML = '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">This Week</h3><p class="foot">Your coaches haven’t shared a game plan yet. Check back before gameday.</p></div>';
         return;
       }
       _playerWeekCache = wp;
@@ -403,14 +383,10 @@
         if(window.Cloud && Cloud.ready){
           var u = await Cloud.user();
           uid = u && u.id;
-          if(window.OFFGRD_RESOLVE_WEEK_TEAM_ID){
-            tid = await window.OFFGRD_RESOLVE_WEEK_TEAM_ID();
-          } else {
-            try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
-            if(!tid){
-              var teams = await Cloud.myTeams();
-              tid = teams && teams[0] && teams[0].id;
-            }
+          try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
+          if(!tid){
+            var teams = await Cloud.myTeams();
+            tid = teams && teams[0] && teams[0].id;
           }
         }
       }catch(e){}
@@ -425,14 +401,6 @@
       else if(posLabel) h += '<p class="foot" style="margin:0 0 4px">Your position(s): <b>'+esc(posLabel)+'</b></p>';
 
       h += renderAssignedStripHtml(wp, positions, rows);
-
-      if(!wp.gen){
-        var covsOnly = coverageList(wp);
-        if(covsOnly.length){
-          h += '<div style="margin-top:10px"><div class="lbl">Coverages this week</div>'
-            +'<p style="margin:4px 0 0;'+rdBodyCss()+';font-weight:700">'+covsOnly.map(function(c){ return esc(c); }).join(" · ")+'</p></div>';
-        }
-      }
 
       if(wp.gen){
         if(positions.length){
@@ -534,7 +502,7 @@
   }
 
   async function loadPlayerWeekCached(force){
-    var load = window.OFFGRD_LOAD_WEEK_PLAN || window.OFFGRD_LOAD_PLAYER_WEEK;
+    var load = window.OFFGRD_LOAD_PLAYER_WEEK;
     if(!load) return null;
     if(!force && _playerWeekCache) return _playerWeekCache;
     try{
@@ -548,12 +516,8 @@
 
   function renderPlayerPracticeHtml(wp){
     if(!wp || wp.linked === false){
-      var coach = !!(wp && wp._role === "coach") || isCoach();
-      var msg = coach
-        ? "No practice script yet — build one in <b>Teach → Practice</b>."
-        : "No practice script shared yet — check back before gameday.";
       return '<div class="panel"><h3 style="'+rdTitleCss("margin:0 0 8px")+'">Practice</h3>'
-        +'<p class="foot">'+msg+'</p></div>';
+        +'<p class="foot">No practice script shared yet — check back before gameday.</p></div>';
     }
     var periods = (wp.practice && Array.isArray(wp.practice.periods)) ? wp.practice.periods : [];
     if(!periods.length){
@@ -674,7 +638,6 @@
 
   function ensurePlayerLanding(){
     if(_playerLandingDone) return;
-    if(!roleResolved() || !isPlayer()) return;
     var cur = "";
     try{ cur = window.CURRENT_VIEW || ""; }catch(e){}
     if(PLAYER_VIEWS[cur]){
@@ -687,17 +650,7 @@
     try{ if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.markPlayerLandingDone) OFFGRD_REDESIGN.markPlayerLandingDone(); }catch(e){}
   }
 
-  function ensureCoachLanding(){
-    if(!isCoach()) return;
-    var v = window.CURRENT_VIEW;
-    if(v === "thisweek" || v === "recruiting" || v === "practice"){
-      try{ if(window.setView) window.setView("scout"); }catch(e){}
-    }
-  }
-
   function applyScoutPlayerUI(){
-    if(!roleResolved()) return;
-    if(isCoach()){ ensureCoachLanding(); return; }
     if(!isPlayer()) return;
     ensurePlayerViews();
     patchSetView();
@@ -891,21 +844,7 @@
     }
   }
 
-  function syncModeSegRole(){
-    var seg = document.getElementById("modeSeg");
-    if(!seg) return;
-    var author = seg.querySelector('[data-mode="author"]');
-    if(!author) return;
-    var show = !!(prog().roleResolved && isCoach());
-    author.hidden = !show;
-    author.style.display = show ? "" : "none";
-    try{
-      if(!show && window.MODE === "author" && typeof window.setMode === "function") window.setMode("train");
-    }catch(e){}
-  }
-
   function applyQbPlayerUI(){
-    syncModeSegRole();
     if(!isPlayer()) return;
     try{
       if(window.OFFGRD_REDESIGN && OFFGRD_REDESIGN.applyRedesignShell){
@@ -924,27 +863,6 @@
     }
   }
 
-  function playerViewHasContent(host){
-    if(!host) return false;
-    var t = (host.innerText || "").trim();
-    if(t.length < 20) return false;
-    if(/Loading this week/i.test(t)) return false;
-    if(/haven't shared a game plan yet/i.test(t)) return false;
-    if(/No active week plan yet/i.test(t)) return false;
-    if(/Sign in and join your program/i.test(t)) return false;
-    if(/No practice script shared yet/i.test(t)) return false;
-    return true;
-  }
-
-  function refreshPlayerWeekSurfaces(){
-    _playerWeekCache = null;
-    if(isCoach()){ ensureCoachLanding(); return; }
-    if(!isPlayer()) return;
-    var v = window.CURRENT_VIEW;
-    if(v === "thisweek" || !v) renderPlayerWeek();
-    else if(v === "practice") loadPlayerPractice();
-  }
-
   var _playerRenderWatch = false;
   /* Self-heal: on player load, multiple init paths (base app, redesign shell, role gate)
      race and can leave the landing view hidden/empty. Retry setView on the current player
@@ -959,31 +877,23 @@
       var v = window.CURRENT_VIEW;
       if(!(v === "thisweek" || v === "practice" || v === "recruiting")) v = "thisweek";
       var host = document.getElementById("view-" + v);
-      var done = playerViewHasContent(host);
+      var done = host && host.offsetParent !== null && (host.innerText || "").trim().length > 20;
       if(done || ++tries > 24){ clearInterval(iv); return; }
       try{ if(window.setView) window.setView(v); }catch(e){}
     }, 200);
   }
 
   function apply(){
-    syncModeSegRole();
-    if(isCoach()) ensureCoachLanding();
-    if(!roleResolved()) return;
-    if(!prog().ready && !isPlayer()) return;
+    if(!prog().ready) return;
     var kind = window.OFFGRD_APP && window.OFFGRD_APP.kind;
     if(kind === "playbook") applyPlaybookGate();
-    else if(kind === "scout"){
-      if(isCoach()) ensureCoachLanding();
-      else if(isPlayer()){ applyScoutPlayerUI(); ensurePlayerLandingRendered(); }
-    }
+    else if(kind === "scout"){ if(isPlayer()){ applyScoutPlayerUI(); ensurePlayerLandingRendered(); } }
     else if(kind === "qb") applyQbPlayerUI();
   }
 
   document.addEventListener("offgrd-program-ready", apply);
-  document.addEventListener("offgrd-program-ready", refreshPlayerWeekSurfaces);
-  syncModeSegRole();
   if(prog().ready) apply();
   var n = 0, t = setInterval(function(){
-    if(roleResolved() || ++n > 40){ clearInterval(t); apply(); }
+    if(prog().ready || ++n > 40){ clearInterval(t); apply(); }
   }, 250);
 })();
