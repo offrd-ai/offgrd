@@ -1076,7 +1076,7 @@
       cb.checked = WZ.save;
       cb.onchange = function (e) { WZ.save = e.target.checked; };
       sv.appendChild(cb);
-      sv.appendChild(document.createTextNode(WZ.track === "defense" ? "Save defense call to this week (cloud)" : "Save to my playbook when finished"));
+      sv.appendChild(document.createTextNode(WZ.track === "defense" ? "Save to my playbook & this week" : "Save to my playbook when finished"));
       body.appendChild(sv);
     } else if (id === "tests") {
       note(body, "Auto-seeded from what you built. Confirm to write answer keys (same pattern as Author).");
@@ -1192,10 +1192,12 @@
       return;
     }
 
-    /* Defense: always persist composed call into gen.def_calls (Author parity). */
+    /* Defense: persist to week plan AND playbook library when save is checked. */
     if (st) {
       st.name = WZ.name || callName();
       st.def_call = st.def_call || buildDefCall();
+      st.side = "defense";
+      st.type = "defense";
       H.set("m-name", st.name);
       H.readMeta();
     }
@@ -1207,9 +1209,13 @@
     call.pressure = WZ.pressure || call.pressure;
     if (st) st.def_call = call;
     WZ.confirmed = true;
-    H.msg("Saving defense call to this week\u2026");
+    if (WZ.save && (WZ.name || (st && st.name))) {
+      if (st && !st.name && WZ.name) { st.name = WZ.name; H.set("m-name", WZ.name); H.readMeta(); }
+      H.savePlay();
+    }
+    H.msg(WZ.save ? "Saving defense call to playbook & this week\u2026" : "Saving defense call to this week\u2026");
     persistDefCallToWeek(call).then(function (res) {
-      H.msg(defCallSaveMsg(res, call));
+      H.msg(defCallSaveMsg(res, call) + (WZ.save ? " Also in your playbook list." : ""));
       finishCloseUi();
     });
   }

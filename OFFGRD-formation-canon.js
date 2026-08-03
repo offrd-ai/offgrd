@@ -160,13 +160,28 @@
   var BY_ID = Object.create(null);
   var ALIAS_TO_ID = Object.create(null);
 
+  /**
+   * Normalize for alias lookup. Trailing `(...)` strip must match the SQL
+   * plays.formation_id backfill:
+   *   regexp_replace(lower(btrim(formation)), '\s*\([^)]*\)\s*$', '')
+   * Do not add (gun)/(pistol)/… alias rows — strip is the single-point fix.
+   */
   function norm(raw) {
     return String(raw || "")
       .toLowerCase()
       .replace(/[×✕]/g, "x")
       .replace(/^vs\s+/, "")
       .replace(/\s+/g, " ")
-      .trim();
+      .trim()
+      .replace(/\s*\([^)]*\)\s*$/, "");
+  }
+
+  /** Same trailing-(...) strip as SQL backfill (exported for callers / tests). */
+  function normalizeFormationForAliasLookup(raw) {
+    return String(raw || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s*\([^)]*\)\s*$/, "");
   }
 
   function indexCatalog(data) {
@@ -714,6 +729,7 @@
     allFormations: allFormations,
     resolve: resolve,
     resolveId: resolveId,
+    normalizeFormationForAliasLookup: normalizeFormationForAliasLookup,
     getById: getById,
     isSupportedName: isSupportedName,
     displayName: displayName,

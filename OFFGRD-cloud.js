@@ -369,11 +369,20 @@ export const Cloud = {
   async savePlay(teamId, play) {
     // play.id optional; data holds the full play state from the designer
     const payload = play.data || play;
+    const formation = play.formation || (payload && payload.formation) || "";
     const row = {
       team_id: teamId, name: play.name, family: play.family, series: play.series,
       personnel: play.personnel, formation: play.formation, protection: play.protection,
       data: payload
     };
+    /* Resolve formation_id on write — same trailing-(...) strip as SQL backfill
+       (OFFGRD_FORMATION_CANON.norm). Defensive fronts (4-3, 3-4, …) stay NULL. */
+    try {
+      const FC = (typeof globalThis !== "undefined" && globalThis.OFFGRD_FORMATION_CANON) || null;
+      if (FC && typeof FC.resolveId === "function") {
+        row.formation_id = formation ? (FC.resolveId(formation) || null) : null;
+      }
+    } catch (_) { /* leave formation_id unset if canon unavailable */ }
     /* Wizard Confirm / Author seeds live on the play — persist columns so Reps Lab "Our plays" can attribute by name. */
     const reads = play.qb_reads || (payload && payload.qb_reads);
     const ol = play.ol_keys || (payload && payload.ol_keys);
