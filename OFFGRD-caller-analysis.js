@@ -1,0 +1,1627 @@
+/**
+ * OFFGRD caller analysis — shared stats engine for O + D Caller.
+ *
+ * Numbers from the engine. Words from templates (LLM later).
+ * Fold stays a flat snap log; drives are a pure view over it (derive, don't stamp).
+ *
+ *   window.OFFGRD_CALLER_ANALYSIS
+ */
+(function (global) {
+  "use strict";
+
+  function Out() {
+    return global.OFFGRD_CALLER_OUTCOME || null;
+  }
+
+  function dbToNum(db) {
+    var O = Out();
+    if (O && O.dbToNum) return O.dbToNum(db);
+    if (db === "1-3") return 2;
+    if (db === "4-6") return 5;
+    if (db === "7-9") return 8;
+    if (db === "10+") return 12;
+    return 10;
+  }
+
+  function stResultInfo(id) {
+    var O = Out();
+    if (O && O.stResultInfo) return O.stResultInfo(id);
+    return null;
+  }
+
+  function isTwoptResult(id) {
+    var O = Out();
+    if (O && O.isTwoptResult) return O.isTwoptResult(id);
+    return id === "twopt_good" || id === "twopt_no";
+  }
+
+  function isSpecialType(pt) {
+    var O = Out();
+    if (O && O.isSpecialType) return O.isSpecialType(pt);
+    return pt === "fg" || pt === "punt" || pt === "xp";
+  }
+
+  function isGraded(e) {
+    return !!(e && e.result != null && e.result !== "");
+  }
+
+  /** Negated / penalty — must not end a drive (called-back TD). */
+  function isNegated(e) {
+    if (!e) return false;
+    if (e.negated) return true;
+    var O = Out();
+    if (O && O.isPenaltyFlag && O.isPenaltyFlag(e.flag)) return true;
+    return false;
+  }
+
+  function isTrySnap(e) {
+    if (!e) return false;
+    if (e.forTwo) return true;
+    if (e.playType === "xp") return true;
+    if (isTwoptResult(e.result)) return true;
+    var sit = String(e.sitTxt || "").toLowerCase();
+    if (sit === "2-pt" || sit === "after td") return true;
+    return false;
+  }
+
+  function isFakeConverted(e) {
+    var st = stResultInfo(e && e.result);
+    return !!(st && st.spec && st.spec.fakeConverted);
+  }
+
+  /**
+   * Does this graded, non-negated snap end the current possession?
+   * Reuses the same possession semantics as inferNextSituation.
+   */
+  function possessionEnd(e) {
+    if (!isGraded(e) || isNegated(e)) return null;
+
+    if (e.result === "safety") return "safety";
+    if (e.result === "turnover") return "turnover";
+    if (e.result === "def_td") return "def_td";
+
+    if (isTwoptResult(e.result)) return "after_try";
+    if (e.playType === "xp" || (stResultInfo(e.result) && stResultInfo(e.result).kind === "xp")) {
+      return "after_try";
+    }
+
+    if (e.result === "td") return "td"; /* caller keeps drive open for try */
+
+    var st = stResultInfo(e.result);
+    var stKind = isSpecialType(e.playType)
+      ? e.playType
+      : st && st.kind !== "twopt"
+        ? st.kind
+        : null;
+    if (stKind === "punt" || stKind === "fg") {
+      if (isFakeConverted(e)) return null; /* keep possession */
+      return "change_of_possession";
+    }
+
+    /* Turnover on downs: 4th down, did not convert, not a score/TO/ST. */
+    if (+e.dn === 4) {
+      var gain = e.gain;
+      var dist = dbToNum(e.db);
+      if (gain != null && !isNaN(+gain) && +gain < dist) {
+        return "turnover_on_downs";
+      }
+    }
+
+    return null;
+  }
+
+  function newDrive(index) {
+    return {
+      index: index,
+      snaps: [],
+      endReason: null,
+      truncated: false,
+      open: true,
+      label: null,
+    };
+  }
+
+  /**
+   * Pure drive view over a folded caller log.
+   * @param {Array} log — fold entries (either side)
+   * @param {Object} [opts]
+   * @param {Array<{kind:string, afterPlayIndex:number}>} [opts.breaks] — coach marks
+   */
+  function deriveDrives(log, opts) {
+    opts = opts || {};
+    var breaks = Array.isArray(opts.breaks) ? opts.breaks.slice() : [];
+    breaks.sort(function (a, b) {
+      return (+a.afterPlayIndex || 0) - (+b.afterPlayIndex || 0);
+    });
+
+    var entries = (log || [])
+      .filter(function (e) {
+        return e && e.playIndex != null;
+      })
+      .slice()
+      .sort(function (a, b) {
+        return a.playIndex - b.playIndex;
+      });
+
+    var drives = [];
+    var open = null;
+    var pendingTry = false;
+    var driveIx = 0;
+
+    function close(reason, truncated, label) {
+      if (!open) return;
+      open.endReason = reason || null;
+      open.truncated = !!truncated;
+      open.open = false;
+      open.label = label || null;
+      if (truncated && !open.label) {
+        open.label =
+          reason === "half"
+            ? "drive in progress at half"
+            : reason === "quarter"
+              ? "drive in progress at quarter"
+              : "drive in progress";
+      }
+      drives.push(open);
+      open = null;
+      pendingTry = false;
+    }
+
+    function applyBreaksAfter(playIndex) {
+      var i;
+      for (i = 0; i < breaks.length; i++) {
+        var br = breaks[i];
+        if (br._done) continue;
+        if (+br.afterPlayIndex === +playIndex) {
+          br._done = true;
+          if (open) {
+            close(br.kind || "break", true, null);
+          }
+        }
+      }
+    }
+
+    var ei;
+    for (ei = 0; ei < entries.length; ei++) {
+      var e = entries[ei];
+
+      /* Skip-try: next non-try snap starts a new drive; close score drive first. */
+      if (open && pendingTry && !isTrySnap(e)) {
+        close("after_td", false, null);
+      }
+
+      if (!open) {
+        open = newDrive(driveIx++);
+      }
+      open.snaps.push(e);
+
+      if (isGraded(e) && !isNegated(e)) {
+        if (e.result === "td") {
+          pendingTry = true;
+        } else if (pendingTry && isTrySnap(e)) {
+          close("after_try", false, null);
+        } else {
+          var end = possessionEnd(e);
+          if (end === "td") {
+            pendingTry = true;
+          } else if (end) {
+            close(end, false, null);
+          }
+        }
+      }
+
+      applyBreaksAfter(e.playIndex);
+    }
+
+    if (open) {
+      open.open = true;
+      open.endReason = null;
+      drives.push(open);
+    }
+
+    return drives;
+  }
+
+  /* ---------- Shared tendency shift (same function as live D Expect strip) ---------- */
+
+  function passShare(rows) {
+    if (!rows || !rows.length) return null;
+    var known = rows.filter(function (r) {
+      var pt = String(r.playType || r.ptype || "").toLowerCase();
+      return pt.indexOf("pass") >= 0 || pt.indexOf("run") >= 0;
+    });
+    if (!known.length) return null;
+    var passes = known.filter(function (r) {
+      return String(r.playType || r.ptype || "")
+        .toLowerCase()
+        .indexOf("pass") >= 0;
+    }).length;
+    return passes / known.length;
+  }
+
+  /**
+   * Tendency shift: tonight vs season in this bucket.
+   * Requires ≥3 live & ≥3 season; surfaces when |delta| ≥ 25pp.
+   * MUST stay identical to the live Expect strip (D Caller).
+   */
+  function tendencyShift(sample) {
+    sample = sample || {};
+    var live = sample.live || [];
+    var season = sample.season || [];
+    if (live.length < 3 || season.length < 3) return null;
+    var livePass = passShare(live);
+    var seasonPass = passShare(season);
+    if (livePass == null || seasonPass == null) return null;
+    var delta = livePass - seasonPass;
+    if (Math.abs(delta) < 0.25) return null;
+    return {
+      livePass: livePass,
+      seasonPass: seasonPass,
+      liveN: live.length,
+      seasonN: season.length,
+      tonightLean: livePass >= 0.5 ? "pass" : "run",
+      seasonLean: seasonPass >= 0.5 ? "pass" : "run",
+      delta: delta,
+    };
+  }
+
+  /* ---------- Deterministic templates (no LLM) ---------- */
+
+  function fmtPct(p) {
+    if (p == null || isNaN(+p)) return "—";
+    return Math.round(+p * 100) + "%";
+  }
+
+  function yardsSum(snaps) {
+    var t = 0;
+    var n = 0;
+    (snaps || []).forEach(function (s) {
+      if (s.gain != null && !isNaN(+s.gain) && !isNegated(s)) {
+        t += +s.gain;
+        n++;
+      }
+    });
+    return { yards: t, n: n };
+  }
+
+  function topPlay(snaps) {
+    var counts = {};
+    (snaps || []).forEach(function (s) {
+      if (!s.play || isTrySnap(s) || isSpecialType(s.playType)) return;
+      counts[s.play] = (counts[s.play] || 0) + 1;
+    });
+    var best = null;
+    var bestN = 0;
+    Object.keys(counts).forEach(function (k) {
+      if (counts[k] > bestN) {
+        bestN = counts[k];
+        best = k;
+      }
+    });
+    return best ? { play: best, n: bestN } : null;
+  }
+
+  function endLabel(drive) {
+    if (!drive) return "";
+    if (drive.truncated && drive.label) return drive.label;
+    var r = drive.endReason;
+    if (r === "after_try" || r === "after_td") return "score";
+    if (r === "turnover_on_downs") return "turnover on downs";
+    if (r === "change_of_possession") return "punt/FG";
+    if (r === "turnover") return "turnover";
+    if (r === "safety") return "safety";
+    if (r === "def_td") return "defensive score";
+    if (drive.open) return "in progress";
+    return r || "end";
+  }
+
+  /**
+   * Drive summary — ≤3 lines, template-only (attention budget ~40s).
+   * side: 'offense' | 'defense'
+   */
+  function driveTemplate(drive, side) {
+    if (!drive || !drive.snaps || !drive.snaps.length) {
+      return { lines: [], facts: {} };
+    }
+    side = side || drive.snaps[0].side || "offense";
+    var snaps = drive.snaps;
+    var y = yardsSum(snaps);
+    var top = topPlay(snaps);
+    var result = endLabel(drive);
+    var plays = snaps.length;
+    var facts = {
+      plays: plays,
+      yards: y.yards,
+      yardsN: y.n,
+      result: result,
+      topPlay: top ? top.play : null,
+      topPlayN: top ? top.n : 0,
+      truncated: !!drive.truncated,
+      side: side,
+    };
+
+    var line1 =
+      (side === "defense" ? "Their drive" : "Drive") +
+      ": " +
+      plays +
+      " play" +
+      (plays === 1 ? "" : "s") +
+      (y.n ? " · " + y.yards + " yd" + (side === "defense" ? " allowed" : "") : "") +
+      " · " +
+      result;
+
+    var line2 = "";
+    if (top) {
+      line2 =
+        side === "defense"
+          ? "They leaned " + top.play + " (" + top.n + ")"
+          : "Moved it with " + top.play + " (" + top.n + ")";
+    } else if (drive.truncated) {
+      line2 = "Truncated at break — still open when marked.";
+    }
+
+    var line3 = "";
+    if (drive.truncated) {
+      line3 = drive.label || "drive in progress at break";
+    }
+
+    var lines = [line1];
+    if (line2) lines.push(line2);
+    if (line3 && line3 !== line2) lines.push(line3);
+    return { lines: lines.slice(0, 3), facts: facts };
+  }
+
+  /**
+   * Quarter summary — 5–6 lines from an offense log + optional defense log.
+   * v1: playType + concept (O); coverage/front/pressure (D). No family taxonomy.
+   * Formations: season-only note when live formation absent.
+   */
+  function quarterTemplate(opts) {
+    opts = opts || {};
+    var oLog = opts.offenseLog || [];
+    var dLog = opts.defenseLog || [];
+    var quarter = opts.quarter != null ? opts.quarter : "?";
+    var shift = opts.shift || null;
+    var lines = [];
+    var facts = { quarter: quarter, offenseN: oLog.length, defenseN: dLog.length };
+
+    lines.push("Q" + quarter + " · " + oLog.length + " O snaps · " + dLog.length + " D snaps");
+
+    var oPass = passShare(oLog);
+    var dPass = passShare(dLog);
+    if (oPass != null) {
+      facts.oPass = oPass;
+      facts.oPassN = oLog.length;
+      lines.push("O run/pass: " + fmtPct(1 - oPass) + " / " + fmtPct(oPass) + " (n=" + oLog.length + ")");
+    }
+    if (dPass != null) {
+      facts.dPass = dPass;
+      facts.dPassN = dLog.length;
+      lines.push(
+        "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")"
+      );
+    }
+
+    var o3 = oLog.filter(function (e) {
+      return +e.dn === 3 && isGraded(e) && !isNegated(e);
+    });
+    if (o3.length) {
+      var o3ok = o3.filter(function (e) {
+        return e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db));
+      }).length;
+      facts.o3 = { ok: o3ok, n: o3.length };
+      lines.push("O 3rd down: " + o3ok + "/" + o3.length);
+    }
+
+    var chunks = dLog.filter(function (e) {
+      return e.isChunk || e.result === "chunk" || e.result === "explosive";
+    });
+    if (dLog.length) {
+      facts.chunksAgainst = chunks.length;
+      lines.push("Chunks allowed: " + chunks.length + " (n=" + dLog.length + ")");
+    }
+
+    if (shift) {
+      facts.shift = {
+        tonightLean: shift.tonightLean,
+        livePass: shift.livePass,
+        seasonPass: shift.seasonPass,
+        liveN: shift.liveN,
+        seasonN: shift.seasonN,
+      };
+      lines.push(
+        "Shift: tonight " +
+          fmtPct(shift.livePass) +
+          " pass (n=" +
+          shift.liveN +
+          ") · season " +
+          fmtPct(shift.seasonPass) +
+          " (n=" +
+          shift.seasonN +
+          ")"
+      );
+    }
+
+    lines.push("Formations: season data (live snaps have no formation tags)");
+
+    return { lines: lines.slice(0, 6), facts: facts };
+  }
+
+  /**
+   * Group O snaps by playType + concept (v1 — no family taxonomy).
+   * Group D snaps by coverage / front / pressure.
+   */
+  function groupRates(log, side) {
+    var groups = {};
+    (log || []).forEach(function (e) {
+      if (!isGraded(e) || isNegated(e) || isTrySnap(e)) return;
+      if (isSpecialType(e.playType)) return;
+      var key;
+      if (side === "defense") {
+        key = [e.coverage || "?", e.front || "?", e.pressure || "none"].join(" · ");
+      } else {
+        key = [e.playType || "?", e.concept || e.conceptOverride || "—"].join(" · ");
+      }
+      if (!groups[key]) groups[key] = { key: key, n: 0, success: 0, chunks: 0, yards: 0, yardsN: 0 };
+      groups[key].n++;
+      if (e.success === 1 || (side === "defense" && e.isStop)) groups[key].success++;
+      if (e.isChunk || e.result === "chunk" || e.result === "explosive") groups[key].chunks++;
+      if (e.gain != null && !isNaN(+e.gain)) {
+        groups[key].yards += +e.gain;
+        groups[key].yardsN++;
+      }
+    });
+    return Object.keys(groups)
+      .map(function (k) {
+        return groups[k];
+      })
+      .sort(function (a, b) {
+        return b.n - a.n;
+      });
+  }
+
+  /**
+   * Reorder the same groupRates rows — never re-aggregate.
+   * mode: volume | working_o | working_d | held | beating_o | beating_d
+   */
+  function rankCallFamilies(groups, mode) {
+    var rows = (groups || []).slice();
+    function rate(g, kind) {
+      if (!g || !g.n) return 0;
+      if (kind === "success") return g.success / g.n;
+      if (kind === "chunks") return g.chunks / g.n;
+      return 0;
+    }
+    rows.sort(function (a, b) {
+      var d = 0;
+      if (mode === "working_o") d = rate(b, "success") - rate(a, "success");
+      else if (mode === "working_d" || mode === "held") d = rate(a, "chunks") - rate(b, "chunks");
+      else if (mode === "beating_o") d = rate(a, "success") - rate(b, "success");
+      else if (mode === "beating_d") d = rate(b, "chunks") - rate(a, "chunks");
+      else d = (b.n || 0) - (a.n || 0); /* volume — panel default */
+      if (d !== 0) return d;
+      return (b.n || 0) - (a.n || 0);
+    });
+    return rows;
+  }
+
+  function ypaOf(g) {
+    if (!g || !g.yardsN) return null;
+    return +(g.yards / g.yardsN).toFixed(1);
+  }
+
+  function thinN(n) {
+    return !n || n < 3;
+  }
+
+  /**
+   * Booth Tier-1 chip → 2–4 template lines from the same facts the panel uses.
+   * payload: { side:"offense"|"defense", offenseLog, defenseLog, shifts, topForm?:{label,pct,n} }
+   */
+  function boothChipAnswer(chipId, payload) {
+    payload = payload || {};
+    var side = payload.side === "offense" ? "offense" : "defense";
+    var oLog = payload.offenseLog || [];
+    var dLog = payload.defenseLog || [];
+    var shifts = payload.shifts || [];
+    var lines = [];
+    var thinFlags = [];
+
+    function pushLine(text, n) {
+      lines.push(String(text));
+      thinFlags.push(thinN(n));
+    }
+
+    if (chipId === "working") {
+      if (side === "offense") {
+        var oRank = rankCallFamilies(groupRates(oLog, "offense"), "working_o").slice(0, 3);
+        if (!oRank.length) pushLine("Not enough graded O snaps yet.", 0);
+        oRank.forEach(function (g) {
+          pushLine(g.key + ": " + g.success + "/" + g.n + " success (n=" + g.n + ")", g.n);
+        });
+      } else {
+        var dRank = rankCallFamilies(groupRates(dLog, "defense"), "working_d").slice(0, 3);
+        if (!dRank.length) pushLine("Not enough graded D snaps yet.", 0);
+        dRank.forEach(function (g) {
+          var y = ypaOf(g);
+          pushLine(
+            g.key +
+              " held them" +
+              (y != null ? " to " + y + " yds/att" : "") +
+              " · " +
+              g.chunks +
+              "/" +
+              g.n +
+              " chunks (n=" +
+              g.n +
+              ")",
+            g.n
+          );
+        });
+      }
+    } else if (chipId === "beating") {
+      if (side === "offense") {
+        var oBad = rankCallFamilies(groupRates(oLog, "offense"), "beating_o").slice(0, 3);
+        if (!oBad.length) pushLine("Not enough graded O snaps yet.", 0);
+        oBad.forEach(function (g) {
+          pushLine(g.key + ": " + g.success + "/" + g.n + " success — cold (n=" + g.n + ")", g.n);
+        });
+      } else {
+        var dBad = rankCallFamilies(groupRates(dLog, "defense"), "beating_d").slice(0, 3);
+        if (!dBad.length) pushLine("Not enough graded D snaps yet.", 0);
+        dBad.forEach(function (g) {
+          pushLine(
+            g.key + ": " + g.chunks + "/" + g.n + " chunks allowed (n=" + g.n + ")",
+            g.n
+          );
+        });
+      }
+    } else if (chipId === "third") {
+      var o3 = oLog.filter(function (e) {
+        return +e.dn === 3 && isGraded(e) && !isNegated(e);
+      });
+      var d3 = dLog.filter(function (e) {
+        return +e.dn === 3 && isGraded(e) && !isNegated(e);
+      });
+      if (o3.length) {
+        var o3ok = o3.filter(function (e) {
+          return e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db));
+        }).length;
+        pushLine("O 3rd down: " + o3ok + "/" + o3.length + " (n=" + o3.length + ")", o3.length);
+      }
+      if (d3.length) {
+        var d3stop = d3.filter(function (e) {
+          return e.isStop || e.success === 1 || (e.gain != null && +e.gain < dbToNum(e.db));
+        }).length;
+        pushLine("D 3rd down stops: " + d3stop + "/" + d3.length + " (n=" + d3.length + ")", d3.length);
+      }
+      var thirdShift = null;
+      shifts.forEach(function (row) {
+        if (row && /3rd/i.test(String(row.bucket || "")) && row.shift) thirdShift = row;
+      });
+      if (thirdShift && thirdShift.shift) {
+        var s = thirdShift.shift;
+        pushLine(
+          "3rd tonight " +
+            fmtPct(s.livePass) +
+            " pass (n=" +
+            s.liveN +
+            ") · season " +
+            fmtPct(s.seasonPass) +
+            " (n=" +
+            s.seasonN +
+            ") — lean " +
+            s.tonightLean,
+          s.liveN
+        );
+      }
+      if (!lines.length) pushLine("No 3rd-down snaps logged yet.", 0);
+    } else if (chipId === "best_look") {
+      /* Option A: stacked season form + unfiltered held — not a fake join. */
+      var tf = payload.topForm || null;
+      if (tf && tf.label) {
+        pushLine(
+          "Their top look (season): " +
+            tf.label +
+            (tf.pct != null ? " " + Math.round(tf.pct * 100) + "%" : "") +
+            (tf.n != null ? " (n=" + tf.n + ")" : ""),
+          tf.n
+        );
+      } else {
+        pushLine("Their top look (season): no formation tags in scout yet.", 0);
+      }
+      var heldRows = rankCallFamilies(
+        groupRates(dLog, "defense").filter(function (g) {
+          return g.n >= 1;
+        }),
+        "held"
+      ).slice(0, 2);
+      if (!heldRows.length) {
+        pushLine("Tonight's held calls: need graded D snaps.", 0);
+      } else {
+        heldRows.forEach(function (g) {
+          var y = ypaOf(g);
+          pushLine(
+            "Tonight's held calls: " +
+              g.key +
+              (y != null ? " — " + y + " yds/att" : "") +
+              " (n=" +
+              g.n +
+              ")",
+            g.n
+          );
+        });
+      }
+    } else if (chipId === "leaning") {
+      /* Unweighted — match panel what_they (recency = Sept). */
+      var dPass = passShare(dLog);
+      if (dPass != null) {
+        pushLine(
+          "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")",
+          dLog.length
+        );
+      }
+      ["1st", "2nd short", "2nd long", "3rd"].forEach(function (bucket) {
+        if (lines.length >= 4) return;
+        var snaps = dLog.filter(function (e) {
+          return isGraded(e) && !isNegated(e) && !isTrySnap(e) && downBucket(e) === bucket;
+        });
+        var ps = passShare(snaps);
+        if (ps != null && snaps.length >= 2) {
+          pushLine(bucket + ": " + fmtPct(1 - ps) + " / " + fmtPct(ps) + " (n=" + snaps.length + ")", snaps.length);
+        }
+      });
+      var dirCounts = {};
+      dLog.forEach(function (e) {
+        if (!e.theirDirection || isNegated(e)) return;
+        dirCounts[e.theirDirection] = (dirCounts[e.theirDirection] || 0) + 1;
+      });
+      var topDir = Object.keys(dirCounts).sort(function (a, b) {
+        return dirCounts[b] - dirCounts[a];
+      })[0];
+      if (topDir && lines.length < 4) {
+        pushLine("Direction lean: " + topDir + " (n=" + dirCounts[topDir] + ")", dirCounts[topDir]);
+      }
+      if (!lines.length) pushLine("No graded D snaps yet.", 0);
+    } else if (chipId === "redzone") {
+      var rz = function (e) {
+        return e.zone === "RZ" || e.zone === "red" || /red/i.test(String(e.zone || ""));
+      };
+      var oRz = oLog.filter(function (e) {
+        return rz(e) && isGraded(e) && !isNegated(e);
+      });
+      var dRz = dLog.filter(function (e) {
+        return rz(e) && isGraded(e) && !isNegated(e);
+      });
+      if (!oRz.length && !dRz.length) {
+        pushLine("No red-zone snaps logged yet.", 0);
+      } else {
+        pushLine("Red zone: O " + oRz.length + " snaps · D " + dRz.length + " snaps", oRz.length + dRz.length);
+      }
+    } else if (chipId === "drives") {
+      /* Tier-3 Final — drive chart facts (same deriveDrives as finalTemplate). */
+      var br = payload.breaks || [];
+      var oBr = payload.offenseBreaks || br;
+      var oDr = oLog.length ? driveChart(oLog, oBr) : [];
+      var dDr = dLog.length ? driveChart(dLog, br) : [];
+      if (!oDr.length && !dDr.length) {
+        pushLine("No drives derived yet.", 0);
+      } else {
+        if (oDr.length) {
+          var oYd = 0;
+          oDr.forEach(function (d) {
+            oYd += d.yards || 0;
+          });
+          pushLine("O drives: " + oDr.length + " · " + oYd + " yd (n=" + oDr.length + ")", oDr.length);
+          oDr.slice(0, 2).forEach(function (d, i) {
+            if (lines.length >= 4) return;
+            pushLine(
+              "  O" +
+                (i + 1) +
+                ": " +
+                d.plays +
+                " plays · " +
+                d.yards +
+                " yd · " +
+                (d.label || d.endReason || "end"),
+              d.plays
+            );
+          });
+        }
+        if (dDr.length && lines.length < 4) {
+          var dYd = 0;
+          dDr.forEach(function (d) {
+            dYd += d.yards || 0;
+          });
+          pushLine("D series: " + dDr.length + " · " + dYd + " yd allowed (n=" + dDr.length + ")", dDr.length);
+        }
+      }
+    } else if (chipId === "turnovers") {
+      var turns = turnoverSummary(oLog, dLog);
+      if (!turns.total) {
+        pushLine("No turnovers / TOD / safeties logged.", 0);
+      } else {
+        Object.keys(turns.byKind || {}).forEach(function (k) {
+          if (lines.length >= 4) return;
+          pushLine(k.replace(/_/g, " ") + ": " + turns.byKind[k], turns.byKind[k]);
+        });
+        if (lines.length < 4) {
+          pushLine("Total possession changes: " + turns.total + " (n=" + turns.total + ")", turns.total);
+        }
+      }
+    } else {
+      pushLine("Unknown chip.", 0);
+    }
+
+    /* Final context: if room, append one drive-count line (same numbers as Final chart). */
+    if (payload.context === "final" && lines.length < 4 && chipId !== "drives" && chipId !== "turnovers") {
+      var ff = payload.finalFacts || {};
+      var fd = (ff.drives && ff.drives.defense) || [];
+      var fo = (ff.drives && ff.drives.offense) || [];
+      if (fo.length || fd.length) {
+        pushLine(
+          "Game: " +
+            (fo.length ? fo.length + " O drives" : "") +
+            (fo.length && fd.length ? " · " : "") +
+            (fd.length ? fd.length + " D series" : "") +
+            " (n=" +
+            (fo.length + fd.length) +
+            ")",
+          fo.length + fd.length
+        );
+      }
+    }
+
+    return {
+      chipId: chipId,
+      lines: lines.slice(0, 4),
+      thin: thinFlags.slice(0, 4),
+    };
+  }
+
+  /** Chip catalog — six live intents; Final adds drive/turnover chips. */
+  function boothChipDefs(side, opts) {
+    opts = opts || {};
+    var isO = side === "offense";
+    var defs = [
+      { id: "working", label: isO ? "What's working?" : "What's working?" },
+      { id: "beating", label: isO ? "What's cold?" : "What's beating us?" },
+      { id: "third", label: "3rd down tonight?" },
+      { id: "best_look", label: isO ? "Best look vs their top" : "Best look vs their top" },
+      { id: "leaning", label: isO ? "What are they leaning on?" : "What are they leaning on?" },
+      { id: "redzone", label: "Red zone?" },
+    ];
+    if (opts.context === "final") {
+      defs.push({ id: "drives", label: "Drive chart?" });
+      defs.push({ id: "turnovers", label: "Turnovers?" });
+    }
+    return defs;
+  }
+
+  function downBucket(e) {
+    if (!e) return "other";
+    var dn = +e.dn;
+    var dist = dbToNum(e.db);
+    if (dn === 1) return "1st";
+    if (dn === 2) return dist >= 7 ? "2nd long" : "2nd short";
+    if (dn === 3) return "3rd";
+    if (dn === 4) return "4th";
+    return "other";
+  }
+
+  function flagLabel(id) {
+    var O = Out();
+    if (O && O.flagLabel) return O.flagLabel(id);
+    return id || "";
+  }
+
+  function tagRollup(log) {
+    var counts = {};
+    (log || []).forEach(function (e) {
+      if (!e || isNegated(e)) return;
+      var flags = Array.isArray(e.flags) ? e.flags : e.flag ? [e.flag] : [];
+      flags.forEach(function (f) {
+        if (!f) return;
+        counts[f] = (counts[f] || 0) + 1;
+      });
+    });
+    return Object.keys(counts)
+      .map(function (id) {
+        return { id: id, label: flagLabel(id), n: counts[id] };
+      })
+      .sort(function (a, b) {
+        return b.n - a.n;
+      });
+  }
+
+  function shiftLine(bucket, shift) {
+    if (!shift) return "";
+    var head = bucket ? bucket + " — " : "";
+    return (
+      head +
+      "tonight " +
+      fmtPct(shift.livePass) +
+      " pass (n=" +
+      shift.liveN +
+      ") · season " +
+      fmtPct(shift.seasonPass) +
+      " (n=" +
+      shift.seasonN +
+      ")"
+    );
+  }
+
+  /**
+   * Halftime — flagship, full-screen, 4 sections. Template-only (no LLM).
+   * Must paint offline in <2s. Shift lines use the same tendencyShift result objects
+   * the Expect strip uses (callers pass opts.shifts from that function).
+   *
+   * opts: { offenseLog, defenseLog, shifts:[{bucket,shift}], shift }
+   */
+  function halftimeTemplate(opts) {
+    opts = opts || {};
+    var oLog = opts.offenseLog || [];
+    var dLog = opts.defenseLog || [];
+    var shifts = Array.isArray(opts.shifts)
+      ? opts.shifts
+      : opts.shift
+        ? [{ bucket: "current sit", shift: opts.shift }]
+        : [];
+    var sections = [];
+    var facts = {
+      offenseN: oLog.length,
+      defenseN: dLog.length,
+      shifts: [],
+    };
+
+    /* ---- 1. What they're doing (D) ---- */
+    var whatLines = [];
+    var whatFacts = { defenseN: dLog.length };
+    var dPass = passShare(dLog);
+    if (dPass != null) {
+      whatFacts.dPass = dPass;
+      whatLines.push(
+        "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")"
+      );
+    }
+    ["1st", "2nd short", "2nd long", "3rd"].forEach(function (bucket) {
+      var snaps = dLog.filter(function (e) {
+        return isGraded(e) && !isNegated(e) && !isTrySnap(e) && downBucket(e) === bucket;
+      });
+      var ps = passShare(snaps);
+      if (ps != null && snaps.length >= 2) {
+        whatLines.push(bucket + ": " + fmtPct(1 - ps) + " / " + fmtPct(ps) + " (n=" + snaps.length + ")");
+        whatFacts[bucket] = { pass: ps, n: snaps.length };
+      }
+    });
+    var dirCounts = {};
+    dLog.forEach(function (e) {
+      if (!e.theirDirection || isNegated(e)) return;
+      dirCounts[e.theirDirection] = (dirCounts[e.theirDirection] || 0) + 1;
+    });
+    var topDir = Object.keys(dirCounts).sort(function (a, b) {
+      return dirCounts[b] - dirCounts[a];
+    })[0];
+    if (topDir) {
+      whatLines.push("Direction lean: " + topDir + " (" + dirCounts[topDir] + ")");
+      whatFacts.topDir = { dir: topDir, n: dirCounts[topDir] };
+    }
+    shifts.forEach(function (row) {
+      if (!row || !row.shift) return;
+      var line = shiftLine(row.bucket || "", row.shift);
+      if (line) {
+        whatLines.push(line);
+        facts.shifts.push({
+          bucket: row.bucket || "",
+          livePass: row.shift.livePass,
+          seasonPass: row.shift.seasonPass,
+          liveN: row.shift.liveN,
+          seasonN: row.shift.seasonN,
+          tonightLean: row.shift.tonightLean,
+        });
+      }
+    });
+    whatLines.push("Formations: season data (live snaps have no formation tags)");
+    if (!whatLines.length) whatLines.push("No graded D snaps yet.");
+    sections.push({
+      id: "what_they",
+      title: "What they're doing",
+      lines: whatLines,
+      facts: whatFacts,
+    });
+
+    /* ---- 2. What's working / failing ---- */
+    var workLines = [];
+    var workFacts = {};
+    var dGroups = groupRates(dLog, "defense").slice(0, 6);
+    workFacts.dGroups = dGroups.map(function (g) {
+      return { key: g.key, n: g.n, chunks: g.chunks, success: g.success };
+    });
+    dGroups.forEach(function (g) {
+      workLines.push(g.key + ": " + g.n + " snaps, " + g.chunks + " chunk" + (g.chunks === 1 ? "" : "s") + " allowed");
+    });
+    var oGroups = groupRates(oLog, "offense").slice(0, 4);
+    workFacts.oGroups = oGroups.map(function (g) {
+      return { key: g.key, n: g.n, success: g.success };
+    });
+    oGroups.forEach(function (g) {
+      workLines.push("O " + g.key + ": " + g.success + "/" + g.n + " success");
+    });
+    var o3 = oLog.filter(function (e) {
+      return +e.dn === 3 && isGraded(e) && !isNegated(e);
+    });
+    if (o3.length) {
+      var o3ok = o3.filter(function (e) {
+        return e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db));
+      }).length;
+      workFacts.o3 = { ok: o3ok, n: o3.length };
+      workLines.push("O 3rd down: " + o3ok + "/" + o3.length);
+    }
+    var d3 = dLog.filter(function (e) {
+      return +e.dn === 3 && isGraded(e) && !isNegated(e);
+    });
+    if (d3.length) {
+      var d3stop = d3.filter(function (e) {
+        return e.isStop || e.success === 1 || (e.gain != null && +e.gain < dbToNum(e.db));
+      }).length;
+      workFacts.d3 = { stop: d3stop, n: d3.length };
+      workLines.push("D 3rd down stops: " + d3stop + "/" + d3.length);
+    }
+    var rz = function (e) {
+      return e.zone === "RZ" || e.zone === "red" || /red/i.test(String(e.zone || ""));
+    };
+    var oRz = oLog.filter(function (e) {
+      return rz(e) && isGraded(e) && !isNegated(e);
+    });
+    var dRz = dLog.filter(function (e) {
+      return rz(e) && isGraded(e) && !isNegated(e);
+    });
+    if (oRz.length || dRz.length) {
+      workLines.push("Red zone: O " + oRz.length + " snaps · D " + dRz.length + " snaps");
+      workFacts.redZone = { o: oRz.length, d: dRz.length };
+    }
+    if (!workLines.length) workLines.push("Not enough graded snaps for call rates yet.");
+    sections.push({
+      id: "working",
+      title: "What's working / failing",
+      lines: workLines,
+      facts: workFacts,
+    });
+
+    /* ---- 3. Suggested looks (rule-based — never LLM-originated) ---- */
+    var looks = [];
+    shifts.forEach(function (row) {
+      if (!row || !row.shift) return;
+      var s = row.shift;
+      looks.push({
+        text:
+          (row.bucket ? row.bucket + ": " : "") +
+          "expect " +
+          s.tonightLean +
+          " — tonight " +
+          fmtPct(s.livePass) +
+          " pass vs season " +
+          fmtPct(s.seasonPass),
+        facts: {
+          kind: "shift",
+          bucket: row.bucket || "",
+          tonightLean: s.tonightLean,
+          livePass: s.livePass,
+          seasonPass: s.seasonPass,
+          liveN: s.liveN,
+          seasonN: s.seasonN,
+        },
+      });
+    });
+    var secondLong = dLog.filter(function (e) {
+      return isGraded(e) && !isNegated(e) && !isTrySnap(e) && downBucket(e) === "2nd long";
+    });
+    if (secondLong.length >= 3) {
+      var slPass = passShare(secondLong);
+      var slY = yardsSum(secondLong);
+      var ypa = slY.n ? (slY.yards / slY.n).toFixed(1) : null;
+      looks.push({
+        text:
+          "Their 2nd-&-long pass rate tonight is " +
+          fmtPct(slPass) +
+          " (n=" +
+          secondLong.length +
+          ")" +
+          (ypa != null ? " · " + ypa + " yds/att" : ""),
+        facts: {
+          kind: "2nd_long",
+          pass: slPass,
+          n: secondLong.length,
+          ypa: ypa != null ? +ypa : null,
+        },
+      });
+    }
+    var held = rankCallFamilies(
+      groupRates(dLog, "defense").filter(function (g) {
+        return g.n >= 3;
+      }),
+      "held"
+    ).slice(0, 3);
+    held.forEach(function (g) {
+      var ypa =
+        g.yardsN > 0 ? (g.yards / g.yardsN).toFixed(1) : null;
+      looks.push({
+        text:
+          g.key +
+          " held them" +
+          (ypa != null ? " to " + ypa + " yds/att" : "") +
+          " · " +
+          g.chunks +
+          "/" +
+          g.n +
+          " chunks",
+        facts: {
+          kind: "held_call",
+          key: g.key,
+          n: g.n,
+          chunks: g.chunks,
+          ypa: ypa != null ? +ypa : null,
+        },
+      });
+    });
+    if (!looks.length) {
+      looks.push({
+        text: "No rule-based looks yet — need ≥3 snaps in a bucket or a shift line.",
+        facts: { kind: "empty" },
+      });
+    }
+    sections.push({
+      id: "suggested",
+      title: "Suggested looks",
+      lines: looks.map(function (l) {
+        return l.text;
+      }),
+      looks: looks,
+      facts: { lookN: looks.length },
+    });
+
+    /* ---- 4. Tag rollup (D) ---- */
+    var tags = tagRollup(dLog);
+    var tagLines = tags.length
+      ? tags.map(function (t) {
+          return t.label + ": " + t.n;
+        })
+      : ["No scheme tags yet — Monday pipeline empty at half."];
+    sections.push({
+      id: "tags",
+      title: "Tag rollup",
+      lines: tagLines,
+      facts: { tags: tags },
+    });
+
+    var flat = [];
+    sections.forEach(function (sec) {
+      flat.push(sec.title);
+      (sec.lines || []).forEach(function (ln) {
+        flat.push(ln);
+      });
+    });
+
+    return {
+      sections: sections,
+      facts: facts,
+      lines: flat,
+      renderedAt: Date.now(),
+    };
+  }
+
+  /** Tags × scheme × situation — Monday cell evidence (no player names). */
+  function tagsBySchemeSituation(log) {
+    var counts = {};
+    (log || []).forEach(function (e) {
+      if (!e || isNegated(e) || !isGraded(e)) return;
+      var flags = Array.isArray(e.flags) ? e.flags : e.flag ? [e.flag] : [];
+      if (!flags.length) return;
+      var scheme = e.coverage || e.front || "?";
+      var situation = downBucket(e);
+      if (+e.dn === 3 && dbToNum(e.db) >= 7) situation = "3rd-long";
+      flags.forEach(function (tag) {
+        if (!tag) return;
+        var key = tag + "\0" + scheme + "\0" + situation;
+        if (!counts[key]) {
+          counts[key] = { tag: tag, label: flagLabel(tag), scheme: scheme, situation: situation, n: 0 };
+        }
+        counts[key].n++;
+      });
+    });
+    return Object.keys(counts)
+      .map(function (k) {
+        return counts[k];
+      })
+      .sort(function (a, b) {
+        return b.n - a.n;
+      });
+  }
+
+  function turnoverSummary(oLog, dLog) {
+    function collect(log, side) {
+      var rows = [];
+      (log || []).forEach(function (e) {
+        if (!isGraded(e) || isNegated(e)) return;
+        var r = e.result;
+        var kind = null;
+        if (r === "turnover") kind = "turnover";
+        else if (r === "def_td") kind = "def_td";
+        else if (r === "safety") kind = "safety";
+        else if (+e.dn === 4 && e.gain != null && +e.gain < dbToNum(e.db) && r !== "td") {
+          kind = "turnover_on_downs";
+        }
+        if (!kind) return;
+        rows.push({
+          side: side,
+          kind: kind,
+          playIndex: e.playIndex != null ? e.playIndex : null,
+          sit: e.sitTxt || downBucket(e),
+          play: e.play || e.playType || null,
+        });
+      });
+      return rows;
+    }
+    var offense = collect(oLog, "offense");
+    var defense = collect(dLog, "defense");
+    var byKind = {};
+    offense.concat(defense).forEach(function (t) {
+      byKind[t.kind] = (byKind[t.kind] || 0) + 1;
+    });
+    return { offense: offense, defense: defense, byKind: byKind, total: offense.length + defense.length };
+  }
+
+  function driveChart(log, breaks) {
+    var drives = deriveDrives(log || [], { breaks: breaks || [] });
+    return drives.map(function (d, i) {
+      var y = yardsSum(d.snaps);
+      return {
+        index: d.index != null ? d.index : i,
+        plays: (d.snaps || []).length,
+        yards: y.yards,
+        yardsN: y.n,
+        endReason: d.endReason || (d.open ? "open" : null),
+        truncated: !!d.truncated,
+        open: !!d.open,
+        label: d.label || endLabel(d),
+      };
+    });
+  }
+
+  /**
+   * Final — halftime sections + drive chart + turnover summary.
+   * Template-only, offline, same <2s bar. No LLM.
+   */
+  function finalTemplate(opts) {
+    opts = opts || {};
+    var ht = halftimeTemplate(opts);
+    var oLog = opts.offenseLog || [];
+    var dLog = opts.defenseLog || [];
+    var breaks = opts.breaks || [];
+    var chart = driveChart(dLog.length ? dLog : oLog, breaks);
+    var oChart = oLog.length ? driveChart(oLog, opts.offenseBreaks || breaks) : [];
+    var turns = turnoverSummary(oLog, dLog);
+    var sections = (ht.sections || []).slice();
+
+    var driveLines = [];
+    if (oChart.length) {
+      driveLines.push("O drives (" + oChart.length + "):");
+      oChart.forEach(function (d, i) {
+        driveLines.push(
+          "  " +
+            (i + 1) +
+            ". " +
+            d.plays +
+            " plays · " +
+            d.yards +
+            " yd · " +
+            (d.label || d.endReason || "end")
+        );
+      });
+    }
+    if (chart.length && dLog.length) {
+      driveLines.push("D series (" + chart.length + "):");
+      chart.forEach(function (d, i) {
+        driveLines.push(
+          "  " +
+            (i + 1) +
+            ". " +
+            d.plays +
+            " plays · " +
+            d.yards +
+            " yd allowed · " +
+            (d.label || d.endReason || "end")
+        );
+      });
+    }
+    if (!driveLines.length) driveLines.push("No drives derived yet.");
+    sections.push({
+      id: "drives",
+      title: "Drive chart",
+      lines: driveLines,
+      facts: { offenseDrives: oChart, defenseDrives: chart },
+    });
+
+    var turnLines = [];
+    if (turns.total) {
+      Object.keys(turns.byKind).forEach(function (k) {
+        turnLines.push(k.replace(/_/g, " ") + ": " + turns.byKind[k]);
+      });
+      turnLines.push("Total possession changes: " + turns.total);
+    } else {
+      turnLines.push("No turnovers / TOD / safeties logged.");
+    }
+    sections.push({
+      id: "turnovers",
+      title: "Turnover summary",
+      lines: turnLines,
+      facts: turns,
+    });
+
+    var flat = [];
+    sections.forEach(function (sec) {
+      flat.push(sec.title);
+      (sec.lines || []).forEach(function (ln) {
+        flat.push(ln);
+      });
+    });
+
+    return {
+      sections: sections,
+      facts: Object.assign({}, ht.facts || {}, {
+        drives: { offense: oChart, defense: chart },
+        turnovers: turns,
+      }),
+      lines: flat,
+      renderedAt: Date.now(),
+      tier: "final",
+    };
+  }
+
+  /** Tag weights for Monday ranking — bust/missed_fit lead the flywheel. */
+  var MONDAY_TAG_WEIGHT = {
+    bust: 5,
+    missed_fit: 4,
+    bad_call: 3,
+    untested: 2,
+    late: 2,
+    call_right: 0,
+  };
+
+  function schemeTypeOf(scheme) {
+    var s = String(scheme || "").toLowerCase();
+    if (/cover|tampa|2-man|man /.test(s)) return "coverage";
+    if (/^\d-\d|odd|even|bear|okey/.test(s)) return "defensive_call";
+    return "coverage";
+  }
+
+  /** Focus kind valid for start_tracked_focus — never "game_tag" / never tag names. */
+  function focusKindOf(schemeType) {
+    return schemeType === "defensive_call" ? "blitz" : "coverage";
+  }
+
+  /**
+   * A+B default position group: Cover* → DB, fronts → LB. Coach may override at confirm.
+   * Tag/situation stay in evidence — never in p_dimension (RPC only allows depth|leverage|relationship).
+   */
+  function defaultPositionGroup(schemeType, schemeValue) {
+    var st = schemeType || schemeTypeOf(schemeValue);
+    if (st === "defensive_call") return "LB";
+    return "DB";
+  }
+
+  /** Stable candidate id (group editable separately). Staging accept key adds position_group. */
+  function mondayCandidateKey(c) {
+    if (!c) return "";
+    return String(c.tag || "") + "|" + String(c.schemeValue || c.scheme || "") + "|" + String(c.situation || "");
+  }
+
+  /**
+   * Merge engine candidates with prior payload — preserve accepted / approved_pending
+   * and coach-chosen positionGroup. Staging idempotent per game.
+   */
+  function mergeMondayFocusPayload(prev, next) {
+    if (!next || typeof next !== "object") return prev || null;
+    if (!prev || !prev.candidates) return next;
+    var byKey = {};
+    (prev.candidates || []).forEach(function (c) {
+      var k = mondayCandidateKey(c);
+      if (k) byKey[k] = c;
+    });
+    var merged = (next.candidates || []).map(function (c) {
+      var k = mondayCandidateKey(c);
+      var old = byKey[k];
+      if (!old) return c;
+      var out = Object.assign({}, c);
+      if (old.positionGroup) out.positionGroup = old.positionGroup;
+      if (old.status === "accepted" || old.status === "approved_pending" || old.status === "dismissed") {
+        out.status = old.status;
+      }
+      if (old.trackedFocusId) out.trackedFocusId = old.trackedFocusId;
+      if (old.acceptedAt) out.acceptedAt = old.acceptedAt;
+      if (old.focusHint && out.focusHint && old.positionGroup) {
+        out.focusHint = Object.assign({}, out.focusHint, {
+          position_group: old.positionGroup,
+        });
+      }
+      return out;
+    });
+    /* Keep accepted rows the engine dropped (n collapsed) so re-sync cannot re-propose */
+    (prev.candidates || []).forEach(function (old) {
+      if (old.status !== "accepted" && old.status !== "approved_pending") return;
+      var k = mondayCandidateKey(old);
+      if (!k) return;
+      if (merged.some(function (c) { return mondayCandidateKey(c) === k; })) return;
+      merged.push(old);
+    });
+    return Object.assign({}, next, { candidates: merged, schemaVersion: Math.max(+next.schemaVersion || 0, 3) });
+  }
+
+  /** focus_tracked active-cell key (situation is evidence only — not part of the cell). */
+  function trackedCellKey(c) {
+    if (!c) return "";
+    var hint = c.focusHint || {};
+    var group = String(c.positionGroup || hint.position_group || "DB").toUpperCase();
+    var kind = hint.kind || c.kind || "coverage";
+    var st = hint.scheme_type || c.schemeType || "";
+    var sv = hint.scheme_value || c.schemeValue || "";
+    var dim = hint.dimension != null ? hint.dimension : c.dimension;
+    return group + "|" + kind + "|" + st + "|" + sv + "|" + (dim || "");
+  }
+
+  /**
+   * Collapse situation-split candidates that map to one focus_tracked cell.
+   * Sums baseline_attempts / n so Cover3×1st (2) + Cover3×2nd (1) → one RPC with 3.
+   */
+  function collapseMondayCandidatesForAccept(candidates) {
+    var map = Object.create(null);
+    var order = [];
+    (candidates || []).forEach(function (c) {
+      if (!c) return;
+      var k = trackedCellKey(c);
+      if (!k) return;
+      var hint = c.focusHint || {};
+      var n = +c.n || +hint.baseline_attempts || 0;
+      var cor = hint.baseline_correct != null ? +hint.baseline_correct : 0;
+      if (!map[k]) {
+        map[k] = {
+          cellKey: k,
+          sources: [],
+          positionGroup: String(c.positionGroup || hint.position_group || "DB").toUpperCase(),
+          kind: hint.kind || c.kind || "coverage",
+          schemeType: hint.scheme_type || c.schemeType || "coverage",
+          schemeValue: hint.scheme_value || c.schemeValue || null,
+          dimension: hint.dimension != null ? hint.dimension : c.dimension != null ? c.dimension : null,
+          sourceTag: hint.source_tag || "livetag_monday",
+          n: 0,
+          baseline_correct: 0,
+          baseline_attempts: 0,
+          evidence: [],
+        };
+        order.push(k);
+      }
+      var row = map[k];
+      row.sources.push(c);
+      row.n += n;
+      row.baseline_attempts += n;
+      row.baseline_correct += cor;
+      if (c.evidence) row.evidence.push(c.evidence);
+    });
+    return order.map(function (k) {
+      var row = map[k];
+      row.evidence = row.evidence.join(" · ");
+      return row;
+    });
+  }
+
+  /**
+   * Ranked Monday Focus candidates from tag × scheme × situation cells.
+   * focusHint matches start_tracked_focus — coach confirms; never auto-apply.
+   * Zero player attribution.
+   */
+  function rankMondayFocusCandidates(payload) {
+    var tags = (payload && payload.tagsBySchemeSituation) || [];
+    var rows = [];
+    tags.forEach(function (t) {
+      if (!t || !t.tag) return;
+      var w = MONDAY_TAG_WEIGHT[t.tag];
+      if (w == null) w = 1;
+      if (w <= 0) return;
+      var n = +t.n || 0;
+      if (n < 1) return;
+      var score = n * w;
+      var schemeType = schemeTypeOf(t.scheme);
+      var schemeValue = t.scheme || null;
+      var kind = focusKindOf(schemeType);
+      var positionGroup = defaultPositionGroup(schemeType, schemeValue);
+      var evidence =
+        t.evidence || t.tag + " × " + (t.scheme || "?") + " × " + (t.situation || "?") + ": " + n;
+      rows.push({
+        status: "proposed",
+        candidateKey: t.tag + "|" + (schemeValue || "") + "|" + (t.situation || ""),
+        tag: t.tag,
+        schemeType: schemeType,
+        schemeValue: schemeValue,
+        situation: t.situation || "",
+        /* Focus dimension is depth|leverage|relationship only — tags stay on evidence */
+        dimension: null,
+        kind: kind,
+        positionGroup: positionGroup,
+        n: n,
+        score: score,
+        confidence: n >= 4 ? "solid" : n >= 2 ? "thin" : "anecdote",
+        evidence: evidence,
+        focusHint: {
+          kind: kind,
+          scheme_type: schemeType,
+          scheme_value: schemeValue,
+          dimension: null,
+          position_group: positionGroup,
+          baseline_correct: 0,
+          baseline_attempts: n,
+          source_tag: "livetag_monday",
+        },
+      });
+    });
+    rows.sort(function (a, b) {
+      return b.score - a.score || b.n - a.n;
+    });
+    return rows.slice(0, 12);
+  }
+
+  /**
+   * Structured Monday Focus input — aggregates only.
+   * Zero player names / jersey / player_id (4c). Attribution is server-side later.
+   * Does NOT write game_plays; rides Upload as mondayFocus sidecar.
+   * schemaVersion 3: candidates.valid for start_tracked_focus (kind/scheme/group;
+   * dimension null — tag is evidence only). Coach confirms; never auto-apply.
+   */
+  function buildMondayFocusPayload(opts) {
+    opts = opts || {};
+    var oLog = opts.offenseLog || [];
+    var dLog = opts.defenseLog || [];
+    var shifts = Array.isArray(opts.shifts)
+      ? opts.shifts
+      : opts.shift
+        ? [{ bucket: "current sit", shift: opts.shift }]
+        : [];
+    var shiftRows = [];
+    shifts.forEach(function (row) {
+      if (!row || !row.shift) return;
+      var s = row.shift;
+      shiftRows.push({
+        bucket: row.bucket || "",
+        livePass: s.livePass,
+        seasonPass: s.seasonPass,
+        liveN: s.liveN,
+        seasonN: s.seasonN,
+        tonightLean: s.tonightLean,
+        seasonLean: s.seasonLean,
+        delta: s.delta != null ? s.delta : s.livePass - s.seasonPass,
+      });
+    });
+    var tagCells = tagsBySchemeSituation(dLog);
+    var oFamilies = groupRates(oLog, "offense").map(function (g) {
+      return {
+        key: g.key,
+        side: "offense",
+        n: g.n,
+        success: g.success,
+        chunks: g.chunks,
+        yards: g.yards,
+        yardsN: g.yardsN,
+      };
+    });
+    var dFamilies = groupRates(dLog, "defense").map(function (g) {
+      return {
+        key: g.key,
+        side: "defense",
+        n: g.n,
+        success: g.success,
+        chunks: g.chunks,
+        yards: g.yards,
+        yardsN: g.yardsN,
+      };
+    });
+    var oDrives = driveChart(oLog, opts.offenseBreaks || opts.breaks || []);
+    var dDrives = driveChart(dLog, opts.breaks || []);
+    var turns = turnoverSummary(oLog, dLog);
+    var sess = opts.session || {};
+
+    var tagRows = tagCells.map(function (t) {
+      return {
+        tag: t.tag,
+        scheme: t.scheme,
+        situation: t.situation,
+        n: t.n,
+        /* evidence string for Monday UI — no names */
+        evidence: t.label + " × " + t.scheme + " × " + t.situation + ": " + t.n,
+      };
+    });
+
+    var payload = {
+      kind: "offgrd_monday_focus_input",
+      schemaVersion: 3,
+      source: "livetag_caller",
+      exportedAt: new Date().toISOString(),
+      session: {
+        gameId: sess.gameId || null,
+        opp: sess.opp || null,
+        week: sess.week || null,
+        side: sess.side || "both",
+      },
+      sample: { offenseN: oLog.length, defenseN: dLog.length },
+      shifts: shiftRows,
+      tagsBySchemeSituation: tagRows,
+      candidates: [],
+      callFamilies: oFamilies.concat(dFamilies),
+      driveEfficiency: {
+        offense: oDrives,
+        defense: dDrives,
+      },
+      turnovers: {
+        byKind: turns.byKind,
+        total: turns.total,
+        /* kinds only — strip play labels that could carry names later */
+        offenseN: turns.offense.length,
+        defenseN: turns.defense.length,
+      },
+    };
+    payload.candidates = rankMondayFocusCandidates(payload);
+    if (opts.priorMondayFocus) {
+      payload = mergeMondayFocusPayload(opts.priorMondayFocus, payload);
+    }
+
+    /* 4c: reject if any string looks like a player-name field leaked from opts */
+    var banned = ["playerName", "player_id", "playerId", "jersey", "athleteName"];
+    var json = JSON.stringify(payload);
+    banned.forEach(function (k) {
+      if (json.indexOf('"' + k + '"') >= 0) {
+        throw new Error("mondayFocus payload must not include " + k);
+      }
+    });
+
+    return payload;
+  }
+
+  var api = {
+    deriveDrives: deriveDrives,
+    possessionEnd: possessionEnd,
+    isTrySnap: isTrySnap,
+    isNegated: isNegated,
+    tendencyShift: tendencyShift,
+    passShare: passShare,
+    driveTemplate: driveTemplate,
+    quarterTemplate: quarterTemplate,
+    halftimeTemplate: halftimeTemplate,
+    finalTemplate: finalTemplate,
+    buildMondayFocusPayload: buildMondayFocusPayload,
+    rankMondayFocusCandidates: rankMondayFocusCandidates,
+    mergeMondayFocusPayload: mergeMondayFocusPayload,
+    mondayCandidateKey: mondayCandidateKey,
+    trackedCellKey: trackedCellKey,
+    collapseMondayCandidatesForAccept: collapseMondayCandidatesForAccept,
+    defaultPositionGroup: defaultPositionGroup,
+    focusKindOf: focusKindOf,
+    schemeTypeOf: schemeTypeOf,
+    tagsBySchemeSituation: tagsBySchemeSituation,
+    turnoverSummary: turnoverSummary,
+    driveChart: driveChart,
+    groupRates: groupRates,
+    rankCallFamilies: rankCallFamilies,
+    boothChipAnswer: boothChipAnswer,
+    boothChipDefs: boothChipDefs,
+    tagRollup: tagRollup,
+    downBucket: downBucket,
+    yardsSum: yardsSum,
+    endLabel: endLabel,
+    /* Step 3 note: LLM number validation must normalize 8/11 ≡ 8 of 11 ≡ 73% before compare. */
+    LLM_NUMBER_NORMALIZE_NOTE:
+      "Normalize digit facts before LLM validation (8/11 === 8 of 11 === pct forms).",
+  };
+
+  global.OFFGRD_CALLER_ANALYSIS = api;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = api;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
