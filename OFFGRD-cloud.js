@@ -843,18 +843,21 @@ export const Cloud = {
   },
   async createAutoScoutJob(row) {
     if (!OG) throw new Error("offgrd schema unavailable");
+    const insert = {
+      team_id: row.team_id,
+      opponent_id: row.opponent_id || null,
+      opponent: row.opponent || null,
+      week_plan_id: row.week_plan_id || null,
+      source: row.source || "hudl-assist-csv",
+      clip_count: row.clip_count || 0,
+      done_count: row.done_count || 0,
+      skipped_count: row.skipped_count || 0,
+      status: row.status || "queued",
+    };
+    if (row.import_batch_id) insert.import_batch_id = row.import_batch_id;
+    if (row.notes != null) insert.notes = row.notes;
     const { data, error } = await OG.from("auto_scout_jobs")
-      .insert({
-        team_id: row.team_id,
-        opponent_id: row.opponent_id || null,
-        opponent: row.opponent || null,
-        week_plan_id: row.week_plan_id || null,
-        source: row.source || "hudl-assist-csv",
-        clip_count: row.clip_count || 0,
-        done_count: row.done_count || 0,
-        skipped_count: row.skipped_count || 0,
-        status: row.status || "queued",
-      })
+      .insert(insert)
       .select()
       .single();
     if (error) throw error;
@@ -928,7 +931,7 @@ export const Cloud = {
     if (!OG || !teamId) return [];
     const { data, error } = await OG.from("scout_snaps")
       .select(
-        "import_batch_id, opponent, week, side, created_at, needs_review, prompt_version, confidence, tag_source"
+        "import_batch_id, opponent, week, side, created_at, needs_review, prompt_version, confidence, tag_source, clip_ref, raw"
       )
       .eq("team_id", teamId)
       .eq("tag_source", "import")
@@ -937,6 +940,26 @@ export const Cloud = {
       .limit(8000);
     if (error) throw error;
     const by = Object.create(null);
+    function hasF1(clipRef) {
+      if (!clipRef) return false;
+      try {
+        const j =
+          typeof clipRef === "string" && clipRef.charAt(0) === "{"
+            ? JSON.parse(clipRef)
+            : clipRef;
+        return !!(j && (j.f1 || j.F1));
+      } catch (e) {
+        return false;
+      }
+    }
+    function isSkipped(raw) {
+      try {
+        const r = typeof raw === "string" ? JSON.parse(raw) : raw;
+        return !!(r && r.capture && r.capture.skipped);
+      } catch (e2) {
+        return false;
+      }
+    }
     (data || []).forEach(function (r) {
       const id = r && r.import_batch_id;
       if (!id) return;
@@ -948,10 +971,14 @@ export const Cloud = {
           side: r.side || "",
           n: 0,
           n_review: 0,
+          n_f1: 0,
+          n_skip: 0,
           created_at: r.created_at || null,
         };
       }
       by[id].n++;
+      if (isSkipped(r.raw)) by[id].n_skip++;
+      else if (hasF1(r.clip_ref)) by[id].n_f1++;
       /* Flagged for CV review: needs_review + CV provenance (merge or legacy) */
       if (
         r.needs_review &&
@@ -989,6 +1016,99 @@ export const Cloud = {
     });
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Import snaps for one batch (capture panel). Ordered by snap_index.
+   */
+  async listScoutSnapsForBatch(teamId, importBatchId) {
+    if (!OG || !teamId || !importBatchId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select(
+        "id, team_id, import_batch_id, snap_index, down, distance, field_zone, hash, formation, formation_family, opponent, week, side, clip_ref, raw, tag_source"
+      )
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import")
+      .order("snap_index", { ascending: true })
+      .limit(2000);
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Count import snaps still present for a batch (supersede guard). */
+  async countScoutSnapsForBatch(teamId, importBatchId) {
+    if (!OG || !teamId || !importBatchId) return 0;
+    const { count, error } = await OG.from("scout_snaps")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import");
+    if (error) throw error;
+    return count || 0;
+  },
+
+  /**
+   * Merge-only capture stamp. NEVER write scout_snaps.raw directly.
+   * offgrd.patch_scout_snap_capture_v1(p_key, p_patch)
+   */
+  async patchScoutSnapCapture(pKey, pPatch) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("patch_scout_snap_capture_v1", {
+      p_key: pKey,
+      p_patch: pPatch || {},
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Upload F1/F2 jpeg to private scout-frames bucket.
+   * Path: {team_id}/{import_batch_id}/{snap_index}/F1.jpg|F2.jpg
+   * Returns storage path (not a signed URL).
+   */
+  async uploadScoutFrame(teamId, importBatchId, snapIndex, slot, blob) {
+    if (!sb) throw new Error("Supabase unavailable");
+    if (!teamId || !importBatchId || snapIndex == null) {
+      throw new Error("teamId, importBatchId, snapIndex required");
+    }
+    const s = String(slot || "").toUpperCase() === "F2" ? "F2" : "F1";
+    const path =
+      teamId + "/" + importBatchId + "/" + String(snapIndex) + "/" + s + ".jpg";
+    const up = await sb.storage.from("scout-frames").upload(path, blob, {
+      upsert: true,
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+    });
+    if (up.error) throw up.error;
+    return path;
+  },
+
+  /** Signed URL for a scout-frames path (private bucket). */
+  async signedScoutFrameUrl(path, expiresSec) {
+    if (!sb || !path) return null;
+    const { data, error } = await sb.storage
+      .from("scout-frames")
+      .createSignedUrl(path, expiresSec || 3600);
+    if (error) throw error;
+    return (data && data.signedUrl) || null;
+  },
+
+  /**
+   * Queue a vision job for a batch (source=scout-frames).
+   * clip_count = snaps with F1 (skips excluded) — caller computes.
+   */
+  async createScoutFramesJob(row) {
+    return this.createAutoScoutJob({
+      team_id: row.team_id,
+      opponent: row.opponent || null,
+      opponent_id: row.opponent_id || null,
+      week_plan_id: row.week_plan_id || null,
+      import_batch_id: row.import_batch_id,
+      source: "scout-frames",
+      clip_count: row.clip_count || 0,
+      status: "queued",
+    });
   },
 
   /**

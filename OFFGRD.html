@@ -220,6 +220,28 @@
   @media (max-width:560px){
     .cv-frames{grid-template-columns:1fr}
   }
+  /* Frame capture assistant */
+  .fc-modal{max-width:960px}
+  .fc-head{margin-bottom:8px}
+  .fc-progress{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+  .fc-meta{font-size:14px;font-weight:800;margin-bottom:4px}
+  .fc-drift{margin:0 0 10px!important;opacity:.85}
+  .fc-slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+  .fc-slot{border:1px solid var(--line);border-radius:10px;background:var(--chip);min-height:160px;overflow:hidden;display:flex;flex-direction:column}
+  .fc-slot img{width:100%;height:auto;max-height:240px;object-fit:contain;background:#0b1017;display:block}
+  .fc-slot-lbl{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px 0}
+  .fc-slot-empty{cursor:pointer;outline:none}
+  .fc-slot-empty .fc-slot-ph{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px 12px;color:var(--muted);font-size:13px;font-weight:700}
+  .fc-slot.fc-drag{border-color:var(--accent);box-shadow:0 0 0 2px rgba(56,132,255,.25)}
+  .fc-path{padding:4px 8px 8px;word-break:break-all;opacity:.7}
+  .fc-capture-btns{gap:8px;margin-bottom:8px}
+  .fc-actions{align-items:center}
+  .fc-keys{margin-top:6px!important;opacity:.85}
+  .fc-supersede{padding:14px;border:1px solid var(--bad);border-radius:10px;background:rgba(180,40,40,.08);font-size:14px}
+  #fcRun:disabled{opacity:.45;cursor:not-allowed}
+  @media (max-width:560px){
+    .fc-slots{grid-template-columns:1fr}
+  }
   @media print{ .no-print{display:none!important} .modalwrap{display:none!important} body{padding:0;max-width:none} .panel{box-shadow:none;border:1px solid #bbb;margin-bottom:8px} }
   .gamepick{display:flex;align-items:center;gap:9px}
   .gamepick #topOppCrest{display:inline-flex;flex:none}
@@ -345,8 +367,9 @@
 <script src="OFFGRD-caller-outcome.js?v=224"></script>
 <script src="OFFGRD-formations-data.js?v=224"></script>
 <script src="OFFGRD-formation-canon.js?v=224"></script>
-<script src="OFFGRD-assist-import.js?v=224"></script>
-<script src="OFFGRD-cv-review.js?v=224"></script>
+<script src="OFFGRD-assist-import.js?v=227"></script>
+<script src="OFFGRD-cv-review.js?v=227"></script>
+<script src="OFFGRD-frame-capture.js?v=227"></script>
 <script src="OFFGRD-caller-log.js?v=224"></script>
 <script src="OFFGRD-caller-sync.js?v=224"></script>
 <script src="OFFGRD-caller-analysis.js?v=224"></script>
@@ -1443,11 +1466,14 @@ async function renderImportManager(){
         const short=id?id.slice(0,8):"?";
         const lbl=opp+" · "+b.week+" · "+(SIDE_LBL[b.side]||b.side)+" · "+(b.n||0)+" snaps";
         const nRev=b.n_review||0;
+        const nF1=b.n_f1||0;
+        const nTot=b.n||0;
         const reviewBtn=nRev
           ? '<button type="button" class="ghost" style="padding:3px 9px;margin-right:6px;border-color:var(--accent);color:var(--accent)" data-batch="'+esc(id)+'" onclick="openCvReviewForBatch(this)">Review '+nRev+' flagged</button>'
           : '<span class="foot" style="margin-right:6px">No flagged</span>';
-        return '<tr class="tagrow"><td>'+esc(b.week)+'</td><td>'+(SIDE_LBL[b.side]||esc(b.side)||"?")+'</td><td>'+(b.n||0)+' snaps</td><td class="foot" title="'+esc(id)+'">batch '+esc(short)+'\u2026</td>'
-          +'<td style="white-space:nowrap">'+reviewBtn
+        const captureBtn='<button type="button" class="ghost" style="padding:3px 9px;margin-right:6px" data-batch="'+esc(id)+'" data-opp="'+esc(b.opponent||"")+'" data-week="'+esc(b.week||"")+'" data-side="'+esc(b.side||"")+'" onclick="openFrameCaptureForBatch(this)">Capture frames ('+nF1+'/'+nTot+')</button>';
+        return '<tr class="tagrow"><td>'+esc(b.week)+'</td><td>'+(SIDE_LBL[b.side]||esc(b.side)||"?")+'</td><td>'+nTot+' snaps</td><td class="foot" title="'+esc(id)+'">batch '+esc(short)+'\u2026</td>'
+          +'<td style="white-space:nowrap">'+captureBtn+reviewBtn
           +'<button type="button" class="ghost" style="padding:3px 9px;color:var(--bad)" data-batch="'+esc(id)+'" data-label="'+esc(lbl)+'" onclick="deleteImportBatch(this)">Delete</button></td></tr>';
       }).join("");
       html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
@@ -1496,6 +1522,23 @@ function openCvReviewForBatch(btn){
   }
 }
 window.openCvReviewForBatch=openCvReviewForBatch;
+function openFrameCaptureForBatch(btn){
+  const id=btn&&btn.getAttribute?btn.getAttribute("data-batch"):"";
+  if(!id) return;
+  const opts={
+    import_batch_id:id,
+    teamId:mgrTeamId(),
+    opponent:btn.getAttribute("data-opp")||"",
+    week:btn.getAttribute("data-week")||"",
+    side:btn.getAttribute("data-side")||""
+  };
+  if(window.OFFGRD_FRAME_CAPTURE&&typeof OFFGRD_FRAME_CAPTURE.open==="function"){
+    OFFGRD_FRAME_CAPTURE.open(opts);
+  }else if(typeof openFrameCapture==="function"){
+    openFrameCapture(opts);
+  }
+}
+window.openFrameCaptureForBatch=openFrameCaptureForBatch;
 function exportSeason(){
   const blob=new Blob([JSON.stringify(GAMES,null,1)],{type:"application/json"}); const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download="offgrd-season.json"; a.click(); URL.revokeObjectURL(url);
@@ -5065,7 +5108,7 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=224"></script>
+<script type="module" src="OFFGRD-account.js?v=227"></script>
 <script src="OFFGRD-role-gate.js?v=224"></script>
 <script src="OFFGRD-mobile.js?v=224"></script>
 <script>
