@@ -1,0 +1,20 @@
+# Fail the PR/push if HTML entrypoints or the SW drift off a single shared ?v= pin.
+# Partial Vercel CLI uploads can still bypass this — never deploy from an incomplete
+# working tree; ship via git push to main so this guard + Vercel both see the full tree.
+name: check-asset-v
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Unified pin + required assets
+        run: node scripts/check-deploy-assets.cjs

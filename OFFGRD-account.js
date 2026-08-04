@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=228";
-import { openAuthModal } from "./OFFGRD-auth.js?v=228";
+import { Cloud } from "./OFFGRD-cloud.js?v=230";
+import { openAuthModal } from "./OFFGRD-auth.js?v=230";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -531,7 +531,7 @@ async function linkTeamToSchoolAction(teamId){
     await refreshLinkStatus();
     TEAMS = await Cloud.myTeams();
     await setActiveTeam(teamId, true);
-    alert("Program linked to your school âœ“ Gameday and your getOFFRD coach portal can now see this program.");
+    alert("Program linked to your school \u2713 Gameday and your getOFFRD coach portal can now see this program.");
     if(modal && modal.classList.contains("show")) renderTeam();
   }catch(e){
     alert(e.message || "Could not link program to school.");
@@ -1093,7 +1093,7 @@ async function pull(silent){
     }
     syncStamp();
     if(!silent && A.kind==="playbook"){
-      try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded âœ“"; el.style.color="#1d7a45"; } }catch(e){}
+      try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded \u2713"; el.style.color="#1d7a45"; } }catch(e){}
     }
     try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); } }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
@@ -1148,7 +1148,7 @@ async function push(silent){
     syncStamp();
     /* Classic import → scouting_games → sync trigger → scout_snaps; re-fetch for Predict. */
     try{ if(A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap){}
-    if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" âœ“");
+    if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" \u2713");
   }catch(e){
     /* Silent auto-push: swallow — never schedule a retry (Daily Check storm lesson). */
     if(!silent) alert(e.message||"Sync failed");
@@ -1224,7 +1224,7 @@ async function renderTeam(){
   const codeSec = el('<div class="ogm-sec"><div class="ogm-lbl">Program join code</div></div>');
   const codeRow = el('<div class="ogm-row"></div>');
   codeRow.appendChild(el('<span class="ogm-code">'+esc(TEAM.join_code||"——")+'</span>'));
-  const copy=el('<button class="ogm-b">Copy</button>'); copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied âœ“"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} }; codeRow.appendChild(copy);
+  const copy=el('<button class="ogm-b">Copy</button>'); copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} }; codeRow.appendChild(copy);
   if(isAdmin()){ const rot=el('<button class="ogm-b">New code</button>'); rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ alert(e.message);} }; codeRow.appendChild(rot); }
   codeSec.appendChild(codeRow);
   codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches — they sign up, then enter it under â€œJoin a programâ€. New members join as Player; change roles below.</p>'));
@@ -1356,9 +1356,9 @@ function obCoachDone(){
   b.querySelector("#obBrandSave").onclick=()=>{
     const nm=nmIn.value.trim()||((TEAM&&TEAM.name)||"My Team");
     obApplyBrand(nm, c1.value, c2.value, _logo);
-    b.querySelector("#obBrandMsg").innerHTML='<b style="color:#1d7a45">Saved âœ“</b> — the suite now wears '+esc(nm)+'’s colors. You can fine-tune any time under <b>Team &amp; logos</b>.';
+    b.querySelector("#obBrandMsg").innerHTML='<b style="color:#1d7a45">Saved \u2713</b> — the suite now wears '+esc(nm)+'’s colors. You can fine-tune any time under <b>Team &amp; logos</b>.';
   };
-  b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied âœ“"; }catch(e){} };
+  b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied \u2713"; }catch(e){} };
   b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderChecklist); }catch(e){} };
 }
 function obAbbr(name){ return ((name||"").split(/\s+/).map(w=>w[0]||"").join("").slice(0,3).toUpperCase())||"TM"; }
@@ -1542,7 +1542,7 @@ function obPlayer(){
 }
 function obPosition(){
   const b=ensureOB().querySelector("#obBody");
-  b.innerHTML='<p class="ogm-note" style="font-size:14px">You’re on <b style="color:#13294B">'+esc(TEAM?TEAM.name:"the team")+'</b> âœ“</p>'
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">You’re on <b style="color:#13294B">'+esc(TEAM?TEAM.name:"the team")+'</b> \u2713</p>'
    +'<div class="ogm-sec"><div class="ogm-lbl">What position do you play?</div></div>';
   const grid=el('<div class="ogm-row" style="margin-top:8px"></div>');
   POSITIONS.forEach(ps=>{
@@ -1587,7 +1587,7 @@ function obGradYear(ps){
 function obPlayerDone(ps, gy){
   const b=ensureOB().querySelector("#obBody"); markOB();
   const gyLine = gy ? ' · Class of <b style="color:#13294B">'+esc(gy)+'</b>' : '';
-  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b>'+gyLine+' âœ“ — recruiting profile seeded.</p>'
+  b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b>'+gyLine+' \u2713 — recruiting profile seeded.</p>'
    +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>â–¶ Snap</b>, watch it develop, make your read. Or open <b>Recruiting</b> to finish your profile.</p></div>'
    +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html#train" style="text-decoration:none;display:inline-flex;align-items:center">â–¶ Take your first reps</a><button class="ogm-b" id="obDone2">Later</button></div>';
   b.querySelector("#obDone2").onclick=()=>{ obEl.classList.remove("show"); };
@@ -1636,7 +1636,7 @@ function renderChecklist(s){
   host.innerHTML='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup · '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px">Hide</button></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
-   +items.map((i,ix)=>'<'+(i.href?'a href="'+i.href+'"':'button type="button"')+' data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'âœ“':'â—‹')+' '+i.t+'</'+(i.href?'a':'button')+'>').join("")
+   +items.map((i,ix)=>'<'+(i.href?'a href="'+i.href+'"':'button type="button"')+' data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'\u2713':'\u25CB')+' '+i.t+'</'+(i.href?'a':'button')+'>').join("")
    +'</div></div>';
   host.querySelector("#ogSetupHide").onclick=()=>{ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} host.remove(); };
   [].forEach.call(host.querySelectorAll("button[data-ix]"),bt=>{ const i=items[+bt.dataset.ix]; if(i&&i.act) bt.onclick=i.act; });
@@ -1670,7 +1670,7 @@ window.OFFGRD_REFRESH_SCOUT_SNAPS = refreshScoutSnaps;
 
 /* ---------- auto-sync: pull fresh team data every 45s and on window focus ---------- */
 let _busy=false, _lastPull=0, _autoT=null;
-function syncStamp(){ try{ const el=document.getElementById("syncstat"); if(!el) return; const d=new Date(); el.textContent="synced "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")+" âœ“"; el.title="Auto-sync is on — time of last successful sync"; }catch(e){} }
+function syncStamp(){ try{ const el=document.getElementById("syncstat"); if(!el) return; const d=new Date(); el.textContent="synced "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")+" \u2713"; el.title="Auto-sync is on — time of last successful sync"; }catch(e){} }
 function maybePull(){
   if(!TEAM || !SYNCABLE) return;
   if(isOffline()) return;
