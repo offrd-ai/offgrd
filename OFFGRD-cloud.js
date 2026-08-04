@@ -927,7 +927,9 @@ export const Cloud = {
   async listImportBatches(teamId) {
     if (!OG || !teamId) return [];
     const { data, error } = await OG.from("scout_snaps")
-      .select("import_batch_id, opponent, week, side, created_at")
+      .select(
+        "import_batch_id, opponent, week, side, created_at, needs_review, prompt_version, confidence, tag_source"
+      )
       .eq("team_id", teamId)
       .eq("tag_source", "import")
       .not("import_batch_id", "is", null)
@@ -945,10 +947,18 @@ export const Cloud = {
           week: r.week || "Wk?",
           side: r.side || "",
           n: 0,
+          n_review: 0,
           created_at: r.created_at || null,
         };
       }
       by[id].n++;
+      /* Flagged for CV review: needs_review + CV provenance (merge or legacy) */
+      if (
+        r.needs_review &&
+        (r.prompt_version || r.confidence || r.tag_source === "cv")
+      ) {
+        by[id].n_review++;
+      }
       if (r.created_at && (!by[id].created_at || r.created_at < by[id].created_at)) {
         by[id].created_at = r.created_at;
       }
@@ -979,6 +989,56 @@ export const Cloud = {
     });
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * CV-merge onto an existing import snap (fill-NULLs).
+   * offgrd.upsert_cv_scheme_v1(p_key, p_cv) — natural key (team_id, import_batch_id, snap_index).
+   */
+  async upsertCvScheme(pKey, pCv) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("upsert_cv_scheme_v1", {
+      p_key: pKey,
+      p_cv: pCv,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Worst-confidence-first CV review queue (security_invoker view).
+   * Optional filter: import_batch_id.
+   */
+  async listCvReviewQueue(teamId, opts) {
+    if (!OG || !teamId) return [];
+    const o = opts || {};
+    let q = OG.from("cv_review_queue")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("review_hold", { ascending: false })
+      .order("min_core_confidence", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(o.limit || 500);
+    if (o.import_batch_id) {
+      q = q.eq("import_batch_id", o.import_batch_id);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Confirm / edit-then-confirm a CV snap.
+   * offgrd.resolve_cv_snap — stamps reviewed_by=auth.uid(), needs_review=false.
+   */
+  async resolveCvSnap(snapId, fixes) {
+    if (!sb) throw new Error("Supabase unavailable");
+    if (!snapId) throw new Error("snapId required");
+    const { error } = await sb.schema("offgrd").rpc("resolve_cv_snap", {
+      p_snap_id: snapId,
+      p_fixes: fixes || {},
+    });
+    if (error) throw error;
   },
 
   /**

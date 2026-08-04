@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v223: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v224: pin-assets — CV review + cloud; all HTML + SW keyed -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -190,6 +190,36 @@
   .chip{font-size:12px;font-weight:700;background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:3px 8px}
   .chip.fix{border-color:var(--good);color:var(--good)}
   .chip i{color:var(--muted);font-style:normal;font-weight:600}
+  /* CV review (Auto-Scout P2) — stacked decision-aid panel, not an overlay on call input */
+  .cv-review-modal{max-width:920px}
+  .cv-review-head{margin-bottom:8px}
+  .cv-agree{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+  .cv-frames{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .cv-frame{border:1px solid var(--line);border-radius:10px;background:var(--chip);min-height:140px;overflow:hidden;display:flex;flex-direction:column}
+  .cv-frame img{width:100%;height:auto;max-height:220px;object-fit:contain;background:#0b1017;display:block}
+  .cv-frame-lbl{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px 0}
+  .cv-frame-empty .cv-frame-ph{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:700;padding:24px 8px}
+  .cv-badges{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .cv-field{margin:0 0 10px}
+  .cv-field-lbl{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .cv-conf{font-size:11px;font-weight:800;color:var(--muted)}
+  .cv-chips{gap:6px}
+  .cv-chip{flex:0 0 auto;min-width:0;padding:7px 10px;font-size:12px}
+  .cv-chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  body.dark .cv-chip.on{color:#08111d}
+  .cv-chip-clear{opacity:.7;font-weight:600}
+  .cv-chip-suggest{opacity:.75;border-style:dashed}
+  .cv-suggest{margin:0 0 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .cv-shell-prompt{margin:0 0 8px;padding:8px 10px;border:1px dashed var(--warn);border-radius:8px;background:rgba(184,134,11,.08);font-size:12.5px;font-weight:700;color:var(--warn)}
+  .cv-pressure-hint{margin:0 0 6px!important;opacity:.8}
+  .cv-field-extra .cv-field{margin-top:4px}
+  .cv-field-extra .lbl{display:none}
+  .cv-meta{font-size:13px;font-weight:700;margin-bottom:6px}
+  .cv-keys{margin-top:6px!important;opacity:.85}
+  .cv-review-actions{align-items:center}
+  @media (max-width:560px){
+    .cv-frames{grid-template-columns:1fr}
+  }
   @media print{ .no-print{display:none!important} .modalwrap{display:none!important} body{padding:0;max-width:none} .panel{box-shadow:none;border:1px solid #bbb;margin-bottom:8px} }
   .gamepick{display:flex;align-items:center;gap:9px}
   .gamepick #topOppCrest{display:inline-flex;flex:none}
@@ -257,10 +287,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=223"></script>
-<script src="OFFGRD-brand-persist.js?v=223"></script>
-<script src="supabase.js?v=223"></script>
-<script src="OFFGRD-cache-gate.js?v=223"></script>
+<script src="OFFGRD-config.js?v=224"></script>
+<script src="OFFGRD-brand-persist.js?v=224"></script>
+<script src="supabase.js?v=224"></script>
+<script src="OFFGRD-cache-gate.js?v=224"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -302,27 +332,28 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=223"></script>
-<script src="OFFGRD-pos-glossary.js?v=223"></script>
-<script src="OFFGRD-autoderive.js?v=223"></script>
-<script src="OFFGRD-scoutcards.js?v=223"></script>
-<script src="OFFGRD-tendencies.js?v=223"></script>
-<script src="OFFGRD-week-autotest.js?v=223"></script>
-<script src="OFFGRD-weeklypackage.js?v=223"></script>
-<script src="OFFGRD-telestrate.js?v=223"></script>
-<script src="OFFGRD-redesign.js?v=223"></script>
-<script src="OFFGRD-shell.js?v=223"></script>
-<script src="OFFGRD-caller-outcome.js?v=223"></script>
-<script src="OFFGRD-formations-data.js?v=223"></script>
-<script src="OFFGRD-formation-canon.js?v=223"></script>
-<script src="OFFGRD-assist-import.js?v=223"></script>
-<script src="OFFGRD-caller-log.js?v=223"></script>
-<script src="OFFGRD-caller-sync.js?v=223"></script>
-<script src="OFFGRD-caller-analysis.js?v=223"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=223"></script>
-<script src="OFFGRD-booth-ask.js?v=223"></script>
-<script src="OFFGRD-caller-select.js?v=223"></script>
-<script src="OFFGRD-dcaller.js?v=223"></script>
+<script src="OFFGRD-render.js?v=224"></script>
+<script src="OFFGRD-pos-glossary.js?v=224"></script>
+<script src="OFFGRD-autoderive.js?v=224"></script>
+<script src="OFFGRD-scoutcards.js?v=224"></script>
+<script src="OFFGRD-tendencies.js?v=224"></script>
+<script src="OFFGRD-week-autotest.js?v=224"></script>
+<script src="OFFGRD-weeklypackage.js?v=224"></script>
+<script src="OFFGRD-telestrate.js?v=224"></script>
+<script src="OFFGRD-redesign.js?v=224"></script>
+<script src="OFFGRD-shell.js?v=224"></script>
+<script src="OFFGRD-caller-outcome.js?v=224"></script>
+<script src="OFFGRD-formations-data.js?v=224"></script>
+<script src="OFFGRD-formation-canon.js?v=224"></script>
+<script src="OFFGRD-assist-import.js?v=224"></script>
+<script src="OFFGRD-cv-review.js?v=224"></script>
+<script src="OFFGRD-caller-log.js?v=224"></script>
+<script src="OFFGRD-caller-sync.js?v=224"></script>
+<script src="OFFGRD-caller-analysis.js?v=224"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=224"></script>
+<script src="OFFGRD-booth-ask.js?v=224"></script>
+<script src="OFFGRD-caller-select.js?v=224"></script>
+<script src="OFFGRD-dcaller.js?v=224"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1411,8 +1442,13 @@ async function renderImportManager(){
         const id=String(b.import_batch_id||"");
         const short=id?id.slice(0,8):"?";
         const lbl=opp+" · "+b.week+" · "+(SIDE_LBL[b.side]||b.side)+" · "+(b.n||0)+" snaps";
+        const nRev=b.n_review||0;
+        const reviewBtn=nRev
+          ? '<button type="button" class="ghost" style="padding:3px 9px;margin-right:6px;border-color:var(--accent);color:var(--accent)" data-batch="'+esc(id)+'" onclick="openCvReviewForBatch(this)">Review '+nRev+' flagged</button>'
+          : '<span class="foot" style="margin-right:6px">No flagged</span>';
         return '<tr class="tagrow"><td>'+esc(b.week)+'</td><td>'+(SIDE_LBL[b.side]||esc(b.side)||"?")+'</td><td>'+(b.n||0)+' snaps</td><td class="foot" title="'+esc(id)+'">batch '+esc(short)+'\u2026</td>'
-          +'<td><button type="button" class="ghost" style="padding:3px 9px;color:var(--bad)" data-batch="'+esc(id)+'" data-label="'+esc(lbl)+'" onclick="deleteImportBatch(this)">Delete</button></td></tr>';
+          +'<td style="white-space:nowrap">'+reviewBtn
+          +'<button type="button" class="ghost" style="padding:3px 9px;color:var(--bad)" data-batch="'+esc(id)+'" data-label="'+esc(lbl)+'" onclick="deleteImportBatch(this)">Delete</button></td></tr>';
       }).join("");
       html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
@@ -1449,6 +1485,17 @@ async function deleteImportBatch(btn){
   }
 }
 window.deleteImportBatch=deleteImportBatch;
+window.renderImportManager=renderImportManager;
+function openCvReviewForBatch(btn){
+  const id=btn&&btn.getAttribute?btn.getAttribute("data-batch"):"";
+  if(!id) return;
+  if(window.OFFGRD_CV_REVIEW&&typeof OFFGRD_CV_REVIEW.open==="function"){
+    OFFGRD_CV_REVIEW.open({ import_batch_id:id, teamId:mgrTeamId() });
+  }else if(typeof openCvReview==="function"){
+    openCvReview({ import_batch_id:id, teamId:mgrTeamId() });
+  }
+}
+window.openCvReviewForBatch=openCvReviewForBatch;
 function exportSeason(){
   const blob=new Blob([JSON.stringify(GAMES,null,1)],{type:"application/json"}); const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download="offgrd-season.json"; a.click(); URL.revokeObjectURL(url);
@@ -4695,7 +4742,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=223", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=224", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5018,9 +5065,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=223"></script>
-<script src="OFFGRD-role-gate.js?v=223"></script>
-<script src="OFFGRD-mobile.js?v=223"></script>
+<script type="module" src="OFFGRD-account.js?v=224"></script>
+<script src="OFFGRD-role-gate.js?v=224"></script>
+<script src="OFFGRD-mobile.js?v=224"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
