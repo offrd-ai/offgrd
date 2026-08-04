@@ -1,6 +1,7 @@
 {
   "cleanUrls": false,
   "buildCommand": "node scripts/check-deploy-assets.cjs",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/(.*)",
