@@ -21,6 +21,7 @@
     snaps: [],
     idx: 0,
     busy: false,
+    queued: false,
     lastSlot: null,
     thumbUrls: {},
     keyHandler: null,
@@ -142,6 +143,7 @@
       '    <button type="button" class="ghost" id="fcRun" style="margin-left:auto;border-color:var(--accent);color:var(--accent)">Run Auto-Scout</button>' +
       '    <button type="button" class="ghost" id="fcClose">Close</button>' +
       "  </div>" +
+      '  <div id="fcToast" class="fc-toast" hidden role="status" aria-live="polite"></div>' +
       '  <p class="foot" id="fcMsg" style="margin-top:8px"></p>' +
       '  <p class="foot fc-keys">Keys: 1 = F1 · 2 = F2 · ← → · Backspace clear last · S skip</p>' +
       "</div>";
@@ -208,7 +210,47 @@
         ? '<span class="pill warn">BATCH SUPERSEDED</span>'
         : "");
     var run = document.getElementById("fcRun");
-    if (run) run.disabled = !!(state.busy || state.superseded || f1 < 1);
+    if (run) {
+      if (state.queued) {
+        run.textContent = "Queued \u2713";
+        run.disabled = true;
+        run.style.borderColor = "#1d7a45";
+        run.style.color = "#1d7a45";
+        run.style.fontWeight = "800";
+      } else {
+        run.disabled = !!(state.busy || state.superseded || f1 < 1);
+      }
+    }
+  }
+
+  function showQueuedToast(jobId, snapCount) {
+    var toast = document.getElementById("fcToast");
+    var run = document.getElementById("fcRun");
+    var shortId = String(jobId || "").slice(0, 8);
+    var line =
+      "Queued \u2713 — job " +
+      (shortId ? shortId + "\u2026" : "created") +
+      " (" +
+      snapCount +
+      " snaps). Worker picks up within ~1 min.";
+    state.queued = true;
+    if (run) {
+      run.textContent = "Queued \u2713";
+      run.disabled = true;
+      run.style.borderColor = "#1d7a45";
+      run.style.color = "#1d7a45";
+      run.style.fontWeight = "800";
+    }
+    if (toast) {
+      toast.hidden = false;
+      toast.textContent = line;
+    }
+    var msg = document.getElementById("fcMsg");
+    if (msg) {
+      msg.textContent = line;
+      msg.style.color = "#1d7a45";
+      msg.style.fontWeight = "800";
+    }
   }
 
   async function refreshThumbs(snap) {
@@ -638,11 +680,12 @@
   }
 
   async function runAutoScout() {
-    if (state.busy || state.superseded) return;
+    if (state.busy || state.superseded || state.queued) return;
     var f1 = countF1();
     if (f1 < 1) return;
     var C = cloud();
     var msg = document.getElementById("fcMsg");
+    var run = document.getElementById("fcRun");
     if (!C || typeof C.createScoutFramesJob !== "function") {
       if (msg) msg.textContent = "Cloud helpers missing — reload after deploy.";
       return;
@@ -659,7 +702,15 @@
       return;
     }
     state.busy = true;
-    if (msg) msg.textContent = "Queuing job…";
+    if (run) {
+      run.textContent = "Queuing\u2026";
+      run.disabled = true;
+    }
+    if (msg) {
+      msg.textContent = "Queuing job\u2026";
+      msg.style.color = "";
+      msg.style.fontWeight = "";
+    }
     try {
       var job = await C.createScoutFramesJob({
         team_id: state.teamId,
@@ -667,18 +718,19 @@
         opponent: state.meta.opponent || null,
         clip_count: f1,
       });
-      if (msg) {
-        msg.textContent =
-          "Queued job " +
-          String(job && job.id ? job.id : "").slice(0, 8) +
-          "… (" +
-          f1 +
-          " snaps). Worker picks up within ~1 min.";
-      }
+      showQueuedToast(job && job.id, f1);
     } catch (e) {
+      if (run) {
+        run.textContent = "Run Auto-Scout";
+        run.style.borderColor = "var(--accent)";
+        run.style.color = "var(--accent)";
+        run.style.fontWeight = "";
+      }
       if (msg) {
         msg.textContent =
           "Queue failed: " + (e && e.message ? e.message : e);
+        msg.style.color = "var(--bad)";
+        msg.style.fontWeight = "800";
       }
     } finally {
       state.busy = false;
@@ -740,6 +792,7 @@
     ensureDom();
     state.open = true;
     state.superseded = false;
+    state.queued = false;
     state.teamId = opts.teamId || teamId();
     state.batchId = opts.import_batch_id || opts.batchId || null;
     state.meta = {
@@ -753,6 +806,24 @@
     state.thumbUrls = {};
     var wrap = document.getElementById("frameCapture");
     wrap.classList.add("show");
+    var toast = document.getElementById("fcToast");
+    if (toast) {
+      toast.hidden = true;
+      toast.textContent = "";
+    }
+    var run = document.getElementById("fcRun");
+    if (run) {
+      run.textContent = "Run Auto-Scout";
+      run.style.borderColor = "var(--accent)";
+      run.style.color = "var(--accent)";
+      run.style.fontWeight = "";
+    }
+    var msg = document.getElementById("fcMsg");
+    if (msg) {
+      msg.textContent = "";
+      msg.style.color = "";
+      msg.style.fontWeight = "";
+    }
     var body = document.getElementById("fcBody");
     if (body) body.innerHTML = '<p class="foot">Loading batch snaps…</p>';
     if (!state.keyHandler) {
