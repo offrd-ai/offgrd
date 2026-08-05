@@ -157,7 +157,7 @@
         slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType"];
+          var sitKeys = ["dn", "db", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -304,6 +304,7 @@
         situationInferred: sitInf,
         coverage: p.coverage,
         playType: p.playType,
+        theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,
         opponent: p.opponent,
         date: p.date,
         signal: p.signal,

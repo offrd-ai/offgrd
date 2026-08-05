@@ -2334,18 +2334,31 @@
       return h;
     }
 
+    var livePt = live && live.playType ? String(live.playType) : "";
+    var liveDir =
+      (live && live.theirDirection) ||
+      pendingDir ||
+      "";
     h += `<div class="rd-gd-section-kicker">4 · ${isTwo ? "2PT · what they ran" : "What they ran + yards allowed"}</div>`;
-    h += `<div class="seg covlog rd-dc-rp"><button type="button" class="rd-dc-rp-btn" onclick="OFFGRD_DCALLER.logTheirPlay('Run')">Run</button>`;
-    h += `<button type="button" class="rd-dc-rp-btn" onclick="OFFGRD_DCALLER.logTheirPlay('Pass')">Pass</button></div>`;
-    h += `<div class="seg covlog" style="margin-top:6px">`;
+    h += `<div class="lbl rd-look-lbl">They ran</div>`;
+    h += `<div class="seg covlog rd-dc-rp">`;
+    h += `<button type="button" class="rd-dc-rp-btn${livePt === "Run" ? " on" : ""}" onclick="OFFGRD_DCALLER.logTheirPlay('Run')">Run</button>`;
+    h += `<button type="button" class="rd-dc-rp-btn${livePt === "Pass" ? " on" : ""}" onclick="OFFGRD_DCALLER.logTheirPlay('Pass')">Pass</button>`;
+    h += `</div>`;
+    h += `<div class="lbl rd-look-lbl" style="margin-top:8px">Direction <span class="foot">optional</span></div>`;
+    h += `<div class="seg covlog rd-dc-dir">`;
     ["L", "M", "R"].forEach(function (d) {
-      h += `<button type="button"${pendingDir === d ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "Left" : d === "R" ? "Right" : "Mid"}</button>`;
+      var onDir = liveDir === d;
+      h += `<button type="button" class="rd-dc-dir-btn${onDir ? " on" : ""}" onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "Left" : d === "R" ? "Right" : "Mid"}</button>`;
     });
-    h += `</div><p class="foot" style="margin:6px 0 0">Direction optional · tap before Run/Pass</p>`;
+    h += `</div>`;
+    h += `<p class="foot" style="margin:6px 0 10px">Direction optional · tap before or after Run/Pass</p>`;
 
     if (live) {
-      h += `<div class="rd-dc-grade-card"><div class="lbl">${isTwo ? "2-pt result" : "Yards allowed"} · ${esc(live.play)}</div>`;
-      h += `<div class="caller-out-results">`;
+      h += `<div class="rd-dc-grade-card${live.result ? "" : " is-pending"}">`;
+      h += `<div class="rd-dc-grade-title">${isTwo ? "2-pt result" : "Yards allowed"}</div>`;
+      h += `<div class="rd-dc-grade-sub">${esc(live.play)}${live.result ? "" : " · tap one"}</div>`;
+      h += `<div class="caller-out-results rd-dc-yards">`;
       h += buckets
         .map(function (b) {
           var on = live.result === b.id;
@@ -2365,8 +2378,13 @@
           .join("");
         h += `</div>`;
       } else if (!live.result) {
-        h += `<p class="foot" style="margin:8px 0 0">${isTwo ? "Tap Converted or Failed" : "Tap yards allowed — sit advances · flags optional"}</p>`;
+        h += `<p class="foot" style="margin:8px 0 0">${isTwo ? "Tap Converted or Failed" : "Tap yards — jumps you to the next sit · flags optional after"}</p>`;
       }
+      h += `</div>`;
+    } else {
+      h += `<div class="rd-dc-grade-card is-waiting">`;
+      h += `<div class="rd-dc-grade-title">Yards allowed</div>`;
+      h += `<div class="rd-dc-grade-sub">Tap Run or Pass above — yard buckets show here</div>`;
       h += `</div>`;
     }
     h += `</div>`;
@@ -2492,6 +2510,22 @@
   }
 
   function setDir(d) {
+    var live = liveCall();
+    /* Live ungraded snap — toggle direction on this play (not just the next one). */
+    if (live && !live.result) {
+      var next = live.theirDirection === d ? null : d;
+      var pt = live.playType || "Play";
+      var play = pt + (next ? " " + next : "");
+      append("correction", live.playIndex, {
+        theirDirection: next,
+        play: play,
+        playType: pt,
+      });
+      pendingDir = null;
+      saveLocal();
+      render();
+      return;
+    }
     pendingDir = pendingDir === d ? null : d;
     render();
   }
