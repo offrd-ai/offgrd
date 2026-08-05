@@ -66,6 +66,9 @@
     },
     busy: false,
     keyHandler: null,
+    /* path → signed URL (private scout-frames bucket) */
+    frameUrlCache: {},
+    frameHydrateToken: 0,
   };
 
   function esc(s) {
@@ -230,29 +233,90 @@
     return { f1: f1, f2: f2 };
   }
 
-  function frameHtml(url, label) {
-    if (url) {
+  function isHttpUrl(u) {
+    return !!u && /^https?:\/\//i.test(String(u).trim());
+  }
+
+  /** One img per slot. Never put raw storage paths in src (404 on gameday host). */
+  function frameHtml(path, label, slot) {
+    if (!path) {
       return (
-        '<div class="cv-frame">' +
+        '<div class="cv-frame cv-frame-empty" data-slot="' +
+        esc(slot) +
+        '">' +
         '<div class="cv-frame-lbl">' +
         esc(label) +
         "</div>" +
-        '<img src="' +
-        esc(url) +
-        '" alt="' +
-        esc(label) +
-        '" loading="lazy"/>' +
+        '<div class="cv-frame-ph">No frame yet</div>' +
         "</div>"
       );
     }
+    var ready = isHttpUrl(path)
+      ? String(path).trim()
+      : state.frameUrlCache[String(path)] || "";
     return (
-      '<div class="cv-frame cv-frame-empty">' +
+      '<div class="cv-frame' +
+      (ready ? "" : " cv-frame-loading") +
+      '" data-slot="' +
+      esc(slot) +
+      '">' +
       '<div class="cv-frame-lbl">' +
       esc(label) +
       "</div>" +
-      '<div class="cv-frame-ph">No frame yet</div>' +
+      '<img class="cv-frame-img" alt="' +
+      esc(label) +
+      '" loading="lazy" data-path="' +
+      esc(path) +
+      '"' +
+      (ready ? ' src="' + esc(ready) + '"' : "") +
+      "/>" +
+      (ready
+        ? ""
+        : '<div class="cv-frame-ph cv-frame-wait">Loading frame\u2026</div>') +
       "</div>"
     );
+  }
+
+  async function hydrateFrameImgs(paths) {
+    var token = ++state.frameHydrateToken;
+    var C = cloud();
+    var body = document.getElementById("cvReviewBody");
+    if (!body) return;
+    var slots = [
+      { slot: "f1", path: paths && paths.f1 },
+      { slot: "f2", path: paths && paths.f2 },
+    ];
+    for (var i = 0; i < slots.length; i++) {
+      var s = slots[i];
+      if (!s.path) continue;
+      var path = String(s.path);
+      var url = null;
+      if (isHttpUrl(path)) {
+        url = path.trim();
+      } else if (state.frameUrlCache[path]) {
+        url = state.frameUrlCache[path];
+      } else if (C && typeof C.signedScoutFrameUrl === "function") {
+        try {
+          url = await C.signedScoutFrameUrl(path, 3600);
+          if (url) state.frameUrlCache[path] = url;
+        } catch (e) {
+          url = null;
+        }
+      }
+      if (token !== state.frameHydrateToken) return; /* snap changed mid-await */
+      var wrap = body.querySelector('.cv-frame[data-slot="' + s.slot + '"]');
+      if (!wrap) continue;
+      var img = wrap.querySelector("img.cv-frame-img");
+      var wait = wrap.querySelector(".cv-frame-wait");
+      if (!img) continue;
+      if (url) {
+        img.src = url;
+        wrap.classList.remove("cv-frame-loading");
+        if (wait) wait.remove();
+      } else if (wait) {
+        wait.textContent = "Frame unavailable";
+      }
+    }
   }
 
   function chipRow(field, options, selected, confField) {
@@ -428,8 +492,8 @@
         : "") +
       "</div>" +
       '<div class="cv-frames">' +
-      frameHtml(frames.f1, "F1 pre-snap") +
-      frameHtml(frames.f2, "F2 post-snap") +
+      frameHtml(frames.f1, "F1 pre-snap", "f1") +
+      frameHtml(frames.f2, "F2 post-snap", "f2") +
       "</div>" +
       badgeHtml(snap) +
       chipRow("front", FRONT_FAMILIES, state.draft.front, "front_family") +
@@ -465,6 +529,8 @@
         state.snaps.length +
         (state.batchId ? " (batch " + String(state.batchId).slice(0, 8) + "…)" : "");
     }
+    /* Resolve signed URLs into the same img pair (never raw storage path as src). */
+    hydrateFrameImgs(frames);
   }
 
   function move(delta) {
