@@ -84,25 +84,80 @@
     return n + "th";
   }
 
+  function parseRaw(snap) {
+    var raw = snap && snap.raw;
+    if (typeof raw === "string") {
+      try {
+        raw = JSON.parse(raw);
+      } catch (e) {
+        return {};
+      }
+    }
+    return raw && typeof raw === "object" ? raw : {};
+  }
+
+  function rawGet(raw, aliases) {
+    if (!raw) return "";
+    var byNorm = Object.create(null);
+    Object.keys(raw).forEach(function (k) {
+      if (!k || String(k).charAt(0) === "_") return;
+      byNorm[
+        String(k)
+          .replace(/^\uFEFF/, "")
+          .replace(/\u00a0/g, " ")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+      ] = k;
+    });
+    for (var i = 0; i < aliases.length; i++) {
+      var a = String(aliases[i] || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      var hit = byNorm[a];
+      if (hit == null) continue;
+      var v = raw[hit];
+      if (v == null || String(v).trim() === "") continue;
+      return String(v).trim();
+    }
+    return "";
+  }
+
   function snapChrome(snap, idx, total) {
-    var dn = ordLabel(snap.down);
-    var dist = snap.distance != null ? snap.distance : "?";
-    var zone = snap.field_zone || "—";
-    var form = snap.formation || snap.formation_family || "—";
-    return (
-      "Snap " +
-      (idx + 1) +
-      " of " +
-      total +
-      " — " +
-      dn +
-      " & " +
-      dist +
-      ", " +
-      zone +
-      ", " +
-      form
-    );
+    var raw = parseRaw(snap);
+    var playNo =
+      rawGet(raw, ["play #", "play#", "play number", "play no"]) || "";
+    var dnRaw =
+      snap.down != null && snap.down !== ""
+        ? snap.down
+        : rawGet(raw, ["dn", "down", "dwn"]);
+    var distRaw =
+      snap.distance != null && snap.distance !== ""
+        ? snap.distance
+        : rawGet(raw, ["dist", "distance", "dst", "to go"]);
+    var dn = ordLabel(dnRaw);
+    var dist = distRaw !== "" && distRaw != null ? distRaw : "?";
+    var hash =
+      (snap.hash && String(snap.hash).trim()) ||
+      rawGet(raw, ["hash", "hash mark", "h"]);
+    var form =
+      snap.formation ||
+      snap.formation_family ||
+      rawGet(raw, ["off form", "off formation", "formation", "form"]) ||
+      "—";
+    var yl =
+      rawGet(raw, ["yard ln", "yard line", "yardline", "yd ln", "yl", "ball on"]) ||
+      snap.field_zone ||
+      "";
+    var parts = [];
+    parts.push("Snap " + (idx + 1) + " of " + total);
+    if (playNo) parts.push("Hudl PLAY #" + playNo);
+    parts.push(dn + " & " + dist);
+    if (hash) parts.push("Hash " + String(hash).toUpperCase());
+    if (form) parts.push(form);
+    if (yl) parts.push(/^yl\b/i.test(yl) || /zone/i.test(yl) ? yl : "YL " + yl);
+    return parts.join(" · ");
   }
 
   function saveCursor() {
@@ -133,6 +188,7 @@
       '  <div class="fc-head">' +
       "    <h3>Capture frames</h3>" +
       '    <p class="foot" style="margin:0">Hudl on the matching play → paste F1 pre-snap, scrub ~1.5s → paste F2. Decision-aid stills only.</p>' +
+      '    <p class="fc-guide">Elevated angle · keep both safeties + the D-line in frame</p>' +
       "  </div>" +
       '  <div id="fcProgress" class="fc-progress"></div>' +
       '  <div id="fcBody"></div>' +

@@ -233,6 +233,150 @@
     return { f1: f1, f2: f2 };
   }
 
+  function parseRaw(snap) {
+    var raw = snap && snap.raw;
+    if (typeof raw === "string") {
+      try {
+        raw = JSON.parse(raw);
+      } catch (e) {
+        return {};
+      }
+    }
+    return raw && typeof raw === "object" ? raw : {};
+  }
+
+  function normRawKey(h) {
+    return String(h || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/\u00a0/g, " ")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  /** Case-insensitive raw lookup — D&D often lives only in Assist raw until remap lands. */
+  function rawGet(raw, aliases) {
+    if (!raw) return "";
+    var byNorm = Object.create(null);
+    Object.keys(raw).forEach(function (k) {
+      if (k && String(k).charAt(0) !== "_") byNorm[normRawKey(k)] = k;
+    });
+    for (var i = 0; i < aliases.length; i++) {
+      var hit = byNorm[normRawKey(aliases[i])];
+      if (hit == null) continue;
+      var v = raw[hit];
+      if (v == null || String(v).trim() === "") continue;
+      return String(v).trim();
+    }
+    return "";
+  }
+
+  function ordDown(d) {
+    if (d == null || d === "") return "";
+    var n = Number(d);
+    if (!isFinite(n)) return String(d);
+    if (n === 1) return "1st";
+    if (n === 2) return "2nd";
+    if (n === 3) return "3rd";
+    return n + "th";
+  }
+
+  /**
+   * Coach orientation banner — Hudl PLAY # + D&D + hash + OFF FORM (+ YL).
+   * Prefer normalized columns; fall back to raw Assist headers (DN/DIST/…).
+   */
+  function snapOrient(snap) {
+    var raw = parseRaw(snap);
+    var playNo =
+      rawGet(raw, ["PLAY #", "Play #", "Play#", "play number", "play no"]) ||
+      (snap.play_index != null ? String(snap.play_index) : "");
+    var dn =
+      snap.down != null && snap.down !== ""
+        ? snap.down
+        : rawGet(raw, ["DN", "Down", "Dn", "Dwn"]);
+    var dist =
+      snap.distance != null && snap.distance !== ""
+        ? snap.distance
+        : rawGet(raw, ["DIST", "Distance", "Dist", "To Go", "DST"]);
+    var hash =
+      (snap.hash != null && String(snap.hash).trim() !== ""
+        ? String(snap.hash).trim()
+        : "") || rawGet(raw, ["Hash", "Hash Mark", "H"]);
+    var form =
+      (snap.formation != null && String(snap.formation).trim() !== ""
+        ? String(snap.formation).trim()
+        : "") ||
+      rawGet(raw, [
+        "OFF FORM",
+        "Off Form",
+        "Off Formation",
+        "Formation",
+        "Form",
+      ]);
+    var yl =
+      snap.yardline != null && snap.yardline !== ""
+        ? snap.yardline
+        : rawGet(raw, [
+            "Yard Ln",
+            "Yard Line",
+            "Yardline",
+            "Yd Ln",
+            "YL",
+            "Ball On",
+          ]);
+    if (!yl && snap.field_zone) yl = snap.field_zone;
+
+    var parts = [];
+    if (playNo) parts.push("Hudl PLAY #" + playNo);
+    var dnLabel = ordDown(dn);
+    if (dnLabel || (dist !== "" && dist != null)) {
+      parts.push(
+        (dnLabel || "?") +
+          " & " +
+          (dist !== "" && dist != null ? dist : "?")
+      );
+    }
+    if (hash) parts.push("Hash " + String(hash).toUpperCase());
+    if (form) parts.push(form);
+    if (yl !== "" && yl != null) {
+      var ylStr = String(yl);
+      parts.push(/^yl\b/i.test(ylStr) || /zone/i.test(ylStr) ? ylStr : "YL " + ylStr);
+    }
+    return parts.length ? parts.join(" · ") : "";
+  }
+
+  function orientBannerHtml(snap) {
+    var line = snapOrient(snap);
+    if (!line) return "";
+    return (
+      '<div class="cv-orient" role="status">' +
+      '<span class="cv-orient-mark" aria-hidden="true">\u25B6</span> ' +
+      esc(line) +
+      "</div>"
+    );
+  }
+
+  function syncActions() {
+    var has = !!(state.snaps && state.snaps.length);
+    var confirm = document.getElementById("cvReviewConfirm");
+    var prev = document.getElementById("cvReviewPrev");
+    var next = document.getElementById("cvReviewNext");
+    if (confirm) {
+      confirm.disabled = !has || state.busy;
+      confirm.setAttribute("aria-disabled", has && !state.busy ? "false" : "true");
+    }
+    if (prev) prev.disabled = !has || state.idx <= 0;
+    if (next)
+      next.disabled = !has || state.idx >= state.snaps.length - 1;
+    var body = document.getElementById("cvReviewBody");
+    if (body) {
+      body.classList.toggle("cv-queue-empty", !has);
+      body.querySelectorAll(".cv-chip").forEach(function (btn) {
+        btn.disabled = !has;
+      });
+    }
+  }
+
   function isHttpUrl(u) {
     return !!u && /^https?:\/\//i.test(String(u).trim());
   }
@@ -462,8 +606,9 @@
     if (!body) return;
     if (!state.snaps.length) {
       body.innerHTML =
-        '<p class="foot">No flagged snaps in this queue. CV rows land here after the merge RPC stamps provenance with <code>needs_review=true</code>.</p>';
-      if (msg) msg.textContent = "";
+        '<p class="foot">Queue clear for this filter. CV rows land here after the merge RPC stamps provenance with <code>needs_review=true</code>.</p>';
+      if (msg) msg.textContent = "Queue clear for this filter.";
+      syncActions();
       return;
     }
     var snap = state.snaps[state.idx];
@@ -473,13 +618,15 @@
       (snap.opponent || "?") +
       " · " +
       (snap.week || "") +
-      " · snap " +
-      (snap.snap_index != null ? snap.snap_index : "?") +
-      " · " +
+      " · review " +
       (state.idx + 1) +
       "/" +
-      state.snaps.length;
+      state.snaps.length +
+      (snap.snap_index != null
+        ? " · import#" + snap.snap_index
+        : "");
     body.innerHTML =
+      orientBannerHtml(snap) +
       '<div class="cv-meta">' +
       esc(meta) +
       (snap.prompt_version
@@ -514,6 +661,7 @@
 
     body.querySelectorAll(".cv-chip").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        if (btn.disabled) return;
         var field = btn.getAttribute("data-field");
         var val = btn.getAttribute("data-val");
         if (!field) return;
@@ -529,6 +677,7 @@
         state.snaps.length +
         (state.batchId ? " (batch " + String(state.batchId).slice(0, 8) + "…)" : "");
     }
+    syncActions();
     /* Resolve signed URLs into the same img pair (never raw storage path as src). */
     hydrateFrameImgs(frames);
   }
@@ -568,7 +717,10 @@
   }
 
   async function confirmCurrent() {
-    if (state.busy || !state.snaps.length) return;
+    if (state.busy || !state.snaps.length) {
+      syncActions();
+      return;
+    }
     var snap = state.snaps[state.idx];
     var C = cloud();
     if (!C || typeof C.resolveCvSnap !== "function") {
@@ -610,6 +762,7 @@
           "Confirm failed: " + (e && e.message ? e.message : e);
     } finally {
       state.busy = false;
+      syncActions();
     }
   }
 
@@ -635,6 +788,7 @@
     }
     if (k === "Enter") {
       e.preventDefault();
+      if (!state.snaps.length) return;
       confirmCurrent();
       return;
     }
@@ -643,6 +797,7 @@
       close();
       return;
     }
+    if (!state.snaps.length) return;
     var lower = String(k).toLowerCase();
     if (lower === "f") {
       e.preventDefault();

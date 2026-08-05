@@ -42,8 +42,17 @@
   var PRESET_ALIASES = {
     play_index: ["play #", "play#", "play number", "play no", "play"],
     odk: ["odk", "o/d/k", "odk.", "phase"],
-    down: ["dn", "down", "dn.", "dwn"],
-    distance: ["dist", "distance", "dist.", "dst", "to go"],
+    down: ["dn", "down", "dn.", "dwn", "d/n", "d.n", "d n"],
+    distance: [
+      "dist",
+      "distance",
+      "dist.",
+      "dst",
+      "to go",
+      "togo",
+      "yards to go",
+      "yds to go",
+    ],
     hash: ["hash", "hash mark", "h"],
     yardline: ["yard ln", "yard line", "yardline", "yd ln", "yl", "ball on"],
     play_type: ["play type", "playtype", "run/pass"],
@@ -83,8 +92,15 @@
   function normHeader(h) {
     return String(h || "")
       .replace(/^\uFEFF/, "")
+      .replace(/\u00a0/g, " ")
       .trim()
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  /** Loose key for Assist header variants (DN / D.N. / Dist.). */
+  function compactHeader(h) {
+    return normHeader(h).replace(/[^a-z0-9]+/g, "");
   }
 
   function splitCSVLine(line) {
@@ -308,20 +324,77 @@
 
   function detectPresetMap(headers) {
     var byNorm = Object.create(null);
+    var byCompact = Object.create(null);
     headers.forEach(function (h) {
-      byNorm[normHeader(h)] = h;
+      var n = normHeader(h);
+      var c = compactHeader(h);
+      if (n && !byNorm[n]) byNorm[n] = h;
+      if (c && !byCompact[c]) byCompact[c] = h;
     });
     var map = {};
     FIELD_DEFS.forEach(function (fd) {
       var aliases = PRESET_ALIASES[fd.key] || [];
       for (var i = 0; i < aliases.length; i++) {
-        if (byNorm[aliases[i]]) {
-          map[fd.key] = byNorm[aliases[i]];
+        var a = aliases[i];
+        if (byNorm[a]) {
+          map[fd.key] = byNorm[a];
+          break;
+        }
+        var c = compactHeader(a);
+        if (c && byCompact[c]) {
+          map[fd.key] = byCompact[c];
           break;
         }
       }
     });
     return map;
+  }
+
+  /** If columns stayed null, pull DN/DIST/etc from raw Assist headers. */
+  function backfillFromRaw(snap) {
+    if (!snap || !snap.raw) return snap;
+    var raw = snap.raw;
+    function pick(aliases) {
+      var byNorm = Object.create(null);
+      var byCompact = Object.create(null);
+      Object.keys(raw).forEach(function (k) {
+        if (!k || String(k).charAt(0) === "_") return;
+        var n = normHeader(k);
+        var c = compactHeader(k);
+        if (n && !byNorm[n]) byNorm[n] = k;
+        if (c && !byCompact[c]) byCompact[c] = k;
+      });
+      for (var i = 0; i < aliases.length; i++) {
+        var a = aliases[i];
+        var key = byNorm[normHeader(a)] || byCompact[compactHeader(a)];
+        if (!key) continue;
+        var v = raw[key];
+        if (v == null || String(v).trim() === "") continue;
+        return String(v).trim();
+      }
+      return "";
+    }
+    if (snap.down == null) {
+      var dn = asInt(pick(PRESET_ALIASES.down.concat(["DN", "Down"])));
+      if (dn != null) snap.down = dn;
+    }
+    if (snap.distance == null) {
+      var dist = asInt(pick(PRESET_ALIASES.distance.concat(["DIST", "Distance"])));
+      if (dist != null) snap.distance = dist;
+    }
+    if (snap.hash == null || snap.hash === "") {
+      var h = pick(PRESET_ALIASES.hash.concat(["Hash"]));
+      if (h) snap.hash = normHash(h);
+    }
+    if (!snap.field_zone) {
+      var yl = pick(PRESET_ALIASES.yardline.concat(["Yard Ln", "YL"]));
+      if (yl) snap.field_zone = zoneFromYardLine(yl) || snap.field_zone;
+    }
+    if (!snap.formation) {
+      var form = pick(PRESET_ALIASES.formation.concat(["OFF FORM"]));
+      if (form) snap.formation = form;
+    }
+    return snap;
   }
 
   function mergeSavedMap(headers, saved) {
@@ -467,7 +540,7 @@
       });
       // Unmapped columns already in rawObj by header name — keep verbatim.
 
-      snaps.push({
+      var builtSnap = {
         team_id: teamId,
         import_batch_id: null, // set at commit
         snap_index: snapIndex,
@@ -498,7 +571,16 @@
         raw: rawObj,
         _source_row: rowIdx + 1,
         _odk: odk || null,
-      });
+      };
+      backfillFromRaw(builtSnap);
+      if (builtSnap.success == null) {
+        builtSnap.success = isSuccessVal(
+          builtSnap.down,
+          builtSnap.distance,
+          builtSnap.gain
+        );
+      }
+      snaps.push(builtSnap);
       snapIndex++;
     });
 

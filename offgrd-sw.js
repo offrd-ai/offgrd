@@ -11,8 +11,8 @@
 
    KILL-SWITCH (zombie-SW incident): activate fetches sw-kill.json no-store;
    if { "kill": true } → delete all caches + unregister. Control plane never cached. */
-var CACHE = "offgrd-gameday-v232";
-var ASSET_V = "232";
+var CACHE = "offgrd-gameday-v233";
+var ASSET_V = "233";
 
 /* Shell + boot graph — must be present for airplane cold-boot. */
 var PRECACHE = [
@@ -108,7 +108,8 @@ function putUrl(cache, url, res) {
   }
 }
 
-/** Store HTML under every key a cold reopen might ask for. */
+/** Store HTML under every key a cold reopen might ask for.
+ *  Caller must pass a Response reserved for caching (clone before browser read). */
 function putShell(cache, res) {
   var shell = absUrl("./OFFGRD.html");
   var bare = absUrl("OFFGRD.html");
@@ -122,10 +123,16 @@ function putShell(cache, res) {
   /* de-dupe */
   var seen = {};
   var puts = [];
+  var keys = [];
   for (var i = 0; i < copies.length; i++) {
     if (!copies[i] || seen[copies[i]]) continue;
     seen[copies[i]] = 1;
-    puts.push(putUrl(cache, copies[i], res.clone()));
+    keys.push(copies[i]);
+  }
+  for (var j = 0; j < keys.length; j++) {
+    /* Clone before any put consumes the body. */
+    var body = j === keys.length - 1 ? res : res.clone();
+    puts.push(putUrl(cache, keys[j], body));
   }
   return Promise.all(puts);
 }
@@ -176,12 +183,18 @@ function precacheAll() {
             if (/OFFGRD\.html$/i.test(path) || /OFFGRD\.html$/i.test(url)) {
               return putShell(cache, res);
             }
+            var pathCopy = null;
+            var pathKey = null;
+            try {
+              var u = new URL(url);
+              if (u.search) {
+                pathKey = u.origin + u.pathname;
+                pathCopy = res.clone();
+              }
+            } catch (e) {}
             return putUrl(cache, url, res).then(function () {
               /* also pathname without ?v= for module skew */
-              try {
-                var u = new URL(url);
-                if (u.search) return putUrl(cache, u.origin + u.pathname, res.clone());
-              } catch (e) {}
+              if (pathCopy && pathKey) return putUrl(cache, pathKey, pathCopy);
             });
           })
           .catch(function () {});
@@ -234,20 +247,34 @@ function isHtmlNav(req) {
   return false;
 }
 
+/** Cache a Response already reserved for SW use (do not pass the browser copy). */
 function putRuntime(req, res) {
   if (!res || !res.ok) return;
   caches.open(CACHE).then(function (cache) {
     if (isHtmlNav(req)) {
-      putShell(cache, res.clone());
+      putShell(cache, res);
       return;
     }
-    putUrl(cache, req.url, res.clone()).then(function () {
-      try {
-        var u = new URL(req.url);
-        if (u.search) putUrl(cache, u.origin + u.pathname, res.clone());
-      } catch (e) {}
+    var pathCopy = null;
+    var pathKey = null;
+    try {
+      var u = new URL(req.url);
+      if (u.search) {
+        pathKey = u.origin + u.pathname;
+        pathCopy = res.clone();
+      }
+    } catch (e) {}
+    putUrl(cache, req.url, res).then(function () {
+      if (pathCopy && pathKey) putUrl(cache, pathKey, pathCopy);
     });
   });
+}
+
+function cacheThenReturn(req, res) {
+  try {
+    putRuntime(req, res.clone());
+  } catch (e) {}
+  return res;
 }
 
 self.addEventListener("fetch", function (event) {
@@ -261,8 +288,7 @@ self.addEventListener("fetch", function (event) {
     event.respondWith(
       fetch(req)
         .then(function (res) {
-          putRuntime(req, res);
-          return res;
+          return cacheThenReturn(req, res);
         })
         .catch(function () {
           return matchShell(req).then(function (cached) {
@@ -276,8 +302,7 @@ self.addEventListener("fetch", function (event) {
   event.respondWith(
     fetch(req)
       .then(function (res) {
-        putRuntime(req, res);
-        return res;
+        return cacheThenReturn(req, res);
       })
       .catch(function () {
         return caches.match(req.url, { ignoreSearch: true }).then(function (cached) {
