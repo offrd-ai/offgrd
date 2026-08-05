@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v237: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v238: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -318,10 +318,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=237"></script>
-<script src="OFFGRD-brand-persist.js?v=237"></script>
-<script src="supabase.js?v=237"></script>
-<script src="OFFGRD-cache-gate.js?v=237"></script>
+<script src="OFFGRD-config.js?v=238"></script>
+<script src="OFFGRD-brand-persist.js?v=238"></script>
+<script src="supabase.js?v=238"></script>
+<script src="OFFGRD-cache-gate.js?v=238"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -363,29 +363,29 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=237"></script>
-<script src="OFFGRD-pos-glossary.js?v=237"></script>
-<script src="OFFGRD-autoderive.js?v=237"></script>
-<script src="OFFGRD-scoutcards.js?v=237"></script>
-<script src="OFFGRD-tendencies.js?v=237"></script>
-<script src="OFFGRD-week-autotest.js?v=237"></script>
-<script src="OFFGRD-weeklypackage.js?v=237"></script>
-<script src="OFFGRD-telestrate.js?v=237"></script>
-<script src="OFFGRD-redesign.js?v=237"></script>
-<script src="OFFGRD-shell.js?v=237"></script>
-<script src="OFFGRD-caller-outcome.js?v=237"></script>
-<script src="OFFGRD-formations-data.js?v=237"></script>
-<script src="OFFGRD-formation-canon.js?v=237"></script>
-<script src="OFFGRD-assist-import.js?v=237"></script>
-<script src="OFFGRD-cv-review.js?v=237"></script>
-<script src="OFFGRD-frame-capture.js?v=237"></script>
-<script src="OFFGRD-caller-log.js?v=237"></script>
-<script src="OFFGRD-caller-sync.js?v=237"></script>
-<script src="OFFGRD-caller-analysis.js?v=237"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=237"></script>
-<script src="OFFGRD-booth-ask.js?v=237"></script>
-<script src="OFFGRD-caller-select.js?v=237"></script>
-<script src="OFFGRD-dcaller.js?v=237"></script>
+<script src="OFFGRD-render.js?v=238"></script>
+<script src="OFFGRD-pos-glossary.js?v=238"></script>
+<script src="OFFGRD-autoderive.js?v=238"></script>
+<script src="OFFGRD-scoutcards.js?v=238"></script>
+<script src="OFFGRD-tendencies.js?v=238"></script>
+<script src="OFFGRD-week-autotest.js?v=238"></script>
+<script src="OFFGRD-weeklypackage.js?v=238"></script>
+<script src="OFFGRD-telestrate.js?v=238"></script>
+<script src="OFFGRD-redesign.js?v=238"></script>
+<script src="OFFGRD-shell.js?v=238"></script>
+<script src="OFFGRD-caller-outcome.js?v=238"></script>
+<script src="OFFGRD-formations-data.js?v=238"></script>
+<script src="OFFGRD-formation-canon.js?v=238"></script>
+<script src="OFFGRD-assist-import.js?v=238"></script>
+<script src="OFFGRD-cv-review.js?v=238"></script>
+<script src="OFFGRD-frame-capture.js?v=238"></script>
+<script src="OFFGRD-caller-log.js?v=238"></script>
+<script src="OFFGRD-caller-sync.js?v=238"></script>
+<script src="OFFGRD-caller-analysis.js?v=238"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=238"></script>
+<script src="OFFGRD-booth-ask.js?v=238"></script>
+<script src="OFFGRD-caller-select.js?v=238"></script>
+<script src="OFFGRD-dcaller.js?v=238"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -3639,6 +3639,22 @@ function callerGuidedFlowHtml(){
     return (i?`<span class="rd-gd-flow-sep" aria-hidden="true">\u2192</span>`:"")+`<span class="${cls}"><i>${s.n}</i>${s.l}</span>`;
   }).join("")+`</div>`;
 }
+/** Accent numbered section header — Play call / What they showed / Result. */
+function callerSectionKickerHtml(num, title, sub){
+  return (
+    '<div class="rd-gd-section-kicker">' +
+    '<span class="rd-gd-section-num">' +
+    esc(String(num)) +
+    "</span>" +
+    '<span class="rd-gd-section-title">' +
+    esc(title) +
+    "</span>" +
+    (sub
+      ? '<span class="rd-gd-section-sub">' + esc(sub) + "</span>"
+      : "") +
+    "</div>"
+  );
+}
 function callerThisPlayCardHtml(){
   const on=callerOnCall();
   if(!on||!on.play) return "";
@@ -3672,16 +3688,21 @@ function callerThisPlayCardHtml(){
   h+=`<div class="rd-gd-thisplay-head"><span class="rd-gd-thisplay-kicker">This play \u00b7 ${esc(on.play)}</span>`;
   h+=`<span class="foot">${esc(on.sitTxt||"")}${isST?" \u00b7 grade try":isTwo?" \u00b7 2-pt":" \u00b7 steps 3\u20134"}</span></div>`;
   if(!isST){
-    h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">3</div><div class="rd-gd-step-body">`;
-    h+=`<div class="lbl">What did they show? <span class="foot">Front / Coverage / Blitz/Stunt${hasLook?"":" \u00b7 optional"}</span></div>`;
+    h+=`<div class="rd-gd-section rd-gd-section-look">`;
+    h+=callerSectionKickerHtml(3,"What did they show?",hasLook?"Front / Coverage / Blitz/Stunt":"Front / Coverage / Blitz/Stunt · optional");
     h+=callerLookChipsHtml(on, on.playIndex);
-    h+=`</div></div>`;
+    h+=`</div>`;
   }
-  h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">${isST||isTwo?"3":"4"}</div><div class="rd-gd-step-body">`;
-  h+=`<div class="lbl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${isST?"Result of the try \u2014 tap one":isTwo?"2-pt result \u2014 tap one":"Result of the play \u2014 tap one"} ${callerTagInfoBtnHtml()}</div>`;
+  h+=`<div class="rd-gd-section rd-gd-section-result">`;
+  h+=callerSectionKickerHtml(
+    isST||isTwo?3:4,
+    isST?"Result of the try":isTwo?"2-pt result":"Result of the play",
+    "tap one"
+  );
+  h+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">${callerTagInfoBtnHtml()}</div>`;
   h+=callerResultChipsHtml(on, idx, {});
   h+=`<p class="foot" style="margin:8px 0 0">${isST||isTwo?"Then next series is 1st &amp; 10.":"Grading jumps you back to the top for the next call. Flags stay optional on Last play."}</p>`;
-  h+=`</div></div></div>`;
+  h+=`</div></div>`;
   return h;
 }
 function callerExpectStripHtml(expect, fr, pr, liveM){
@@ -4291,9 +4312,11 @@ function renderCaller(){
     h+=callerBlitzAlertHtml(pr, g);
     h+=`<div id="caller-call-anchor">`;
     if(!sitTry||sitTwo){
-      h+=`<div class="rd-gd-section-kicker">2 \u00b7 ${sitTwo?"2-pt play call":"Play call"}</div>`;
+      h+=`<div class="rd-gd-section rd-gd-section-call">`;
+      h+=callerSectionKickerHtml(2, sitTwo?"2-pt play call":"Play call");
       h+=callerCallSheetHtml();
       if(!sitTwo) h+=callerStRowHtml();
+      h+=`</div>`;
     }
     h+=`</div>`;
     h+=callerThisPlayCardHtml();
@@ -4831,7 +4854,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=237", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=238", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5154,9 +5177,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=237"></script>
-<script src="OFFGRD-role-gate.js?v=237"></script>
-<script src="OFFGRD-mobile.js?v=237"></script>
+<script type="module" src="OFFGRD-account.js?v=238"></script>
+<script src="OFFGRD-role-gate.js?v=238"></script>
+<script src="OFFGRD-mobile.js?v=238"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

@@ -2261,12 +2261,22 @@
     return h;
   }
 
+  function sectionKickerHtml(num, title, sub) {
+    return (
+      `<div class="rd-gd-section-kicker">` +
+      `<span class="rd-gd-section-num">${esc(String(num))}</span>` +
+      `<span class="rd-gd-section-title">${esc(title)}</span>` +
+      (sub ? `<span class="rd-gd-section-sub">${esc(sub)}</span>` : "") +
+      `</div>`
+    );
+  }
+
   function lookHtml() {
     var book = defBook();
     var covs = ["Cover 0", "Cover 1", "Cover 2", "Cover 3", "Cover 4", "2-man"];
-    var h = `<div class="rd-dc-look no-print"><div class="lbl">Your call <span class="foot">Front / Coverage / Blitz/Stunt · optional · clears after each snap</span></div>`;
+    var h = `<div class="rd-dc-look no-print">`;
     /* Front → Coverage → Blitz/Stunt — natural D-call order */
-    h += `<div class="lbl rd-look-lbl" style="margin-top:4px">Front</div><div class="seg covlog rd-gd-look-seg">`;
+    h += `<div class="lbl rd-look-lbl" style="margin-top:0">Front</div><div class="seg covlog rd-gd-look-seg">`;
     h += (book.fronts || [])
       .slice(0, 8)
       .map(function (f) {
@@ -2310,7 +2320,7 @@
             ? Out.RESULT_BUCKETS
             : [];
     var flags = Out ? Out.DEF_FLAGS : [];
-    var h = `<div class="rd-dc-result no-print" id="dcaller-result-anchor">`;
+    var h = `<div class="rd-dc-result rd-gd-section no-print" id="dcaller-result-anchor">`;
 
     if (isST) {
       var stLabel =
@@ -2319,7 +2329,7 @@
           : live.playType === "fg"
             ? "Grade kick"
             : "Grade PAT";
-      h += `<div class="rd-gd-section-kicker">4 · ${stLabel}</div>`;
+      h += sectionKickerHtml(4, stLabel);
       h += `<div class="rd-dc-grade-card"><div class="lbl">${esc(live.play)}</div>`;
       h += `<div class="caller-out-results">`;
       h += buckets
@@ -2339,7 +2349,10 @@
       (live && live.theirDirection) ||
       pendingDir ||
       "";
-    h += `<div class="rd-gd-section-kicker">4 · ${isTwo ? "2PT · what they ran" : "What they ran + yards allowed"}</div>`;
+    h += sectionKickerHtml(
+      4,
+      isTwo ? "2PT · what they ran" : "What they ran + yards allowed"
+    );
     h += `<div class="lbl rd-look-lbl">They ran</div>`;
     h += `<div class="seg covlog rd-dc-rp">`;
     h += `<button type="button" class="rd-dc-rp-btn${livePt === "Run" ? " on" : ""}" onclick="OFFGRD_DCALLER.logTheirPlay('Run')">Run</button>`;
@@ -2488,11 +2501,19 @@
     h += tryBarHtml();
     if (!sitTry || sitTwo) {
       if (!sitTwo) {
-        h += `<div class="rd-gd-section-kicker">2 · Expect</div>`;
+        h += `<div class="rd-gd-section rd-gd-section-expect">`;
+        h += sectionKickerHtml(2, "Expect");
         h += expectHtml();
-        h += `<div class="rd-gd-section-kicker">3 · Your D call</div>`;
+        h += `</div>`;
+        h += `<div class="rd-gd-section rd-gd-section-call">`;
+        h += sectionKickerHtml(
+          3,
+          "Your D call",
+          "Front / Coverage / Blitz/Stunt · optional · clears after each snap"
+        );
         h += lookHtml();
         h += stRowHtml();
+        h += `</div>`;
       }
       h += resultPanelHtml();
       h += `<p class="foot no-print" style="margin:8px 0 0">Yards allowed jumps you back to the top for the next sit. Edit last / row Edit to correct snaps.</p>`;
