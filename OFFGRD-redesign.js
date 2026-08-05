@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -161,9 +161,10 @@
     {
       id: "gameday",
       label: "Gameday",
-      views: ["caller"],
+      views: ["caller", "dcaller"],
       tools: [
-        { id: "caller", label: "Caller", view: "caller" },
+        { id: "ocaller", label: "O Caller", view: "caller" },
+        { id: "dcaller", label: "D Caller", view: "dcaller" },
         { id: "booth", label: "Booth mode", action: "booth" }
       ]
     }
@@ -273,7 +274,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "235";
+  const ASSET_V = "236";
 
   function getScoutTool() {
     try {
@@ -1185,19 +1186,18 @@
       'padding:8px 10px;min-height:40px;font-size:12px;',
       '}',
       'html.rd-on.rd-gameday #rdPhases .rd-phase:not(.on){opacity:.55;}',
-      /* Keep Booth reachable on Gameday — hide other tool pills only */
+      /* Gameday tools: O Caller / D Caller / Booth (phase sync already hides other phases). */
       'html.rd-on.rd-gameday #rdTools{',
       'display:flex!important;flex-wrap:wrap;gap:6px;padding:4px 8px 8px;align-items:center;',
       '}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]){display:none!important;}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"]{display:inline-flex!important;min-height:44px;}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill:not([hidden]){display:inline-flex!important;min-height:44px;}',
       'html.rd-on.rd-gameday #rdContext{',
       'padding:6px 12px!important;min-height:44px;',
       '}',
       'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
       'html.rd-on.rd-booth #rdShell{display:none!important;}',
       'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
-      'html.rd-on #view-caller{max-width:720px;margin:0 auto;}',
+      'html.rd-on #view-caller,html.rd-on #view-dcaller{max-width:720px;margin:0 auto;}',
       'html.rd-on #view-caller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
       'html.rd-on #view-caller .rd-gd-top{',
       'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
