@@ -1,20 +1,19 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0a1220" />
-<title>OFFGRD ? Never off guard. Scout, predict, teach & call.</title>
-<meta name="description" content="OFFGRD is the offline-first football program suite: predict opponent calls from real breakdown data, build and animate your playbook, train and test your roster, and call the game from the sideline ? with zero bars." />
-<meta property="og:title" content="OFFGRD ? Never off guard." />
-<meta property="og:description" content="Predict their next call, teach your whole roster, and call the game offline from the sideline." />
+<title>OFFGRD — Never off guard. Scout, predict, teach & call both sides.</title>
+<meta name="description" content="OFFGRD is the offline-first football program suite: predict opponent calls from real breakdown data, call both sides of the ball with live in-game AI analysis, build and animate your playbook, test your roster, and turn Friday's tags into Monday's practice — with zero bars." />
+<meta property="og:title" content="OFFGRD — Never off guard." />
+<meta property="og:description" content="Predict their next call, call both sides with live in-game AI, and turn game tags into practice reps — all offline on the sideline." />
 <meta property="og:type" content="website" />
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="logo-mark.png">
-<script src="OFFGRD-config.js?v=238"></script>
-<script src="OFFGRD-brand-persist.js?v=238"></script>
-<script src="OFFGRD-cache-gate.js?v=238"></script>
-<script src="supabase.js?v=238"></script>
+<script src="OFFGRD-config.js?v=146"></script>
+<script src="OFFGRD-cache-gate.js?v=111"></script>
+<script src="supabase.js?v=111"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -62,8 +61,8 @@ h1,h2,h3{margin:0;letter-spacing:-.01em}
   padding:14px 24px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:.2s ease;
   font-family:Inter,sans-serif;
 }
-.btn-primary{background:var(--grad);color:#04121f;box-shadow:0 14px 34px -12px rgba(59,208,242,.55)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 44px -12px rgba(59,208,242,.7)}
+.btn-primary{background:var(--grad);color:#04121f;box-shadow:0 10px 24px -12px rgba(47,107,255,.55)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px rgba(47,107,255,.65)}
 .btn-ghost{background:var(--panel);border-color:var(--stroke-2);color:var(--text)}
 .btn-ghost:hover{background:var(--panel-2);border-color:rgba(255,255,255,.28)}
 .btn .arw{transition:transform .2s ease}
@@ -99,7 +98,7 @@ header.scrolled{background:rgba(10,18,32,.82);backdrop-filter:blur(14px);border-
   min-height:44px;min-width:44px;align-items:center;justify-content:center;border-radius:10px;
 }
 .menu-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-/* Mobile drawer ? Features / Pricing / FAQ / auth all live here */
+/* Mobile drawer — Features / Pricing / FAQ / auth all live here */
 .nav-drawer{
   display:none;position:fixed;left:0;right:0;top:0;bottom:0;z-index:60;
   padding:calc(12px + constant(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom, 0px));
@@ -210,6 +209,108 @@ footer{
 .copy{color:var(--muted-2);font-size:13px;margin-top:22px}
 .reveal{opacity:0;transform:translateY(24px);transition:.7s cubic-bezier(.2,.7,.2,1)}
 .reveal.in{opacity:1;transform:none}
+/* v2 — modernization layer */
+.chip-new{display:inline-flex;align-items:center;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#04121f;background:var(--grad);padding:3px 10px;border-radius:100px;margin-left:10px;vertical-align:middle;box-shadow:0 4px 14px -4px rgba(59,208,242,.6)}
+.chip-soon{display:inline-flex;align-items:center;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);border:1px solid rgba(59,208,242,.45);background:rgba(59,208,242,.08);padding:3px 10px;border-radius:100px;margin-left:10px;vertical-align:middle}
+.stat-strip{position:relative;z-index:2;display:flex;justify-content:center;gap:0;flex-wrap:wrap;max-width:900px;margin:34px auto 0;border:1px solid var(--stroke);border-radius:16px;background:rgba(255,255,255,.03);backdrop-filter:blur(8px);overflow:hidden}
+.stat-strip .st{flex:1 1 200px;padding:18px 20px;text-align:center;border-right:1px solid var(--stroke)}
+.stat-strip .st:last-child{border-right:0}
+.stat-strip .st .v{font-family:Anton,sans-serif;font-size:26px;letter-spacing:.01em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-strip .st .k{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--muted-2);margin-top:4px;font-weight:600}
+.card{transition:border-color .25s ease,transform .25s ease,background .25s ease}
+.card:hover{border-color:var(--stroke-2);background:var(--panel-2);transform:translateY(-3px)}
+.fvis{transition:border-color .25s ease,box-shadow .25s ease}
+.feature:hover .fvis{border-color:rgba(59,208,242,.35);box-shadow:0 30px 80px -30px rgba(0,0,0,.85),0 0 0 1px rgba(59,208,242,.12)}
+.mock .ev{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--stroke);font-size:13.5px;color:var(--muted)}
+.mock .ev:last-child{border-bottom:0}
+.mock .ev .t{flex:none;font-family:"Barlow Condensed",sans-serif;letter-spacing:.1em;font-size:11px;color:var(--cyan);border:1px solid rgba(59,208,242,.35);border-radius:6px;padding:2px 7px;margin-top:1px;text-transform:uppercase;white-space:nowrap}
+.mock .ev b{color:var(--text)}
+.rankrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--stroke)}
+.rankrow:last-child{border-bottom:0}
+.rankrow .rk{font-family:Anton,sans-serif;color:rgba(255,255,255,.18);font-size:22px;width:26px}
+.rankrow .conf-lo{color:var(--muted-2);font-size:11px;border:1px solid var(--stroke-2);border-radius:100px;padding:3px 9px;font-weight:700}
+/* Hero live panel — replaces the screenshot */
+.hero-live{max-width:920px;text-align:left;padding:0;background:linear-gradient(180deg,#0e1a33,#0a1220)}
+.hero-live::before{content:"";position:absolute;top:-1px;left:26px;right:26px;height:2px;background:var(--grad);border-radius:2px;z-index:4}
+.hs-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--stroke);font-family:"Barlow Condensed",sans-serif;letter-spacing:.14em;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase}
+.hs-bar b{color:var(--text);font-weight:700}
+.hs-live{display:inline-flex;align-items:center;gap:8px;color:var(--cyan);white-space:nowrap}
+.hs-live .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 2s infinite}
+.hs-main{display:grid;grid-template-columns:1.15fr 1fr;gap:34px;padding:30px 26px 26px;align-items:center}
+.hs-tag{font-family:"Barlow Condensed",sans-serif;letter-spacing:.2em;text-transform:uppercase;font-size:12px;font-weight:600;color:var(--muted-2);margin-bottom:10px}
+.hs-cov{font-family:Anton,sans-serif;text-transform:uppercase;font-size:clamp(52px,7.4vw,88px);line-height:.92}
+.hs-pctrow{display:flex;align-items:baseline;gap:16px;margin-top:6px;flex-wrap:wrap}
+.hs-pct{font-family:Anton,sans-serif;font-size:clamp(38px,5vw,60px);line-height:1;color:var(--text)}
+.hs-conf{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.hs-conf .note{color:var(--muted-2);font-size:12.5px}
+.hs-right .row{font-size:13.5px}
+.hs-callrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--stroke)}
+.hs-callrow:last-child{border-bottom:0}
+.hs-callrow b{font-size:15px;letter-spacing:.03em}
+.hs-foot{display:flex;flex-wrap:wrap;border-top:1px solid var(--stroke)}
+.hs-foot .cell{flex:1 1 160px;padding:14px 20px;border-right:1px solid var(--stroke)}
+.hs-foot .cell:last-child{border-right:0}
+.hs-foot .k{font-family:"Barlow Condensed",sans-serif;letter-spacing:.16em;text-transform:uppercase;font-size:11px;color:var(--muted-2);font-weight:600}
+.hs-foot .v{font-weight:800;font-size:15px;margin-top:3px}
+.hs-foot .cell.alert{background:rgba(59,208,242,.06)}
+.hs-foot .cell.alert .v{color:var(--cyan)}
+@media(max-width:700px){.hs-main{grid-template-columns:1fr;gap:22px}}
+/* O + D Caller duo panels */
+.caller-duo{display:grid;gap:14px;padding:16px}
+.cpanel{border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.02);overflow:hidden}
+.cp-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--stroke);font-family:"Barlow Condensed",sans-serif;letter-spacing:.14em;text-transform:uppercase;font-size:11.5px;font-weight:700;color:var(--muted)}
+.cp-side{font-family:"Barlow Condensed",sans-serif;letter-spacing:.12em;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px}
+.cp-side.o{background:var(--grad);color:#04121f}
+.cp-side.d{color:var(--cyan);border:1px solid rgba(59,208,242,.45);background:rgba(59,208,242,.08)}
+.cp-body{padding:12px 14px 14px}
+.cp-expect{font-family:Anton,sans-serif;text-transform:uppercase;font-size:26px;line-height:1;margin:4px 0 2px}
+.cp-sub{color:var(--muted-2);font-size:12px}
+.cp-callrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--stroke);margin-top:10px}
+.cp-callrow b{font-size:14px;letter-spacing:.03em}
+.cp-shift{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12px;color:var(--cyan)}
+.cp-shift::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);flex:none}
+.duo-note{text-align:center;font-family:"Barlow Condensed",sans-serif;letter-spacing:.16em;text-transform:uppercase;font-size:11.5px;font-weight:600;color:var(--muted-2);padding:0 16px 16px}
+.duo-note b{color:var(--muted)}
+/* Scout Cards highlight band */
+.scband{display:grid;grid-template-columns:1.05fr 1fr;gap:44px;align-items:center;margin:14px 0 30px;padding:36px 34px;border:1px solid var(--stroke-2);border-radius:22px;background:linear-gradient(180deg,rgba(47,107,255,.10),rgba(255,255,255,.02));position:relative;overflow:hidden}
+.scband::before{content:"";position:absolute;top:-1px;left:22px;right:22px;height:2px;background:var(--grad)}
+.scstack{position:relative;min-height:250px}
+.sccard{width:92%;background:#f4f6f9;border-radius:10px;padding:14px 16px;color:#13294b}
+.sccard.back{position:absolute;top:0;right:0;transform:rotate(4deg) translate(2%,-3%);opacity:.5;filter:saturate(.5)}
+.sccard.front{position:relative;transform:rotate(-2deg);box-shadow:0 28px 60px -22px rgba(0,0,0,.85)}
+.sc-strip{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:"Barlow Condensed",sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;font-weight:700;border-bottom:2px solid #13294b;padding-bottom:6px;margin-bottom:6px}
+.sccard svg{width:100%;height:auto;display:block}
+.sc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.sc-chips span{font-size:12px;border:1px solid var(--stroke-2);padding:5px 12px;border-radius:8px;color:var(--muted)}
+.sc-chips span.hot{border-color:rgba(59,208,242,.5);color:var(--cyan)}
+@media(max-width:860px){.scband{grid-template-columns:1fr;gap:30px}}
+/* Coach's week journey timeline */
+.journey{max-width:880px;margin:54px auto 0}
+.jstep{position:relative;padding:0 0 36px 150px}
+.jstep::before{content:"";position:absolute;left:130px;top:28px;bottom:-2px;width:1px;background:linear-gradient(180deg,var(--stroke-2),var(--stroke))}
+.jstep:last-of-type::before{display:none}
+.jstep::after{content:"";position:absolute;left:126px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(59,208,242,.7)}
+.jday{position:absolute;left:0;top:2px;width:112px;text-align:center;font-family:"Barlow Condensed",sans-serif;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--cyan);border:1px solid rgba(59,208,242,.4);background:rgba(59,208,242,.07);padding:5px 0;border-radius:100px}
+.jstep h3{font-size:20px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.jmod{font-family:"Barlow Condensed",sans-serif;letter-spacing:.12em;text-transform:uppercase;font-size:11px;font-weight:700;color:var(--muted-2);border:1px solid var(--stroke-2);padding:3px 10px;border-radius:100px}
+.jstep p{color:var(--muted);font-size:15px;margin:8px 0 0;max-width:620px}
+.jstep p b{color:var(--text)}
+.jclose{margin:10px 0 0 150px;background:linear-gradient(180deg,rgba(47,107,255,.10),rgba(255,255,255,.02));border:1px solid var(--stroke-2);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
+.jclose::before{content:"";position:absolute;top:-1px;left:20px;right:20px;height:2px;background:var(--grad)}
+.jclose .big{font-family:Anton,sans-serif;text-transform:uppercase;font-size:clamp(20px,2.6vw,28px);line-height:1.15}
+.jclose p{color:var(--muted);font-size:14.5px;margin:8px 0 0}
+@media(max-width:640px){
+  .jstep{padding:0 0 32px 26px}
+  .jstep::before{left:7px;top:34px}
+  .jstep::after{left:3px;top:32px}
+  .jday{position:static;display:inline-block;width:auto;padding:5px 12px;margin-bottom:10px}
+  .jclose{margin-left:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .btn-primary:hover,.card:hover{transform:none}
+  .pill .dot{animation:none}
+}
 @media(max-width:860px){
   .nav-links{display:none!important}
   #navAuth{display:none!important}
@@ -230,9 +331,10 @@ footer{
 <body>
 <header id="hdr">
   <div class="wrap nav">
-    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" /><span class="sub">SCOUT ? TEACH ? WIN</span></a>
+    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" /><span class="sub">SCOUT · TEACH · WIN</span></a>
     <div class="nav-right">
       <nav class="nav-links" aria-label="Primary">
+        <a href="#journey">How it works</a>
         <a href="#suite">Features</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
@@ -252,6 +354,7 @@ footer{
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
+  <a href="#journey" data-drawer-link>How it works</a>
   <a href="#suite" data-drawer-link>Features</a>
   <a href="#pricing" data-drawer-link>Pricing</a>
   <a href="#faq" data-drawer-link>FAQ</a>
@@ -264,18 +367,45 @@ footer{
     <div class="hero-grid-glow"></div>
   </div>
   <div class="wrap">
-    <div class="pill"><span class="dot"></span> Built for the sideline ? works with zero bars</div>
-    <h1 class="display">Know their <span class="grad-text">next call.</span><br><span class="line2">Teach yours to everyone.</span></h1>
-    <p class="lede">OFFGRD turns your Hudl breakdown into situation-by-situation predictions, your playbook into a program-wide teaching system, and your Friday night into a series of answered questions. Offline on the sideline. Synced to your whole staff.</p>
+    <div class="pill"><span class="dot"></span> New — O Caller + D Caller <span class="sep">·</span> Live in-game analysis &amp; answers</div>
+    <h1 class="display">Know their <span class="grad-text">next call.</span><br><span class="line2">While your team knows theirs.</span></h1>
+    <p class="lede">OFFGRD turns your Hudl breakdown into situation-by-situation predictions, your playbook into a program-wide teaching system, and your Friday night into a series of answered questions — offense <b style="color:var(--text)">and</b> defense, with live AI analysis on every snap. Offline on the sideline. Synced to your whole staff.</p>
     <div class="cta-row">
-      <button class="btn btn-primary" id="ctaStart">Start free ? no card <span class="arw">?</span></button>
+      <button class="btn btn-primary" id="ctaStart">Start free — no card <span class="arw">→</span></button>
       <a class="btn btn-ghost" href="#suite">See the suite</a>
     </div>
-    <div class="subnote">One program library <span class="sep">?</span> <b>Coaches plan, players train, everyone syncs</b> <span class="sep">?</span> Hudl &amp; QwikCut imports <span class="sep">?</span> No internet needed at game time</div>
+    <div class="subnote">One program library <span class="sep">·</span> <b>Coaches plan, players train, everyone syncs</b> <span class="sep">·</span> Hudl &amp; QwikCut imports <span class="sep">·</span> No internet needed at game time</div>
   </div>
-  <div class="hero-shot reveal">
-    <img src="shot-scout-night.png" alt="OFFGRD Scout predicting Cover 4 at 40% ? Madison Tigers vs Southwest Longhorns" />
-    <div class="cap">Scout ? predicted look, live on the sideline</div>
+  <div class="hero-shot hero-live reveal">
+    <div class="hs-bar"><span><b>Madison Tigers</b> vs Southwest Longhorns &nbsp;·&nbsp; 3rd &amp; 7 &nbsp;·&nbsp; plus 34 &nbsp;·&nbsp; Q2 7:42</span><span class="hs-live"><span class="dot"></span> Live · Zero bars</span></div>
+    <div class="hs-main">
+      <div>
+        <div class="hs-tag">They're most likely in</div>
+        <div class="hs-cov grad-text">Cover 4</div>
+        <div class="hs-pctrow"><span class="hs-pct">54%</span><span style="color:var(--muted);font-size:15px">then Cover 3 · 36%</span></div>
+        <div class="hs-conf"><span class="chip-conf">HIGH CONFIDENCE</span><span class="note">28 snaps · recency-weighted · incl. 6 live tonight</span></div>
+      </div>
+      <div class="hs-right">
+        <div class="hs-tag">Your best calls vs this look</div>
+        <div class="hs-callrow"><b>KARATE COMBO</b><span class="callbtn">Call</span></div>
+        <div class="hs-callrow"><b>HOUSTON</b><span class="callbtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--stroke-2)">Call</span></div>
+        <div class="hs-tag" style="margin-top:18px">Coverage distribution</div>
+        <div class="row" style="border-bottom:1px solid var(--stroke);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0"><span style="font-size:13.5px">Cover 4</span><div class="bar"><i style="width:54%"></i></div><b style="font-size:13.5px">54%</b></div>
+        <div class="row" style="border-bottom:1px solid var(--stroke);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0"><span style="font-size:13.5px">Cover 3</span><div class="bar"><i style="width:36%"></i></div><b style="font-size:13.5px">36%</b></div>
+        <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0"><span style="font-size:13.5px">Cover 1</span><div class="bar"><i style="width:11%"></i></div><b style="font-size:13.5px">11%</b></div>
+      </div>
+    </div>
+    <div class="hs-foot">
+      <div class="cell"><div class="k">Pressure</div><div class="v">32% · Mike A</div></div>
+      <div class="cell"><div class="k">Front</div><div class="v">4-3 · 90%</div></div>
+      <div class="cell alert"><div class="k">Live shift detected</div><div class="v">Cover 1 up 29% tonight — man-beaters live</div></div>
+    </div>
+  </div>
+  <div class="stat-strip reveal">
+    <div class="st"><div class="v">O + D</div><div class="k">Call both sides</div></div>
+    <div class="st"><div class="v">≤3 taps</div><div class="k">To log a snap</div></div>
+    <div class="st"><div class="v">Every snap</div><div class="k">AI analysis recomputed</div></div>
+    <div class="st"><div class="v">0 bars</div><div class="k">Needed on gameday</div></div>
   </div>
 </section>
 <section class="section" id="why">
@@ -283,12 +413,31 @@ footer{
     <div class="section-tag">Why programs switch</div>
     <div class="split">
       <h2 class="big-line reveal">Film tells you what happened. <span class="grad-text">OFFGRD tells you what's coming.</span></h2>
-      <p class="reveal" style="color:var(--muted);font-size:17px;margin:0">Everything lives in one shared library. Draw a play once and it's on every coach's screen, in every player's quiz, and on your call sheet ? synced automatically, ready offline when the stadium wifi dies.</p>
+      <p class="reveal" style="color:var(--muted);font-size:17px;margin:0">Everything lives in one shared library. Draw a play once and it's on every coach's screen, in every player's quiz, and on your call sheet — synced automatically, ready offline when the stadium wifi dies.</p>
     </div>
     <div class="three">
-      <div class="card reveal"><div class="num">01</div><h3>Predict it</h3><p>Import a breakdown and get <b>coverage, front, and blitz probabilities by down, distance, and field zone</b> ? with confidence levels, not guesswork. Log what they show on Friday and the prediction sharpens live.</p></div>
-      <div class="card reveal"><div class="num">02</div><h3>Teach it</h3><p>Your playbook isn't a PDF ? it's <b>animated, tagged, and testable</b>. Players take reads tests, coverage-ID tests, and route quizzes built from <b>your</b> plays. Coaches see every score.</p></div>
-      <div class="card reveal"><div class="num">03</div><h3>Call it</h3><p>Game night, the Caller puts the predicted look and your best calls on one glanceable screen ? <b>fully offline</b>. Dead stadium wifi is somebody else's problem.</p></div>
+      <div class="card reveal"><div class="num">01</div><h3>Predict it</h3><p>Import a breakdown and get <b>coverage, front, and blitz probabilities by down, distance, and field zone</b> — with confidence levels, not guesswork. Log what they show on Friday and the prediction sharpens live.</p></div>
+      <div class="card reveal"><div class="num">02</div><h3>Teach it</h3><p>Your playbook isn't a PDF — it's <b>animated, tagged, and testable</b>. Players take reads tests, coverage-ID tests, and route quizzes built from <b>your</b> plays. Coaches see every score.</p></div>
+      <div class="card reveal"><div class="num">03</div><h3>Call it</h3><p>Game night, the O and D Callers put the predicted look and your best calls on one glanceable screen — with a <b>live AI analysis panel</b> reading every snap. <b>Fully offline.</b> Dead stadium wifi is somebody else's problem.</p></div>
+    </div>
+  </div>
+</section>
+<section class="section" id="journey">
+  <div class="wrap">
+    <div class="section-tag">The coach's week</div>
+    <h2 class="big-line reveal" style="max-width:720px">From film to Friday night, <span class="grad-text">the whole journey.</span></h2>
+    <p class="reveal" style="color:var(--muted);font-size:17px;max-width:700px;margin-top:16px">One system takes your program through the week — manage the team, decode the opponent, plan the practice, test the roster, and call the game. Every step feeds the next.</p>
+    <div class="journey">
+      <div class="jstep reveal"><span class="jday">Weekend</span><h3>Film lands. Upload it as-is. <span class="jmod">Scout</span></h3><p>Export the Hudl or QwikCut breakdown and drop it in — no conversion, no re-tagging. By Sunday you know their <b>coverage, front, and blitz tendencies</b> by down, distance, and field zone.</p></div>
+      <div class="jstep reveal"><span class="jday">Monday</span><h3>Set the week from the Coaches Hub. <span class="jmod">Coaches Hub · Flywheel</span></h3><p>Roster, depth chart, schedule, and daily check-ins in one place — and Friday's bust and missed-fit tags arrive <b>already ranked</b>. Confirm the practice focus and the whole week aims itself.</p></div>
+      <div class="jstep reveal"><span class="jday">Tuesday</span><h3>Choose the gameplan — and assign the tests with it. <span class="jmod">Playbook · Reps Lab</span></h3><p>Attack plans against each of their most likely looks. Pull plays from your book or draw new ones — <b>animated, tagged, and instantly teachable</b> — and <b>every play you install is testable that night</b>. The roster studies the plan while you sleep.</p></div>
+      <div class="jstep reveal"><span class="jday">Wednesday</span><h3>Read the scores. Dial the plan. <span class="jmod">Reps Lab · Scout cards</span></h3><p>Overnight scores show what the roster <b>actually absorbed</b>. Drill what the tests expose, trim what they've mastered, and adjust the gameplan <b>while there's still time to fix it</b>. The scout team shows the opponent's <b>actual plays</b> off auto-printed scout cards — nobody hand-drew a thing.</p></div>
+      <div class="jstep reveal"><span class="jday">Thursday</span><h3>Final check: who's ready, what to walk through. <span class="jmod">Reps Lab · Results</span></h3><p>By Thursday it isn't a guess — <b>a week of scores</b> by player and position says who's ready, and the Results board hands your staff <b>the exact looks to hit in the walkthrough</b>. Testing all week is how the gameplan gets dialed in, one day at a time.</p></div>
+      <div class="jstep reveal"><span class="jday">Friday</span><h3>Call the game — both sides, AI on every snap. <span class="jmod">O + D Callers · In-game AI</span></h3><p>Predicted look, your best calls, live analysis recomputed every snap — <b>fully offline</b>. The system answers the questions so you can do what you do best: coach.</p></div>
+    </div>
+    <div class="jclose reveal">
+      <div class="big">Predictive analytics <span class="grad-text">×</span> focused testing <span class="grad-text">×</span> purposeful practice. <span class="grad-text">That's the move.</span></div>
+      <p>Then it loops: Friday's tags become Monday's focus, and every week your program gets sharper.</p>
     </div>
   </div>
 </section>
@@ -296,28 +445,93 @@ footer{
   <div class="wrap">
     <div class="section-tag">The suite</div>
     <h2 class="big-line reveal" style="max-width:760px">From film study to Friday night, <span class="grad-text">one system.</span></h2>
-    <p class="reveal" style="color:var(--muted);font-size:17px;max-width:720px;margin-top:16px">Scout, Playbook, Reps Lab, and the live Caller share one cloud library ? draw a play once and it's on every coach's screen, in every player's quiz, and on your call sheet.</p>
+    <p class="reveal" style="color:var(--muted);font-size:17px;max-width:720px;margin-top:16px">Scout, Playbook, Reps Lab, the O &amp; D Callers, and the live in-game AI share one cloud library — draw a play once and it's on every coach's screen, in every player's quiz, and on your call sheet. And what happens Friday flows straight back into Monday's practice.</p>
     <div class="feature">
-      <div class="fdesc reveal"><div class="kicker">Scout &amp; Predict</div><h3>Their tendencies, decoded before warmups.</h3><p>Upload the Hudl or QwikCut export <b>as-is</b> ? no conversion, no re-tagging. OFFGRD maps the columns, skips the junk rows, and builds the picture: most likely coverage with confidence, pressure rate, front distribution, and the attack plan against each look.</p><p>Small samples are widened automatically and flagged ? it tells you when to trust it.</p></div>
-      <div class="fvis reveal"><div class="mock"><div class="tag">Most likely coverage ? 1st &amp; 10</div><div style="display:flex;align-items:flex-end;gap:14px;margin:8px 0 4px"><span class="big-pct grad-text">Cover 4</span><span class="big-pct grad-text">54%</span></div><div style="margin-bottom:16px"><span class="chip-conf">HIGH CONFIDENCE</span> <span style="color:var(--muted-2);font-size:12px">based on 28 snaps ? recency-weighted</span></div><div class="tag" style="margin-bottom:8px">Coverage distribution</div><div class="row"><span>Cover 4</span><div class="bar"><i style="width:54%"></i></div><b>54%</b></div><div class="row"><span>Cover 3</span><div class="bar"><i style="width:36%"></i></div><b>36%</b></div><div class="row"><span>Cover 1</span><div class="bar"><i style="width:11%"></i></div><b>11%</b></div><div style="margin-top:16px" class="tag">Attack ? Quarters</div><p style="color:var(--muted);margin:6px 0 0;font-size:13.5px">Safeties carry verticals, so the flat is soft. <b style="color:var(--text)">Curl-flat ? out routes ? dig/over ? RB swing</b></p></div></div>
+      <div class="fdesc reveal"><div class="kicker">Scout &amp; Predict</div><h3>Their tendencies, decoded before warmups.</h3><p>Upload the Hudl or QwikCut export <b>as-is</b> — no conversion, no re-tagging. OFFGRD maps the columns, skips the junk rows, and builds the picture: most likely coverage with confidence, pressure rate, front distribution, and the attack plan against each look.</p><p>Small samples are widened automatically and flagged — it tells you when to trust it.</p></div>
+      <div class="fvis reveal"><div class="mock"><div class="tag">Most likely coverage · 1st &amp; 10</div><div style="display:flex;align-items:flex-end;gap:14px;margin:8px 0 4px"><span class="big-pct grad-text">Cover 4</span><span class="big-pct grad-text">54%</span></div><div style="margin-bottom:16px"><span class="chip-conf">HIGH CONFIDENCE</span> <span style="color:var(--muted-2);font-size:12px">based on 28 snaps · recency-weighted</span></div><div class="tag" style="margin-bottom:8px">Coverage distribution</div><div class="row"><span>Cover 4</span><div class="bar"><i style="width:54%"></i></div><b>54%</b></div><div class="row"><span>Cover 3</span><div class="bar"><i style="width:36%"></i></div><b>36%</b></div><div class="row"><span>Cover 1</span><div class="bar"><i style="width:11%"></i></div><b>11%</b></div><div style="margin-top:16px" class="tag">Attack — Quarters</div><p style="color:var(--muted);margin:6px 0 0;font-size:13.5px">Safeties carry verticals, so the flat is soft. <b style="color:var(--text)">Curl-flat · out routes · dig/over · RB swing</b></p></div></div>
     </div>
     <div class="feature rev">
-      <div class="fdesc reveal"><div class="kicker">Playbook ? Draw &amp; Animate</div><h3>See the play move before you ever run it.</h3><p>Formations, routes, motion, protections, blocking schemes, and full defensive looks ? then hit <b>Play</b> and watch it all animate: motion fires first, then the snap, every route and drop in real time.</p><p>Tap any player and the right tools appear <b>right under the field</b> ? routes and motion for skill players, protections and blocks for linemen, zone/man/blitz for defenders. New program? Start with the <b>12-play tagged starter book</b>, not a blank page.</p></div>
-      <div class="fvis reveal"><img src="shot-playbook-green.gif" alt="OFFGRD Playbook animating Smash vs Cover 2 ? routes and coverage drops moving in real time" loading="lazy" /></div>
+      <div class="fdesc reveal"><div class="kicker">Playbook — Draw &amp; Animate</div><h3>See the play move before you ever run it.</h3><p>Formations, routes, motion, protections, blocking schemes, and full defensive looks — then hit <b>Play</b> and watch it all animate: motion fires first, then the snap, every route and drop in real time.</p><p>Tap any player and the right tools appear <b>right under the field</b> — routes and motion for skill players, protections and blocks for linemen, zone/man/blitz for defenders. New program? Start with the <b>12-play tagged starter book</b>, not a blank page.</p></div>
+      <div class="fvis reveal"><img src="shot-playbook-green.gif" alt="OFFGRD Playbook animating Smash vs Cover 2 — routes and coverage drops moving in real time" loading="lazy" /></div>
+    </div>
+    <div class="scband reveal">
+      <div>
+        <div class="kicker">Scout Cards — the Sunday-night killer</div>
+        <h3 style="font-size:clamp(26px,3.4vw,36px);font-weight:800;letter-spacing:-.02em;line-height:1.1">The card stack draws itself.</h3>
+        <p style="color:var(--muted);font-size:16px;margin-top:16px">Hand-drawing scout cards is the biggest time-sink in a high school week — so OFFGRD kills it. Any play with a diagram — <b style="color:var(--text)">your installs or the opponent's imported plays</b> — becomes a printable scout card: the exact drawn play plus a call strip in <b style="color:var(--text)">your program's own terminology</b>.</p>
+        <p style="color:var(--muted);font-size:16px;margin-top:14px">Pick a scope — install day, vs-opponent, by down &amp; distance — and <b style="color:var(--text)">batch-export the whole stack to PDF</b>, 4, 6, or 9 cards a page. The scout team shows real looks Wednesday. Nobody's up drawing cards Sunday.</p>
+        <div class="sc-chips"><span class="hot">Batch PDF — 4/6/9-up</span><span>Install cards</span><span>Opponent cards</span><span>Print &amp; PNG</span></div>
+      </div>
+      <div class="scstack">
+        <div class="sccard back"><div class="sc-strip"><span>Trips RT — Flood</span><span>11 pers</span></div><div style="height:120px"></div></div>
+        <div class="sccard front">
+          <div class="sc-strip"><span>Doubles — Smash</span><span>11 pers · 3rd &amp; 6 · L hash</span></div>
+          <svg viewBox="0 0 300 132" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#13294b" stroke-width="2.2">
+            <line x1="10" y1="100" x2="290" y2="100" stroke-width="1" opacity=".35"/>
+            <circle cx="120" cy="108" r="7"/><circle cx="138" cy="108" r="7"/><rect x="149" y="101" width="14" height="14"/><circle cx="180" cy="108" r="7"/><circle cx="198" cy="108" r="7"/>
+            <circle cx="156" cy="126" r="7"/>
+            <circle cx="35" cy="108" r="7"/><circle cx="70" cy="112" r="7"/>
+            <circle cx="265" cy="108" r="7"/><circle cx="232" cy="112" r="7"/>
+            <path d="M35 100 V56 L18 34" stroke-width="2.6"/><path d="M22 42 L18 34 L26 32" stroke-width="2.6"/>
+            <path d="M70 104 V78 H104" stroke-width="2.6"/><path d="M96 73 L104 78 L96 83" stroke-width="2.6"/>
+            <path d="M265 100 V56 L282 34" stroke-width="2.6"/><path d="M274 32 L282 34 L278 42" stroke-width="2.6"/>
+            <path d="M232 104 V78 H198" stroke-width="2.6"/><path d="M206 73 L198 78 L206 83" stroke-width="2.6"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-top:6px"><span>Madison Tigers</span><span>Card 4 of 18</span></div>
+        </div>
+      </div>
     </div>
     <div class="feature">
-      <div class="fdesc reveal"><div class="kicker">Reps Lab ? the piece nobody else has</div><h3>Your whole roster, tested on your system.</h3><p>Every play saved in your Playbook becomes teaching material automatically. Quarterbacks read defenses frozen pre-snap, hit <b>Snap</b>, and make the throw. Receivers prove they know their routes. Anyone can name the coverage from the drop.</p><p>Three graded test types ? <b>Reads, Coverage ID, Route quiz</b> ? every score saved to the program, by player and position. You'll know who's ready on Thursday, not at halftime.</p></div>
+      <div class="fdesc reveal"><div class="kicker">Reps Lab — the piece nobody else has</div><h3>Your whole roster, tested on your system.</h3><p>Every play saved in your Playbook becomes teaching material automatically. Quarterbacks read defenses frozen pre-snap, hit <b>Snap</b>, and make the throw. Receivers prove they know their routes. Anyone can name the coverage from the drop.</p><p>Three graded test types — <b>Reads, Coverage ID, Route quiz</b> — every score saved to the program, by player and position. <b>Test all week, not just once:</b> assign with each install, read the scores each morning, and dial the gameplan daily. You'll know who's ready before the lights, not at halftime.</p></div>
       <div class="fvis reveal">
-        <img src="shot-reps.png" alt="OFFGRD Reps Lab ? reads test graded to the roster" onerror="this.remove();document.getElementById('mock-reps').style.display='block'" />
-        <div class="mock" id="mock-reps" style="display:none"><div class="tag">Where's the throw vs Cover 2? (Smash)</div><div class="q-opts"><span>X</span><span class="ok">Z</span><span>H</span><span>Y</span></div><div class="correct">? Correct ? throw the Z</div><p style="color:var(--muted);font-size:13.5px;margin:6px 0 14px">High-low the corner: he jams the flat, safety's deep.</p><div class="row" style="border:0;padding-top:0"><span class="callbtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--stroke-2)">? Snap</span></div></div>
+        <img src="shot-reps.png" alt="OFFGRD Reps Lab — reads test graded to the roster" onerror="this.remove();document.getElementById('mock-reps').style.display='block'" />
+        <div class="mock" id="mock-reps" style="display:none"><div class="tag">Where's the throw vs Cover 2? (Smash)</div><div class="q-opts"><span>X</span><span class="ok">Z</span><span>H</span><span>Y</span></div><div class="correct">✓ Correct — throw the Z</div><p style="color:var(--muted);font-size:13.5px;margin:6px 0 14px">High-low the corner: he jams the flat, safety's deep.</p><div class="row" style="border:0;padding-top:0"><span class="callbtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--stroke-2)">▶ Snap</span></div></div>
       </div>
     </div>
     <div class="feature rev">
-      <div class="fdesc reveal"><div class="kicker">Caller ? game night</div><h3>One glanceable screen. Zero bars required.</h3><p>Down, distance, hash, field zone ? the Caller shows the predicted look and your best calls against it, ranked by <b>your own success rates</b>. Tap Call to log it, mark Hit or Miss, and track your night.</p><p>Log what they actually showed and the prediction <b>updates live, mid-game</b>. Everything runs on-device: the stadium's wifi can die and your call sheet doesn't care.</p></div>
+      <div class="fdesc reveal"><div class="kicker">Callers — game night <span class="chip-new">Now O + D</span></div><h3>Both sides of the ball. One glanceable screen.</h3><p>Down, distance, hash, field zone — the Caller shows the predicted look and your best calls against it, ranked by <b>your own success rates</b>. Tap Call to log it, mark Hit or Miss, and track your night.</p><p>The new <b>D Caller</b> runs the same loop for your defense — <b>Sit → Expect → Call → Result, three taps or fewer per snap</b> — and flags live when their tendencies shift from the season film. Log what they show and every prediction <b>updates mid-game</b>. Everything runs on-device: the stadium's wifi can die and your call sheet doesn't care.</p></div>
       <div class="fvis reveal">
-        <img src="shot-caller.png" alt="OFFGRD Caller ? offline sideline call screen with predicted look and best calls" onerror="this.remove();document.getElementById('mock-caller').style.display='block'" />
-        <div class="mock" id="mock-caller" style="display:none"><div class="tag">1st &amp; 10+ ? they show</div><div style="display:flex;align-items:center;gap:10px;margin:6px 0 4px"><span class="big-pct grad-text" style="font-size:34px">Cover 4</span><span class="chip-conf">54%</span></div><p style="color:var(--muted-2);font-size:12px;margin:0 0 14px">4-3 front ? 32% pressure ? 28 snaps ? incl. 6 live</p><div class="tag" style="margin-bottom:8px">Your best calls</div><div class="row"><b>KARATE COMBO</b><span class="callbtn">Call</span></div><div class="row"><b>HOUSTON</b><span class="callbtn">Call</span></div><div class="tag" style="margin:14px 0 6px">They showed ? log it</div><div class="logbtns"><span>Cover 2</span><span>Cover 3</span><span>Cover 4</span><span>2-man</span><span>Man</span></div></div>
+        <div class="caller-duo">
+          <div class="cpanel">
+            <div class="cp-head"><span>Your ball · 2nd &amp; 6 · their 41</span><span class="cp-side o">O Caller</span></div>
+            <div class="cp-body">
+              <div class="tag">They'll show</div>
+              <div class="cp-expect grad-text">Cover 3 · 61%</div>
+              <div class="cp-sub">1-high · 4-3 front · 24% pressure</div>
+              <div class="cp-callrow"><b>HOUSTON</b><span class="callbtn">Call</span></div>
+              <div class="logbtns" style="margin-top:8px"><span style="border-color:rgba(59,208,242,.5);color:var(--cyan)">✓ Hit</span><span>Miss</span><span>Flag</span></div>
+            </div>
+          </div>
+          <div class="cpanel">
+            <div class="cp-head"><span>Their ball · 3rd &amp; 2 · own 45</span><span class="cp-side d">D Caller</span></div>
+            <div class="cp-body">
+              <div class="tag">They'll run</div>
+              <div class="cp-expect grad-text">Inside zone · 58%</div>
+              <div class="cp-sub">12 personnel · run 71% tonight</div>
+              <div class="cp-shift">Shift: run rate up 16% vs season film</div>
+              <div class="cp-callrow"><b>PIRATE — PRESS</b><span class="callbtn">Call</span></div>
+              <div class="logbtns" style="margin-top:8px"><span style="border-color:rgba(59,208,242,.5);color:var(--cyan)">✓ Stop</span><span>Gain</span><span>Bust</span></div>
+            </div>
+          </div>
+          <div class="duo-note">Sit → Expect → Call → Result &nbsp;·&nbsp; <b>≤3 taps a snap</b> &nbsp;·&nbsp; both sides, fully offline</div>
+        </div>
       </div>
+    </div>
+    <div class="feature">
+      <div class="fdesc reveal"><div class="kicker">In-game AI <span class="chip-new">New</span></div><h3>A coordinator's eye on every snap. Live.</h3><p>A live analysis panel sits right under the call loop — offense and defense — and <b>recomputes the moment every snap folds in</b>. Drive summaries, tendency shifts versus their season film, and situational reads stream into one feed, with <b>zero extra taps</b> to log.</p><p>Quarter and half are <b>one-tap bookmarks</b> that expand the same panel — no halftime scramble, no separate report. The engine runs on-device, so the analysis is there even with zero bars; richer AI-written summaries load in when you're back on a connection.</p></div>
+      <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:6px">Live analysis — 2nd quarter, 7:42</div><div class="ev"><span class="t">Shift</span><span><b>3rd &amp; medium:</b> Cover 1 <b>67% tonight</b> vs 38% season — man-beaters are live.</span></div><div class="ev"><span class="t">Drive</span><span>They went <b>4-of-5 outside the hashes</b> — perimeter run fits leaking on drive 3.</span></div><div class="ev"><span class="t">Read</span><span>Red zone: 2-high both trips — <b>expect the flat to stay soft</b>.</span></div><div class="ev"><span class="t">Half</span><span><b>One tap</b> expands the full half analysis right here. No modal, no wifi.</span></div></div></div>
+    </div>
+    <div class="feature rev">
+      <div class="fdesc reveal"><div class="kicker">Game → practice flywheel <span class="chip-new">New</span></div><h3>Friday's mistakes become Monday's reps.</h3><p>During the final review, tag the snaps that hurt — <b>busts and missed fits</b>. OFFGRD ranks them by scheme and situation and hands you a proposed practice focus. <b>You confirm it; nothing auto-applies.</b></p><p>A confirmed focus raises a tracked cell and <b>up-weights next week's player tests</b> on exactly that look — so kids earn the fix by drilling it, and you watch the scores climb from the Results board. Game to practice to game, one loop.</p></div>
+      <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:8px">Final review — proposed focus</div><div class="rankrow"><span class="rk">1</span><span style="flex:1"><b style="color:var(--text)">Cover 3 bust</b><br><span style="color:var(--muted-2);font-size:12px">3rd &amp; long · 3 tags tonight</span></span><span class="callbtn">Confirm</span></div><div class="rankrow"><span class="rk">2</span><span style="flex:1"><b style="color:var(--text)">Missed fit — perimeter run</b><br><span style="color:var(--muted-2);font-size:12px">1st &amp; 10 · 2 tags</span></span><span class="callbtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--stroke-2)">Confirm</span></div><p style="color:var(--muted);font-size:13px;margin:12px 0 0">Confirmed → next week's Coverage-ID tests <b style="color:var(--text)">up-weight Cover 3 / 3rd &amp; long</b> for the DBs.</p></div></div>
+    </div>
+    <div class="feature">
+      <div class="fdesc reveal"><div class="kicker">Auto-Scout <span class="chip-soon">Early access</span></div><h3>Point a camera at the film. Get a draft breakdown.</h3><p>Auto-Scout reads still frames of each snap and <b>drafts the defensive picture for you</b> — coverage shell, front family, rotation — so tagging a game starts from a draft instead of a blank row.</p><p>Every AI tag carries an honest <b>confidence score</b> and lands in a coach review queue. <b>Nothing unreviewed ever touches your tendencies</b> — you stay the tagger of record; the machine just does the first pass. Rolling out to founding programs first.</p></div>
+      <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:8px">Auto-Scout — review queue</div><div class="row"><span>Snap 14 · <b>2-high shell</b></span><span class="chip-conf">0.86</span></div><div class="row"><span>Snap 14 · <b>4-down front</b></span><span class="chip-conf">0.81</span></div><div class="row"><span>Snap 15 · <b>1-high → Cover 3</b> (post-snap)</span><span class="chip-conf">0.74</span></div><div class="row"><span>Snap 16 · shell unclear — <b>flagged</b></span><span class="conf-lo">Needs review</span></div><p style="color:var(--muted);font-size:13px;margin:12px 0 0">Low-confidence rows wait for a coach — <b style="color:var(--text)">unreviewed tags never feed predictions</b>.</p></div></div>
+    </div>
+    <div class="feature rev">
+      <div class="fdesc reveal"><div class="kicker">Coaches Hub — mission control</div><h3>Run the program, not the paperwork.</h3><p>Roster, depth chart, calendar, daily check-ins, and team messaging — one hub, one login. The <b>readiness board</b> flags who needs attention <b>before practice</b>, not after, and quick actions put the whole program two taps away.</p><p>When it's time to get your kids seen, the recruiting side takes over: <b>readiness scores, reports, analytics, and a team page</b> to promote your players — with the <b>AI GM</b> drafting the weekly package. That's hours of admin every week, handled.</p></div>
+      <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:6px">Coaches Hub — roster readiness</div><div style="display:flex;align-items:baseline;gap:12px;margin:4px 0 2px"><span class="big-pct grad-text" style="font-size:34px">3 Ready</span><span style="color:var(--muted);font-size:13px">12 need attention</span></div><div class="bar" style="margin:10px 0 14px"><i style="width:20%"></i></div><div class="row"><span>Total players</span><b>15</b></div><div class="row"><span>Active this week</span><b>15</b></div><div class="row"><span>Daily check flags</span><b style="color:var(--cyan)">2</b></div><div class="tag" style="margin:14px 0 6px">Quick actions</div><div class="logbtns"><span>Add player</span><span>Message team</span><span>Depth chart</span><span>Recruiting</span></div><div class="row" style="border:0;margin-top:10px;padding-bottom:0"><span></span><span class="callbtn">Review 12 players →</span></div></div></div>
     </div>
   </div>
 </section>
@@ -325,10 +539,10 @@ footer{
   <div class="wrap">
     <div class="section-tag">No blank page</div>
     <h2 class="big-line reveal" style="max-width:640px">Game-ready in <span class="grad-text">your first session.</span></h2>
-    <p class="reveal" style="color:var(--muted);font-size:17px;max-width:700px;margin-top:16px">Coaches get a guided setup ? name your program, set your logo and colors, take the 12-play tagged starter book, and share one join code. Players enter the code, pick their position, and take their first reps inside sixty seconds. A live checklist tracks the program until everything's green.</p>
+    <p class="reveal" style="color:var(--muted);font-size:17px;max-width:700px;margin-top:16px">Coaches get a guided setup — name your program, set your logo and colors, take the 12-play tagged starter book, and share one join code. Players enter the code, pick their position, and take their first reps inside sixty seconds. A live checklist tracks the program until everything's green.</p>
     <div class="ob">
-      <div class="card reveal"><div class="step">01</div><h3>Coaches</h3><p>Create the program ? colors &amp; crest ? starter playbook ? import a breakdown. The setup checklist follows you on every page until you're done.</p></div>
-      <div class="card reveal"><div class="step">02</div><h3>Players</h3><p>Join code ? name &amp; position ? first training rep, immediately. Every test score lands on the coach's Results board.</p></div>
+      <div class="card reveal"><div class="step">01</div><h3>Coaches</h3><p>Create the program → colors &amp; crest → starter playbook → import a breakdown. The setup checklist follows you on every page until you're done.</p></div>
+      <div class="card reveal"><div class="step">02</div><h3>Players</h3><p>Join code → name &amp; position → first training rep, immediately. Every test score lands on the coach's Results board.</p></div>
       <div class="card reveal"><div class="step">03</div><h3>The program</h3><p>One shared library. Auto-sync every 45 seconds. Your logo and colors on every device the moment anyone signs in.</p></div>
     </div>
   </div>
@@ -340,17 +554,22 @@ footer{
   </div>
   <div class="wrap price-wrap">
     <div class="price-card reveal">
-      <div class="price-head"><div class="price-title">Free <span class="grad-text">while in beta</span></div><span class="price-badge">? Founding program</span></div>
+      <div class="price-head"><div class="price-title">Free <span class="grad-text">while in beta</span></div><span class="price-badge">● Founding program</span></div>
       <p style="color:var(--muted);margin:0">Founding programs keep beta perks when paid plans arrive. No card required.</p>
       <ul class="plist">
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout &amp; Predict</b> ? coverage / front / blitz by situation, live in-game blending</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Playbook</b> ? draw, animate, tag; 12-play starter book included</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Reps Lab</b> ? reads, coverage-ID &amp; route tests, graded to the roster</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Caller</b> ? offline sideline call screen with hit/miss logging</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout &amp; Predict</b> — coverage / front / blitz by situation, live in-game blending</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Playbook</b> — draw, animate, tag; 12-play starter book included</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout Cards</b> — auto-generated card stacks from real diagrams, batch PDF for the scout team</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Coaches Hub</b> — roster, depth chart, calendar, daily check, messaging &amp; recruiting tools</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Reps Lab</b> — reads, coverage-ID &amp; route tests, graded to the roster</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>O &amp; D Callers</b> — call both sides offline, three taps or fewer per snap</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live in-game AI analysis</b> — drive summaries, tendency shifts &amp; one-tap quarter/half reviews</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Game-to-practice flywheel</b> — game tags become ranked, coach-confirmed practice focuses</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Auto-Scout</b> <span class="chip-soon" style="margin-left:6px">Early access</span> — AI-drafted breakdowns with coach review</span></li>
         <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Unlimited coaches &amp; players</b> with roles and positions</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Offline-first</b> ? everything works with zero bars</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Offline-first</b> — everything works with zero bars</span></li>
       </ul>
-      <button class="btn btn-primary" id="ctaStart2" style="width:100%;justify-content:center">Create your program ? free <span class="arw">?</span></button>
+      <button class="btn btn-primary" id="ctaStart2" style="width:100%;justify-content:center">Create your program — free <span class="arw">→</span></button>
     </div>
   </div>
 </section>
@@ -360,9 +579,11 @@ footer{
     <h2 class="big-line reveal" style="margin:0 auto">Questions coaches ask.</h2>
   </div>
   <div class="wrap faq">
-    <details open><summary>Does it replace Hudl? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>No ? it rides on it. Keep your film in Hudl; export the breakdown and upload it to OFFGRD as-is (.xlsx or .csv, no conversion). Hudl stores what happened. OFFGRD tells you what's coming and teaches your roster what to do about it.</p></details>
-    <details><summary>Does it really work without internet? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Yes. Predictions, the Caller, the playbook, and training all run on-device. The cloud is for syncing your program between coaches and players ? when you're back on a connection, everything catches up automatically.</p></details>
-    <details><summary>Who owns the playbook? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>The program. Your plays live in your team's account with roles ? Admin, Coach?Edit, Coach?View, Player ? so the whole staff builds one system and every player studies the same library. Export your playbook as a file any time.</p></details>
+    <details open><summary>Does it replace Hudl? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>No — it rides on it. Keep your film in Hudl; export the breakdown and upload it to OFFGRD as-is (.xlsx or .csv, no conversion). Hudl stores what happened. OFFGRD tells you what's coming and teaches your roster what to do about it.</p></details>
+    <details><summary>Does it really work without internet? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Yes — and we test it in airplane mode on real hardware. Predictions, both Callers, the live analysis panel, the playbook, and training all run on-device; the app even cold-boots with zero bars. Anything you log offline — snaps, reps, check-ins — queues locally and syncs the moment you're back on a connection. No data held hostage by stadium wifi.</p></details>
+    <details><summary>Can I call defense with it too? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Yes. The D Caller is a separate tab beside the O Caller, built for the defensive loop: see the situation, see what their offense most likely runs, make your call, log the result — three taps or fewer per snap. It watches for tendency shifts live (what they're doing tonight vs. their season film) and flags them so you can adjust before they burn you twice. Coach-only; players never see it.</p></details>
+    <details><summary>What does the in-game AI actually do? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>It reads every snap you log and keeps a live analysis current under the call screen — drive summaries, tendency shifts, situational reads — with zero extra taps. Quarter and half are one-tap bookmarks that expand the same panel. The analysis engine is deterministic and runs on-device, so it works fully offline; AI-written summaries layer in when you have a connection. It never slows down the calling loop.</p></details>
+    <details><summary>Who owns the playbook? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>The program. Your plays live in your team's account with roles — Admin, Coach·Edit, Coach·View, Player — so the whole staff builds one system and every player studies the same library. Export your playbook as a file any time.</p></details>
     <details><summary>How do players join? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>One join code. They sign up, tap "I'm a player", enter the code, pick their position, and start training. Coaches see every test score by player under Results.</p></details>
     <details><summary>What does the coach have to build before players can train? <span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Nothing. Reps Lab ships with built-in concepts versus six coverages, and the starter playbook is testable the moment you load it. Add your own plays and the tests grow with your system.</p></details>
   </div>
@@ -370,14 +591,14 @@ footer{
 <section class="cta-band">
   <div class="wrap">
     <h2 class="display reveal">Never <span class="grad-text">off guard.</span></h2>
-    <p class="reveal" style="color:var(--muted);font-size:18px;max-width:620px;margin:20px auto 0">Set up your program, invite your staff, and see your opponent's next call before Friday.</p>
-    <div style="margin-top:32px"><button class="btn btn-primary" id="ctaStart3">Start free ? no card <span class="arw">?</span></button></div>
+    <p class="reveal" style="color:var(--muted);font-size:18px;max-width:620px;margin:20px auto 0">Set up your program, invite your staff, and call both sides of Friday night with an AI coordinator on your hip — no bars required.</p>
+    <div style="margin-top:32px"><button class="btn btn-primary" id="ctaStart3">Start free — no card <span class="arw">→</span></button></div>
   </div>
 </section>
 <footer>
   <div class="wrap">
     <div class="foot"><a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" style="height:30px" /></a><div class="foot-links"><a href="#suite">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div></div>
-    <div class="copy">OFFGRD ? Scout, predict, teach &amp; call. Never off guard. &nbsp;?&nbsp; ? 2026 OFFGRD</div>
+    <div class="copy">OFFGRD — Scout, predict, teach &amp; call both sides. Never off guard. &nbsp;·&nbsp; © 2026 OFFGRD</div>
   </div>
 </footer>
 <script>
@@ -389,8 +610,8 @@ const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.ta
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 <script type="module">
-  import { Cloud } from "./OFFGRD-cloud.js?v=238";
-  import { openAuthModal } from "./OFFGRD-auth.js?v=238";
+  import { Cloud } from "./OFFGRD-cloud.js?v=111";
+  import { openAuthModal } from "./OFFGRD-auth.js?v=111";
   const APP_ORIGIN = "https://getoffrd.com/gameday/OFFGRD.html";
   const DASH_ORIGIN = "https://getoffrd.com/high-school-coach/dashboard";
   const navAuth = document.getElementById("navAuth");
@@ -415,7 +636,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
           if(Cloud.sessionMatchesProject && !Cloud.sessionMatchesProject(s)){
             try{ await Cloud.signOut(); }catch(e){}
             try{ if(Cloud.purgeForeignAuthTokens) Cloud.purgeForeignAuthTokens(); }catch(e){}
-            alert("Please sign in again ? your browser still had a session from an older project. Then use Open app.");
+            alert("Please sign in again — your browser still had a session from an older project. Then use Open app.");
             location.reload();
             return;
           }
@@ -465,12 +686,12 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     } else {
       navAuth.innerHTML =
         '<button type="button" class="nav-btn ghost" id="siBtn">Sign in</button>'+
-        '<button type="button" class="nav-btn" id="suBtn">Start free ? no card</button>';
+        '<button type="button" class="nav-btn" id="suBtn">Start free — no card</button>';
       wire("siBtn", ()=>openAuthModal(null,"signin"));
       wire("suBtn", ()=>openAuthModal(null,"signup"));
       if(drawerAuth){
         drawerAuth.innerHTML =
-          '<button type="button" class="drawer-btn primary" id="dStart">Start free ? no card</button>'+
+          '<button type="button" class="drawer-btn primary" id="dStart">Start free — no card</button>'+
           '<button type="button" class="drawer-btn" id="dSignIn">Sign in</button>';
         wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(null,"signup"); });
         wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(null,"signin"); });
@@ -487,6 +708,6 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   const c=document.getElementById("ctaStart3"); if(c) c.onclick=start;
   document.querySelectorAll("[data-cta=start]").forEach(function(el){ el.onclick=start; });
 </script>
-<script>setTimeout(function(){var a=document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn?t load ? tap to reload</a>';}},6000);</script>
+<script>setTimeout(function(){var a=document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn’t load — tap to reload</a>';}},6000);</script>
 </body>
 </html>
