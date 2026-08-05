@@ -301,9 +301,10 @@ footer{
 /* Coach's week journey timeline */
 .journey{max-width:880px;margin:54px auto 0}
 .jstep{position:relative;padding:0 0 36px 150px}
-.jstep::before{content:"";position:absolute;left:130px;top:28px;bottom:-2px;width:1px;background:linear-gradient(180deg,var(--stroke-2),var(--stroke))}
+.jstep::before{content:"";position:absolute;left:130px;top:28px;bottom:-2px;width:2px;border-radius:2px;background:repeating-linear-gradient(180deg,rgba(69,179,255,.10) 0,rgba(69,179,255,.10) 34px,rgba(69,179,255,.85) 60px,rgba(69,179,255,.10) 86px,rgba(69,179,255,.10) 120px);animation:jsizzle 2.6s linear infinite;box-shadow:0 0 10px rgba(69,179,255,.22)}
 .jstep:last-of-type::before{display:none}
-.jstep::after{content:"";position:absolute;left:126px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(59,208,242,.7)}
+.jstep::after{content:"";position:absolute;left:126px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 14px rgba(69,179,255,.9);animation:pulse 2.6s infinite}
+@keyframes jsizzle{from{background-position:0 0}to{background-position:0 120px}}
 .jday{position:absolute;left:0;top:2px;width:112px;text-align:center;font-family:"Barlow Condensed",sans-serif;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--cyan);border:1px solid rgba(59,208,242,.4);background:rgba(59,208,242,.07);padding:5px 0;border-radius:100px}
 .jstep h3{font-size:20px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .jmod{font-family:"Barlow Condensed",sans-serif;letter-spacing:.12em;text-transform:uppercase;font-size:11px;font-weight:700;color:var(--muted-2);border:1px solid var(--stroke-2);padding:3px 10px;border-radius:100px}
@@ -324,6 +325,7 @@ footer{
   .reveal{opacity:1;transform:none;transition:none}
   .btn-primary:hover,.card:hover{transform:none}
   .pill .dot{animation:none}
+  .jstep::before,.jstep::after{animation:none}
 }
 @media(max-width:860px){
   .nav-links{display:none!important}
@@ -558,13 +560,13 @@ footer{
     </div>
     <div class="scband reveal">
       <div>
-        <div class="kicker">OFFRD Recruiting — get your kids seen</div>
-        <h3 style="font-size:clamp(26px,3.4vw,36px);font-weight:800;letter-spacing:-.02em;line-height:1.1">10,000+ college coaches. A few clicks.</h3>
-        <p style="color:var(--muted);font-size:16px;margin-top:16px">The full OFFRD recruiting suite lives right beside your program. Promote a player — film, measurables, profile — to <b style="color:var(--text)">over 10,000 college coaches in mere clicks</b>, straight from the roster you already manage.</p>
-        <p style="color:var(--muted);font-size:16px;margin-top:14px"><b style="color:var(--text)">Tracking analytics</b> show who opened, who viewed, and who came back — so you manage recruiting on facts, not hope. And every player gets a <b style="color:var(--text)">personal recruiting profile</b> on your <b style="color:var(--text)">custom team recruiting page</b>: your brand, your kids, one link to send.</p>
-        <div class="sc-chips"><span class="hot">10,000+ college coaches</span><span>Tracking analytics</span><span>Custom team page</span><span>Player profiles</span></div>
+        <div class="kicker">OFFRD Recruiting</div>
+        <h3 style="font-size:clamp(26px,3.4vw,36px);font-weight:800;letter-spacing:-.02em;line-height:1.1">Get your kids seen. Keep the receipts.</h3>
+        <p style="color:var(--muted);font-size:16px;margin-top:16px">The full OFFRD recruiting suite lives right beside your program. Promote a player — film, measurables, profile — to <b style="color:var(--text)">over 10,000 college coaches in a few clicks</b>, straight from the roster you already manage. Every player gets a <b style="color:var(--text)">personal recruiting profile</b> on your <b style="color:var(--text)">custom team recruiting page</b>: your brand, your kids, one link to send.</p>
+        <p style="color:var(--muted);font-size:16px;margin-top:14px">And every bit of it is <b style="color:var(--text)">verified, tracked data</b> — who you sent, who opened, who watched film. So when a parent wonders whether anyone's fighting for their kid, you don't have to say a word. <b style="color:var(--text)">Pull up the record:</b> 132 coaches reached, film in front of D1 staffs — this week. The work speaks for itself.</p>
+        <div class="sc-chips"><span class="hot">10,000+ college coaches</span><span>Verified promotion record</span><span>Custom team page</span><span>Player profiles</span></div>
       </div>
-      <div class="fvis reveal" style="box-shadow:var(--shadow)"><div class="mock"><div class="tag" style="margin-bottom:6px">Promote — WR J. Carter '27</div><div style="display:flex;align-items:baseline;gap:12px;margin:4px 0 2px"><span class="big-pct grad-text" style="font-size:34px">10,214</span><span style="color:var(--muted);font-size:13px">college coaches reached · 3 clicks</span></div><div class="tag" style="margin:12px 0 6px">This week</div><div class="row"><span>Profile views</span><b>312</b></div><div class="row"><span>Film plays</span><b>128</b></div><div class="row"><span>Coach opens</span><b>D1 · 24 &nbsp; D2 · 67 &nbsp; D3 · 88</b></div><div class="row"><span>Team page visits</span><b style="color:var(--cyan)">1,046</b></div><div class="row" style="border:0;margin-top:8px;padding-bottom:0"><span style="color:var(--muted-2);font-size:12px">carter27.offrd.team</span><span class="callbtn">Promote player →</span></div></div></div>
+      <div class="fvis reveal" style="box-shadow:var(--shadow)"><div class="mock"><div class="tag" style="margin-bottom:6px">Promote — WR J. Carter '27</div><div style="display:flex;align-items:baseline;gap:12px;margin:4px 0 2px"><span class="big-pct grad-text" style="font-size:34px">132</span><span style="color:var(--muted);font-size:13px">college coaches reached · 3 clicks</span></div><div class="tag" style="margin:12px 0 6px">This week</div><div class="row"><span>Profile views</span><b>320</b></div><div class="row"><span>Film views</span><b>115</b></div><div class="row"><span>Coach opens</span><b>D1 · 83 &nbsp; D2 · 45</b></div><div class="row"><span>Team page visits</span><b style="color:var(--cyan)">1,046</b></div><div class="row" style="border:0;margin-top:8px;padding-bottom:0"><span style="color:var(--muted-2);font-size:12px">carter27.offrd.team</span><span class="callbtn">Promote player →</span></div></div></div>
     </div>
   </div>
 </section>
