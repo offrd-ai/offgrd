@@ -273,7 +273,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "233";
+  const ASSET_V = "234";
 
   function getScoutTool() {
     try {
@@ -1349,8 +1349,31 @@
       'html.rd-on #view-caller .covlog button{',
       'min-height:48px!important;min-width:72px;padding:10px 12px!important;flex:1 1 auto;',
       'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:600!important;',
+      'cursor:pointer!important;pointer-events:auto!important;',
       '}',
+      /* Must beat .covlog button !important — without this, Look chips never show selected. */
+      'html.rd-on #view-caller .covlog button.on{',
+      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;',
+      'color:var(--rd-accent-text)!important;font-weight:800!important;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-thisplay{',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
+      'padding:12px 14px;margin:0 0 10px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-thisplay-head{',
+      'display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin:0 0 10px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-thisplay-kicker{font-weight:800;color:var(--rd-text);}',
+      'html.rd-on #view-caller .rd-gd-step{',
+      'display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;margin:0 0 12px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-step-n{',
+      'width:28px;height:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;',
+      'background:var(--rd-accent);color:var(--rd-accent-text);font-weight:800;font-size:13px;line-height:1;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-step-body{min-width:0;}',
+      'html.rd-on #view-caller .rd-look-lbl{color:var(--rd-muted)!important;font-size:11px!important;margin-bottom:4px;}',
       'html.rd-on #view-caller .rd-gd-outcomes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}',
       'html.rd-on #view-caller .rd-gd-outcomes button{',
       'min-height:52px!important;flex:1 1 40%;padding:12px 14px!important;',
@@ -1378,7 +1401,11 @@
       'html.rd-on #view-caller .caller-oncall-empty .caller-oncall-idle{',
       'background:transparent!important;border:2px dashed var(--rd-border)!important;',
       '}',
-      'html.rd-on #view-caller .caller-oncall-live{',
+      /* Live ungraded = green; graded history = gold (inline styles; don't flatten both to gold). */
+      'html.rd-on #view-caller .caller-oncall-liveplay .caller-oncall-live{',
+      'background:#2DBE6C!important;border-color:#0B3D24!important;color:#0E1116!important;',
+      '}',
+      'html.rd-on #view-caller .caller-oncall-graded .caller-oncall-live{',
       'background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;',
       '}',
       'html.rd-on #view-caller .caller-oncall-lbl{',

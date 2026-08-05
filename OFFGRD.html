@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v233: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v234: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -318,10 +318,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=233"></script>
-<script src="OFFGRD-brand-persist.js?v=233"></script>
-<script src="supabase.js?v=233"></script>
-<script src="OFFGRD-cache-gate.js?v=233"></script>
+<script src="OFFGRD-config.js?v=234"></script>
+<script src="OFFGRD-brand-persist.js?v=234"></script>
+<script src="supabase.js?v=234"></script>
+<script src="OFFGRD-cache-gate.js?v=234"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -363,29 +363,29 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=233"></script>
-<script src="OFFGRD-pos-glossary.js?v=233"></script>
-<script src="OFFGRD-autoderive.js?v=233"></script>
-<script src="OFFGRD-scoutcards.js?v=233"></script>
-<script src="OFFGRD-tendencies.js?v=233"></script>
-<script src="OFFGRD-week-autotest.js?v=233"></script>
-<script src="OFFGRD-weeklypackage.js?v=233"></script>
-<script src="OFFGRD-telestrate.js?v=233"></script>
-<script src="OFFGRD-redesign.js?v=233"></script>
-<script src="OFFGRD-shell.js?v=233"></script>
-<script src="OFFGRD-caller-outcome.js?v=233"></script>
-<script src="OFFGRD-formations-data.js?v=233"></script>
-<script src="OFFGRD-formation-canon.js?v=233"></script>
-<script src="OFFGRD-assist-import.js?v=233"></script>
-<script src="OFFGRD-cv-review.js?v=233"></script>
-<script src="OFFGRD-frame-capture.js?v=233"></script>
-<script src="OFFGRD-caller-log.js?v=233"></script>
-<script src="OFFGRD-caller-sync.js?v=233"></script>
-<script src="OFFGRD-caller-analysis.js?v=233"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=233"></script>
-<script src="OFFGRD-booth-ask.js?v=233"></script>
-<script src="OFFGRD-caller-select.js?v=233"></script>
-<script src="OFFGRD-dcaller.js?v=233"></script>
+<script src="OFFGRD-render.js?v=234"></script>
+<script src="OFFGRD-pos-glossary.js?v=234"></script>
+<script src="OFFGRD-autoderive.js?v=234"></script>
+<script src="OFFGRD-scoutcards.js?v=234"></script>
+<script src="OFFGRD-tendencies.js?v=234"></script>
+<script src="OFFGRD-week-autotest.js?v=234"></script>
+<script src="OFFGRD-weeklypackage.js?v=234"></script>
+<script src="OFFGRD-telestrate.js?v=234"></script>
+<script src="OFFGRD-redesign.js?v=234"></script>
+<script src="OFFGRD-shell.js?v=234"></script>
+<script src="OFFGRD-caller-outcome.js?v=234"></script>
+<script src="OFFGRD-formations-data.js?v=234"></script>
+<script src="OFFGRD-formation-canon.js?v=234"></script>
+<script src="OFFGRD-assist-import.js?v=234"></script>
+<script src="OFFGRD-cv-review.js?v=234"></script>
+<script src="OFFGRD-frame-capture.js?v=234"></script>
+<script src="OFFGRD-caller-log.js?v=234"></script>
+<script src="OFFGRD-caller-sync.js?v=234"></script>
+<script src="OFFGRD-caller-analysis.js?v=234"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=234"></script>
+<script src="OFFGRD-booth-ask.js?v=234"></script>
+<script src="OFFGRD-caller-select.js?v=234"></script>
+<script src="OFFGRD-dcaller.js?v=234"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2519,29 +2519,44 @@ function callerSetSticky(field, value){
   callerSaveLocal();
   renderCaller();
 }
-/** Tag the live / last play (This play card). Also updates sticky so the next call can carry. */
-function callerSetObs(field, value){
+/** Tag front/pressure on a specific playIndex (This play or older pending). */
+function callerSetObsAt(playIndex, field, value){
   if(field!=="front"&&field!=="pressure") return;
-  const cur=callerSit[field];
-  if(cur===value){
-    callerSit[field]=null;
-    callerSit[field+"JustSet"]=false;
-  } else {
-    callerSit[field]=value;
-  }
+  if(playIndex==null) return;
+  const entry=CALLER_LOG.find(l=>l.playIndex===playIndex);
+  const cur=entry?entry[field]:null;
+  const next=(cur===value)?null:value;
+  const payload={};
+  if(field==="front"){ payload.front=next; payload.frontCarried=false; }
+  if(field==="pressure"){ payload.pressure=next; payload.pressureCarried=false; }
+  callerAppend("observation", playIndex, payload);
+  /* Keep sticky in sync when tagging the live on-call snap. */
   const on=callerOnCall();
-  const pi=on&&on.playIndex!=null?on.playIndex:(CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null);
-  if(pi!=null){
-    const payload={};
-    if(field==="front"){ payload.front=callerSit.front; payload.frontCarried=false; }
-    if(field==="pressure"){ payload.pressure=callerSit.pressure; payload.pressureCarried=false; }
-    callerAppend("observation", pi, payload);
+  if(on&&on.playIndex===playIndex){
+    callerSit[field]=next;
     callerSit[field+"JustSet"]=false;
-  } else {
-    callerSit[field+"JustSet"]=callerSit[field]!=null;
   }
   callerSaveLocal();
   renderCaller();
+}
+/** Tag the live / last play (This play card). Also updates sticky so the next call can carry. */
+function callerSetObs(field, value){
+  const on=callerOnCall();
+  const pi=on&&on.playIndex!=null?on.playIndex:(CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null);
+  if(pi==null){
+    if(field!=="front"&&field!=="pressure") return;
+    if(callerSit[field]===value){
+      callerSit[field]=null;
+      callerSit[field+"JustSet"]=false;
+    } else {
+      callerSit[field]=value;
+      callerSit[field+"JustSet"]=true;
+    }
+    callerSaveLocal();
+    renderCaller();
+    return;
+  }
+  callerSetObsAt(pi, field, value);
 }
 function callerAttachStickyObs(playIndex){
   const front=callerSit.front;
@@ -3630,8 +3645,6 @@ function callerThisPlayCardHtml(){
   const idx=CALLER_LOG.findIndex(l=>l.playIndex===on.playIndex);
   if(idx<0) return "";
   const mode=callerGetMode();
-  const book=callerDefPlaybook();
-  const covs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man"];
   const hasLook=!!(on.coverage||on.front||on.pressure);
   const graded=!!on.result;
   const isST=callerIsST(on);
@@ -3661,25 +3674,7 @@ function callerThisPlayCardHtml(){
   if(!isST){
     h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">3</div><div class="rd-gd-step-body">`;
     h+=`<div class="lbl">What did they show? <span class="foot">Front / Coverage / Blitz/Stunt${hasLook?"":" \u00b7 optional"}</span></div>`;
-    h+=`<div class="lbl rd-look-lbl" style="margin-top:2px">Front</div>`;
-    h+=`<div class="seg covlog rd-gd-look-seg">`+(book.fronts||[]).slice(0,8).map(f=>{
-      const id=f.id||f.name;
-      const onF=on.front===id;
-      return `<button type="button"${onF?' class="on"':""} onclick="callerSetObs('front','${String(id).replace(/'/g,"")}')">${esc(f.name||id)}</button>`;
-    }).join("")+`</div>`;
-    h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div>`;
-    h+=`<div class="seg covlog rd-gd-look-seg">`+covs.map(cv=>{
-      const onC=on.coverage===cv;
-      return `<button type="button"${onC?' class="on"':""} onclick="callerLogShowed('${cv}')">${cv}</button>`;
-    }).join("")+`</div>`;
-    h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div>`;
-    h+=`<div class="seg covlog rd-gd-look-seg">`+(book.pressures||[]).slice(0,8).map(p=>{
-      const id=p.id||p.name;
-      const onP=on.pressure===id;
-      const lab=(p.name||id);
-      const show=/^none$/i.test(String(id))||/^none$/i.test(String(lab))?"No blitz":lab;
-      return `<button type="button"${onP?' class="on"':""} onclick="callerSetObs('pressure','${String(id).replace(/'/g,"")}')">${esc(show)}</button>`;
-    }).join("")+`</div>`;
+    h+=callerLookChipsHtml(on, on.playIndex);
     h+=`</div></div>`;
   }
   h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">${isST||isTwo?"3":"4"}</div><div class="rd-gd-step-body">`;
@@ -3732,17 +3727,56 @@ function callerBlitzAlertHtml(pr, g){
     +`<span class="rd-gd-blitz-alert-hint">Protect · hot · check</span>`
     +`</div>`;
 }
+function callerLogShowedAt(playIndex, cov){
+  if(!cov||playIndex==null) return;
+  const entry=CALLER_LOG.find(l=>l.playIndex===playIndex);
+  const next=(entry&&entry.coverage===cov)?null:cov;
+  callerAppend("correction", playIndex, { coverage: next });
+  renderCaller();
+}
 function callerLogShowed(cov){
   if(!cov) return;
-  /* Keep live blend for Expect, and bind coverage to the ON CALL play when one exists. */
-  const cs=callerSit;
-  LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"});
-  try{ saveLive(); }catch(e){}
   const on=callerOnCall();
+  const entry=on&&on.playIndex!=null?CALLER_LOG.find(l=>l.playIndex===on.playIndex):null;
+  const clearing=!!(entry&&entry.coverage===cov);
+  /* Keep live blend for Expect only when setting (not clearing) a coverage. */
+  if(!clearing){
+    const cs=callerSit;
+    LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"});
+    try{ saveLive(); }catch(e){}
+  }
   if(on&&on.playIndex!=null){
-    callerAppend("correction", on.playIndex, { coverage: cov });
+    callerLogShowedAt(on.playIndex, cov);
+    return;
   }
   renderCaller();
+}
+/** Compact Front / Coverage / Blitz chips for This-play + older pending rows. */
+function callerLookChipsHtml(entry, playIndex){
+  if(!entry||playIndex==null) return "";
+  const book=callerDefPlaybook();
+  const covs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man"];
+  const escId=function(id){ return String(id==null?"":id).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); };
+  let h=`<div class="lbl rd-look-lbl" style="margin-top:6px">Front</div>`;
+  h+=`<div class="seg covlog rd-gd-look-seg">`+(book.fronts||[]).slice(0,8).map(f=>{
+    const id=f.id||f.name;
+    const onF=entry.front===id;
+    return `<button type="button"${onF?' class="on"':""} onclick="callerSetObsAt(${playIndex},'front','${escId(id)}')">${esc(f.name||id)}</button>`;
+  }).join("")+`</div>`;
+  h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div>`;
+  h+=`<div class="seg covlog rd-gd-look-seg">`+covs.map(cv=>{
+    const onC=entry.coverage===cv;
+    return `<button type="button"${onC?' class="on"':""} onclick="callerLogShowedAt(${playIndex},'${escId(cv)}')">${cv}</button>`;
+  }).join("")+`</div>`;
+  h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div>`;
+  h+=`<div class="seg covlog rd-gd-look-seg">`+(book.pressures||[]).slice(0,8).map(p=>{
+    const id=p.id||p.name;
+    const onP=entry.pressure===id;
+    const lab=(p.name||id);
+    const show=/^none$/i.test(String(id))||/^none$/i.test(String(lab))?"No blitz":lab;
+    return `<button type="button"${onP?' class="on"':""} onclick="callerSetObsAt(${playIndex},'pressure','${escId(id)}')">${esc(show)}</button>`;
+  }).join("")+`</div>`;
+  return h;
 }
 function callerOut(){ return window.OFFGRD_CALLER_OUTCOME||null; }
 /** One-tap result (required). Same tap clears. Never blocks new calls. */
@@ -3867,6 +3901,9 @@ function callerPendingQueueHtml(opts){
     h+=`<div class="caller-pending-row" data-play-index="${l.playIndex}">`;
     h+=`<div class="caller-pending-head"><b>${esc(l.play)}</b><span class="foot">${esc(l.sitTxt||"")}</span>`;
     h+=`<button type="button" class="ghost" style="margin-left:auto;padding:4px 10px;font-weight:700" onclick="callerOpenEdit(${l.playIndex})">Edit</button></div>`;
+    h+=`<div class="lbl" style="margin:4px 0 0">What did they show? <span class="foot">optional</span></div>`;
+    h+=callerLookChipsHtml(l, l.playIndex);
+    h+=`<div class="lbl" style="margin:8px 0 0">Result</div>`;
     h+=callerResultChipsHtml(l,i,{});
     if(l.result){ h+=callerFlagChipsHtml(l,i); h+=callerConceptChipsHtml(l,i); }
     h+=`</div>`;
@@ -4794,7 +4831,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=233", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=234", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5117,9 +5154,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=233"></script>
-<script src="OFFGRD-role-gate.js?v=233"></script>
-<script src="OFFGRD-mobile.js?v=233"></script>
+<script type="module" src="OFFGRD-account.js?v=234"></script>
+<script src="OFFGRD-role-gate.js?v=234"></script>
+<script src="OFFGRD-mobile.js?v=234"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
