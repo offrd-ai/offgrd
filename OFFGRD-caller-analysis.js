@@ -447,6 +447,27 @@
     return { lines: lines.slice(0, 6), facts: facts };
   }
 
+  function conceptLabel(c) {
+    var O = Out();
+    if (O && O.conceptLabel) {
+      var lab = O.conceptLabel(c);
+      if (lab) return lab;
+    }
+    if (c === "didnt_work") return "didn't work";
+    if (c === "worked_untested") return "worked, untested";
+    if (c === "worked") return "worked";
+    return c ? String(c).replace(/_/g, " ") : "";
+  }
+
+  function playTypeLabel(pt) {
+    if (!pt) return "?";
+    var s = String(pt);
+    if (/^twopt$/i.test(s) || /^2[- ]?pt$/i.test(s)) return "2-pt";
+    if (/^pass$/i.test(s)) return "Pass";
+    if (/^run$/i.test(s)) return "Run";
+    return s;
+  }
+
   /**
    * Group O snaps by playType + concept (v1 — no family taxonomy).
    * Group D snaps by coverage / front / pressure.
@@ -460,7 +481,9 @@
       if (side === "defense") {
         key = [e.coverage || "?", e.front || "?", e.pressure || "none"].join(" · ");
       } else {
-        key = [e.playType || "?", e.concept || e.conceptOverride || "—"].join(" · ");
+        var conceptRaw = e.conceptOverride || e.concept || "";
+        var concept = conceptLabel(conceptRaw) || "—";
+        key = [playTypeLabel(e.playType), concept].join(" · ");
       }
       if (!groups[key]) groups[key] = { key: key, n: 0, success: 0, chunks: 0, yards: 0, yardsN: 0 };
       groups[key].n++;
