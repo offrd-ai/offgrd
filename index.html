@@ -61,7 +61,7 @@ h1,h2,h3{margin:0;letter-spacing:-.01em}
   padding:14px 24px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:.2s ease;
   font-family:Inter,sans-serif;
 }
-.btn-primary{background:var(--grad);color:#04121f;box-shadow:0 12px 26px -14px rgba(0,0,0,.65)}
+.btn-primary{background-color:#2f6bff;background-image:var(--grad);color:#04121f;border:0;padding:15px 25px;box-shadow:0 12px 26px -14px rgba(0,0,0,.65)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 32px -14px rgba(0,0,0,.7)}
 .btn-ghost{background:var(--panel);border-color:var(--stroke-2);color:var(--text)}
 .btn-ghost:hover{background:var(--panel-2);border-color:rgba(255,255,255,.28)}
@@ -90,14 +90,14 @@ header.scrolled{background:rgba(10,18,32,.82);backdrop-filter:blur(14px);border-
   display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;
 }
 .nav-btn:hover{transform:translateY(-1px)}
-.nav-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.nav-btn:focus-visible{outline:2px solid #45b3ff;outline-offset:2px}
 .nav-btn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--stroke-2)}
 .nav-btn.ghost:hover{background:var(--panel-2)}
 .menu-btn{
   display:inline-flex;background:none;border:0;color:var(--text);cursor:pointer;
   min-height:44px;min-width:44px;align-items:center;justify-content:center;border-radius:10px;
 }
-.menu-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.menu-btn:focus-visible{outline:2px solid #45b3ff;outline-offset:2px}
 /* Mobile drawer — Features / Pricing / FAQ / auth all live here */
 .nav-drawer{
   display:none;position:fixed;left:0;right:0;top:0;bottom:0;z-index:60;
@@ -112,7 +112,7 @@ header.scrolled{background:rgba(10,18,32,.82);backdrop-filter:blur(14px);border-
   display:flex;align-items:center;min-height:48px;padding:12px 14px;border-radius:12px;
   font-size:16px;font-weight:600;color:var(--text);border:1px solid var(--stroke);background:var(--panel);
 }
-.nav-drawer a:focus-visible,.nav-drawer .drawer-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.nav-drawer a:focus-visible,.nav-drawer .drawer-btn:focus-visible{outline:2px solid #45b3ff;outline-offset:2px}
 .nav-drawer .drawer-btn{width:100%;cursor:pointer;font-family:Inter,sans-serif;text-align:left}
 .nav-drawer .drawer-btn.primary{background:var(--grad);color:#04121f;border-color:transparent}
 .nav-drawer .drawer-meta{color:var(--muted);font-size:13px;padding:8px 14px}
@@ -327,6 +327,9 @@ footer{
   .pill .dot{animation:none}
   .jstep::before,.jstep::after{animation:none}
 }
+/* Solid base under every gradient chip/button — kills fractional-zoom edge seams */
+.nav-btn,.nav-drawer .drawer-btn.primary,.callbtn,.chip-new,.cp-side.o,.cp-chips span.on{background-color:#2f6bff}
+.nav-btn.ghost{background-color:transparent;background:var(--panel)}
 @media(max-width:860px){
   .nav-links{display:none!important}
   #navAuth{display:none!important}
