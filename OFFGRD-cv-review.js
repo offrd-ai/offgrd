@@ -1,14 +1,14 @@
 /* ============================================================
-   OFFGRD CV Review — Auto-Scout P2 (cv-def-v2)
-   Decision-aid only: shows what CV observed; never what to call.
-   Calibration: shell/coverage real; front family; pressure coach-only.
-   Keyboard: ←/→ navigate, Enter confirm, coverage digits, F front family,
-   S shell, P coach pressure toggle.
+   OFFGRD CV Review — Auto-Scout P2 (cv-def-v2) + Gated Draft v1
+   CV drafts shell/coverage on clean snaps (GREEN); AMBER leaves
+   coverage blank with a gate_reason. Coach confirms — never auto-accept.
+   Front + pressure are coach-only. Keyboard: ←/→, Enter confirm,
+   0–4/6 coverage, S shell, F front family, P pressure.
    ============================================================ */
 (function (root) {
   "use strict";
 
-  /* Auto-accept thresholds — wired, MASTER OFF until next F2 calibration */
+  /* Auto-accept thresholds — wired, MASTER OFF (gated draft does not enable this) */
   var CV_AUTO_ACCEPT = {
     enabled: false,
     coverage_shell: { minConf: 0.8 },
@@ -99,14 +99,16 @@
       '<div class="modal cv-review-modal" style="max-width:920px">' +
       '  <div class="cv-review-head">' +
       "    <h3>CV review</h3>" +
-      '    <p class="foot" style="margin:0">What CV observed — confirm or edit. Decision aid only.</p>' +
+      '    <p class="foot" style="margin:0">CV drafts the reps it can see clearly and hands you the rest — you confirm, it learns your call sheet. First-pass, not final word.</p>' +
       "  </div>" +
       '  <div id="cvReviewAgree" class="cv-agree"></div>' +
+      '  <div id="cvReviewLaneBar" class="cv-lane-bar"></div>' +
       '  <div id="cvReviewBody"></div>' +
       '  <div class="row cv-review-actions">' +
       '    <button type="button" class="ghost" id="cvReviewPrev">← Prev</button>' +
       '    <button type="button" class="ghost" id="cvReviewNext">Next →</button>' +
-      '    <button type="button" class="ghost" id="cvReviewConfirm" style="margin-left:auto;border-color:var(--good);color:var(--good)">Confirm ↵</button>' +
+      '    <button type="button" class="ghost" id="cvReviewConfirmGreen" style="margin-left:auto;border-color:var(--good);color:var(--good)" title="Confirm every GREEN draft still in this queue">Confirm all GREEN</button>' +
+      '    <button type="button" class="ghost" id="cvReviewConfirm" style="border-color:var(--good);color:var(--good)">Confirm ↵</button>' +
       '    <button type="button" class="ghost" id="cvReviewClose">Close</button>' +
       "  </div>" +
       '  <p class="foot" id="cvReviewMsg" style="margin-top:8px"></p>' +
@@ -121,6 +123,9 @@
     };
     document.getElementById("cvReviewConfirm").onclick = function () {
       confirmCurrent();
+    };
+    document.getElementById("cvReviewConfirmGreen").onclick = function () {
+      confirmAllGreen();
     };
     document.getElementById("cvReviewClose").onclick = function () {
       close();
@@ -356,14 +361,132 @@
     );
   }
 
+  /** Gate meta from raw.cv (Gated Draft v1). Legacy snaps inferred. */
+  function gateMeta(snap) {
+    var raw = parseRaw(snap);
+    var cv = (raw && raw.cv) || {};
+    var lane = String(cv.gate_lane || "").toLowerCase();
+    var reason = cv.gate_reason || null;
+    if (lane !== "green" && lane !== "amber") {
+      /* Pre-gate queues: coverage present → quick-confirm; blank → coach-required */
+      if (snap && snap.coverage) {
+        lane = "green";
+        reason = null;
+      } else {
+        lane = "amber";
+        reason = reason || "you tag coverage";
+      }
+    }
+    return { lane: lane, gate_reason: reason, gated: !!cv.gated_draft_v };
+  }
+
+  function coverageConf(snap) {
+    var n = confOf(snap, "coverage");
+    return n == null ? -1 : n;
+  }
+
+  /** GREEN by desc coverage conf, then AMBER grouped by gate_reason. */
+  function sortReviewQueue(snaps) {
+    var list = (snaps || []).slice();
+    list.sort(function (a, b) {
+      var ga = gateMeta(a);
+      var gb = gateMeta(b);
+      var aGreen = ga.lane === "green" ? 0 : 1;
+      var bGreen = gb.lane === "green" ? 0 : 1;
+      if (aGreen !== bGreen) return aGreen - bGreen;
+      if (aGreen === 0) {
+        return coverageConf(b) - coverageConf(a);
+      }
+      var ra = String(ga.gate_reason || "");
+      var rb = String(gb.gate_reason || "");
+      if (ra !== rb) return ra < rb ? -1 : 1;
+      var ia = a.snap_index != null ? Number(a.snap_index) : 0;
+      var ib = b.snap_index != null ? Number(b.snap_index) : 0;
+      return ia - ib;
+    });
+    return list;
+  }
+
+  function countLanes(snaps) {
+    var g = 0;
+    var a = 0;
+    (snaps || []).forEach(function (s) {
+      if (gateMeta(s).lane === "green") g++;
+      else a++;
+    });
+    return { green: g, amber: a };
+  }
+
+  function laneBannerHtml(snap) {
+    var g = gateMeta(snap);
+    if (g.lane === "green") {
+      return (
+        '<div class="cv-lane cv-lane-green" role="status">' +
+        "<strong>GREEN · Quick-confirm</strong> — shell + coverage drafted. Enter confirms (AI-TAGGED → COACH-VERIFIED)." +
+        "</div>"
+      );
+    }
+    return (
+      '<div class="cv-lane cv-lane-amber" role="status">' +
+      "<strong>AMBER · Coach-required</strong>" +
+      (g.gate_reason
+        ? ' — <span class="cv-gate-reason">' + esc(g.gate_reason) + "</span>"
+        : " — tag coverage, then confirm.") +
+      "</div>"
+    );
+  }
+
+  function renderLaneBar() {
+    var el = document.getElementById("cvReviewLaneBar");
+    if (!el) return;
+    var c = countLanes(state.snaps);
+    if (!state.snaps.length) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML =
+      '<span class="cv-lane-chip cv-lane-chip-green">GREEN ' +
+      c.green +
+      "</span>" +
+      '<span class="cv-lane-chip cv-lane-chip-amber">AMBER ' +
+      c.amber +
+      "</span>" +
+      '<span class="foot">sorted quick-confirm first</span>';
+  }
+
   function syncActions() {
     var has = !!(state.snaps && state.snaps.length);
     var confirm = document.getElementById("cvReviewConfirm");
+    var confirmGreen = document.getElementById("cvReviewConfirmGreen");
     var prev = document.getElementById("cvReviewPrev");
     var next = document.getElementById("cvReviewNext");
+    var amberNeedsCov = false;
+    if (has) {
+      var cur = state.snaps[state.idx];
+      var g = gateMeta(cur);
+      amberNeedsCov =
+        g.lane === "amber" &&
+        (state.draft.coverage == null || state.draft.coverage === "");
+    }
     if (confirm) {
-      confirm.disabled = !has || state.busy;
-      confirm.setAttribute("aria-disabled", has && !state.busy ? "false" : "true");
+      confirm.disabled = !has || state.busy || amberNeedsCov;
+      confirm.setAttribute(
+        "aria-disabled",
+        has && !state.busy && !amberNeedsCov ? "false" : "true"
+      );
+      confirm.title = amberNeedsCov
+        ? "Tag coverage before confirming (AMBER)"
+        : "Confirm this snap";
+    }
+    var greenN = countLanes(state.snaps).green;
+    if (confirmGreen) {
+      confirmGreen.disabled = !has || state.busy || greenN === 0;
+      confirmGreen.setAttribute(
+        "aria-disabled",
+        has && !state.busy && greenN > 0 ? "false" : "true"
+      );
+      confirmGreen.textContent =
+        greenN > 0 ? "Confirm all GREEN (" + greenN + ")" : "Confirm all GREEN";
     }
     if (prev) prev.disabled = !has || state.idx <= 0;
     if (next)
@@ -585,15 +708,16 @@
 
   function setDraftFromSnap(snap) {
     var cv = cvPayload(snap);
+    /* cvSaid tracks what CV drafted for agreement stats — front family is never CV truth */
     state.cvSaid = {
-      front: snap.front || cv.front_family || null,
+      front: null,
       coverage_shell: cv.coverage_shell || null,
       coverage: snap.coverage || null,
       front_detail: cv.front_detail || null,
     };
-    /* Pressure is coach-only: never pre-fill from CV/stored CV path */
+    /* Front + pressure coach-only: never pre-fill from CV front_family */
     state.draft = {
-      front: snap.front || cv.front_family || null,
+      front: snap.front || null,
       coverage_shell: cv.coverage_shell || null,
       coverage: snap.coverage || null,
       pressure: null,
@@ -604,9 +728,10 @@
     var body = document.getElementById("cvReviewBody");
     var msg = document.getElementById("cvReviewMsg");
     if (!body) return;
+    renderLaneBar();
     if (!state.snaps.length) {
       body.innerHTML =
-        '<p class="foot">Queue clear for this filter. CV rows land here after the merge RPC stamps provenance with <code>needs_review=true</code>.</p>';
+        '<p class="foot">Queue clear for this filter. CV rows land here after the merge RPC stamps provenance with <code>needs_review=true</code>. GREEN drafts are quick-confirm; AMBER needs your coverage tag.</p>';
       if (msg) msg.textContent = "Queue clear for this filter.";
       syncActions();
       return;
@@ -614,6 +739,7 @@
     var snap = state.snaps[state.idx];
     var frames = parseFrames(snap);
     var cv = cvPayload(snap);
+    var g = gateMeta(snap);
     var meta =
       (snap.opponent || "?") +
       " · " +
@@ -627,8 +753,10 @@
         : "");
     body.innerHTML =
       orientBannerHtml(snap) +
+      laneBannerHtml(snap) +
       '<div class="cv-meta">' +
       esc(meta) +
+      ' <span class="pill cv-prov-pill" title="Unconfirmed draft">AI-TAGGED</span>' +
       (snap.prompt_version
         ? ' <span class="foot">· ' + esc(snap.prompt_version) + "</span>"
         : "") +
@@ -646,7 +774,7 @@
       chipRow("front", FRONT_FAMILIES, state.draft.front, "front_family") +
       frontDetailSuggestHtml(cv.front_detail || state.cvSaid.front_detail) +
       '<div class="cv-field-extra">' +
-      '<span class="foot">or override with detail:</span>' +
+      '<span class="foot">or override with detail (coach-only — not CV truth):</span>' +
       chipRow("front", FRONT_DETAILS, state.draft.front, "front_family") +
       "</div>" +
       chipRow(
@@ -656,6 +784,9 @@
         "coverage_shell"
       ) +
       shellPromptHtml(state.draft.coverage_shell, state.draft.coverage) +
+      (g.lane === "amber" && !state.draft.coverage
+        ? '<div class="cv-shell-prompt">coverage blank — pick cover 0–4/6 or 2-man, then Confirm</div>'
+        : "") +
       chipRow("coverage", COVERAGES, state.draft.coverage, "coverage") +
       pressureCoachHtml();
 
@@ -670,11 +801,16 @@
       });
     });
     if (msg) {
+      var lanes = countLanes(state.snaps);
       msg.textContent =
         "Reviewing " +
         (state.idx + 1) +
         " of " +
         state.snaps.length +
+        " · GREEN " +
+        lanes.green +
+        " · AMBER " +
+        lanes.amber +
         (state.batchId ? " (batch " + String(state.batchId).slice(0, 8) + "…)" : "");
     }
     syncActions();
@@ -716,12 +852,42 @@
     renderAgree();
   }
 
+  function fixesFromDraft() {
+    var fixes = {};
+    if (state.draft.front != null) fixes.front = state.draft.front;
+    if (state.draft.coverage != null) fixes.coverage = state.draft.coverage;
+    if (state.draft.coverage_shell != null)
+      fixes.coverage_shell = state.draft.coverage_shell;
+    if (state.draft.pressure != null) fixes.pressure = state.draft.pressure;
+    return fixes;
+  }
+
+  /** Bulk-confirm GREEN drafts using stored shell/coverage (no front/pressure). */
+  function fixesFromGreenSnap(snap) {
+    var cv = cvPayload(snap);
+    var fixes = {};
+    if (snap.coverage) fixes.coverage = snap.coverage;
+    if (cv.coverage_shell) fixes.coverage_shell = cv.coverage_shell;
+    return fixes;
+  }
+
   async function confirmCurrent() {
     if (state.busy || !state.snaps.length) {
       syncActions();
       return;
     }
     var snap = state.snaps[state.idx];
+    var g = gateMeta(snap);
+    if (
+      g.lane === "amber" &&
+      (state.draft.coverage == null || state.draft.coverage === "")
+    ) {
+      var msgBlock = document.getElementById("cvReviewMsg");
+      if (msgBlock)
+        msgBlock.textContent = "AMBER — tag coverage before confirming.";
+      syncActions();
+      return;
+    }
     var C = cloud();
     if (!C || typeof C.resolveCvSnap !== "function") {
       var msg = document.getElementById("cvReviewMsg");
@@ -732,14 +898,7 @@
     var msgEl = document.getElementById("cvReviewMsg");
     if (msgEl) msgEl.textContent = "Saving…";
     try {
-      var fixes = {};
-      if (state.draft.front != null) fixes.front = state.draft.front;
-      if (state.draft.coverage != null) fixes.coverage = state.draft.coverage;
-      if (state.draft.coverage_shell != null)
-        fixes.coverage_shell = state.draft.coverage_shell;
-      /* Coach-only pressure: send only when coach set a value */
-      if (state.draft.pressure != null) fixes.pressure = state.draft.pressure;
-      await C.resolveCvSnap(snap.id, fixes);
+      await C.resolveCvSnap(snap.id, fixesFromDraft());
 
       recordAgreement();
       state.snaps.splice(state.idx, 1);
@@ -760,6 +919,67 @@
       if (msgEl)
         msgEl.textContent =
           "Confirm failed: " + (e && e.message ? e.message : e);
+    } finally {
+      state.busy = false;
+      syncActions();
+    }
+  }
+
+  async function confirmAllGreen() {
+    if (state.busy || !state.snaps.length) {
+      syncActions();
+      return;
+    }
+    var C = cloud();
+    var msgEl = document.getElementById("cvReviewMsg");
+    if (!C || typeof C.resolveCvSnap !== "function") {
+      if (msgEl) msgEl.textContent = "Sign in required to confirm.";
+      return;
+    }
+    var greens = state.snaps.filter(function (s) {
+      return gateMeta(s).lane === "green" && s.coverage;
+    });
+    if (!greens.length) {
+      if (msgEl) msgEl.textContent = "No GREEN drafts with coverage to confirm.";
+      syncActions();
+      return;
+    }
+    state.busy = true;
+    if (msgEl) msgEl.textContent = "Confirming " + greens.length + " GREEN…";
+    var ok = 0;
+    var fail = 0;
+    var doneIds = Object.create(null);
+    try {
+      for (var i = 0; i < greens.length; i++) {
+        var s = greens[i];
+        try {
+          await C.resolveCvSnap(s.id, fixesFromGreenSnap(s));
+          doneIds[s.id] = true;
+          ok++;
+        } catch (eOne) {
+          fail++;
+        }
+      }
+      state.snaps = state.snaps.filter(function (s) {
+        return !doneIds[s.id];
+      });
+      state.idx = 0;
+      if (state.snaps.length) setDraftFromSnap(state.snaps[0]);
+      renderBody();
+      renderAgree();
+      try {
+        if (root.OFFGRD_REFRESH_SCOUT_SNAPS) await root.OFFGRD_REFRESH_SCOUT_SNAPS();
+      } catch (eR) {}
+      if (msgEl) {
+        msgEl.textContent =
+          "Confirmed " +
+          ok +
+          " GREEN" +
+          (fail ? ", " + fail + " failed" : "") +
+          ". " +
+          state.snaps.length +
+          " left.";
+      }
     } finally {
       state.busy = false;
       syncActions();
@@ -862,9 +1082,10 @@
       return;
     }
     try {
-      state.snaps = await C.listCvReviewQueue(state.teamId, {
+      var queued = await C.listCvReviewQueue(state.teamId, {
         import_batch_id: state.batchId || undefined,
       });
+      state.snaps = sortReviewQueue(queued);
       if (state.snaps.length) setDraftFromSnap(state.snaps[0]);
       renderBody();
     } catch (e) {
