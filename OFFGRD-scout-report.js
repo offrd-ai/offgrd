@@ -22,14 +22,20 @@
     { id: "3rdM", label: "3rd & medium (4-6)", kind: "dd", down: 3, dist: "4-6" },
     { id: "3rdL", label: "3rd & long (7+)", kind: "dd", down: 3, dist: "7+" },
     { id: "4thS", label: "4th & short", kind: "dd", down: 4, dist: "1-3" },
-    { id: "rz", label: "Red zone", kind: "zone", zone: "REDZONE" },
-    { id: "backed", label: "Backed up (own ≤10)", kind: "zone", zone: "OWN" }
+    { id: "rz", label: "Red zone", kind: "zone", zone: "REDZONE" }
+    /* Backed-up (own ≤10) dropped: corpus only retains OWN|PLUS|REDZONE after
+       yard-line derivation — OWN means own half, not ≤10. Keeping the ≤10 label
+       without ≤10 data would reprint season averages as a situational tell. */
   ];
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (m) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m];
     });
+  }
+
+  function snapWord(n) {
+    return (+n === 1 ? "snap" : "snaps");
   }
 
   function T() {
@@ -166,7 +172,9 @@
       esc(label) +
       "</b> · " +
       mix.total +
-      " snaps · " +
+      " " +
+      snapWord(mix.total) +
+      " · " +
       esc(parts.join(" · ")) +
       "</span>"
     );
@@ -290,7 +298,9 @@
                 pN +
                 " of " +
                 rows.length +
-                " snaps (" +
+                " " +
+                snapWord(rows.length) +
+                " (" +
                 Math.round((100 * pN) / rows.length) +
                 "%)"
             }
@@ -433,7 +443,7 @@
           id: 1,
           label: "Breakdown imported",
           done: imported,
-          detail: imported ? batchAgg.n + " snaps" : "No Hudl import yet",
+          detail: imported ? batchAgg.n + " " + snapWord(batchAgg.n) : "No Hudl import yet",
           action: imported ? null : { kind: "import", label: "Import" }
         },
         {
@@ -502,7 +512,9 @@
           id: 5,
           label: "Report ready",
           done: reportReady,
-          detail: reportReady ? corpusN + " review-passed snaps" : "Waiting on clear corpus",
+          detail: reportReady
+            ? corpusN + " review-passed " + snapWord(corpusN)
+            : "Waiting on clear corpus",
           action: null
         }
       ]
@@ -629,7 +641,9 @@
     h +=
       '<div class="sr-meta"><span>' +
       c.n +
-      ' snaps</span><span class="sr-chip sr-chip-' +
+      " " +
+      snapWord(c.n) +
+      '</span><span class="sr-chip sr-chip-' +
       c.conf.key +
       '">' +
       esc(c.conf.label) +
