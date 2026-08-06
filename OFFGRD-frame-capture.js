@@ -945,6 +945,10 @@
         root.renderImportManager();
       else if (typeof root.renderManager === "function") root.renderManager();
     } catch (e) {}
+    try {
+      if (root.OFFGRD_REFRESH_SCOUT_SNAPS) root.OFFGRD_REFRESH_SCOUT_SNAPS();
+      else if (typeof root.refreshView === "function") root.refreshView();
+    } catch (e2) {}
   }
 
   root.OFFGRD_FRAME_CAPTURE = { open: open, close: close };

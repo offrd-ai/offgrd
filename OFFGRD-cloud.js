@@ -874,6 +874,25 @@ export const Cloud = {
     return data;
   },
   /**
+   * List Auto-Scout jobs for readiness chain (existing auto_scout_jobs table).
+   * Optional filter: opponent.
+   */
+  async listAutoScoutJobs(teamId, opts) {
+    if (!OG || !teamId) return [];
+    const o = opts || {};
+    let q = OG.from("auto_scout_jobs")
+      .select(
+        "id, team_id, opponent, import_batch_id, source, status, clip_count, done_count, skipped_count, created_at, updated_at"
+      )
+      .eq("team_id", teamId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (o.opponent) q = q.eq("opponent", o.opponent);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  /**
    * Prior import batches for the same opponent-scout game key.
    * Used by Assist commit supersede (v212 lesson — new batch id must not dupe).
    */
@@ -973,12 +992,14 @@ export const Cloud = {
           n_review: 0,
           n_f1: 0,
           n_skip: 0,
+          n_cv: 0,
           created_at: r.created_at || null,
         };
       }
       by[id].n++;
       if (isSkipped(r.raw)) by[id].n_skip++;
       else if (hasF1(r.clip_ref)) by[id].n_f1++;
+      if (r.prompt_version || r.confidence) by[id].n_cv++;
       /* Flagged for CV review: needs_review + CV provenance (merge or legacy) */
       if (
         r.needs_review &&
@@ -1228,6 +1249,12 @@ export const Cloud = {
       success: success,
       tag_source: s.tag_source || "",
       clip_hash: s.clip_hash || null,
+      /* Provenance for Scout Report badges (RPC already gates unreviewed CV) */
+      import_batch_id: s.import_batch_id || null,
+      prompt_version: s.prompt_version || null,
+      confidence: s.confidence != null ? s.confidence : null,
+      reviewed_by: s.reviewed_by || null,
+      reviewed_at: s.reviewed_at || null,
     };
   },
 };
