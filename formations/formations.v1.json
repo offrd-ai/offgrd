@@ -7,6 +7,7 @@
         "2X2",
         "2 x 2",
         "doubles",
+        "double",
         "twins",
         "2x2 doubles",
         "doubles twins"
@@ -74,7 +75,8 @@
       "aliases": [
         "2x2 slot",
         "slot doubles",
-        "doubles slot"
+        "doubles slot",
+        "unbalanced slot"
       ],
       "olCount": 5,
       "tags": [
@@ -685,7 +687,8 @@
         "2x1",
         "2X1",
         "2 x 1",
-        "2x1 te"
+        "2x1 te",
+        "unbalanced trey"
       ],
       "olCount": 5,
       "tags": [
@@ -1170,7 +1173,9 @@
       "aliases": [
         "twins wing",
         "twins wing right",
-        "2x2 wing"
+        "2x2 wing",
+        "2x2 double wing",
+        "2 x 2 double wing"
       ],
       "olCount": 5,
       "tags": [

@@ -231,7 +231,10 @@
     /* Explicit coach maps win (Scout "Map this formation") — before hard-blocks. */
     var overs = (root && root.__FORMATION_ALIAS_OVERRIDES__) || {};
     if (overs[k] && BY_ID[overs[k]]) return BY_ID[overs[k]];
-    /* Structurally distinct / unsupported — never invent a balanced lookalike. */
+    /* Curated library aliases win next — including seeded Unbalanced* synonyms.
+       Exact alias only; never invent a balanced lookalike for free-text. */
+    if (ALIAS_TO_ID[k]) return BY_ID[ALIAS_TO_ID[k]] || null;
+    /* Structurally distinct / unsupported without a seeded alias — map prompt. */
     if (/\bunbalanced\b/.test(k) || /\btackle\s*over\b/.test(k) || /\bover\s*loaded\b/.test(k)) {
       return null;
     }
@@ -239,7 +242,6 @@
     if (k === "spread" || k === "spread offense" || k === "spread set") {
       return null;
     }
-    if (ALIAS_TO_ID[k]) return BY_ID[ALIAS_TO_ID[k]] || null;
     return null;
   }
 

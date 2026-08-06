@@ -17,7 +17,9 @@ const canonB = path.join(root, "offgrd-web", "OFFGRD-formation-canon.js");
 // offrd-ai/offgrd is a FLAT single-mirror repo (no offgrd-web/). In the authoring
 // monorepo both mirrors exist and this gate keeps them in sync; here we require only
 // the top-level copies and check offgrd-web drift when that mirror is present.
-const hasMirror = fs.existsSync(path.join(root, "offgrd-web"));
+const mirrorRoot = path.join(root, "offgrd-web");
+const hasMirror =
+  fs.existsSync(mirrorRoot) && fs.statSync(mirrorRoot).isDirectory();
 
 function sha(p) {
   return crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex");
@@ -175,6 +177,19 @@ if (FC.resolveId("Unbalanced 2x1")) {
   throw new Error("Unbalanced 2x1 must stay unmapped without an explicit override");
 }
 globalThis.__FORMATION_ALIAS_OVERRIDES__ = {};
+
+/* McClure gap list — curated aliases (exact only; free-text unbalanced still blocked) */
+const mcClureAliases = [
+  ["Double", "DOUBLES_2X2"],
+  ["Unbalanced Trey", "TREY_RT"],
+  ["2x2 Double Wing", "TWINS_WING"],
+  ["Unbalanced Slot", "DOUBLES_2X2_SLOT"],
+];
+for (const [raw, id] of mcClureAliases) {
+  if (FC.resolveId(raw) !== id) {
+    throw new Error(`resolve(${raw})=${FC.resolveId(raw)} want ${id}`);
+  }
+}
 
 const htmlA = fs.readFileSync(path.join(root, "OFFGRD-QB.html"), "utf8");
 if (!htmlA.includes("OFFGRD-formations-data.js")) throw new Error("QB.html missing data script");

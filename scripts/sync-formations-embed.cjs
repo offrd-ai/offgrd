@@ -32,5 +32,9 @@ const body =
 
 fs.writeFileSync(outA, body);
 // offrd-ai/offgrd is flat (no offgrd-web/); only mirror-write when the dir exists.
-if (fs.existsSync(path.join(root, "offgrd-web"))) fs.writeFileSync(outB, body);
+// Guard isDirectory — a stray file named offgrd-web must not trip the mirror path.
+var mirrorDir = path.join(root, "offgrd-web");
+if (fs.existsSync(mirrorDir) && fs.statSync(mirrorDir).isDirectory()) {
+  fs.writeFileSync(outB, body);
+}
 console.log("Synced", data.formations.length, "formations → OFFGRD-formations-data.js");
