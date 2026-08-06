@@ -1,8 +1,10 @@
 /* ============================================================
-   OFFGRD-scout-report.js — Scout Report v1
+   OFFGRD-scout-report.js — Scout Report v1 + Tier 2 A/B/C
    Presentation layer over SNAP_CORPUS (same reader as Predict).
    Cheat cards · Pre-snap read sheet · Provenance badges · Readiness.
-   Reuses OFFGRD_TENDENCIES.distBucket / fieldDist / pressureRate / runShare.
+   Tier 2: run direction · motion · personnel (zero-SQL; D held).
+   Reuses OFFGRD_TENDENCIES.distBucket / fieldDist / pressureRate /
+   runShare / runByDirection.
    Zero new aggregation RPC — two-readers rule.
    ============================================================ */
 (function (root) {
@@ -81,6 +83,313 @@
     if (tn && typeof tn.runShare === "function") return tn.runShare(rows);
     if (!(rows || []).length) return 0;
     return rows.filter(function (r) { return /run/i.test(r.playType || ""); }).length / rows.length;
+  }
+
+  function runByDirection(rows) {
+    var tn = T();
+    if (tn && typeof tn.runByDirection === "function") return tn.runByDirection(rows);
+    return null;
+  }
+
+  function hasMotion(r) {
+    var mot = r && r.motion_type;
+    if (mot == null || String(mot).trim() === "") return false;
+    return String(mot).toLowerCase() !== "none";
+  }
+
+  function passShareTyped(rows) {
+    var passN = 0, runN = 0;
+    (rows || []).forEach(function (r) {
+      if (/pass/i.test(r.playType || "")) passN++;
+      else if (/run/i.test(r.playType || "")) runN++;
+    });
+    var typed = passN + runN;
+    return { passN: passN, runN: runN, typed: typed, pct: typed ? passN / typed : null };
+  }
+
+  /* ---- Tier 2 A — Run direction (offense corpus) ---- */
+  function topGapForDir(rows, dirLetter) {
+    var g = (rows || []).filter(function (r) {
+      if (!/run/i.test(r.playType || "")) return false;
+      var d = String(r.direction || "").toUpperCase().charAt(0);
+      return d === dirLetter && r.gap && String(r.gap).trim();
+    });
+    if (g.length < 3) return null;
+    var dist = fieldDist(g, "gap");
+    var top = dist.arr[0];
+    if (!top) return null;
+    return { k: top.k, n: top.n, tot: dist.tot };
+  }
+
+  function renderRunDirectionHtml(offRows) {
+    var dir = runByDirection(offRows || []);
+    if (!dir || !dir.length) {
+      return (
+        '<p class="sr-empty">Run direction needs play-dir tags on run snaps (Assist <code>Play Dir</code> in raw). ' +
+        "Empty on defense-scout or undirected imports — lean, not law.</p>"
+      );
+    }
+    var tot = dir.reduce(function (a, r) { return a + r.n; }, 0);
+    var order = ["Left", "Middle", "Right"];
+    var byLabel = {};
+    dir.forEach(function (r) { byLabel[r.direction] = r; });
+    var letter = { Left: "L", Middle: "M", Right: "R" };
+    var h = '<div class="sr-dir-lanes" data-sr-section="rundir">';
+    order.forEach(function (lab) {
+      var r = byLabel[lab];
+      if (!r) {
+        h +=
+          '<div class="sr-dir-lane thin"><div class="sr-sit">' +
+          esc(lab) +
+          '</div><div class="sr-hl">—</div><p class="sr-thin-note">No directed runs</p></div>';
+        return;
+      }
+      var conf = confLevel(r.n);
+      var share = tot ? r.n / tot : 0;
+      var gap = topGapForDir(offRows, letter[lab]);
+      h +=
+        '<div class="sr-dir-lane' +
+        (conf.thin ? " thin" : "") +
+        '"><div class="sr-sit">' +
+        esc(lab) +
+        '</div><div class="sr-hl">' +
+        Math.round(share * 100) +
+        "% · " +
+        fmtPctN(r.n, tot) +
+        '</div><div class="sr-2nd">' +
+        (r.success == null
+          ? "Success —"
+          : Math.round(r.success * 100) + "% success") +
+        (r.ydsPer == null ? "" : " · " + r.ydsPer.toFixed(1) + " yds/rush") +
+        "</div>";
+      if (gap) {
+        h +=
+          '<div class="sr-sub">Top gap: ' +
+          esc(gap.k) +
+          " " +
+          fmtPctN(gap.n, gap.tot) +
+          "</div>";
+      }
+      h +=
+        '<div class="sr-meta"><span class="sr-chip sr-chip-' +
+        conf.key +
+        '">' +
+        conf.label +
+        "</span><span>" +
+        r.n +
+        " " +
+        snapWord(r.n) +
+        "</span></div>";
+      if (conf.thin) {
+        h += '<p class="sr-thin-note">Lean, not law — thin sample</p>';
+      }
+      h += "</div>";
+    });
+    h += "</div>";
+    /* IP line from busiest lane */
+    var top = dir.slice().sort(function (a, b) { return b.n - a.n; })[0];
+    if (top && tot) {
+      h +=
+        '<p class="foot">They run ' +
+        esc(String(top.direction).toLowerCase()) +
+        " " +
+        Math.round((100 * top.n) / tot) +
+        "% (" +
+        top.n +
+        "/" +
+        tot +
+        ")" +
+        (top.success == null
+          ? ""
+          : " · " + Math.round(top.success * 100) + "% success") +
+        ".</p>";
+    }
+    return h;
+  }
+
+  /* ---- Tier 2 B — Motion tendency ---- */
+  function renderMotionHtml(offRows) {
+    var rows = offRows || [];
+    if (!rows.length) return "";
+    var withMot = rows.filter(hasMotion);
+    if (!withMot.length) {
+      return '<p class="sr-empty">No motion tags on offense snaps in scope — section skipped.</p>';
+    }
+    var noMot = rows.filter(function (r) { return !hasMotion(r); });
+    var motPass = passShareTyped(withMot);
+    var basePass = passShareTyped(noMot);
+    var h =
+      '<div data-sr-section="motion"><p class="sr-hl" style="font-size:15px;margin:4px 0 8px">Motion on ' +
+      fmtPctN(withMot.length, rows.length) +
+      " of snaps</p>";
+    if (motPass.pct != null && basePass.pct != null && motPass.typed >= 5 && basePass.typed >= 5) {
+      var delta = Math.round((motPass.pct - basePass.pct) * 100);
+      var abs = Math.abs(delta);
+      h +=
+        "<p class=\"foot\">Pass after motion " +
+        Math.round(motPass.pct * 100) +
+        "% (" +
+        motPass.passN +
+        "/" +
+        motPass.typed +
+        ") vs baseline " +
+        Math.round(basePass.pct * 100) +
+        "% (" +
+        basePass.passN +
+        "/" +
+        basePass.typed +
+        ")";
+      if (abs >= 12) {
+        h +=
+          ' · <b style="color:var(--accent,#a8112b)">Pass rate ' +
+          (delta >= 0 ? "+" : "") +
+          delta +
+          "pp after motion</b>";
+      }
+      h += ".</p>";
+    } else if (motPass.pct != null) {
+      h +=
+        '<p class="foot">Pass after motion ' +
+        Math.round(motPass.pct * 100) +
+        "% (" +
+        motPass.passN +
+        "/" +
+        motPass.typed +
+        "). Need n≥5 motion + n≥5 no-motion for baseline delta.</p>";
+    }
+    var types = fieldDist(
+      withMot.filter(function (r) {
+        return r.motion_type && String(r.motion_type).toLowerCase() !== "none";
+      }),
+      "motion_type"
+    );
+    if (types.arr.length) {
+      h +=
+        '<table class="sr-read-tbl"><thead><tr><th>Motion type</th><th>Share</th><th>Snaps</th></tr></thead><tbody>';
+      types.arr.slice(0, 3).forEach(function (t) {
+        h +=
+          "<tr><td>" +
+          esc(t.k) +
+          "</td><td>" +
+          fmtPctN(t.n, types.tot) +
+          "</td><td>" +
+          t.n +
+          "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    h += "</div>";
+    return h;
+  }
+
+  /* ---- Tier 2 C — Personnel grouping ---- */
+  function personnelGroups(rows) {
+    var by = {};
+    (rows || []).forEach(function (r) {
+      var p = r.personnel;
+      if (p == null || String(p).trim() === "" || p === "—") return;
+      p = String(p).trim();
+      (by[p] = by[p] || []).push(r);
+    });
+    return Object.keys(by)
+      .map(function (p) {
+        return { personnel: p, rows: by[p], n: by[p].length };
+      })
+      .filter(function (g) { return g.n >= 3; })
+      .sort(function (a, b) { return b.n - a.n; });
+  }
+
+  function renderPersonnelHtml(defRows, offRows) {
+    var defG = personnelGroups(defRows || []);
+    var offG = personnelGroups(offRows || []);
+    if (!defG.length && !offG.length) {
+      return (
+        '<p class="sr-empty">No personnel tags with n≥3 in scope. Chart OFF PERS on the import to unlock this section.</p>'
+      );
+    }
+    var h = '<div data-sr-section="personnel">';
+    if (defG.length) {
+      h +=
+        '<p class="foot" style="margin-top:0">Defense-scout — coverage / pressure by personnel they faced.</p>';
+      h +=
+        '<table class="sr-read-tbl"><thead><tr><th>Personnel</th><th>Coverage mix</th><th>Pressure</th><th>Snaps</th></tr></thead><tbody>';
+      defG.forEach(function (g) {
+        var covRows = g.rows.filter(function (r) {
+          return r.coverage && r.coverage !== "?" && r.coverage !== "—";
+        });
+        var cov = fieldDist(covRows, "coverage");
+        var bars = cov.arr
+          .slice(0, 4)
+          .map(function (c) {
+            return (
+              '<span class="sr-bar-item">' +
+              esc(c.k) +
+              " " +
+              pct1(c.n, cov.tot) +
+              "%</span>"
+            );
+          })
+          .join(" ");
+        var zero = cov.arr.filter(function (c) {
+          return /^cover\s*0$/i.test(String(c.k || "").trim()) && c.pct >= SPIKE_PCT && c.n >= SPIKE_N;
+        })[0];
+        var prN = g.rows.filter(function (r) { return +r.pressure === 1; }).length;
+        h +=
+          "<tr><td><b>" +
+          esc(g.personnel) +
+          "</b></td><td><div class=\"sr-bars\">" +
+          (bars || "—") +
+          "</div>";
+        if (zero) {
+          h +=
+            '<div class="sr-spike">Cover 0 spike ' +
+            pct1(zero.n, cov.tot) +
+            "% (" +
+            zero.n +
+            "/" +
+            cov.tot +
+            ")</div>";
+        }
+        h +=
+          "</td><td>" +
+          fmtPctN(prN, g.n) +
+          "</td><td>" +
+          g.n +
+          "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    if (offG.length) {
+      h +=
+        '<p class="foot"' +
+        (defG.length ? "" : ' style="margin-top:0"') +
+        ">Offense-scout — run/pass + top concepts by their personnel.</p>";
+      h +=
+        '<table class="sr-read-tbl"><thead><tr><th>Personnel</th><th>Run / Pass</th><th>Top concepts</th><th>Snaps</th></tr></thead><tbody>';
+      offG.forEach(function (g) {
+        var rs = runShare(g.rows);
+        var concepts = topConcepts(g.rows, 3)
+          .map(function (c) {
+            return esc(c.k) + " " + Math.round(c.pct * 100) + "%";
+          })
+          .join("; ");
+        h +=
+          "<tr><td><b>" +
+          esc(g.personnel) +
+          "</b></td><td>" +
+          Math.round(rs * 100) +
+          "% run · " +
+          Math.round((1 - rs) * 100) +
+          "% pass</td><td>" +
+          (concepts || "—") +
+          "</td><td>" +
+          g.n +
+          "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    h += "</div>";
+    return h;
   }
 
   /* ---- §5 Confidence (sample-based only) ---- */
@@ -602,6 +911,12 @@
       ".sr-actions{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}" +
       ".sr-empty{font-size:13px;opacity:.7;margin:8px 0}" +
       ".sr-mgr-ready{margin:8px 0 4px}" +
+      ".sr-dir-lanes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}" +
+      ".sr-dir-lane{border:1px solid var(--line,var(--rd-border,#d0d7e0));border-radius:8px;padding:10px 12px;background:var(--panel,var(--rd-surface,#fff))}" +
+      ".sr-dir-lane.thin{opacity:.48;background:var(--chip,var(--rd-surface-2,#f0f2f5))}" +
+      ".sr-dir-lane .sr-sit{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.65;margin-bottom:4px}" +
+      ".sr-dir-lane .sr-hl{font-size:15px;font-weight:900;line-height:1.2;margin:0 0 2px}" +
+      "@media (max-width:720px){.sr-dir-lanes{grid-template-columns:1fr}}" +
       "@media print{" +
       ".sr-no-print{display:none!important}" +
       ".sr-ready{display:none!important}" +
@@ -836,6 +1151,36 @@
       });
       h += "</div>";
     }
+
+    /* Tier 2 A/B/C — zero-SQL; render on existing corpus; never touch McClure batch */
+    var mixOffTier = provenanceMix(offRows || []);
+    var mixPers = provenanceMix(
+      (defRows || []).length || (offRows || []).length
+        ? (defRows || []).concat(offRows || [])
+        : []
+    );
+
+    if ((offRows || []).length) {
+      h += sectionHead("Run direction analysis", mixOffTier);
+      h +=
+        '<p class="foot">Directed run snaps only (L/M/R from Assist). Reuses Tendencies run-by-direction math.</p>';
+      h += renderRunDirectionHtml(offRows);
+    }
+
+    if ((offRows || []).length) {
+      var motHtml = renderMotionHtml(offRows);
+      if (motHtml && motHtml.indexOf("section skipped") < 0) {
+        h += sectionHead("Motion tendency", mixOffTier);
+        h +=
+          '<p class="foot">Pass-after-motion vs no-motion baseline. Delta callout only when |Δ|≥12pp and both sides n≥5.</p>';
+        h += motHtml;
+      }
+    }
+
+    h += sectionHead("Personnel grouping", mixPers);
+    h +=
+      '<p class="foot">Groups with n&lt;3 hidden. Cover 0 spike same honesty rule as the read sheet (≥20% &amp; n≥3).</p>';
+    h += renderPersonnelHtml(defRows || [], offRows || []);
 
     h += "</div>";
     return {

@@ -1224,6 +1224,22 @@ export const Cloud = {
     if (s.success === true || s.success === 1 || s.success === "1") success = 1;
     else if (s.success === false || s.success === 0 || s.success === "0") success = 0;
 
+    /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw. */
+    const rawPick = this._rawPickAssist(s.raw, {
+      direction: ["play dir", "play direction", "dir", "direction", "play_dir"],
+      gap: ["gap"],
+      qtr: ["qtr", "quarter", "q", "period"],
+      series: ["series", "drive", "drive #", "drive no", "series #"],
+    });
+    const direction = this._normPlayDir(rawPick.direction);
+    const gap = rawPick.gap || "";
+    let qtr = null;
+    if (rawPick.qtr != null && String(rawPick.qtr).trim() !== "") {
+      const qn = parseInt(String(rawPick.qtr).replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(qn)) qtr = qn;
+    }
+    const series = rawPick.series || "";
+
     return {
       id: s.id,
       date: s.play_date || s.week || "",
@@ -1247,6 +1263,11 @@ export const Cloud = {
       motion_type: mot || "",
       gain: s.gain,
       success: success,
+      direction: direction,
+      gap: gap,
+      qtr: qtr,
+      series: series,
+      snap_index: s.snap_index != null ? s.snap_index : null,
       tag_source: s.tag_source || "",
       clip_hash: s.clip_hash || null,
       /* Provenance for Scout Report badges (RPC already gates unreviewed CV) */
@@ -1256,6 +1277,60 @@ export const Cloud = {
       reviewed_by: s.reviewed_by || null,
       reviewed_at: s.reviewed_at || null,
     };
+  },
+
+  /** Assist-header pick from scout_snaps.raw (zero-SQL Tier 2). */
+  _rawPickAssist(raw, fields) {
+    const out = {};
+    let obj = raw;
+    if (typeof obj === "string") {
+      try {
+        obj = JSON.parse(obj);
+      } catch (e) {
+        obj = null;
+      }
+    }
+    if (!obj || typeof obj !== "object") {
+      Object.keys(fields || {}).forEach((k) => {
+        out[k] = "";
+      });
+      return out;
+    }
+    const norm = (h) =>
+      String(h || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const byNorm = Object.create(null);
+    Object.keys(obj).forEach((k) => {
+      if (!k || String(k).charAt(0) === "_") return;
+      const n = norm(k);
+      if (n && !byNorm[n]) byNorm[n] = k;
+    });
+    Object.keys(fields || {}).forEach((field) => {
+      out[field] = "";
+      const aliases = fields[field] || [];
+      for (let i = 0; i < aliases.length; i++) {
+        const key = byNorm[norm(aliases[i])];
+        if (!key) continue;
+        const v = obj[key];
+        if (v == null || String(v).trim() === "") continue;
+        out[field] = String(v).trim();
+        break;
+      }
+    });
+    return out;
+  },
+
+  _normPlayDir(raw) {
+    if (raw == null || String(raw).trim() === "") return "";
+    const s = String(raw).trim().toUpperCase();
+    if (/^(L|LEFT|LT)\b/.test(s) || s === "L") return "L";
+    if (/^(R|RIGHT|RT)\b/.test(s) || s === "R") return "R";
+    if (/^(M|MID|MIDDLE|CTR|CENTER)\b/.test(s) || s === "M") return "M";
+    const ch = s.charAt(0);
+    if (ch === "L" || ch === "R" || ch === "M") return ch;
+    return "";
   },
 };
 
