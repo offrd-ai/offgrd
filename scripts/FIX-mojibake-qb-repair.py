@@ -23,10 +23,8 @@ NOTE for the real repo (v=238):
     remaining contexts — extend EXPLICIT below, matching donor style.
   * Known-intentional: code comments contain lone "?" ("or null ? caller falls
     back") present in BOTH copies — pre-donor legacy, not user-visible. Left alone.
-  * Separate bug found: smoke-mojibake-chrome.cjs line ~280 canary needle
-    "pressure \\u00b7 ${g.length} snaps" no longer exists in OFFGRD.html (code now
-    reads 'pressure here · "+t.n+" snaps'). Update the canary needle or the smoke
-    will fail even on clean files.
+  * Canary needle in smoke-mojibake-chrome.cjs tracks
+    'pressure here · "+t.n+" snaps' (lone-? gate also matches \\s?\\s\").
 """
 import sys, re, difflib
 
@@ -40,6 +38,8 @@ EXPLICIT = [
     ('Now ? Snap \ufffd read the stunt',  'Now \u25b6 Snap — read the stunt'),
     ('" \ufffd ? Snap to see the front move.', '" — \u25b6 Snap to see the front move.'),
     ('id="snapBtn">? Snap</button>',      'id="snapBtn">\u25b6 Snap</button>'),
+    # Already-lost glyph (not FFFD): ASCII "?" where U+21BB belonged.
+    ('id="replayBtn">? Replay</button>',  'id="replayBtn">\u21bb Replay</button>'),
 ]
 
 def main(corrupt_path, donor_path, out_path):
