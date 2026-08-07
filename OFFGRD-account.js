@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=250";
-import { openAuthModal } from "./OFFGRD-auth.js?v=250";
+import { Cloud } from "./OFFGRD-cloud.js?v=251";
+import { openAuthModal } from "./OFFGRD-auth.js?v=251";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -257,22 +257,30 @@ function publishCallerBridge(){
     };
   }catch(e){}
 }
+let _programReadyFp = "";
 function publishProgramRole(){
   publishCallerBridge();
+  const ready = !!(TEAM && ROLE);
+  const teamId = TEAM && TEAM.id;
+  const fp = [teamId || "", ROLE || "", ready ? "1" : "0", shellRole(), isRoleResolved() ? "1" : "0"].join("|");
+  const changed = fp !== _programReadyFp;
+  _programReadyFp = fp;
   window.OFFGRD_PROGRAM = {
-    ready: !!(TEAM && ROLE),
+    ready: ready,
     role: ROLE,
     roleResolved: isRoleResolved(),
     shellRole: shellRole(),
-    teamId: TEAM && TEAM.id,
+    teamId: teamId,
     isPlayer: () => ROLE === "player" || assumePlayerChrome(),
     isCoach: () => !!ROLE && ROLE !== "player",
     canCreateTeam: () => CAN_CREATE_TEAM,
   };
+  /* Same team/role fingerprint — skip log + event (boot often publishes 2–3×). */
+  if(!changed) return;
   try{
     console.log("[program-ready]", {
-      ready: !!(TEAM && ROLE),
-      teamId: TEAM && TEAM.id,
+      ready: ready,
+      teamId: teamId,
       role: ROLE,
       playerChrome: assumePlayerChrome(),
       roleResolved: isRoleResolved(),
@@ -799,8 +807,8 @@ async function finishProgramHydrate(u){
   }catch(e){}
   try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}
   bar(u);
+  /* pull() already refreshes scout snaps for scout pages — do not double-hydrate. */
   if(TEAM) await pull(true);
-  try{ if(TEAM && A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap0){}
   clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);
   if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
   try{ if(A.onUser) A.onUser(u.email); }catch(e){}
@@ -1455,6 +1463,7 @@ function pushBrand(name, brand){
   }catch(e){}
 }
 window.OFFGRD_PUSH_BRAND=pushBrand;   /* Scout's Team & logos editor calls this on save */
+let _brandHydrateFp = "";
 function applyCloudBrand(){
   try{
     const b=TEAM && TEAM.brand;
@@ -1481,6 +1490,8 @@ function applyCloudBrand(){
       bg: b.bg || "#13294B",
       logo: b.logo || "",
     };
+    const brandFp = [brandName, brand.abbr, brand.fg, brand.bg, brand.logo ? String(brand.logo).length : "0"].join("|");
+    if(brandFp === _brandHydrateFp) return;
     const persist = window.OFFGRD_persistBrand;
     if(!persist){
       try{ console.warn("[brand] OFFGRD_persistBrand missing — load OFFGRD-brand-persist.js before account"); }catch(e){}
@@ -1488,6 +1499,7 @@ function applyCloudBrand(){
     }
     const entry = persist(brandName, brand);
     if(!entry) return;
+    _brandHydrateFp = brandFp;
     try{ console.log("[brand] hydrated", brandName, entry.bg, "abbr=", entry.abbr); }catch(e){}
     /* CSS-only hook on QB (redesign wrapper); Scout hook also updates in-page crest */
     if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, entry); }
@@ -1706,12 +1718,41 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; push(true); }, 1500); };
 
+/** Cheap fingerprint of scout_snaps RPC rows — length + max updatedAt + id mix. */
+function scoutCorpusFp(raw){
+  const a = raw || [];
+  let maxU = "";
+  let mix = a.length * 2654435761;
+  for(let i = 0; i < a.length; i++){
+    const r = a[i];
+    if(!r) continue;
+    const id = String(r.id || "");
+    const u = String(r.updated_at || r.updatedAt || r.reviewed_at || "");
+    if(u > maxU) maxU = u;
+    mix = (mix + id.length * (i + 1) + (r.coverage || "").length * 17 + (r.front || "").length * 31) | 0;
+    for(let j = 0; j < id.length; j++) mix = (mix + id.charCodeAt(j) * (j + 1)) | 0;
+  }
+  return a.length + "@" + maxU + "#" + (mix >>> 0);
+}
+let _lastScoutCorpusFp = "";
+let _lastScoutCorpusTeam = "";
+let _scoutCorpusHydrated = false;
+
 /** Pull review-gated scout_snaps → SNAP_CORPUS for Predict/Tendencies cutover. */
 async function refreshScoutSnaps(){
   if(!TEAM || !Cloud.listScoutSnaps || !Cloud.scoutSnapToRow) return;
   if(isOffline()) return;
   try{
     const raw = await Cloud.listScoutSnaps(TEAM.id);
+    const fp = scoutCorpusFp(raw);
+    const sameTeam = _lastScoutCorpusTeam === (TEAM.id || "");
+    if(sameTeam && _scoutCorpusHydrated && fp === _lastScoutCorpusFp){
+      /* Sync poll / duplicate boot — corpus unchanged; skip full report rebuild. */
+      return;
+    }
+    _lastScoutCorpusFp = fp;
+    _lastScoutCorpusTeam = TEAM.id || "";
+    _scoutCorpusHydrated = true;
     const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
     if(typeof window.OFFGRD_SET_SNAP_CORPUS === "function"){
       window.OFFGRD_SET_SNAP_CORPUS(mapped);

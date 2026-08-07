@@ -1582,11 +1582,40 @@
     }
   }
 
+  function reportInjectFp(defRows, offRows, opts) {
+    opts = opts || {};
+    function mix(rows) {
+      var a = rows || [];
+      var h = a.length * 2654435761;
+      for (var i = 0; i < a.length; i++) {
+        var r = a[i];
+        if (!r) continue;
+        var id = String(r.id || "");
+        h = (h + id.length * (i + 1) + (r.coverage || "").length * 17 + (r.front || "").length * 31) | 0;
+        for (var j = 0; j < id.length; j++) h = (h + id.charCodeAt(j) * (j + 1)) | 0;
+      }
+      return a.length + ":" + (h >>> 0);
+    }
+    return [
+      opts.opponent || "",
+      opts.scopeLabel || "",
+      mix(defRows),
+      mix(offRows)
+    ].join("|");
+  }
+
   function injectInto(host, defRows, offRows, opts) {
     if (!host) return null;
     opts = opts || {};
     opts.defRows = defRows || [];
     opts.offRows = offRows || [];
+    var fp = reportInjectFp(defRows, offRows, opts);
+    if (host.getAttribute("data-sr-fp") === fp && host.childNodes.length) {
+      /* Same corpus fingerprint — keep DOM; only refresh async readiness. */
+      fillReadiness(host, opts);
+      return root.OFFGRD_LAST_SCOUT_REPORT || null;
+    }
+    host.setAttribute("data-sr-fp", fp);
     var built = buildReportHtml(defRows || [], offRows || [], opts);
     host.innerHTML = built.html;
     wireHost(host, built, opts);

@@ -588,8 +588,30 @@
     window.print();
   }
 
+  function tendencyInjectFp(defRows, offRows, opts) {
+    opts = opts || {};
+    function mix(rows) {
+      const a = rows || [];
+      let h = a.length * 2654435761;
+      for (let i = 0; i < a.length; i++) {
+        const r = a[i];
+        if (!r) continue;
+        const id = String(r.id || "");
+        h = (h + id.length * (i + 1) + (r.coverage || "").length * 17 + (r.front || "").length * 31) | 0;
+        for (let j = 0; j < id.length; j++) h = (h + id.charCodeAt(j) * (j + 1)) | 0;
+      }
+      return a.length + ":" + (h >>> 0);
+    }
+    return [opts.opponent || "", opts.scopeLabel || "", mix(defRows), mix(offRows)].join("|");
+  }
+
   function injectInto(host, defRows, offRows, opts) {
     if (!host) return null;
+    const fp = tendencyInjectFp(defRows, offRows, opts || {});
+    if (host.getAttribute("data-tn-fp") === fp && host.childNodes.length) {
+      return null;
+    }
+    host.setAttribute("data-tn-fp", fp);
     const built = buildReportHtml(defRows || [], offRows || [], opts);
     host.innerHTML = built.html;
     const btn = host.querySelector("#tnPrintBtn");

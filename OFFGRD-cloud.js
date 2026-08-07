@@ -53,8 +53,10 @@ function purgeForeignAuthTokens(expectedRef) {
 const EXPECTED_REF = projectRefFromUrl(cfg.url);
 
 let _myTeamsInflight = null;
+let _myTeamsRecent = null; /* { data, until } — collapses boot triple within a short TTL */
 let _myTeamsLoadCount = 0;
 let _myTeamsCountTimer = null;
+const MY_TEAMS_RECENT_MS = 2500;
 function _noteMyTeamsCall() {
   _myTeamsLoadCount++;
   if (_myTeamsCountTimer) clearTimeout(_myTeamsCountTimer);
@@ -65,6 +67,9 @@ function _noteMyTeamsCall() {
     _myTeamsLoadCount = 0;
     _myTeamsCountTimer = null;
   }, 6000);
+}
+function _invalidateMyTeamsCache() {
+  _myTeamsRecent = null;
 }
 
 export const Cloud = {
@@ -134,7 +139,10 @@ export const Cloud = {
     return sb.auth.signUp({ email, password, options: { data: { full_name: fullName || "" } } });
   },
   async signIn(email, password) { return sb.auth.signInWithPassword({ email, password }); },
-  async signOut() { return sb.auth.signOut(); },
+  async signOut() {
+    _invalidateMyTeamsCache();
+    return sb.auth.signOut();
+  },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
   async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
   /**
@@ -170,11 +178,19 @@ export const Cloud = {
    * and school membership RPC are fallbacks only.
    */
   async myTeams() {
-    _noteMyTeamsCall();
     if (_myTeamsInflight) return _myTeamsInflight;
-    _myTeamsInflight = this._myTeamsImpl().finally(function () {
-      _myTeamsInflight = null;
-    });
+    if (_myTeamsRecent && Date.now() < _myTeamsRecent.until) {
+      return _myTeamsRecent.data;
+    }
+    _noteMyTeamsCall();
+    _myTeamsInflight = this._myTeamsImpl()
+      .then(function (data) {
+        _myTeamsRecent = { data: data, until: Date.now() + MY_TEAMS_RECENT_MS };
+        return data;
+      })
+      .finally(function () {
+        _myTeamsInflight = null;
+      });
     return _myTeamsInflight;
   },
   async _myTeamsImpl() {
@@ -236,6 +252,7 @@ export const Cloud = {
     return rows;
   },
   async createTeam(name) {
+    _invalidateMyTeamsCache();
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
     if (error) throw error; return data; // team id
   },
@@ -335,7 +352,12 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
   async revokeInvite(id) { const { error } = await OG.from("invites").delete().eq("id", id); if (error) throw error; },
-  async joinByCode(code) { const { data, error } = await sb.rpc("offgrd_join_by_code", { code }); if (error) throw error; return data; },
+  async joinByCode(code) {
+    _invalidateMyTeamsCache();
+    const { data, error } = await sb.rpc("offgrd_join_by_code", { code });
+    if (error) throw error;
+    return data;
+  },
   /** Phase 4: merge roster → public.players (source=team). */
   async seedPlayerFromTeam(opts) {
     const { data, error } = await sb.rpc("offgrd_seed_player_from_team", {
