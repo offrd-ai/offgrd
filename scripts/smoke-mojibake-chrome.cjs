@@ -216,7 +216,8 @@ function sameLineCodeTernary(s, qIdx) {
 
 /**
  * Flag lone ASCII "?" used as ·/— separators (encoding loss without U+FFFD).
- * Pattern: [\w%)]\s\?\s[\w(] plus template `\s\?\s${`.
+ * Pattern: [\w%)]\s\?\s[\w("] plus template `\s\?\s${`.
+ * ([\w("] covers `pressure here ? "+t.n+" snaps` after middot→? loss.)
  * Runs on OFFGRD.html + OFFGRD-QB.html (both HTML+embedded-JS gameday surfaces).
  * FFFD gate remains global. JS ternaries excluded via same-line `? … :` when not
  * inside a quoted string.
@@ -225,7 +226,7 @@ function assertNoLoneQuestionSeparators(p) {
   if (!/OFFGRD(?:-QB)?\.html$/i.test(p)) return;
   const s = fs.readFileSync(p, "utf8");
   const hits = [];
-  const re = /([\w%)])(\s)\?(\s)([\w(])/g;
+  const re = /([\w%)])(\s)\?(\s)([\w("])/g;
   let m;
   while ((m = re.exec(s))) {
     const qIdx = m.index + m[1].length + m[2].length;
@@ -277,8 +278,8 @@ function assertLoneQuestionGateRegression() {
   const file = path.join(ROOT, "OFFGRD.html");
   if (!fs.existsSync(file)) return;
   const bak = fs.readFileSync(file);
-  const needle = "pressure \u00b7 ${g.length} snaps";
-  const poison = "pressure ? ${g.length} snaps";
+  const needle = 'pressure here \u00b7 "+t.n+" snaps';
+  const poison = 'pressure here ? "+t.n+" snaps';
   let s = bak.toString("utf8");
   if (!s.includes(needle)) {
     throw new Error("lone-? regression: missing expect middot line in OFFGRD.html");
@@ -293,12 +294,12 @@ function assertLoneQuestionGateRegression() {
       if (!threw) throw e;
     }
     if (!threw) {
-      throw new Error("lone-? regression: gate did not flag poisoned pressure ? ${…}");
+      throw new Error("lone-? regression: gate did not flag poisoned pressure here ? \"+t.n+\" snaps");
     }
   } finally {
     fs.writeFileSync(file, bak);
   }
-  console.log("OK lone-'?' regression (poisoned pressure ? ${ caught)");
+  console.log("OK lone-'?' regression (poisoned pressure here ? \"+t.n+\" snaps)");
 }
 
 /**
