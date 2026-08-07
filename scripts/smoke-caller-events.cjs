@@ -357,7 +357,7 @@ console.log("OK special teams: fg/punt fold + playType carried + offense filter 
 // (entry.result = fin.result). A graded entry therefore never returns {skip:"ungraded"}.
 function inferForEntry(entry) {
   return O.inferNextSituation(
-    { dn: entry.dn, db: entry.db, hash: entry.hash, zone: entry.zone },
+    { dn: entry.dn, db: entry.db, estYards: entry.estYards, hash: entry.hash, zone: entry.zone },
     { result: entry.result, gain: entry.gain, flag: entry.flag, negated: entry.negated },
     entry.playType
   );

@@ -82,6 +82,27 @@
     return null;
   }
 
+  /**
+   * Numeric yards-to-go for chain estimates / chip edits.
+   * "10+" seeds at 10 (standard 1st & 10) — not dbToNum's filter midpoint 12.
+   */
+  function estYardsForBucket(db) {
+    if (db === "1-3") return 2;
+    if (db === "4-6") return 5;
+    if (db === "7-9") return 8;
+    if (db === "10+") return 10;
+    return 10;
+  }
+
+  /** Prefer persisted estYards; else seed from bucket (10+ → 10). */
+  function seedEstYards(sit) {
+    sit = sit || {};
+    if (sit.estYards != null && !isNaN(+sit.estYards)) {
+      return Math.max(1, Math.round(+sit.estYards));
+    }
+    return estYardsForBucket(sit.db);
+  }
+
   function isSuccessVal(down, distance, gain) {
     var g = +gain,
       d = +distance;
@@ -233,7 +254,11 @@
     var gain = payload.gain != null ? +payload.gain : bucketToGain(bucket);
     var flag = payload.flag || null;
     var negated = isPenaltyFlag(flag);
-    var dist = dbToNum(sit.db);
+    /* Prefer chain estimate when present; success ≠ zero gain — concept is separate from advance. */
+    var dist =
+      sit.estYards != null && !isNaN(+sit.estYards)
+        ? Math.max(1, Math.round(+sit.estYards))
+        : dbToNum(sit.db);
     var would = isSuccessVal(+sit.dn || 1, dist, gain);
     /* Turnover is never a "success" on yards alone */
     if (bucket === "turnover") would = 0;
@@ -322,6 +347,9 @@
 
   /**
    * Suggest next down/distance after a graded call.
+   * Tracks internal estYards (1st & 10 → 10; subtract gain-band midpoint; clamp ≥1;
+   * new 1st resets to 10). Display/filter bucket is derived from that number.
+   * Concept (worked / didn't work) never moves the chains — only the gain band does.
    * Turnovers / negated penalties / TD / turnover-on-downs → no infer, needsInput.
    */
   function inferNextSituation(sit, outcome, playType) {
@@ -339,6 +367,7 @@
         return {
           dn: 1,
           db: "10+",
+          estYards: 10,
           hash: sit.hash != null ? sit.hash : "ANY",
           zone: sit.zone != null ? sit.zone : "ANY",
           inferred: true,
@@ -360,14 +389,21 @@
     var gain = outcome.gain;
     if (gain == null || isNaN(+gain)) return { skip: true, reason: "no_gain" };
     gain = +gain;
-    var dist = dbToNum(sit.db);
-    if (dist == null) dist = 10;
+    var dist = seedEstYards(sit);
     var dn = +sit.dn || 1;
     var hash = sit.hash != null ? sit.hash : "ANY";
     var zone = sit.zone != null ? sit.zone : "ANY";
 
     if (gain >= dist) {
-      return { dn: 1, db: "10+", hash: hash, zone: zone, inferred: true, reason: "first_down" };
+      return {
+        dn: 1,
+        db: "10+",
+        estYards: 10,
+        hash: hash,
+        zone: zone,
+        inferred: true,
+        reason: "first_down",
+      };
     }
     var left = dist - gain;
     if (left < 1) left = 1;
@@ -378,6 +414,7 @@
     return {
       dn: nextDn,
       db: yardsToDb(left),
+      estYards: left,
       hash: hash,
       zone: zone,
       inferred: true,
@@ -452,6 +489,8 @@
     FG_RESULTS: FG_RESULTS,
     PUNT_RESULTS: PUNT_RESULTS,
     dbToNum: dbToNum,
+    estYardsForBucket: estYardsForBucket,
+    seedEstYards: seedEstYards,
     isSuccessVal: isSuccessVal,
     bucketToGain: bucketToGain,
     resultLabel: resultLabel,

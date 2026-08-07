@@ -135,11 +135,11 @@ if (!advSolid.inferred || advSolid.dn !== 2 || advSolid.db !== "4-6") {
 }
 const adv2 = O.inferNextSituation(
   { dn: 1, db: "10+", hash: "L", zone: "ANY" },
-  O.finalizeOutcome({ result: "short" }, { dn: 1, db: "10+" })
+  O.finalizeOutcome({ result: "short" }, { dn: 1, db: "10+", estYards: 10 })
 );
-/* short gain 2 → 2nd & 10 → db 10+ */
-if (!adv2.inferred || adv2.dn !== 2 || adv2.db !== "10+") {
-  throw new Error("short advance want 2nd&10+ got " + JSON.stringify(adv2));
+/* short gain 2 from estYards 10 → 2nd & 8 → db 7-9 (not stuck on 10+) */
+if (!adv2.inferred || adv2.dn !== 2 || adv2.db !== "7-9" || adv2.estYards !== 8) {
+  throw new Error("short advance want 2nd&7-9 estYards=8 got " + JSON.stringify(adv2));
 }
 const noPen = O.inferNextSituation(
   { dn: 1, db: "10+" },
@@ -239,4 +239,55 @@ const rates2 = O.liveRates(mixed);
 if (rates2.n !== 1) throw new Error("liveRates must exclude ST from n, got " + rates2.n);
 if (rates2.successRate !== 1) throw new Error("offensive SR unchanged by ST");
 
-console.log("OK caller outcome model + fold + pending + learning + infer + special teams");
+/* 14) Chain advance math — estYards persists across snaps; concept never moves chains */
+function advanceChain(sit, resultId) {
+  const out = O.finalizeOutcome({ result: resultId }, sit);
+  return O.inferNextSituation(sit, out);
+}
+/* 1st & 10 → short → 2nd & 7-9 → short → 3rd & 4-6 */
+let chain = { dn: 1, db: "10+", estYards: 10 };
+chain = advanceChain(chain, "short");
+if (chain.dn !== 2 || chain.db !== "7-9" || chain.estYards !== 8) {
+  throw new Error("chain step1 want 2nd&7-9/8 got " + JSON.stringify(chain));
+}
+chain = advanceChain(chain, "short");
+if (chain.dn !== 3 || chain.db !== "4-6" || chain.estYards !== 6) {
+  throw new Error("chain step2 want 3rd&4-6/6 got " + JSON.stringify(chain));
+}
+/* solid on 1st & 10: 10−6 → 2nd & 4 */
+const solidChain = advanceChain({ dn: 1, db: "10+", estYards: 10 }, "solid");
+if (solidChain.dn !== 2 || solidChain.db !== "4-6" || solidChain.estYards !== 4) {
+  throw new Error("solid chain want 2nd&4-6/4 got " + JSON.stringify(solidChain));
+}
+/* chunk converts 1st & 10 (gain 11 ≥ 10) → new 1st resets estYards to 10 */
+const chunkFd = advanceChain({ dn: 1, db: "10+", estYards: 10 }, "chunk");
+if (chunkFd.dn !== 1 || chunkFd.db !== "10+" || chunkFd.estYards !== 10 || chunkFd.reason !== "first_down") {
+  throw new Error("chunk on 1st&10 → first down reset " + JSON.stringify(chunkFd));
+}
+/* no_gain keeps estYards (didn't-work must not wipe distance) */
+const stuffed = advanceChain({ dn: 2, db: "7-9", estYards: 8 }, "no_gain");
+if (stuffed.dn !== 3 || stuffed.db !== "7-9" || stuffed.estYards !== 8) {
+  throw new Error("no_gain must keep estYards 8 got " + JSON.stringify(stuffed));
+}
+/* loss grows need: 10 − (−2) = 12 → still 10+ bucket, estYards 12 */
+const lossAdv = advanceChain({ dn: 1, db: "10+", estYards: 10 }, "loss");
+if (lossAdv.dn !== 2 || lossAdv.db !== "10+" || lossAdv.estYards !== 12) {
+  throw new Error("loss want estYards 12 got " + JSON.stringify(lossAdv));
+}
+/* goal-to-go clamp at 1: need 3, short gain 2 → left 1 (not below 1) */
+const gtg = advanceChain({ dn: 1, db: "1-3", estYards: 3 }, "short");
+if (gtg.dn !== 2 || gtg.db !== "1-3" || gtg.estYards !== 1) {
+  throw new Error("goal-to-go clamp want estYards 1 got " + JSON.stringify(gtg));
+}
+/* exact convert on short yardage still resets to 1st & 10 */
+const gtgFd = advanceChain({ dn: 1, db: "1-3", estYards: 2 }, "short");
+if (gtgFd.reason !== "first_down" || gtgFd.estYards !== 10) {
+  throw new Error("exact convert → first down reset " + JSON.stringify(gtgFd));
+}
+/* seedEstYards: missing estYards on 10+ seeds 10 (not filter midpoint 12) */
+if (O.seedEstYards({ db: "10+" }) !== 10) throw new Error("seed 10+ → 10");
+if (O.seedEstYards({ db: "7-9" }) !== 8) throw new Error("seed 7-9 → 8");
+if (O.seedEstYards({ db: "10+", estYards: 8 }) !== 8) throw new Error("persisted estYards wins");
+if (O.estYardsForBucket("10+") !== 10) throw new Error("estYardsForBucket 10+");
+
+console.log("OK caller outcome model + fold + pending + learning + infer + special teams + chain advance");

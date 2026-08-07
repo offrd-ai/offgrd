@@ -23,6 +23,7 @@
   var sit = {
     dn: 1,
     db: "10+",
+    estYards: 10,
     hash: "ANY",
     zone: "ANY",
     front: null,
@@ -62,6 +63,7 @@
     return {
       dn: 1,
       db: "10+",
+      estYards: 10,
       hash: "ANY",
       zone: "ANY",
       front: null,
@@ -73,6 +75,19 @@
       forTwo: false,
       needReason: null,
     };
+  }
+
+  function estYardsForBucket(db) {
+    var Out = O();
+    if (Out && Out.estYardsForBucket) return Out.estYardsForBucket(db);
+    if (db === "1-3") return 2;
+    if (db === "4-6") return 5;
+    if (db === "7-9") return 8;
+    return 10;
+  }
+
+  function sitConfirmLabel() {
+    return (ordinalFn(+sit.dn) + "").toUpperCase() + " & " + sit.db;
   }
 
   function esc(s) {
@@ -983,7 +998,11 @@
     var st = eng.loadStore(storeKey());
     if (!st) return;
     session = st.session || session;
-    if (st.sit) sit = Object.assign(sit, st.sit);
+    if (st.sit) {
+      sit = Object.assign(sitDefaults(), st.sit);
+      if (sit.estYards == null || isNaN(+sit.estYards)) sit.estYards = estYardsForBucket(sit.db);
+      else sit.estYards = Math.max(1, Math.round(+sit.estYards));
+    }
     events = Array.isArray(st.events) ? st.events.slice() : [];
     seq = st.seq || 0;
     breaks = Array.isArray(st.breaks) ? st.breaks.slice() : [];
@@ -1279,6 +1298,7 @@
 
   function setSit(key, val) {
     sit[key] = key === "dn" ? +val : val;
+    if (key === "db") sit.estYards = estYardsForBucket(val);
     sit.inferred = false;
     sit.needsInput = false;
     sit.pendingTry = false;
@@ -1315,15 +1335,20 @@
     if (r === "turnover" || r === "change_of_possession" || r === "safety" || r === "def_td") {
       return "Change of possession — confirm 1st & 10 when they're back on O";
     }
-    if (r === "penalty") return "Penalty — set the next situation";
-    if (sit.needsInput) return "Score / turnover / penalty — set the next sit";
-    return "Auto from last result — confirm or change";
+    if (r === "penalty") return "Penalty — set the next situation · tap chips to override";
+    if (sit.needsInput) return "Score / turnover / penalty — set the next sit · tap chips to override";
+    return "Auto from last result — tap chips to override";
   }
 
   function applyInfer(next) {
     if (!next) return;
     if (next.dn != null) sit.dn = next.dn;
     if (next.db != null) sit.db = next.db;
+    if (next.estYards != null && !isNaN(+next.estYards)) {
+      sit.estYards = Math.max(1, Math.round(+next.estYards));
+    } else if (next.db != null) {
+      sit.estYards = estYardsForBucket(next.db);
+    }
     if (next.hash != null) sit.hash = next.hash;
     if (next.zone != null) sit.zone = next.zone;
     sit.needReason = next.reason || null;
@@ -1373,6 +1398,7 @@
       theirDirection: dir,
       dn: +sit.dn,
       db: sit.db,
+      estYards: sit.estYards != null ? sit.estYards : estYardsForBucket(sit.db),
       hash: sit.hash,
       zone: sit.zone,
       situationInferred: !!sit.inferred,
@@ -1485,6 +1511,7 @@
       applyInfer({
         dn: 1,
         db: "10+",
+        estYards: 10,
         hash: hash,
         zone: zone,
         inferred: true,
@@ -1505,6 +1532,7 @@
       applyInfer({
         dn: 1,
         db: "10+",
+        estYards: 10,
         hash: "ANY",
         zone: "ANY",
         inferred: true,
@@ -1518,6 +1546,7 @@
       applyInfer({
         dn: 1,
         db: "10+",
+        estYards: 10,
         hash: hash,
         zone: "ANY",
         inferred: true,
@@ -1530,7 +1559,13 @@
     /* Within-drive (incl. 4th-down conversion → 1st & 10 same possession). */
     if (!Out || !Out.inferNextSituation) return;
     var next = Out.inferNextSituation(
-      { dn: entry.dn, db: entry.db, hash: entry.hash, zone: entry.zone },
+      {
+        dn: entry.dn,
+        db: entry.db,
+        estYards: entry.estYards != null ? entry.estYards : sit.estYards,
+        hash: entry.hash,
+        zone: entry.zone,
+      },
       { result: entry.result, gain: entry.gain, flag: entry.flag, negated: entry.negated },
       entry.playType
     );
@@ -1565,6 +1600,7 @@
       playType: kind,
       dn: kind === "xp" ? 1 : +sit.dn,
       db: kind === "xp" ? "10+" : sit.db,
+      estYards: kind === "xp" ? 10 : sit.estYards != null ? sit.estYards : estYardsForBucket(sit.db),
       hash: sit.hash || "ANY",
       zone: sit.zone || "ANY",
       situationInferred: false,
@@ -2463,7 +2499,7 @@
     if (sit.inferred || sit.needsInput || sitTry || sitTwo) {
       h += `<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(sitNeedMsg())}</span>`;
       if (!sitTry && !sitTwo) {
-        h += `<button type="button" class="rd-gd-sit-confirm" onclick="OFFGRD_DCALLER.confirmSit()">Confirm</button>`;
+        h += `<button type="button" class="rd-gd-sit-confirm" onclick="OFFGRD_DCALLER.confirmSit()">Confirm ${esc(sitConfirmLabel())}</button>`;
       }
       h += `</div>`;
     }

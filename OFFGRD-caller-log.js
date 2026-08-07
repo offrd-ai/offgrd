@@ -157,7 +157,7 @@
         slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection"];
+          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -272,7 +272,11 @@
       var fin = { result: null, gain: null, flag: null, negated: false, success: null, concept: null, conceptOverride: null };
       if (slot.outcome && slot.outcome.payload) {
         if (Out && Out.finalizeOutcome) {
-          fin = Out.finalizeOutcome(slot.outcome.payload, { dn: p.dn, db: p.db });
+          fin = Out.finalizeOutcome(slot.outcome.payload, {
+            dn: p.dn,
+            db: p.db,
+            estYards: p.estYards,
+          });
         } else {
           fin.result = slot.outcome.payload.result || null;
           fin.flag = slot.outcome.payload.flag || null;
@@ -299,6 +303,7 @@
         conceptOverride: fin.conceptOverride,
         dn: p.dn,
         db: p.db,
+        estYards: p.estYards != null && !isNaN(+p.estYards) ? +p.estYards : null,
         hash: p.hash,
         zone: p.zone,
         situationInferred: sitInf,
@@ -400,6 +405,7 @@
           play: l.play,
           dn: l.dn,
           db: l.db,
+          estYards: l.estYards,
           hash: l.hash,
           zone: l.zone,
           coverage: l.coverage,
