@@ -871,12 +871,19 @@ function libSig(arr){
 function gameNaturalKey(opp, week, side){
   return String(opp||"?").trim().toLowerCase()+"|"+String(week||"?").trim().toLowerCase()+"|"+String(side||"");
 }
-/** Per-snap identity inside a game blob — live prefers callId; scout uses composite. */
+/**
+ * Per-snap identity inside a game blob — live prefers callId; scout uses composite.
+ * Defense imports often leave play/gain empty and share 1st&10 / same coverage /
+ * OWN zone — the short key used to collapse distinct snaps on hydrate (St Mary's
+ * 61→44). Include front/formation/qtr/result/playNum so mergeGames stays idempotent
+ * without dropping real snaps.
+ */
 function seasonRowIdentity(r){
   if(!r) return "∅";
   if(r.callId) return "c:"+String(r.callId);
   if(r.source==="live_call" && r.id) return "c:"+String(r.id);
-  return ["s", r.date||"", r.down||"", r.distance||"", r.play||"", r.hash||"", (r.gain!=null?r.gain:""), r.source||"", r.coverage||"", r.fieldZone||""].join("|");
+  const playNum=(r.playNum!=null&&r.playNum!=="")?r.playNum:(r["PLAY #"]!=null?r["PLAY #"]:"");
+  return ["s", r.date||"", r.down||"", r.distance||"", r.play||"", r.hash||"", (r.gain!=null?r.gain:""), r.source||"", r.coverage||"", r.fieldZone||"", r.front||"", r.formation||"", r.qtr||"", r.result||"", playNum].join("|");
 }
 function mergeSeasonRows(a, b){
   const map=new Map();
