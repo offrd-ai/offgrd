@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=248";
-import { openAuthModal } from "./OFFGRD-auth.js?v=248";
+import { Cloud } from "./OFFGRD-cloud.js?v=249";
+import { openAuthModal } from "./OFFGRD-auth.js?v=249";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -931,6 +931,12 @@ function mergeGames(cloudRows, local){
       /* Keep canonical display fields from the survivor that already has a key slot. */
       if(!prev.opponent && g.opponent) prev.opponent=g.opponent;
       if(!prev.week && g.week) prev.week=g.week;
+      /* Prefer the newer cloud timestamp when merging (durability / CAS base). */
+      if(g.updatedAt){
+        const prevT=Date.parse(prev.updatedAt||"");
+        const nextT=Date.parse(g.updatedAt||"");
+        if(!Number.isFinite(prevT) || (Number.isFinite(nextT) && nextT>=prevT)) prev.updatedAt=g.updatedAt;
+      }
       prev.key=key;
       byKey.set(key, prev);
       return;
@@ -942,7 +948,8 @@ function mergeGames(cloudRows, local){
       side:g.side,
       source:g.source||"import",
       rows:rows.slice(),
-      cid:cid
+      cid:cid,
+      updatedAt:g.updatedAt||null
     };
     byKey.set(key, next);
     if(cid) byCid.set(cid, next);
@@ -955,7 +962,8 @@ function mergeGames(cloudRows, local){
       side:r.side,
       source:r.source,
       rows:r.rows,
-      cid:r.id||r.cid||null
+      cid:r.id||r.cid||null,
+      updatedAt:r.updated_at||r.updatedAt||null
     });
   });
   (local||[]).forEach(function(g){
@@ -965,7 +973,8 @@ function mergeGames(cloudRows, local){
       side:g.side,
       source:g.source,
       rows:g.rows,
-      cid:g.cid||g.id||null
+      cid:g.cid||g.id||null,
+      updatedAt:g.updatedAt||g.updated_at||null
     });
   });
   return Array.from(byKey.values());
@@ -1127,15 +1136,45 @@ async function push(silent){
       for(const g of items){
         if(isGameTombstonedLocal(g, tombs)){ rejected.push(g); continue; }
         try{
-          const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid}));
+          const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {
+            id:g.cid,
+            baseUpdatedAt:g.updatedAt||g.updated_at||null
+          }));
           g.cid = row.id;
           g.key = gameNaturalKey(g.opponent, g.week, g.side);
+          if(row.updated_at) g.updatedAt = row.updated_at;
         }catch(eSave){
           /* Fire-and-forget: tombstone = skip this game, continue batch. No retry. */
           if(eSave && (eSave.code==="TOMBSTONED" || (Cloud._isTombstoneError && Cloud._isTombstoneError(eSave)))){
             rejected.push(g);
             try{ console.warn("[push] tombstoned skip", gameNaturalKey(g.opponent,g.week,g.side)); }catch(eW){}
             continue;
+          }
+          /* Stale client vs newer server blob — pull that game, merge, retry once. */
+          if(eSave && eSave.code==="STALE_WRITE"){
+            try{
+              const cloudAll = await Cloud.listGames(TEAM.id);
+              const key = gameNaturalKey(g.opponent, g.week, g.side);
+              const server = (cloudAll||[]).find(function(r){
+                return gameNaturalKey(r.opponent, r.week, r.side)===key;
+              });
+              if(!server){ throw eSave; }
+              const mergedOne = mergeGames([server], [g])[0] || g;
+              const row2 = await Cloud.saveGame(TEAM.id, Object.assign({}, mergedOne, {
+                id:server.id||mergedOne.cid||g.cid,
+                baseUpdatedAt:server.updated_at||server.updatedAt||null
+              }));
+              g.cid = row2.id;
+              g.rows = mergedOne.rows;
+              g.key = key;
+              if(row2.updated_at) g.updatedAt = row2.updated_at;
+              try{ console.warn("[push] stale write recovered", key, "→", (g.rows&&g.rows.length)||0, "rows"); }catch(eW2){}
+              continue;
+            }catch(eRec){
+              rejected.push(g);
+              try{ console.warn("[push] stale write skip", gameNaturalKey(g.opponent,g.week,g.side), eRec&&eRec.message); }catch(eW3){}
+              continue;
+            }
           }
           throw eSave;
         }

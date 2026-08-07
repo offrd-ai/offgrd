@@ -17,21 +17,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v248: UTF-8 recover (CP1252 FFFD scrub) + U+FFFD smoke -->
+<!-- v249: UTF-8 recover (CP1252 FFFD scrub) + U+FFFD smoke -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=248"></script>
-<script src="OFFGRD-brand-persist.js?v=248"></script>
-<script src="supabase.js?v=248"></script>
-<script src="OFFGRD-cache-gate.js?v=248"></script>
-<script src="OFFGRD-render.js?v=248"></script>
-<script src="OFFGRD-formations-data.js?v=248"></script>
-<script src="OFFGRD-formation-canon.js?v=248"></script>
-<script src="OFFGRD-align-key.js?v=248"></script>
-<script src="OFFGRD-pos-glossary.js?v=248"></script>
-<script src="OFFGRD-autoderive.js?v=248"></script>
-<script src="OFFGRD-redesign.js?v=248"></script>
-<script src="OFFGRD-shell.js?v=248"></script>
+<script src="OFFGRD-config.js?v=249"></script>
+<script src="OFFGRD-brand-persist.js?v=249"></script>
+<script src="supabase.js?v=249"></script>
+<script src="OFFGRD-cache-gate.js?v=249"></script>
+<script src="OFFGRD-render.js?v=249"></script>
+<script src="OFFGRD-formations-data.js?v=249"></script>
+<script src="OFFGRD-formation-canon.js?v=249"></script>
+<script src="OFFGRD-align-key.js?v=249"></script>
+<script src="OFFGRD-pos-glossary.js?v=249"></script>
+<script src="OFFGRD-autoderive.js?v=249"></script>
+<script src="OFFGRD-redesign.js?v=249"></script>
+<script src="OFFGRD-shell.js?v=249"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -93,6 +93,9 @@
  .fb.ok{background:#e8f6ee;border:1px solid #b7e0c6}
  .fb.bad{background:#fdeceb;border:1px solid #f3c4c0}
  .fb h4{margin:0 0 6px;font-size:16px}
+ /* Ticket A — varsity score toast (no confetti) */
+ .score-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(12px);z-index:80;padding:10px 16px;border-radius:12px;background:#0f1720;color:#f4f7fb;font-weight:800;font-size:14px;letter-spacing:.2px;box-shadow:0 8px 28px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;border:1px solid rgba(255,255,255,.12)}
+ .score-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
  .prog{color:var(--muted);font-size:13px;margin-top:6px}
  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
  .score{font-size:15px;font-weight:800}
@@ -106,6 +109,7 @@
 </style>
 </head>
 <body>
+<div id="scoreToast" class="score-toast" role="status" aria-live="polite"></div>
 <div class="wrap">
  <div class="topbar">
  <a href="OFFGRD.html" title="OFFGRD � back to home" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:30px;height:30px;border-radius:7px"><b>OFF<span style="color:var(--carolina)">GRD</span></b></a><span class="tag">� Reps Lab</span>
@@ -2387,7 +2391,7 @@ function answerRoute(i){
  if(!correct){ const ch=document.getElementById("ropt_"+i); if(ch) ch.setAttribute("stroke","#e23b2e"); }
  const ci=rep.options.findIndex(x=>x.correct); const cc=document.getElementById("ropt_"+ci);
  if(cc){ cc.setAttribute("stroke","#19c37d"); cc.setAttribute("stroke-width","5"); cc.setAttribute("opacity","1"); }
- test.results.push({concept:rep.play.name+" � "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
+ pushGradedResult({concept:rep.play.name+" � "+rep.target.lab, coverage:"", correct, chose:(correct?"install route":"wrong route ("+o.name+")"), answer:"install route"});
  const job=rep.target.asn||rep.target.asnAuto;
  if(job){ const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad"); fb.innerHTML=`<h4>${correct?'<span style="color:#19c37d;font-weight:900">\u2713</span>':'<span style="color:#e23b2e;font-weight:900">\u2717</span>'} ${esc(rep.target.lab)}'s assignment</h4><div>${esc(job)}</div>`; }
  test.i++;
@@ -2593,7 +2597,7 @@ function finalizeOl(overallCorrect, post, job){
  +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
  const chose=(rep._pre?rep._pre.chose:"")+(single?"":(" / "+(post.postChose||"")));
  const answer=(rep._pre?rep._pre.answer:"")+(single?"":(" / "+(post.postAnswer||"")));
- if(test) test.results.push({concept:rep.play.name+" � "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
+ if(test) pushGradedResult({concept:rep.play.name+" � "+rep.blocker+(single?"":" (pre+stunt)"), coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:overallCorrect, chose:chose, answer:answer});
  if(test){ test.i++; setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, overallCorrect?1400:2600); }
 }
 /* ---------- Blitz drill � opponent offense picture + our front/blitz call (defender POV) ----------
@@ -3423,7 +3427,7 @@ function answerBlitz(opt){
  const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
  fb.innerHTML="<h4>"+(correct?"Correct":"Missed the assignment")+" � "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>"
  +((rep.play.ol&&rep.play.ol.note)?("<div class=\"prog\">"+esc(rep.play.ol.note)+"</div>"):"");
- test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Blitz")+" \u2014 "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
+ pushGradedResult({concept:(rep.play.oppLabel||rep.play.name||"Blitz")+" \u2014 "+rep.defLab, coverage:(rep.play.state.front&&rep.play.state.front!=="none")?rep.play.state.front:"", correct:correct, chose:opt, answer:rep.answer});
  test.i++;
  setTimeout(function(){ if(!test) return; if(test.i>=test.queue.length){ finishTest(); } else { showRep(test.queue[test.i]); updateProgress(); } }, correct?1300:2200);
 }
@@ -3526,7 +3530,7 @@ function answerDefCoverage(opt){
   olClearRings(); olRing(rep.di,correct?"#19c37d":"#e23b2e");
   const fb=document.getElementById("fb"); fb.className="fb show "+(correct?"ok":"bad");
   fb.innerHTML="<h4>"+(correct?"Correct":"Missed the responsibility")+" � "+esc(PL(rep.defLab,"def"))+": "+esc(rep.answer)+"</h4>";
-  test.results.push({concept:(rep.play.oppLabel||rep.play.name||"Formation")+" � "+rep.defLab,coverage:rep.play.ourCall||rep.play.coverage||"",correct:correct,chose:opt,answer:rep.answer});
+  pushGradedResult({concept:(rep.play.oppLabel||rep.play.name||"Formation")+" � "+rep.defLab,coverage:rep.play.ourCall||rep.play.coverage||"",correct:correct,chose:opt,answer:rep.answer});
   test.i++;
   setTimeout(function(){if(!test)return;if(test.i>=test.queue.length){finishTest();}else{showRep(test.queue[test.i]);updateProgress();}},correct?1300:2200);
 }
@@ -3947,14 +3951,14 @@ function finishAlignAnswer(detail){
     fb.innerHTML="<h4>"+(correct?okMk:badMk)+" "+headline+" \u2014 "+esc(PL((rep&&rep.defLab)||"defender","def"))+" � "+esc(alignChoiceLabel(key))
       +" <span class=\"tag\">"+bits.join(" � ")+"</span></h4>"
       +(correct?"":("<div class=\"prog\">"+esc(why)+"</div>"));
-    if(detail) test.results.push(detail);
+    if(detail) pushGradedResult(detail);
   }catch(e){
     console.error("[align] finishAlignAnswer failed � advancing", e&&e.message||e);
     correct=false;
     try{
       const fb=document.getElementById("fb");
       if(fb){ fb.className="fb show bad"; fb.innerHTML="<h4>Couldn\u2019t grade that alignment \u2014 skipping</h4>"; }
-      if(detail) test.results.push(detail);
+      if(detail) pushGradedResult(detail);
     }catch(_e){}
   }
   test.i++;
@@ -4105,7 +4109,7 @@ function showCovChoices(){
 function answerCoverage(cv){
  if(answered || !SNAPPED || !isCovTest()) return; answered=true;
  const correct = cv===rep.coverage;
- test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:cv, answer:rep.coverage});
+ pushGradedResult({concept:rep.concept.name, coverage:rep.coverage, correct, chose:cv, answer:rep.coverage});
  test.i++;
  if(test.i>=test.queue.length){ finishTest(); }
  else { showRep(test.queue[test.i]); updateProgress(); }
@@ -4129,7 +4133,7 @@ function answer(lab){
  asnFeedback(rep);
  document.getElementById("nextBtn").classList.remove("hidden");
  } else if(MODE==="test"){
- test.results.push({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:ansTxt});
+ pushGradedResult({concept:rep.concept.name, coverage:rep.coverage, correct, chose:lab, answer:ansTxt});
  test.i++;
  if(test.i>=test.queue.length){ finishTest(); }
  else { showRep(test.queue[test.i]); updateProgress(); }
@@ -4147,6 +4151,32 @@ function updateProgress(){
  else document.getElementById("progressLbl").textContent="";
 }
 
+/* ---------- Ticket A: points toast + attempt_n ---------- */
+var _scoreToastT=null;
+function showScoreToast(msg){
+  var el=document.getElementById("scoreToast");
+  if(!el||!msg) return;
+  el.textContent=msg;
+  el.classList.add("show");
+  if(_scoreToastT) clearTimeout(_scoreToastT);
+  _scoreToastT=setTimeout(function(){ el.classList.remove("show"); }, 1600);
+}
+function repPointsFor(correct, attemptN){
+  if(!correct) return 1;
+  return (attemptN|0)<=1 ? 10 : 4;
+}
+function pushGradedResult(r){
+  if(!test||!r) return;
+  if(r.attempt_n==null||r.attempt_n==="") r.attempt_n=1;
+  test.results.push(r);
+  var pts=repPointsFor(!!r.correct, r.attempt_n|0);
+  if(r.correct) test.correctStreak=(test.correctStreak|0)+1;
+  else test.correctStreak=0;
+  var msg="+"+pts;
+  if((test.correctStreak|0)>1) msg+=" · "+test.correctStreak+" correct in a row";
+  showScoreToast(msg);
+}
+
 /* ---------- test lifecycle ---------- */
 async function startTest(opts){
  hideGuide();
@@ -4158,7 +4188,7 @@ async function startTest(opts){
  const repContext=(opts.repContext==="week_test")?"week_test":"practice";
  const n=parseInt(document.getElementById("testLen").value,10)||10;
  test={
-  queue:[],i:0,results:[],kind:TESTKIND,
+  queue:[],i:0,results:[],kind:TESTKIND,correctStreak:0,
   repContext:repContext,
   week:(repContext==="week_test"&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||"",id:WEEKPLAN.id||null}:null
  };
@@ -4322,13 +4352,28 @@ async function finishTest(){
  const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
  const position=(test.positions&&test.positions[0])||null;
  const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
+ const detail=(test.results||[]).map(function(r){
+  var row=Object.assign({}, r);
+  if(row.attempt_n==null||row.attempt_n==="") row.attempt_n=1;
+  return row;
+ });
  await window.QB.save({
-  quiz:quiz, score:got, total:tot, detail:test.results, kind:kind, position:position,
+  quiz:quiz, score:got, total:tot, detail:detail, kind:kind, position:position,
   week_plan_id:weekPlanId,
   rep_context:isWeekTest?"week_test":"practice"
  });
  saveMsg=`Saved to ${ctx.team.name} \u2014 your coaches can see it under Results.`+(isWeekTest?(" This one counts toward the week"+(test.week&&test.week.due?(" (game "+test.week.due+")"):"")+"."):(" Practice \u2014 saved to your Results, does not tick the week checklist."));
  if(isWeekTest){ try{ renderAssignedWeekTest(); }catch(_e){} }
+ /* Closing toast: last-rep points · ending correct streak */
+ try{
+  var last=detail[detail.length-1];
+  if(last){
+   var endStreak=0;
+   for(var si=detail.length-1;si>=0;si--){ if(detail[si].correct) endStreak++; else break; }
+   var endPts=repPointsFor(!!last.correct, last.attempt_n|0);
+   showScoreToast("+"+endPts+(endStreak>1?(" · "+endStreak+" correct in a row"):""));
+  }
+ }catch(_t){}
  } else if(ctx && ctx.user && !ctx.team){ saveMsg="Join or create a program (Team button) to save scores for your coaches."; }
  }
  }catch(e){ saveMsg="Couldn\u2019t save score: "+(e.message||e); }
@@ -4662,13 +4707,13 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=248"></script>
-<script src="OFFGRD-scoutcards.js?v=248"></script>
-<script src="OFFGRD-week-autotest.js?v=248"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=248"></script>
+<script src="OFFGRD-mobile.js?v=249"></script>
+<script src="OFFGRD-scoutcards.js?v=249"></script>
+<script src="OFFGRD-week-autotest.js?v=249"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=249"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=248"></script>
-<script src="OFFGRD-role-gate.js?v=248"></script>
+<script type="module" src="OFFGRD-account.js?v=249"></script>
+<script src="OFFGRD-role-gate.js?v=249"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -69,6 +69,13 @@ function mergeGames(cloudRows, local) {
         byCid.set(cid, prev);
       }
       if (prev.source === "live_call" && g.source && g.source !== "live_call") prev.source = g.source;
+      if (g.updatedAt) {
+        const prevT = Date.parse(prev.updatedAt || "");
+        const nextT = Date.parse(g.updatedAt || "");
+        if (!Number.isFinite(prevT) || (Number.isFinite(nextT) && nextT >= prevT)) {
+          prev.updatedAt = g.updatedAt;
+        }
+      }
       prev.key = key;
       byKey.set(key, prev);
       return;
@@ -81,6 +88,7 @@ function mergeGames(cloudRows, local) {
       source: g.source || "import",
       rows: rows.slice(),
       cid,
+      updatedAt: g.updatedAt || null,
     };
     byKey.set(key, next);
     if (cid) byCid.set(cid, next);
@@ -93,6 +101,7 @@ function mergeGames(cloudRows, local) {
       source: r.source,
       rows: r.rows,
       cid: r.id || r.cid || null,
+      updatedAt: r.updated_at || r.updatedAt || null,
     })
   );
   (local || []).forEach((g) =>
@@ -103,6 +112,7 @@ function mergeGames(cloudRows, local) {
       source: g.source,
       rows: g.rows,
       cid: g.cid || g.id || null,
+      updatedAt: g.updatedAt || g.updated_at || null,
     })
   );
   return Array.from(byKey.values());
@@ -237,6 +247,38 @@ assert(
   mergeSeasonRows(defDup, defDup).length === 2,
   "defense snaps with distinct playNum/formation stay 2, got " +
     mergeSeasonRows(defDup, defDup).length
+);
+
+/* Cloud 61 + local collapsed 44 → keep 61 (St Mary's clobber recovery). */
+const cloudMary = {
+  id: "mary-def",
+  opponent: "Parkway North",
+  week: "vs St Marys 11/21/2025",
+  side: "def",
+  source: "import",
+  updated_at: "2026-08-07T03:30:00.000Z",
+  rows: defDup.concat(
+    defDup.map((r, i) => Object.assign({}, r, { playNum: 100 + i, formation: "ACE" }))
+  ),
+};
+const localMary = {
+  cid: "mary-def",
+  opponent: "Parkway North",
+  week: "vs St Marys 11/21/2025",
+  side: "def",
+  source: "import",
+  updatedAt: "2026-08-07T02:00:00.000Z",
+  rows: [defDup[0], Object.assign({}, defDup[1], { playNum: 100, formation: "ACE" })],
+};
+const maryMerged = mergeGames([cloudMary], [localMary]);
+assert(maryMerged.length === 1, "one Mary game after merge");
+assert(
+  maryMerged[0].rows.length === cloudMary.rows.length,
+  "cloud supersets local collapsed rows, got " + maryMerged[0].rows.length
+);
+assert(
+  maryMerged[0].updatedAt === cloudMary.updated_at,
+  "newer cloud updatedAt wins as CAS base"
 );
 
 console.log("ok: merge-games idempotent", {

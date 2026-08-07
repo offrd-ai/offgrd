@@ -495,6 +495,57 @@ export const Cloud = {
         /* fall through to upsert; duplicate risk only if lookup fails */
       }
     }
+
+    /*
+     * Durability (v249): refuse blind last-writer-wins when the server blob moved
+     * since this client last pulled (baseUpdatedAt), or when an old client with no
+     * base tries to shrink a larger cloud blob (St Mary's 61→44 clobber class).
+     * Intentional shrink after a fresh pull still works — base matches server.
+     */
+    try {
+      let curQ = OG.from("scouting_games")
+        .select("id, updated_at, rows")
+        .eq("team_id", teamId);
+      if (row.id) curQ = curQ.eq("id", row.id);
+      else {
+        curQ = curQ
+          .eq("opponent", game.opponent)
+          .eq("week", game.week)
+          .eq("side", game.side)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+      }
+      const { data: cur } = await curQ.maybeSingle();
+      if (cur) {
+        if (!row.id) row.id = cur.id;
+        const serverN = Array.isArray(cur.rows) ? cur.rows.length : 0;
+        const localN = Array.isArray(game.rows) ? game.rows.length : 0;
+        const serverT = Date.parse(cur.updated_at || "");
+        const baseRaw = game.baseUpdatedAt || game.updatedAt || null;
+        const baseT = baseRaw ? Date.parse(baseRaw) : NaN;
+        const serverNewer =
+          Number.isFinite(serverT) && Number.isFinite(baseT) && serverT > baseT + 750;
+        const blindShrink = !Number.isFinite(baseT) && serverN > localN;
+        if (serverNewer || blindShrink) {
+          const err = new Error(
+            "scouting_game stale write: " +
+              nk +
+              " (server " +
+              serverN +
+              " rows @ " +
+              (cur.updated_at || "?") +
+              ")"
+          );
+          err.code = "STALE_WRITE";
+          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
+          throw err;
+        }
+      }
+    } catch (eCas) {
+      if (eCas && eCas.code === "STALE_WRITE") throw eCas;
+      /* CAS lookup failed — fall through to upsert (prefer availability). */
+    }
+
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
     if (error) {
       /* Trigger path (stale v211 / tombs not loaded): map to TOMBSTONED — never retry-storm. */

@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v248: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v249: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -327,10 +327,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=248"></script>
-<script src="OFFGRD-brand-persist.js?v=248"></script>
-<script src="supabase.js?v=248"></script>
-<script src="OFFGRD-cache-gate.js?v=248"></script>
+<script src="OFFGRD-config.js?v=249"></script>
+<script src="OFFGRD-brand-persist.js?v=249"></script>
+<script src="supabase.js?v=249"></script>
+<script src="OFFGRD-cache-gate.js?v=249"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -372,30 +372,30 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=248"></script>
-<script src="OFFGRD-pos-glossary.js?v=248"></script>
-<script src="OFFGRD-autoderive.js?v=248"></script>
-<script src="OFFGRD-scoutcards.js?v=248"></script>
-<script src="OFFGRD-tendencies.js?v=248"></script>
-<script src="OFFGRD-scout-report.js?v=248"></script>
-<script src="OFFGRD-week-autotest.js?v=248"></script>
-<script src="OFFGRD-weeklypackage.js?v=248"></script>
-<script src="OFFGRD-telestrate.js?v=248"></script>
-<script src="OFFGRD-redesign.js?v=248"></script>
-<script src="OFFGRD-shell.js?v=248"></script>
-<script src="OFFGRD-caller-outcome.js?v=248"></script>
-<script src="OFFGRD-formations-data.js?v=248"></script>
-<script src="OFFGRD-formation-canon.js?v=248"></script>
-<script src="OFFGRD-assist-import.js?v=248"></script>
-<script src="OFFGRD-cv-review.js?v=248"></script>
-<script src="OFFGRD-frame-capture.js?v=248"></script>
-<script src="OFFGRD-caller-log.js?v=248"></script>
-<script src="OFFGRD-caller-sync.js?v=248"></script>
-<script src="OFFGRD-caller-analysis.js?v=248"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=248"></script>
-<script src="OFFGRD-booth-ask.js?v=248"></script>
-<script src="OFFGRD-caller-select.js?v=248"></script>
-<script src="OFFGRD-dcaller.js?v=248"></script>
+<script src="OFFGRD-render.js?v=249"></script>
+<script src="OFFGRD-pos-glossary.js?v=249"></script>
+<script src="OFFGRD-autoderive.js?v=249"></script>
+<script src="OFFGRD-scoutcards.js?v=249"></script>
+<script src="OFFGRD-tendencies.js?v=249"></script>
+<script src="OFFGRD-scout-report.js?v=249"></script>
+<script src="OFFGRD-week-autotest.js?v=249"></script>
+<script src="OFFGRD-weeklypackage.js?v=249"></script>
+<script src="OFFGRD-telestrate.js?v=249"></script>
+<script src="OFFGRD-redesign.js?v=249"></script>
+<script src="OFFGRD-shell.js?v=249"></script>
+<script src="OFFGRD-caller-outcome.js?v=249"></script>
+<script src="OFFGRD-formations-data.js?v=249"></script>
+<script src="OFFGRD-formation-canon.js?v=249"></script>
+<script src="OFFGRD-assist-import.js?v=249"></script>
+<script src="OFFGRD-cv-review.js?v=249"></script>
+<script src="OFFGRD-frame-capture.js?v=249"></script>
+<script src="OFFGRD-caller-log.js?v=249"></script>
+<script src="OFFGRD-caller-sync.js?v=249"></script>
+<script src="OFFGRD-caller-analysis.js?v=249"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=249"></script>
+<script src="OFFGRD-booth-ask.js?v=249"></script>
+<script src="OFFGRD-caller-select.js?v=249"></script>
+<script src="OFFGRD-dcaller.js?v=249"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1649,7 +1649,7 @@ let CALLER_FLASH_UNTIL=0;
 let _callerFlashT=null;
 const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot · migrated once into events */
 let CALLER_SESSION=null; /* {opp, week, gameId} */
-let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false, pendingTry:false, forTwo:false, needReason:null};
+let callerSit={dn:1,db:"10+",estYards:10,hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false, pendingTry:false, forTwo:false, needReason:null};
 /** Coach marks · {kind:'quarter'|'half'|'final', afterPlayIndex} · feed deriveDrives breaks */
 let CALLER_BREAKS=[];
 /** Dismissible drive summary toast · {lines, facts} or null */
@@ -1686,7 +1686,25 @@ function callerModeToggleHtml(){
     +`</div>`;
 }
 function callerSitDefaults(){
-  return {dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false,inferred:false,needsInput:false,pendingTry:false,forTwo:false,needReason:null};
+  return {dn:1,db:"10+",estYards:10,hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false,inferred:false,needsInput:false,pendingTry:false,forTwo:false,needReason:null};
+}
+function callerEstYardsForBucket(db){
+  const O=callerOut();
+  if(O&&O.estYardsForBucket) return O.estYardsForBucket(db);
+  if(db==="1-3") return 2;
+  if(db==="4-6") return 5;
+  if(db==="7-9") return 8;
+  return 10;
+}
+function callerNormalizeSit(s){
+  s=Object.assign(callerSitDefaults(), s||{});
+  if(s.estYards==null||isNaN(+s.estYards)) s.estYards=callerEstYardsForBucket(s.db);
+  else s.estYards=Math.max(1,Math.round(+s.estYards));
+  return s;
+}
+function callerSitLabel(cs){
+  cs=cs||callerSit;
+  return (ordinal(+cs.dn)+"").toUpperCase()+" & "+cs.db;
 }
 let _callerSyncT=null;
 let _callerChan=null;
@@ -3344,7 +3362,7 @@ function loadCallerSession(){
   if(E&&E.loadStore) loaded=E.loadStore();
   if(loaded&&Array.isArray(loaded.events)){
     CALLER_SESSION=loaded.session||null;
-    if(loaded.sit) callerSit=Object.assign(callerSitDefaults(), loaded.sit);
+    if(loaded.sit) callerSit=callerNormalizeSit(loaded.sit);
     if(Array.isArray(loaded.breaks)) CALLER_BREAKS=loaded.breaks.slice();
     if(Array.isArray(loaded.eventFeed)) CALLER_EVENT_FEED=loaded.eventFeed.slice(0,40);
     if(loaded.liveExpanded!=null) CALLER_LIVE_EXPANDED=!!loaded.liveExpanded;
@@ -3359,7 +3377,7 @@ function loadCallerSession(){
     if(!x) return;
     const o=JSON.parse(x);
     if(o.session&&o.session.opp) CALLER_SESSION=o.session;
-    if(o.sit) callerSit=Object.assign(callerSitDefaults(), o.sit);
+    if(o.sit) callerSit=callerNormalizeSit(o.sit);
     if(Array.isArray(o.log)&&o.log.length&&E&&E.migrateV1Log){
       const actor=callerActor();
       const mig=E.migrateV1Log(o.log, CALLER_SESSION, callerDeviceId(), actor.id);
@@ -3482,15 +3500,17 @@ function callerSitNeedMsg(){
   if(r==="turnover") return "Change of possession — confirm 1st & 10 when you're back on O";
   if(r==="turnover_on_downs") return "Turnover on downs — confirm 1st & 10 when you're back on O";
   if(r==="change_of_possession") return "Change of possession — confirm 1st & 10 when you're back on O";
-  if(r==="penalty") return "Penalty — set the next situation";
-  if(callerSit.needsInput) return "Possession / penalty — confirm the next situation";
-  return "Auto from last result — confirm or change chips";
+  if(r==="penalty") return "Penalty — set the next situation · tap chips to override";
+  if(callerSit.needsInput) return "Possession / penalty — confirm the next situation · tap chips to override";
+  return "Auto from last result — tap chips to override";
 }
 /** Apply inferNextSituation defaults onto callerSit (TD try, TO reset, advance). */
 function callerApplyInfer(next){
   if(!next) return;
   if(next.dn!=null) callerSit.dn=next.dn;
   if(next.db!=null) callerSit.db=next.db;
+  if(next.estYards!=null&&!isNaN(+next.estYards)) callerSit.estYards=Math.max(1,Math.round(+next.estYards));
+  else if(next.db!=null) callerSit.estYards=callerEstYardsForBucket(next.db);
   if(next.hash!=null) callerSit.hash=next.hash;
   if(next.zone!=null) callerSit.zone=next.zone;
   callerSit.needReason=next.reason||null;
@@ -3518,7 +3538,7 @@ function callerMaybeAdvanceAfterGrade(entry){
   const O=callerOut();
   if(!O||!O.inferNextSituation||!entry||!entry.result) return;
   const next=O.inferNextSituation(
-    { dn:entry.dn, db:entry.db, hash:entry.hash, zone:entry.zone },
+    { dn:entry.dn, db:entry.db, estYards:entry.estYards!=null?entry.estYards:callerSit.estYards, hash:entry.hash, zone:entry.zone },
     { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated },
     entry.playType
   );
@@ -4329,7 +4349,7 @@ function renderCaller(){
     h+=`<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker">1 \u00b7 Down &amp; distance</span> ${esc(sitTwo?"2-pt":sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">confirm</span>':""}${sitTry?' <span class="rd-gd-sit-need">try</span>':""}${sitTwo?' <span class="rd-gd-sit-need">2-pt</span>':""}</div>`;
     if(sitInf||sitNeed||sitTry||sitTwo){
       h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(callerSitNeedMsg())}</span>`;
-      if(!sitTry&&!sitTwo) h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm</button>`;
+      if(!sitTry&&!sitTwo) h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm ${esc(callerSitLabel(cs))}</button>`;
       h+=`</div>`;
     }
     h+=`<div class="rd-gd-sit-grid">`;
@@ -4419,6 +4439,8 @@ function renderCaller(){
 }
 function callerSet(k,v){
   callerSit[k]=v;
+  /* Chip edit reseeds the chain estimate from the chosen distance bucket. */
+  if(k==="db") callerSit.estYards=callerEstYardsForBucket(v);
   /* Any situation chip confirms inferred / clears needs-input / dismisses try chooser */
   if(k==="dn"||k==="db"||k==="hash"||k==="zone"){
     callerSit.inferred=false;
@@ -4457,6 +4479,7 @@ function callerLog(play){
     play: play,
     dn: +cs.dn,
     db: cs.db,
+    estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),
     hash: cs.hash,
     zone: cs.zone,
     situationInferred: wasInferred,
@@ -4506,6 +4529,7 @@ function callerLogST(kind){
     play: play,
     dn: +cs.dn,
     db: cs.db,
+    estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),
     hash: cs.hash,
     zone: cs.zone,
     situationInferred: !!cs.inferred,
@@ -4889,7 +4913,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=248", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=249", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5212,9 +5236,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=248"></script>
-<script src="OFFGRD-role-gate.js?v=248"></script>
-<script src="OFFGRD-mobile.js?v=248"></script>
+<script type="module" src="OFFGRD-account.js?v=249"></script>
+<script src="OFFGRD-role-gate.js?v=249"></script>
+<script src="OFFGRD-mobile.js?v=249"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
