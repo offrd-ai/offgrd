@@ -17,16 +17,17 @@ function gameNaturalKey(opp, week, side) {
     String(side || "")
   );
 }
+function seasonRowPlayNum(r) {
+  if (!r) return "";
+  if (r.playNum != null && r.playNum !== "") return r.playNum;
+  if (r["PLAY #"] != null && r["PLAY #"] !== "") return r["PLAY #"];
+  return "";
+}
 function seasonRowIdentity(r) {
   if (!r) return "∅";
   if (r.callId) return "c:" + String(r.callId);
   if (r.source === "live_call" && r.id) return "c:" + String(r.id);
-  const playNum =
-    r.playNum != null && r.playNum !== ""
-      ? r.playNum
-      : r["PLAY #"] != null
-        ? r["PLAY #"]
-        : "";
+  const playNum = seasonRowPlayNum(r);
   return [
     "s",
     r.date || "",
@@ -49,7 +50,10 @@ function mergeSeasonRows(a, b) {
   const map = new Map();
   (a || []).forEach((r) => map.set(seasonRowIdentity(r), r));
   (b || []).forEach((r) => map.set(seasonRowIdentity(r), r));
-  return Array.from(map.values());
+  const out = Array.from(map.values());
+  const hasPlayNum = out.some((r) => seasonRowPlayNum(r) !== "");
+  if (!hasPlayNum) return out;
+  return out.filter((r) => seasonRowPlayNum(r) !== "");
 }
 function mergeGames(cloudRows, local) {
   const byCid = new Map();
@@ -280,6 +284,60 @@ assert(
   maryMerged[0].updatedAt === cloudMary.updated_at,
   "newer cloud updatedAt wins as CAS base"
 );
+
+/* Legacy no-playNum survivors + restored playNum rows must not double-count. */
+const legacyNoPn = {
+  date: "vs St Marys 11/21/2025",
+  down: 1,
+  distance: 10,
+  hash: "R",
+  coverage: "Cover 4",
+  fieldZone: "OWN",
+  source: "scout_import",
+  front: "4-3",
+  formation: "SPREAD",
+  qtr: "1",
+  result: "Rush",
+  /* no playNum — pre-fix collapsed survivor */
+};
+const restoredPn = Object.assign({}, legacyNoPn, { playNum: 6 });
+const overMerged = mergeSeasonRows(
+  [legacyNoPn, Object.assign({}, legacyNoPn, { formation: "ACE" })],
+  [restoredPn, Object.assign({}, restoredPn, { playNum: 33, formation: "2x1 Wing" })]
+);
+assert(
+  overMerged.length === 2,
+  "no-playNum dropped when playNum rows present, got " + overMerged.length
+);
+assert(
+  overMerged.every((r) => seasonRowPlayNum(r) !== ""),
+  "every surviving row is playNum-keyed"
+);
+const gameOver = mergeGames(
+  [
+    {
+      id: "mary-def-2",
+      opponent: "Parkway North",
+      week: "vs St Marys 11/21/2025",
+      side: "def",
+      source: "import",
+      updated_at: "2026-08-07T04:00:00.000Z",
+      rows: [restoredPn, Object.assign({}, restoredPn, { playNum: 33, formation: "2x1 Wing" })],
+    },
+  ],
+  [
+    {
+      cid: "mary-def-2",
+      opponent: "Parkway North",
+      week: "vs St Marys 11/21/2025",
+      side: "def",
+      source: "import",
+      updatedAt: "2026-08-07T03:00:00.000Z",
+      rows: [legacyNoPn, Object.assign({}, legacyNoPn, { hash: "M", coverage: "Cover 3" })],
+    },
+  ]
+);
+assert(gameOver[0].rows.length === 2, "game merge keeps only playNum rows, got " + gameOver[0].rows.length);
 
 console.log("ok: merge-games idempotent", {
   games: merged.length,

@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=249";
-import { openAuthModal } from "./OFFGRD-auth.js?v=249";
+import { Cloud } from "./OFFGRD-cloud.js?v=250";
+import { openAuthModal } from "./OFFGRD-auth.js?v=250";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -878,18 +878,31 @@ function gameNaturalKey(opp, week, side){
  * 61→44). Include front/formation/qtr/result/playNum so mergeGames stays idempotent
  * without dropping real snaps.
  */
+function seasonRowPlayNum(r){
+  if(!r) return "";
+  if(r.playNum!=null&&r.playNum!=="") return r.playNum;
+  if(r["PLAY #"]!=null&&r["PLAY #"]!=="") return r["PLAY #"];
+  return "";
+}
 function seasonRowIdentity(r){
   if(!r) return "∅";
   if(r.callId) return "c:"+String(r.callId);
   if(r.source==="live_call" && r.id) return "c:"+String(r.id);
-  const playNum=(r.playNum!=null&&r.playNum!=="")?r.playNum:(r["PLAY #"]!=null?r["PLAY #"]:"");
+  const playNum=seasonRowPlayNum(r);
   return ["s", r.date||"", r.down||"", r.distance||"", r.play||"", r.hash||"", (r.gain!=null?r.gain:""), r.source||"", r.coverage||"", r.fieldZone||"", r.front||"", r.formation||"", r.qtr||"", r.result||"", playNum].join("|");
 }
+/**
+ * Merge by identity, then drop legacy no-playNum survivors when any playNum-keyed
+ * row is present (St Mary's over-merge: collapsed 44 + restored 61 → 105).
+ */
 function mergeSeasonRows(a, b){
   const map=new Map();
   (a||[]).forEach(function(r){ map.set(seasonRowIdentity(r), r); });
   (b||[]).forEach(function(r){ map.set(seasonRowIdentity(r), r); });
-  return Array.from(map.values());
+  const out=Array.from(map.values());
+  const hasPlayNum=out.some(function(r){ return seasonRowPlayNum(r)!==""; });
+  if(!hasPlayNum) return out;
+  return out.filter(function(r){ return seasonRowPlayNum(r)!==""; });
 }
 function gameSig(g){
   if(!g) return "";
