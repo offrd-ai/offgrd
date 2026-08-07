@@ -1227,9 +1227,16 @@ export const Cloud = {
     /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw. */
     const rawPick = this._rawPickAssist(s.raw, {
       direction: ["play dir", "play direction", "dir", "direction", "play_dir"],
-      gap: ["gap"],
+      gap: ["gap", "hole"],
       qtr: ["qtr", "quarter", "q", "period"],
       series: ["series", "drive", "drive #", "drive no", "series #"],
+      personnel: [
+        "off pers",
+        "off personnel",
+        "personnel",
+        "pers",
+        "off_personnel",
+      ],
     });
     const direction = this._normPlayDir(rawPick.direction);
     const gap = rawPick.gap || "";
@@ -1239,6 +1246,10 @@ export const Cloud = {
       if (!isNaN(qn)) qtr = qn;
     }
     const series = rawPick.series || "";
+    const personnel =
+      (s.off_personnel && String(s.off_personnel).trim()) ||
+      rawPick.personnel ||
+      "";
 
     return {
       id: s.id,
@@ -1258,15 +1269,15 @@ export const Cloud = {
       play: s.play || "",
       formation: s.formation || "",
       formation_family: s.formation_family || "",
-      personnel: s.off_personnel || "",
+      personnel: personnel,
       motion: motion,
       motion_type: mot || "",
       gain: s.gain,
       success: success,
-      direction: direction,
-      gap: gap,
+      direction: direction || null,
+      gap: gap || null,
       qtr: qtr,
-      series: series,
+      series: series || null,
       snap_index: s.snap_index != null ? s.snap_index : null,
       tag_source: s.tag_source || "",
       clip_hash: s.clip_hash || null,
@@ -1323,14 +1334,14 @@ export const Cloud = {
   },
 
   _normPlayDir(raw) {
-    if (raw == null || String(raw).trim() === "") return "";
+    if (raw == null || String(raw).trim() === "") return null;
     const s = String(raw).trim().toUpperCase();
     if (/^(L|LEFT|LT)\b/.test(s) || s === "L") return "L";
     if (/^(R|RIGHT|RT)\b/.test(s) || s === "R") return "R";
     if (/^(M|MID|MIDDLE|CTR|CENTER)\b/.test(s) || s === "M") return "M";
     const ch = s.charAt(0);
     if (ch === "L" || ch === "R" || ch === "M") return ch;
-    return "";
+    return null;
   },
 };
 

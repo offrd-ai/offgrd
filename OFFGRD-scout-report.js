@@ -122,11 +122,17 @@
   }
 
   function renderRunDirectionHtml(offRows) {
+    if (!(offRows || []).length) {
+      return (
+        '<p class="sr-empty">No offensive snaps for this opponent. ' +
+        "Run direction lights up on an offense-scout import with Assist Play Dir.</p>"
+      );
+    }
     var dir = runByDirection(offRows || []);
     if (!dir || !dir.length) {
       return (
         '<p class="sr-empty">Run direction needs play-dir tags on run snaps (Assist <code>Play Dir</code> in raw). ' +
-        "Empty on defense-scout or undirected imports — lean, not law.</p>"
+        "Undirected imports stay empty — lean, not law.</p>"
       );
     }
     var tot = dir.reduce(function (a, r) { return a + r.n; }, 0);
@@ -333,7 +339,7 @@
         var zero = cov.arr.filter(function (c) {
           return /^cover\s*0$/i.test(String(c.k || "").trim()) && c.pct >= SPIKE_PCT && c.n >= SPIKE_N;
         })[0];
-        var prN = g.rows.filter(function (r) { return +r.pressure === 1; }).length;
+        var prN = Math.round(pressureRate(g.rows) * g.n);
         h +=
           "<tr><td><b>" +
           esc(g.personnel) +
@@ -367,20 +373,34 @@
       h +=
         '<table class="sr-read-tbl"><thead><tr><th>Personnel</th><th>Run / Pass</th><th>Top concepts</th><th>Snaps</th></tr></thead><tbody>';
       offG.forEach(function (g) {
-        var rs = runShare(g.rows);
+        var runN = g.rows.filter(function (r) {
+          return /run/i.test(r.playType || "");
+        }).length;
+        var passN = g.rows.filter(function (r) {
+          return /pass/i.test(r.playType || "");
+        }).length;
+        var typed = runN + passN;
+        var rs = typed ? runN / typed : runShare(g.rows);
         var concepts = topConcepts(g.rows, 3)
           .map(function (c) {
-            return esc(c.k) + " " + Math.round(c.pct * 100) + "%";
+            return (
+              esc(c.k) +
+              " " +
+              Math.round(c.pct * 100) +
+              "% (" +
+              c.n +
+              ")"
+            );
           })
           .join("; ");
         h +=
           "<tr><td><b>" +
           esc(g.personnel) +
           "</b></td><td>" +
-          Math.round(rs * 100) +
-          "% run · " +
-          Math.round((1 - rs) * 100) +
-          "% pass</td><td>" +
+          (typed
+            ? fmtPctN(runN, typed) + " run · " + fmtPctN(passN, typed) + " pass"
+            : Math.round(rs * 100) + "% run · " + Math.round((1 - rs) * 100) + "% pass") +
+          "</td><td>" +
           (concepts || "—") +
           "</td><td>" +
           g.n +
@@ -1152,35 +1172,46 @@
       h += "</div>";
     }
 
-    /* Tier 2 A/B/C — zero-SQL; render on existing corpus; never touch McClure batch */
+    /* Tier 2 C → A → B — zero-SQL; C first (defense-scout useful now). D held. */
     var mixOffTier = provenanceMix(offRows || []);
     var mixPers = provenanceMix(
       (defRows || []).length || (offRows || []).length
         ? (defRows || []).concat(offRows || [])
         : []
     );
+    var printBtn = function (sec) {
+      return (
+        '<span class="sr-actions sr-no-print"><button type="button" class="ghost" data-sr-print="' +
+        sec +
+        '" style="padding:3px 9px">Print</button></span>'
+      );
+    };
 
-    if ((offRows || []).length) {
-      h += sectionHead("Run direction analysis", mixOffTier);
-      h +=
-        '<p class="foot">Directed run snaps only (L/M/R from Assist). Reuses Tendencies run-by-direction math.</p>';
-      h += renderRunDirectionHtml(offRows);
-    }
+    h += sectionHead("Personnel grouping", mixPers, printBtn("personnel"));
+    h +=
+      '<p class="foot">Groups with n&lt;3 hidden. Cover 0 spike same honesty rule as the read sheet (≥20% &amp; n≥3). Review-gated corpus only — null coverage does not count until coach-confirmed.</p>';
+    h +=
+      '<div data-sr-section-wrap="personnel">' +
+      renderPersonnelHtml(defRows || [], offRows || []) +
+      "</div>";
+
+    h += sectionHead("Run direction analysis", mixOffTier, printBtn("rundir"));
+    h +=
+      '<p class="foot">Directed run snaps only (L/M/R from Assist). Reuses Tendencies run-by-direction math.</p>';
+    h +=
+      '<div data-sr-section-wrap="rundir">' +
+      renderRunDirectionHtml(offRows || []) +
+      "</div>";
 
     if ((offRows || []).length) {
       var motHtml = renderMotionHtml(offRows);
       if (motHtml && motHtml.indexOf("section skipped") < 0) {
-        h += sectionHead("Motion tendency", mixOffTier);
+        h += sectionHead("Motion tendency", mixOffTier, printBtn("motion"));
         h +=
           '<p class="foot">Pass-after-motion vs no-motion baseline. Delta callout only when |Δ|≥12pp and both sides n≥5.</p>';
         h += motHtml;
       }
     }
-
-    h += sectionHead("Personnel grouping", mixPers);
-    h +=
-      '<p class="foot">Groups with n&lt;3 hidden. Cover 0 spike same honesty rule as the read sheet (≥20% &amp; n≥3).</p>';
-    h += renderPersonnelHtml(defRows || [], offRows || []);
 
     h += "</div>";
     return {
