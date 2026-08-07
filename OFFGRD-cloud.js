@@ -874,23 +874,57 @@ export const Cloud = {
     return data;
   },
   /**
-   * List Auto-Scout jobs for readiness chain (existing auto_scout_jobs table).
-   * Optional filter: opponent.
+   * List Auto-Scout jobs for readiness chain.
+   * Select only columns that exist on offgrd.auto_scout_jobs (no updated_at —
+   * that column is on scout_snaps; selecting it 400s the whole request).
+   * Scope by team_id in the query; opponent / batch filters are client-side
+   * so a missing optional column never breaks the request.
    */
   async listAutoScoutJobs(teamId, opts) {
     if (!OG || !teamId) return [];
     const o = opts || {};
-    let q = OG.from("auto_scout_jobs")
+    /* Keep this list tight — every name must exist on auto_scout_jobs. */
+    const { data, error } = await OG.from("auto_scout_jobs")
       .select(
-        "id, team_id, opponent, import_batch_id, source, status, clip_count, done_count, skipped_count, created_at, updated_at"
+        [
+          "id",
+          "team_id",
+          "opponent",
+          "opponent_id",
+          "import_batch_id",
+          "source",
+          "status",
+          "clip_count",
+          "done_count",
+          "skipped_count",
+          "created_at",
+          "finished_at",
+        ].join(",")
       )
       .eq("team_id", teamId)
       .order("created_at", { ascending: false })
-      .limit(200);
-    if (o.opponent) q = q.eq("opponent", o.opponent);
-    const { data, error } = await q;
+      .limit(o.limit || 200);
     if (error) throw error;
-    return data || [];
+    let rows = data || [];
+    const batchIds = (o.import_batch_ids || []).map(String).filter(Boolean);
+    const batchSet = batchIds.length ? new Set(batchIds) : null;
+    const wantOpp = o.opponent ? String(o.opponent).trim().toLowerCase() : "";
+    if (batchSet || wantOpp) {
+      rows = rows.filter(function (j) {
+        if (batchSet && j.import_batch_id && batchSet.has(String(j.import_batch_id))) {
+          return true;
+        }
+        if (
+          wantOpp &&
+          j.opponent &&
+          String(j.opponent).trim().toLowerCase() === wantOpp
+        ) {
+          return true;
+        }
+        return false;
+      });
+    }
+    return rows;
   },
   /**
    * Prior import batches for the same opponent-scout game key.

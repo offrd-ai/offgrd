@@ -324,18 +324,8 @@
           return r.coverage && r.coverage !== "?" && r.coverage !== "—";
         });
         var cov = fieldDist(covRows, "coverage");
-        var bars = cov.arr
-          .slice(0, 4)
-          .map(function (c) {
-            return (
-              '<span class="sr-bar-item">' +
-              esc(c.k) +
-              " " +
-              pct1(c.n, cov.tot) +
-              "%</span>"
-            );
-          })
-          .join(" ");
+        /* Mix vs tagged coverage tot (may be < g.n if some snaps lack coverage). */
+        var bars = coverageMixBars(cov.arr, cov.tot, 4);
         var zero = cov.arr.filter(function (c) {
           return /^cover\s*0$/i.test(String(c.k || "").trim()) && c.pct >= SPIKE_PCT && c.n >= SPIKE_N;
         })[0];
@@ -344,7 +334,7 @@
           "<tr><td><b>" +
           esc(g.personnel) +
           "</b></td><td><div class=\"sr-bars\">" +
-          (bars || "—") +
+          bars +
           "</div>";
         if (zero) {
           h +=
@@ -355,6 +345,14 @@
             "/" +
             cov.tot +
             ")</div>";
+        }
+        if (cov.tot < g.n) {
+          h +=
+            '<div class="foot">Coverage tagged on ' +
+            cov.tot +
+            "/" +
+            g.n +
+            " snaps</div>";
         }
         h +=
           "</td><td>" +
@@ -431,6 +429,43 @@
   function pct1(n, tot) {
     if (!tot) return 0;
     return Math.round((1000 * n) / tot) / 10;
+  }
+
+  /**
+   * Coverage mix bars that always account for full tot.
+   * Shows top `maxShow` slices; if more remain, append "+N other X% (n/tot)".
+   */
+  function coverageMixBars(covArr, tot, maxShow) {
+    maxShow = maxShow == null ? 4 : maxShow;
+    var arr = covArr || [];
+    if (!tot || !arr.length) return "—";
+    var shown = arr.slice(0, maxShow);
+    var shownN = 0;
+    shown.forEach(function (c) {
+      shownN += c.n;
+    });
+    var restN = tot - shownN;
+    var parts = shown.map(function (c) {
+      var p = c.pct1 != null ? c.pct1 : pct1(c.n, tot);
+      return (
+        '<span class="sr-bar-item">' + esc(c.k) + " " + p + "%</span>"
+      );
+    });
+    if (restN > 0) {
+      var otherCount = Math.max(0, arr.length - shown.length);
+      parts.push(
+        '<span class="sr-bar-item sr-bar-other">+' +
+          otherCount +
+          " other " +
+          pct1(restN, tot) +
+          "% (" +
+          restN +
+          "/" +
+          tot +
+          ")</span>"
+      );
+    }
+    return parts.join(" · ");
   }
 
   function distMatches(bucketDist, distance) {
@@ -927,6 +962,7 @@
       ".sr-read-tbl th{background:var(--chip,var(--rd-surface-2,#eef2f6));font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em}" +
       ".sr-bars{display:flex;flex-wrap:wrap;gap:4px 10px}" +
       ".sr-bar-item{font-weight:700}" +
+      ".sr-bar-other{opacity:.75;font-weight:600}" +
       ".sr-spike{font-size:12px;margin-top:4px;font-weight:700;color:var(--accent,#a8112b)}" +
       ".sr-actions{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}" +
       ".sr-empty{font-size:13px;opacity:.7;margin:8px 0}" +
@@ -998,18 +1034,8 @@
     var h =
       '<table class="sr-read-tbl"><thead><tr><th>Our look</th><th>Their coverage</th><th>Front lean</th><th>Pressure</th><th>n</th></tr></thead><tbody>';
     families.forEach(function (f) {
-      var bars = f.coverage
-        .slice(0, 4)
-        .map(function (c) {
-          return (
-            '<span class="sr-bar-item">' +
-            esc(c.k) +
-            " " +
-            c.pct1 +
-            "%</span>"
-          );
-        })
-        .join(" · ");
+      /* pct1 = round(1000*n/tot)/10 → 1/11 = 9.1 (not 0.9) */
+      var bars = coverageMixBars(f.coverage, f.n, 4);
       var fr = f.front
         ? esc(f.front.k) + " " + fmtPctN(f.front.n, f.n)
         : "—";
@@ -1283,8 +1309,17 @@
       var jobs = [];
       if (typeof C.listAutoScoutJobs === "function") {
         try {
-          jobs = await C.listAutoScoutJobs(tid, { opponent: opp });
+          var batchIds = forOpp
+            .map(function (b) {
+              return b.import_batch_id;
+            })
+            .filter(Boolean);
+          jobs = await C.listAutoScoutJobs(tid, {
+            opponent: opp,
+            import_batch_ids: batchIds,
+          });
         } catch (eJ) {
+          console.warn("[scout-report] listAutoScoutJobs", eJ && eJ.message);
           jobs = [];
         }
       }
@@ -1351,8 +1386,17 @@
       var jobs = [];
       if (typeof C.listAutoScoutJobs === "function") {
         try {
-          jobs = await C.listAutoScoutJobs(tid, { opponent: opponent });
+          var batchIdsMgr = forOpp
+            .map(function (b) {
+              return b.import_batch_id;
+            })
+            .filter(Boolean);
+          jobs = await C.listAutoScoutJobs(tid, {
+            opponent: opponent,
+            import_batch_ids: batchIdsMgr,
+          });
         } catch (eJ) {
+          console.warn("[scout-report] listAutoScoutJobs", eJ && eJ.message);
           jobs = [];
         }
       }
