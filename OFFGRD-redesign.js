@@ -274,7 +274,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "243";
+  const ASSET_V = "244";
 
   function getScoutTool() {
     try {

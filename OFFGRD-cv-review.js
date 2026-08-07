@@ -107,8 +107,7 @@
       '  <div class="row cv-review-actions">' +
       '    <button type="button" class="ghost" id="cvReviewPrev">← Prev</button>' +
       '    <button type="button" class="ghost" id="cvReviewNext">Next →</button>' +
-      '    <button type="button" class="ghost" id="cvReviewConfirmGreen" style="margin-left:auto;border-color:var(--good);color:var(--good)" title="Confirm every GREEN draft still in this queue">Confirm all GREEN</button>' +
-      '    <button type="button" class="ghost" id="cvReviewConfirm" style="border-color:var(--good);color:var(--good)">Confirm ↵</button>' +
+      '    <button type="button" class="ghost" id="cvReviewConfirm" style="margin-left:auto;border-color:var(--good);color:var(--good)">Confirm ↵</button>' +
       '    <button type="button" class="ghost" id="cvReviewClose">Close</button>' +
       "  </div>" +
       '  <p class="foot" id="cvReviewMsg" style="margin-top:8px"></p>' +
@@ -123,9 +122,6 @@
     };
     document.getElementById("cvReviewConfirm").onclick = function () {
       confirmCurrent();
-    };
-    document.getElementById("cvReviewConfirmGreen").onclick = function () {
-      confirmAllGreen();
     };
     document.getElementById("cvReviewClose").onclick = function () {
       close();
@@ -422,7 +418,7 @@
     if (g.lane === "green") {
       return (
         '<div class="cv-lane cv-lane-green" role="status">' +
-        "<strong>GREEN · Quick-confirm</strong> — shell + coverage drafted. Enter confirms (AI-TAGGED → COACH-VERIFIED)." +
+        "<strong>GREEN · AI draft</strong> — confirm the coverage (glance + Enter). Suggestion only until you confirm." +
         "</div>"
       );
     }
@@ -451,13 +447,12 @@
       '<span class="cv-lane-chip cv-lane-chip-amber">AMBER ' +
       c.amber +
       "</span>" +
-      '<span class="foot">sorted quick-confirm first</span>';
+      '<span class="foot">glance + confirm per snap</span>';
   }
 
   function syncActions() {
     var has = !!(state.snaps && state.snaps.length);
     var confirm = document.getElementById("cvReviewConfirm");
-    var confirmGreen = document.getElementById("cvReviewConfirmGreen");
     var prev = document.getElementById("cvReviewPrev");
     var next = document.getElementById("cvReviewNext");
     var amberNeedsCov = false;
@@ -477,16 +472,7 @@
       confirm.title = amberNeedsCov
         ? "Tag coverage before confirming (AMBER)"
         : "Confirm this snap";
-    }
-    var greenN = countLanes(state.snaps).green;
-    if (confirmGreen) {
-      confirmGreen.disabled = !has || state.busy || greenN === 0;
-      confirmGreen.setAttribute(
-        "aria-disabled",
-        has && !state.busy && greenN > 0 ? "false" : "true"
-      );
-      confirmGreen.textContent =
-        greenN > 0 ? "Confirm all GREEN (" + greenN + ")" : "Confirm all GREEN";
+      confirm.style.marginLeft = "auto";
     }
     if (prev) prev.disabled = !has || state.idx <= 0;
     if (next)
@@ -862,15 +848,6 @@
     return fixes;
   }
 
-  /** Bulk-confirm GREEN drafts using stored shell/coverage (no front/pressure). */
-  function fixesFromGreenSnap(snap) {
-    var cv = cvPayload(snap);
-    var fixes = {};
-    if (snap.coverage) fixes.coverage = snap.coverage;
-    if (cv.coverage_shell) fixes.coverage_shell = cv.coverage_shell;
-    return fixes;
-  }
-
   async function confirmCurrent() {
     if (state.busy || !state.snaps.length) {
       syncActions();
@@ -919,67 +896,6 @@
       if (msgEl)
         msgEl.textContent =
           "Confirm failed: " + (e && e.message ? e.message : e);
-    } finally {
-      state.busy = false;
-      syncActions();
-    }
-  }
-
-  async function confirmAllGreen() {
-    if (state.busy || !state.snaps.length) {
-      syncActions();
-      return;
-    }
-    var C = cloud();
-    var msgEl = document.getElementById("cvReviewMsg");
-    if (!C || typeof C.resolveCvSnap !== "function") {
-      if (msgEl) msgEl.textContent = "Sign in required to confirm.";
-      return;
-    }
-    var greens = state.snaps.filter(function (s) {
-      return gateMeta(s).lane === "green" && s.coverage;
-    });
-    if (!greens.length) {
-      if (msgEl) msgEl.textContent = "No GREEN drafts with coverage to confirm.";
-      syncActions();
-      return;
-    }
-    state.busy = true;
-    if (msgEl) msgEl.textContent = "Confirming " + greens.length + " GREEN…";
-    var ok = 0;
-    var fail = 0;
-    var doneIds = Object.create(null);
-    try {
-      for (var i = 0; i < greens.length; i++) {
-        var s = greens[i];
-        try {
-          await C.resolveCvSnap(s.id, fixesFromGreenSnap(s));
-          doneIds[s.id] = true;
-          ok++;
-        } catch (eOne) {
-          fail++;
-        }
-      }
-      state.snaps = state.snaps.filter(function (s) {
-        return !doneIds[s.id];
-      });
-      state.idx = 0;
-      if (state.snaps.length) setDraftFromSnap(state.snaps[0]);
-      renderBody();
-      renderAgree();
-      try {
-        if (root.OFFGRD_REFRESH_SCOUT_SNAPS) await root.OFFGRD_REFRESH_SCOUT_SNAPS();
-      } catch (eR) {}
-      if (msgEl) {
-        msgEl.textContent =
-          "Confirmed " +
-          ok +
-          " GREEN" +
-          (fail ? ", " + fail + " failed" : "") +
-          ". " +
-          state.snaps.length +
-          " left.";
-      }
     } finally {
       state.busy = false;
       syncActions();
