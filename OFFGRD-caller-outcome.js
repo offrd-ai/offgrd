@@ -75,6 +75,7 @@
   }
 
   function dbToNum(db) {
+    if (db === "GOAL") return 3;
     if (db === "1-3") return 2;
     if (db === "4-6") return 5;
     if (db === "7-9") return 8;
@@ -85,8 +86,10 @@
   /**
    * Numeric yards-to-go for chain estimates / chip edits.
    * "10+" seeds at 10 (standard 1st & 10) — not dbToNum's filter midpoint 12.
+   * GOAL seeds at 3 (short goal-to-go midpoint) unless an exact estYards is kept.
    */
   function estYardsForBucket(db) {
+    if (db === "GOAL") return 3;
     if (db === "1-3") return 2;
     if (db === "4-6") return 5;
     if (db === "7-9") return 8;
@@ -101,6 +104,132 @@
       return Math.max(1, Math.round(+sit.estYards));
     }
     return estYardsForBucket(sit.db);
+  }
+
+  /** GOAL / red-zone first downs — yards-to-goal stays in [1, 10]. */
+  function clampGoalYards(y) {
+    var n = Math.round(+y);
+    if (isNaN(n)) n = 10;
+    if (n < 1) n = 1;
+    if (n > 10) n = 10;
+    return n;
+  }
+
+  /** True when next first down should be 1st & GOAL (not 1st & 10). */
+  function isGoalSituation(sit) {
+    sit = sit || {};
+    if (sit.db === "GOAL") return true;
+    if (sit.zone === "REDZONE") return true;
+    return false;
+  }
+
+  /**
+   * Manual chip/reset write-back: exact estYards when known, else band midpoint.
+   * Keeps subsequent advances derived from the corrected number.
+   */
+  function writebackEstYards(sit, patch) {
+    sit = sit || {};
+    patch = patch || {};
+    var next = {
+      dn: patch.dn != null ? +patch.dn : +sit.dn || 1,
+      db: patch.db != null ? patch.db : sit.db || "10+",
+      hash: patch.hash != null ? patch.hash : sit.hash != null ? sit.hash : "ANY",
+      zone: patch.zone != null ? patch.zone : sit.zone != null ? sit.zone : "ANY",
+    };
+    var yards;
+    if (patch.estYards != null && !isNaN(+patch.estYards)) {
+      yards = Math.round(+patch.estYards);
+    } else {
+      yards = estYardsForBucket(next.db);
+    }
+    if (next.db === "GOAL") yards = clampGoalYards(yards);
+    else if (yards < 1) yards = 1;
+    next.estYards = yards;
+    return next;
+  }
+
+  /**
+   * Fresh first down after conversion / 1ST & 10 reset.
+   * REDZONE or GOAL → 1st & GOAL (estYards clamped); else 1st & 10.
+   */
+  function firstDownSituation(sit, opts) {
+    sit = sit || {};
+    opts = opts || {};
+    var hash = sit.hash != null ? sit.hash : "ANY";
+    var zone = sit.zone != null ? sit.zone : "ANY";
+    var reason = opts.reason || "first_down";
+    if (isGoalSituation(sit)) {
+      var gYards =
+        opts.estYards != null && !isNaN(+opts.estYards)
+          ? clampGoalYards(opts.estYards)
+          : clampGoalYards(sit.estYards != null ? sit.estYards : 10);
+      return {
+        dn: 1,
+        db: "GOAL",
+        estYards: gYards,
+        hash: hash,
+        zone: zone === "ANY" ? "REDZONE" : zone,
+        inferred: true,
+        reason: reason,
+      };
+    }
+    return {
+      dn: 1,
+      db: "10+",
+      estYards: 10,
+      hash: hash,
+      zone: zone,
+      inferred: true,
+      reason: reason,
+    };
+  }
+
+  /**
+   * O Caller: suggest "Moved the chains" when need ≤ logged gain-band midpoint.
+   * D Caller shows the chip ungated — pass force=true.
+   */
+  function shouldSuggestMovedChains(sit, outcome, force) {
+    if (force) return true;
+    outcome = outcome || {};
+    if (outcome.gain == null || isNaN(+outcome.gain)) return false;
+    return seedEstYards(sit) <= +outcome.gain;
+  }
+
+  /** Explicit conversion exit ramp — overrides estYards via firstDownSituation. */
+  function movedChainsSituation(sit) {
+    return firstDownSituation(sit, { reason: "moved_chains" });
+  }
+
+  /**
+   * Drive-over exit: punt / downs / takeaway / score.
+   * Resets to a clean next-series 1st & 10 (score opens try flow).
+   */
+  function driveOverSituation(kind, sit) {
+    sit = sit || {};
+    var reason =
+      kind === "punt"
+        ? "change_of_possession"
+        : kind === "downs"
+          ? "turnover_on_downs"
+          : kind === "takeaway"
+            ? "turnover"
+            : kind === "score"
+              ? "td"
+              : null;
+    if (!reason) return { skip: true, reason: "bad_drive_over" };
+    var next = {
+      dn: 1,
+      db: "10+",
+      estYards: 10,
+      hash: "ANY",
+      zone: "ANY",
+      inferred: true,
+      needsInput: kind !== "score",
+      needsTry: kind === "score",
+      reason: reason,
+      driveOver: kind,
+    };
+    return next;
   }
 
   function isSuccessVal(down, distance, gain) {
@@ -364,15 +493,8 @@
     if (stKind) {
       var stSpec = stInfo ? stInfo.spec : null;
       if (stSpec && stSpec.fakeConverted) {
-        return {
-          dn: 1,
-          db: "10+",
-          estYards: 10,
-          hash: sit.hash != null ? sit.hash : "ANY",
-          zone: sit.zone != null ? sit.zone : "ANY",
-          inferred: true,
-          reason: "fake_converted",
-        };
+        var fakeNext = firstDownSituation(sit, { reason: "fake_converted" });
+        return fakeNext;
       }
       return { skip: true, needsInput: true, reason: "change_of_possession" };
     }
@@ -386,6 +508,10 @@
     if (outcome.result === "td") {
       return { skip: true, needsInput: true, reason: "td" };
     }
+    /* Explicit conversion exit ramp (Moved the chains) — overrides gain math. */
+    if (outcome.movedChains) {
+      return movedChainsSituation(sit);
+    }
     var gain = outcome.gain;
     if (gain == null || isNaN(+gain)) return { skip: true, reason: "no_gain" };
     gain = +gain;
@@ -395,15 +521,7 @@
     var zone = sit.zone != null ? sit.zone : "ANY";
 
     if (gain >= dist) {
-      return {
-        dn: 1,
-        db: "10+",
-        estYards: 10,
-        hash: hash,
-        zone: zone,
-        inferred: true,
-        reason: "first_down",
-      };
+      return firstDownSituation(sit, { reason: "first_down" });
     }
     var left = dist - gain;
     if (left < 1) left = 1;
@@ -411,10 +529,14 @@
     if (nextDn > 4) {
       return { skip: true, needsInput: true, reason: "turnover_on_downs" };
     }
+    var nextDb =
+      (sit.db === "GOAL" || zone === "REDZONE") && left <= 10
+        ? "GOAL"
+        : yardsToDb(left);
     return {
       dn: nextDn,
-      db: yardsToDb(left),
-      estYards: left,
+      db: nextDb,
+      estYards: nextDb === "GOAL" ? clampGoalYards(left) : left,
       hash: hash,
       zone: zone,
       inferred: true,
@@ -491,6 +613,13 @@
     dbToNum: dbToNum,
     estYardsForBucket: estYardsForBucket,
     seedEstYards: seedEstYards,
+    clampGoalYards: clampGoalYards,
+    isGoalSituation: isGoalSituation,
+    writebackEstYards: writebackEstYards,
+    firstDownSituation: firstDownSituation,
+    shouldSuggestMovedChains: shouldSuggestMovedChains,
+    movedChainsSituation: movedChainsSituation,
+    driveOverSituation: driveOverSituation,
     isSuccessVal: isSuccessVal,
     bucketToGain: bucketToGain,
     resultLabel: resultLabel,

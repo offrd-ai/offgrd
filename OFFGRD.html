@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v252: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v253: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -327,10 +327,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=252"></script>
-<script src="OFFGRD-brand-persist.js?v=252"></script>
-<script src="supabase.js?v=252"></script>
-<script src="OFFGRD-cache-gate.js?v=252"></script>
+<script src="OFFGRD-config.js?v=253"></script>
+<script src="OFFGRD-brand-persist.js?v=253"></script>
+<script src="supabase.js?v=253"></script>
+<script src="OFFGRD-cache-gate.js?v=253"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -372,30 +372,30 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=252"></script>
-<script src="OFFGRD-pos-glossary.js?v=252"></script>
-<script src="OFFGRD-autoderive.js?v=252"></script>
-<script src="OFFGRD-scoutcards.js?v=252"></script>
-<script src="OFFGRD-tendencies.js?v=252"></script>
-<script src="OFFGRD-scout-report.js?v=252"></script>
-<script src="OFFGRD-week-autotest.js?v=252"></script>
-<script src="OFFGRD-weeklypackage.js?v=252"></script>
-<script src="OFFGRD-telestrate.js?v=252"></script>
-<script src="OFFGRD-redesign.js?v=252"></script>
-<script src="OFFGRD-shell.js?v=252"></script>
-<script src="OFFGRD-caller-outcome.js?v=252"></script>
-<script src="OFFGRD-formations-data.js?v=252"></script>
-<script src="OFFGRD-formation-canon.js?v=252"></script>
-<script src="OFFGRD-assist-import.js?v=252"></script>
-<script src="OFFGRD-cv-review.js?v=252"></script>
-<script src="OFFGRD-frame-capture.js?v=252"></script>
-<script src="OFFGRD-caller-log.js?v=252"></script>
-<script src="OFFGRD-caller-sync.js?v=252"></script>
-<script src="OFFGRD-caller-analysis.js?v=252"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=252"></script>
-<script src="OFFGRD-booth-ask.js?v=252"></script>
-<script src="OFFGRD-caller-select.js?v=252"></script>
-<script src="OFFGRD-dcaller.js?v=252"></script>
+<script src="OFFGRD-render.js?v=253"></script>
+<script src="OFFGRD-pos-glossary.js?v=253"></script>
+<script src="OFFGRD-autoderive.js?v=253"></script>
+<script src="OFFGRD-scoutcards.js?v=253"></script>
+<script src="OFFGRD-tendencies.js?v=253"></script>
+<script src="OFFGRD-scout-report.js?v=253"></script>
+<script src="OFFGRD-week-autotest.js?v=253"></script>
+<script src="OFFGRD-weeklypackage.js?v=253"></script>
+<script src="OFFGRD-telestrate.js?v=253"></script>
+<script src="OFFGRD-redesign.js?v=253"></script>
+<script src="OFFGRD-shell.js?v=253"></script>
+<script src="OFFGRD-caller-outcome.js?v=253"></script>
+<script src="OFFGRD-formations-data.js?v=253"></script>
+<script src="OFFGRD-formation-canon.js?v=253"></script>
+<script src="OFFGRD-assist-import.js?v=253"></script>
+<script src="OFFGRD-cv-review.js?v=253"></script>
+<script src="OFFGRD-frame-capture.js?v=253"></script>
+<script src="OFFGRD-caller-log.js?v=253"></script>
+<script src="OFFGRD-caller-sync.js?v=253"></script>
+<script src="OFFGRD-caller-analysis.js?v=253"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=253"></script>
+<script src="OFFGRD-booth-ask.js?v=253"></script>
+<script src="OFFGRD-caller-select.js?v=253"></script>
+<script src="OFFGRD-dcaller.js?v=253"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1691,20 +1691,39 @@ function callerSitDefaults(){
 function callerEstYardsForBucket(db){
   const O=callerOut();
   if(O&&O.estYardsForBucket) return O.estYardsForBucket(db);
+  if(db==="GOAL") return 3;
   if(db==="1-3") return 2;
   if(db==="4-6") return 5;
   if(db==="7-9") return 8;
   return 10;
 }
+/** GOAL has no scout bucket — derive filter band from estYards. */
+function callerDbFilter(db, estY){
+  if(db!=="GOAL") return db;
+  const O=callerOut();
+  const y=estY!=null?estY:(callerSit&&callerSit.estYards);
+  if(O&&O.yardsToDb&&y!=null) return O.yardsToDb(y);
+  return "1-3";
+}
 function callerNormalizeSit(s){
   s=Object.assign(callerSitDefaults(), s||{});
   if(s.estYards==null||isNaN(+s.estYards)) s.estYards=callerEstYardsForBucket(s.db);
-  else s.estYards=Math.max(1,Math.round(+s.estYards));
+  else if(s.db==="GOAL"){
+    const O=callerOut();
+    s.estYards=O&&O.clampGoalYards?O.clampGoalYards(s.estYards):Math.min(10,Math.max(1,Math.round(+s.estYards)));
+  }else s.estYards=Math.max(1,Math.round(+s.estYards));
   return s;
 }
 function callerSitLabel(cs){
   cs=cs||callerSit;
-  return (ordinal(+cs.dn)+"").toUpperCase()+" & "+cs.db;
+  const dist=cs.db==="GOAL"?"GOAL":cs.db;
+  return (ordinal(+cs.dn)+"").toUpperCase()+" & "+dist;
+}
+function callerResetFirstDownLabel(cs){
+  cs=cs||callerSit;
+  const O=callerOut();
+  if(O&&O.isGoalSituation&&O.isGoalSituation(cs)) return "1ST & GOAL";
+  return "1ST & 10";
 }
 let _callerSyncT=null;
 let _callerChan=null;
@@ -2213,6 +2232,7 @@ function wirePractice(host){
 /** Caller / plan distance label ? representative yards. Null if unrecognised (never invent 10+). */
 const CALLER_DB_BUCKETS=["1-3","4-6","7-9","10+"];
 function dbToNum(db){
+  if(db==="GOAL") return 3;
   if(db==="1-3") return 2;
   if(db==="4-6") return 5;
   if(db==="7-9") return 8;
@@ -2417,9 +2437,11 @@ function callerPlayType(pl){
   return playKind(pl);
 }
 function callerExpectSample(){
+  /* GOAL filters as short yardage for scout/live matching. */
   const def=oppRows("def"), cs=callerSit;
-  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
-  const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
+  const dbF=callerDbFilter(cs.db, cs.estYards);
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
+  const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
   const gc=g.filter(r=>r.coverage&&r.coverage!=="?");
   const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
   return {g:g, cov:cov, target:cov?cov.k:null, def:def};
@@ -3493,6 +3515,50 @@ function callerConfirmSit(){
   callerSaveLocal();
   renderCaller();
 }
+/** One-tap conversion / series reset — writes exact estYards (10 or GOAL clamp). */
+function callerResetFirstDown(){
+  const O=callerOut();
+  if(!O||!O.firstDownSituation) return;
+  const next=O.firstDownSituation(callerSit, { reason:"manual_reset" });
+  callerApplyInfer(next);
+  callerSit.inferred=true;
+  callerSit.needsInput=false;
+  callerSaveLocal();
+  renderCaller();
+}
+/** Drive-over exit ramp — punt / downs / takeaway / score. */
+function callerDriveOver(kind){
+  const O=callerOut();
+  if(!O||!O.driveOverSituation) return;
+  const next=O.driveOverSituation(kind, callerSit);
+  if(!next||next.skip) return;
+  callerApplyInfer(next);
+  callerSaveLocal();
+  renderCaller();
+  try{ callerJumpTop(true); }catch(e){}
+}
+/** Result-entry conversion chip — overrides estYards to 1st & 10 / GOAL. */
+function callerMovedChains(i){
+  const O=callerOut();
+  if(!O||!O.movedChainsSituation) return;
+  const entry=CALLER_LOG[i];
+  const from=entry
+    ? { dn:entry.dn, db:entry.db, estYards:entry.estYards!=null?entry.estYards:callerSit.estYards, hash:entry.hash, zone:entry.zone }
+    : callerSit;
+  const next=O.movedChainsSituation(from);
+  if(entry&&entry.result){
+    callerAppend("outcome", entry.playIndex, {
+      result: entry.result,
+      flag: entry.flag||null,
+      conceptOverride: entry.conceptOverride||null,
+      movedChains: true
+    });
+  }
+  callerApplyInfer(next);
+  callerSaveLocal();
+  renderCaller();
+  try{ callerJumpTop(true); }catch(e){}
+}
 function callerSitNeedMsg(){
   if(callerSit.pendingTry) return "Touchdown — Kick XP, go for 2, or skip to next series (1st & 10)";
   if(callerSit.forTwo) return "2-pt — call a play below · Converted/Failed feeds the algo";
@@ -3501,6 +3567,7 @@ function callerSitNeedMsg(){
   if(r==="turnover_on_downs") return "Turnover on downs — confirm 1st & 10 when you're back on O";
   if(r==="change_of_possession") return "Change of possession — confirm 1st & 10 when you're back on O";
   if(r==="penalty") return "Penalty — set the next situation · tap chips to override";
+  if(r==="moved_chains"||r==="manual_reset") return "First down — confirm or tap chips to override";
   if(callerSit.needsInput) return "Possession / penalty — confirm the next situation · tap chips to override";
   return "Auto from last result — tap chips to override";
 }
@@ -3509,8 +3576,16 @@ function callerApplyInfer(next){
   if(!next) return;
   if(next.dn!=null) callerSit.dn=next.dn;
   if(next.db!=null) callerSit.db=next.db;
-  if(next.estYards!=null&&!isNaN(+next.estYards)) callerSit.estYards=Math.max(1,Math.round(+next.estYards));
-  else if(next.db!=null) callerSit.estYards=callerEstYardsForBucket(next.db);
+  if(next.estYards!=null&&!isNaN(+next.estYards)){
+    callerSit.estYards=callerSit.db==="GOAL"
+      ? (callerOut()&&callerOut().clampGoalYards?callerOut().clampGoalYards(next.estYards):Math.min(10,Math.max(1,Math.round(+next.estYards))))
+      : Math.max(1,Math.round(+next.estYards));
+  }else if(next.db!=null){
+    const wb=callerOut()&&callerOut().writebackEstYards
+      ? callerOut().writebackEstYards(callerSit, { db:next.db, dn:next.dn, zone:next.zone })
+      : null;
+    callerSit.estYards=wb?wb.estYards:callerEstYardsForBucket(next.db);
+  }
   if(next.hash!=null) callerSit.hash=next.hash;
   if(next.zone!=null) callerSit.zone=next.zone;
   callerSit.needReason=next.reason||null;
@@ -3539,7 +3614,7 @@ function callerMaybeAdvanceAfterGrade(entry){
   if(!O||!O.inferNextSituation||!entry||!entry.result) return;
   const next=O.inferNextSituation(
     { dn:entry.dn, db:entry.db, estYards:entry.estYards!=null?entry.estYards:callerSit.estYards, hash:entry.hash, zone:entry.zone },
-    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated },
+    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated, movedChains:!!entry.movedChains },
     entry.playType
   );
   if(next.skip&&!next.needsInput&&!next.needsTry&&!next.inferred) return;
@@ -3596,11 +3671,16 @@ function callerSubmitEdit(playIndex, then){
   const front=frontEl? (frontEl.value||null) : (entry.front||null);
   const pressure=pressEl? (pressEl.value||null) : (entry.pressure||null);
   const coverage=covEl? (covEl.value||null) : (entry.coverage||null);
-  const sitTxt=ordinal(dn)+" & "+db+(hash&&hash!=="ANY"?" "+hash:"");
+  const sitTxt=ordinal(dn)+" & "+(db==="GOAL"?"GOAL":db)+(hash&&hash!=="ANY"?" "+hash:"");
+  const Oedit=callerOut();
+  const wbEdit=Oedit&&Oedit.writebackEstYards
+    ? Oedit.writebackEstYards(entry, { dn:dn, db:db, zone:zone })
+    : { estYards: callerEstYardsForBucket(db) };
   callerAppend("correction", playIndex, {
     play: play,
     dn: dn,
     db: db,
+    estYards: wbEdit.estYards,
     hash: hash,
     zone: zone,
     sitTxt: sitTxt,
@@ -3650,7 +3730,7 @@ function callerEditPanelHtml(){
   h+=`<div class="grid" style="gap:8px">`;
   h+=`<div><div class="lbl">Play</div><input id="callerEditPlay" type="text" value="${esc(entry.play||"")}" style="width:100%;min-height:44px;padding:8px 10px;font-size:16px;font-weight:700"/></div>`;
   h+=`<div><div class="lbl">Down</div><select id="callerEditDn" style="width:100%;min-height:44px">`+[1,2,3,4].map(d=>`<option value="${d}"${+entry.dn===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
-  h+=`<div><div class="lbl">Distance</div><select id="callerEditDb" style="width:100%;min-height:44px">`+["1-3","4-6","7-9","10+"].map(d=>`<option value="${d}"${entry.db===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
+  h+=`<div><div class="lbl">Distance</div><select id="callerEditDb" style="width:100%;min-height:44px">`+["1-3","4-6","7-9","10+","GOAL"].map(d=>`<option value="${d}"${entry.db===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
   h+=`<div><div class="lbl">Hash</div><select id="callerEditHash" style="width:100%;min-height:44px">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([v,l])=>`<option value="${v}"${entry.hash===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   h+=`<div><div class="lbl">Field</div><select id="callerEditZone" style="width:100%;min-height:44px">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([v,l])=>`<option value="${v}"${entry.zone===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   if(!isST){
@@ -3928,10 +4008,27 @@ function callerResultChipsHtml(l, i, opts){
   const forTwo=callerIsTwoPoint(l);
   const stKind=forTwo?"twopt":(O.isSpecialType&&O.isSpecialType(l.playType)?l.playType:(O.stResultInfo&&O.stResultInfo(l.result)&&O.stResultInfo(l.result).kind!=="twopt"?O.stResultInfo(l.result).kind:null));
   const buckets=stKind&&O.stSetFor?O.stSetFor(stKind):O.RESULT_BUCKETS;
-  return `<div class="caller-out-results">`+buckets.map(b=>{
+  let h=`<div class="caller-out-results">`+buckets.map(b=>{
     const on=l.result===b.id;
     return `<button type="button" class="caller-out-btn${on?" on":""}" onclick="callerGrade(${i},'${b.id}')">${b.label}</button>`;
-  }).join("")+`</div>`;
+  }).join("");
+  /* Conversion exit ramp — auto-suggest when estYards ≤ gain-band midpoint. */
+  if(!stKind&&!forTwo&&O.movedChainsSituation){
+    const sitAt={ dn:l.dn, db:l.db, estYards:l.estYards!=null?l.estYards:callerSit.estYards, zone:l.zone, hash:l.hash };
+    const suggest=l.result&&O.shouldSuggestMovedChains?O.shouldSuggestMovedChains(sitAt, { gain:l.gain }):false;
+    h+=`<button type="button" class="caller-out-btn caller-out-convert${suggest?" suggest":""}${l.movedChains?" on":""}" onclick="callerMovedChains(${i})">Moved the chains</button>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerDriveOverHtml(){
+  if(callerSit.pendingTry||callerSit.forTwo) return "";
+  return `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`
+    +`<button type="button" onclick="callerDriveOver('punt')">Punt</button>`
+    +`<button type="button" onclick="callerDriveOver('downs')">Downs</button>`
+    +`<button type="button" onclick="callerDriveOver('takeaway')">Takeaway</button>`
+    +`<button type="button" onclick="callerDriveOver('score')">Score</button>`
+    +`</div></div>`;
 }
 function callerFlagChipsHtml(l, i){
   const O=callerOut(); if(!O||!l.result) return "";
@@ -4171,8 +4268,9 @@ function callerRankedCalls(){
   const ex=(typeof callerExpectSample==="function")?callerExpectSample():{target:null,cov:null};
   const cs=callerSit, target=ex.target;
   if(!target) return { target:null, cov:ex.cov||null, list:[] };
-  const runs=bestCallsFor(target,+cs.dn,cs.db,"Run").map(r=>Object.assign({kind:"Run"},r));
-  const pass=bestCallsFor(target,+cs.dn,cs.db,"Pass").map(r=>Object.assign({kind:"Pass"},r));
+  const dbF=callerDbFilter(cs.db, cs.estYards);
+  const runs=bestCallsFor(target,+cs.dn,dbF,"Run").map(r=>Object.assign({kind:"Run"},r));
+  const pass=bestCallsFor(target,+cs.dn,dbF,"Pass").map(r=>Object.assign({kind:"Pass"},r));
   const list=runs.concat(pass).sort((a,b)=>b.sr-a.sr||b.n-a.n);
   return { target:target, cov:ex.cov||null, list:list };
 }
@@ -4317,9 +4415,10 @@ function renderCaller(){
   const g=expect.g, cov=expect.cov, target=expect.target, def=expect.def;
   const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
   const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
-  const cRuns=target?bestCallsFor(target,+cs.dn,cs.db,"Run").slice(0,2):[];
-  const cPass=target?bestCallsFor(target,+cs.dn,cs.db,"Pass").slice(0,2):[];
-  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
+  const dbF=callerDbFilter(cs.db, cs.estYards);
+  const cRuns=target?bestCallsFor(target,+cs.dn,dbF,"Run").slice(0,2):[];
+  const cPass=target?bestCallsFor(target,+cs.dn,dbF,"Pass").slice(0,2):[];
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
 
   if(rd){
@@ -4349,15 +4448,20 @@ function renderCaller(){
     h+=`<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker">1 \u00b7 Down &amp; distance</span> ${esc(sitTwo?"2-pt":sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">confirm</span>':""}${sitTry?' <span class="rd-gd-sit-need">try</span>':""}${sitTwo?' <span class="rd-gd-sit-need">2-pt</span>':""}</div>`;
     if(sitInf||sitNeed||sitTry||sitTwo){
       h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(callerSitNeedMsg())}</span>`;
-      if(!sitTry&&!sitTwo) h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm ${esc(callerSitLabel(cs))}</button>`;
+      if(!sitTry&&!sitTwo){
+        h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm ${esc(callerSitLabel(cs))}</button>`;
+        h+=`<button type="button" class="rd-gd-sit-reset" onclick="callerResetFirstDown()">${esc(callerResetFirstDownLabel(cs))}</button>`;
+      }
       h+=`</div>`;
     }
     h+=`<div class="rd-gd-sit-grid">`;
     h+=`<div><div class="lbl">Down</div><div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
-    h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+","GOAL"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
-    h+=`</div></div>`;
+    h+=`</div>`;
+    h+=callerDriveOverHtml();
+    h+=`</div>`;
     h+=callerTryBarHtml();
     h+=callerExpectStripHtml(expect, fr, pr, liveM);
     h+=callerBlitzAlertHtml(pr, g);
@@ -4408,7 +4512,7 @@ function renderCaller(){
   function sg(label,key,opts,labels){ return `<div style="margin-bottom:8px"><div class="lbl">${label}</div><div class="seg">`+opts.map((o,i)=>`<button${String(cs[key])===String(o)?' class="on"':''} onclick="callerSet('${key}','${o}')">${labels?labels[i]:o}</button>`).join("")+`</div></div>`; }
   let h=`<div class="panel no-print" data-acc-skip><div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(opp!=="ANY"?opp:"",30)}<span class="pl"><b>${esc(opp!=="ANY"?opp:"opponent")}</b> &mdash; live caller</span></div>`;
   h+=callerUiChrome();
-  h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
+  h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+","GOAL"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
   h+=callerObsChipHtml();
   h+=`<div class="panel" data-acc-skip><div class="lbl">${ordinal(+cs.dn)} & ${cs.db}${cs.zone!=="ANY"?" &middot; "+(cs.zone==="REDZONE"?"RZ":cs.zone):""}${cs.hash!=="ANY"?" &middot; "+cs.hash+" hash":""} &mdash; they show</div>`;
   if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
@@ -4439,8 +4543,17 @@ function renderCaller(){
 }
 function callerSet(k,v){
   callerSit[k]=v;
-  /* Chip edit reseeds the chain estimate from the chosen distance bucket. */
-  if(k==="db") callerSit.estYards=callerEstYardsForBucket(v);
+  /* Every manual chip correction writes back to estYards (exact / band midpoint). */
+  if(k==="dn"||k==="db"||k==="zone"){
+    const O=callerOut();
+    if(O&&O.writebackEstYards){
+      const wb=O.writebackEstYards(callerSit, { dn:callerSit.dn, db:callerSit.db, zone:callerSit.zone });
+      callerSit.estYards=wb.estYards;
+      if(k==="db") callerSit.db=wb.db;
+    }else if(k==="db"){
+      callerSit.estYards=callerEstYardsForBucket(v);
+    }
+  }
   /* Any situation chip confirms inferred / clears needs-input / dismisses try chooser */
   if(k==="dn"||k==="db"||k==="hash"||k==="zone"){
     callerSit.inferred=false;
@@ -4913,7 +5026,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=252", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=253", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5236,9 +5349,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=252"></script>
-<script src="OFFGRD-role-gate.js?v=252"></script>
-<script src="OFFGRD-mobile.js?v=252"></script>
+<script type="module" src="OFFGRD-account.js?v=253"></script>
+<script src="OFFGRD-role-gate.js?v=253"></script>
+<script src="OFFGRD-mobile.js?v=253"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

@@ -270,7 +270,9 @@
       var pressure = obs && obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
       var Out = global.OFFGRD_CALLER_OUTCOME;
       var fin = { result: null, gain: null, flag: null, negated: false, success: null, concept: null, conceptOverride: null };
+      var movedChains = false;
       if (slot.outcome && slot.outcome.payload) {
+        movedChains = !!slot.outcome.payload.movedChains;
         if (Out && Out.finalizeOutcome) {
           fin = Out.finalizeOutcome(slot.outcome.payload, {
             dn: p.dn,
@@ -301,6 +303,7 @@
         success: fin.success,
         concept: fin.concept,
         conceptOverride: fin.conceptOverride,
+        movedChains: movedChains,
         dn: p.dn,
         db: p.db,
         estYards: p.estYards != null && !isNaN(+p.estYards) ? +p.estYards : null,

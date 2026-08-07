@@ -101,7 +101,11 @@
     /* Turnover on downs: 4th down, did not convert, not a score/TO/ST. */
     if (+e.dn === 4) {
       var gain = e.gain;
-      var dist = dbToNum(e.db);
+      var O4 = Out();
+      var dist =
+        O4 && O4.seedEstYards
+          ? O4.seedEstYards(e)
+          : dbToNum(e.db);
       if (gain != null && !isNaN(+gain) && +gain < dist) {
         return "turnover_on_downs";
       }

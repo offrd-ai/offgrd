@@ -80,6 +80,7 @@
   function estYardsForBucket(db) {
     var Out = O();
     if (Out && Out.estYardsForBucket) return Out.estYardsForBucket(db);
+    if (db === "GOAL") return 3;
     if (db === "1-3") return 2;
     if (db === "4-6") return 5;
     if (db === "7-9") return 8;
@@ -87,7 +88,14 @@
   }
 
   function sitConfirmLabel() {
-    return (ordinalFn(+sit.dn) + "").toUpperCase() + " & " + sit.db;
+    var dist = sit.db === "GOAL" ? "GOAL" : sit.db;
+    return (ordinalFn(+sit.dn) + "").toUpperCase() + " & " + dist;
+  }
+
+  function resetFirstDownLabel() {
+    var Out = O();
+    if (Out && Out.isGoalSituation && Out.isGoalSituation(sit)) return "1ST & GOAL";
+    return "1ST & 10";
   }
 
   function esc(s) {
@@ -1137,10 +1145,11 @@
   }
 
   function sitTxt() {
+    var dist = sit.db === "GOAL" ? "GOAL" : sit.db;
     return (
       ordinalFn(+sit.dn) +
       " & " +
-      sit.db +
+      dist +
       (sit.zone && sit.zone !== "ANY" ? " · " + (sit.zone === "REDZONE" ? "RZ" : sit.zone) : "") +
       (sit.hash && sit.hash !== "ANY" ? " · " + sit.hash : "")
     );
@@ -1298,7 +1307,17 @@
 
   function setSit(key, val) {
     sit[key] = key === "dn" ? +val : val;
-    if (key === "db") sit.estYards = estYardsForBucket(val);
+    /* Every manual chip correction writes back to estYards. */
+    if (key === "dn" || key === "db" || key === "zone") {
+      var OutW = O();
+      if (OutW && OutW.writebackEstYards) {
+        var wb = OutW.writebackEstYards(sit, { dn: sit.dn, db: sit.db, zone: sit.zone });
+        sit.estYards = wb.estYards;
+        if (key === "db") sit.db = wb.db;
+      } else if (key === "db") {
+        sit.estYards = estYardsForBucket(val);
+      }
+    }
     sit.inferred = false;
     sit.needsInput = false;
     sit.pendingTry = false;
@@ -1325,6 +1344,64 @@
     render();
   }
 
+  function resetFirstDown() {
+    var Out = O();
+    if (!Out || !Out.firstDownSituation) return;
+    var next = Out.firstDownSituation(sit, { reason: "manual_reset" });
+    applyInfer(next);
+    sit.inferred = true;
+    sit.needsInput = false;
+    saveLocal();
+    render();
+  }
+
+  function driveOver(kind) {
+    var Out = O();
+    if (!Out || !Out.driveOverSituation) return;
+    var next = Out.driveOverSituation(kind, sit);
+    if (!next || next.skip) return;
+    applyInfer(next);
+    saveLocal();
+    render();
+    try {
+      jump("dcaller-sit-anchor", true);
+    } catch (e) {}
+  }
+
+  /** Result-entry conversion chip — D always shows (ungated). */
+  function movedChains(playIndex) {
+    var Out = O();
+    if (!Out || !Out.movedChainsSituation) return;
+    var entry = log.find(function (l) {
+      return l.playIndex === playIndex;
+    });
+    var from = entry
+      ? {
+          dn: entry.dn,
+          db: entry.db,
+          estYards: entry.estYards != null ? entry.estYards : sit.estYards,
+          hash: entry.hash,
+          zone: entry.zone,
+        }
+      : sit;
+    if (entry && entry.result) {
+      append("outcome", playIndex, {
+        result: entry.result,
+        flag: entry.flag || null,
+        flags: entry.flags || null,
+        conceptOverride: entry.conceptOverride || null,
+        movedChains: true,
+      });
+    }
+    var next = Out.movedChainsSituation(from);
+    applyInfer(next);
+    saveLocal();
+    render();
+    try {
+      jump("dcaller-sit-anchor", true);
+    } catch (e) {}
+  }
+
   function sitNeedMsg() {
     if (sit.pendingTry) return "They scored — PAT, 2PT, or skip to their next series (1st & 10)";
     if (sit.forTwo) return "2PT — log Run/Pass · Converted/Failed feeds tendencies";
@@ -1336,6 +1413,7 @@
       return "Change of possession — confirm 1st & 10 when they're back on O";
     }
     if (r === "penalty") return "Penalty — set the next situation · tap chips to override";
+    if (r === "moved_chains" || r === "manual_reset") return "First down — confirm or tap chips to override";
     if (sit.needsInput) return "Score / turnover / penalty — set the next sit · tap chips to override";
     return "Auto from last result — tap chips to override";
   }
@@ -1345,9 +1423,22 @@
     if (next.dn != null) sit.dn = next.dn;
     if (next.db != null) sit.db = next.db;
     if (next.estYards != null && !isNaN(+next.estYards)) {
-      sit.estYards = Math.max(1, Math.round(+next.estYards));
+      var OutC = O();
+      sit.estYards =
+        next.db === "GOAL" && OutC && OutC.clampGoalYards
+          ? OutC.clampGoalYards(next.estYards)
+          : Math.max(1, Math.round(+next.estYards));
     } else if (next.db != null) {
-      sit.estYards = estYardsForBucket(next.db);
+      var OutW2 = O();
+      if (OutW2 && OutW2.writebackEstYards) {
+        sit.estYards = OutW2.writebackEstYards(sit, {
+          db: next.db,
+          dn: next.dn,
+          zone: next.zone,
+        }).estYards;
+      } else {
+        sit.estYards = estYardsForBucket(next.db);
+      }
     }
     if (next.hash != null) sit.hash = next.hash;
     if (next.zone != null) sit.zone = next.zone;
@@ -1566,7 +1657,13 @@
         hash: entry.hash,
         zone: entry.zone,
       },
-      { result: entry.result, gain: entry.gain, flag: entry.flag, negated: entry.negated },
+      {
+        result: entry.result,
+        gain: entry.gain,
+        flag: entry.flag,
+        negated: entry.negated,
+        movedChains: !!entry.movedChains,
+      },
       entry.playType
     );
     if (next.skip && !next.needsInput && !next.needsTry && !next.inferred) return;
@@ -2015,13 +2112,22 @@
     }
     var play = (playType || "Play") + (dir ? " " + dir : "");
     var sitLine =
-      ordinalFn(dn) + " & " + db + (hash && hash !== "ANY" ? " " + hash : "");
+      ordinalFn(dn) +
+      " & " +
+      (db === "GOAL" ? "GOAL" : db) +
+      (hash && hash !== "ANY" ? " " + hash : "");
+    var OutEdit = O();
+    var wbEdit =
+      OutEdit && OutEdit.writebackEstYards
+        ? OutEdit.writebackEstYards(entry, { dn: dn, db: db, zone: zone })
+        : { estYards: estYardsForBucket(db) };
     append("correction", playIndex, {
       play: play,
       playType: playType,
       theirDirection: dir,
       dn: dn,
       db: db,
+      estYards: wbEdit.estYards,
       hash: hash,
       zone: zone,
       sitTxt: sitLine,
@@ -2137,7 +2243,7 @@
       .join("");
     h += `</select></div>`;
     h += `<div><div class="lbl">Distance</div><select id="dcEditDb" style="width:100%;min-height:44px">`;
-    h += ["1-3", "4-6", "7-9", "10+"]
+    h += ["1-3", "4-6", "7-9", "10+", "GOAL"]
       .map(function (d) {
         return `<option value="${d}"${entry.db === d ? " selected" : ""}>${d}</option>`;
       })
@@ -2414,6 +2520,10 @@
           return `<button type="button" class="caller-out-btn${on ? " on" : ""}" onclick="OFFGRD_DCALLER.grade(${live.playIndex},'${b.id}')">${b.label}</button>`;
         })
         .join("");
+      /* Conversion exit ramp — D always shows (covers automatic first downs; ungated). */
+      if (!isTwo && Out && Out.movedChainsSituation) {
+        h += `<button type="button" class="caller-out-btn caller-out-convert${live.movedChains ? " on" : ""}" onclick="OFFGRD_DCALLER.movedChains(${live.playIndex})">Moved the chains</button>`;
+      }
       h += `</div>`;
       if (live.result && !isTwo) {
         h += `<div class="lbl" style="margin-top:10px">Tag <span class="foot">optional · multi</span></div>`;
@@ -2500,6 +2610,7 @@
       h += `<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(sitNeedMsg())}</span>`;
       if (!sitTry && !sitTwo) {
         h += `<button type="button" class="rd-gd-sit-confirm" onclick="OFFGRD_DCALLER.confirmSit()">Confirm ${esc(sitConfirmLabel())}</button>`;
+        h += `<button type="button" class="rd-gd-sit-reset" onclick="OFFGRD_DCALLER.resetFirstDown()">${esc(resetFirstDownLabel())}</button>`;
       }
       h += `</div>`;
     }
@@ -2512,7 +2623,7 @@
         .join("") +
       `</div></div>`;
     h += `<div><div class="lbl">Distance</div><div class="seg">` +
-      ["1-3", "4-6", "7-9", "10+"]
+      ["1-3", "4-6", "7-9", "10+", "GOAL"]
         .map(function (o) {
           return `<button type="button"${sit.db === o ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('db','${o}')">${o}</button>`;
         })
@@ -2532,7 +2643,16 @@
         })
         .join("") +
       `</div></div>`;
-    h += `</div></div>`;
+    h += `</div>`;
+    if (!sitTry && !sitTwo) {
+      h += `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`;
+      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('punt')">Punt</button>`;
+      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('downs')">Downs</button>`;
+      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('takeaway')">Takeaway</button>`;
+      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('score')">Score</button>`;
+      h += `</div></div>`;
+    }
+    h += `</div>`;
 
     h += tryBarHtml();
     if (!sitTry || sitTwo) {
@@ -2602,6 +2722,9 @@
     setLook: setLook,
     setDir: setDir,
     confirmSit: confirmSit,
+    resetFirstDown: resetFirstDown,
+    driveOver: driveOver,
+    movedChains: movedChains,
     logTheirPlay: logTheirPlay,
     logST: logST,
     logTry: logTry,

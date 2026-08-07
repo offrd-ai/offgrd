@@ -290,4 +290,92 @@ if (O.seedEstYards({ db: "7-9" }) !== 8) throw new Error("seed 7-9 → 8");
 if (O.seedEstYards({ db: "10+", estYards: 8 }) !== 8) throw new Error("persisted estYards wins");
 if (O.estYardsForBucket("10+") !== 10) throw new Error("estYardsForBucket 10+");
 
-console.log("OK caller outcome model + fold + pending + learning + infer + special teams + chain advance");
+/* 15) Conversion exit ramp — Moved the chains on 3rd & short */
+const short3 = { dn: 3, db: "1-3", estYards: 2, hash: "L", zone: "ANY" };
+const short3Out = O.finalizeOutcome({ result: "short" }, short3);
+if (!O.shouldSuggestMovedChains(short3, short3Out)) {
+  throw new Error("3rd&short + short gain should auto-suggest moved chains");
+}
+if (O.shouldSuggestMovedChains({ dn: 1, db: "10+", estYards: 10 }, short3Out)) {
+  throw new Error("1st&10 + short must not auto-suggest");
+}
+/* D ungated */
+if (!O.shouldSuggestMovedChains(short3, {}, true)) throw new Error("force suggest for D");
+const moved3 = O.movedChainsSituation(short3);
+if (moved3.dn !== 1 || moved3.db !== "10+" || moved3.estYards !== 10 || moved3.reason !== "moved_chains") {
+  throw new Error("moved chains 3rd&short → 1st&10 " + JSON.stringify(moved3));
+}
+const movedViaFlag = O.inferNextSituation(short3, Object.assign({}, short3Out, { movedChains: true }));
+if (movedViaFlag.reason !== "moved_chains" || movedViaFlag.db !== "10+") {
+  throw new Error("outcome.movedChains overrides advance " + JSON.stringify(movedViaFlag));
+}
+
+/* 16) Manual correction write-back then advance */
+let corrected = O.writebackEstYards(
+  { dn: 2, db: "10+", estYards: 12, zone: "ANY" },
+  { db: "7-9" }
+);
+if (corrected.estYards !== 8 || corrected.db !== "7-9") {
+  throw new Error("writeback 7-9 → estYards 8 got " + JSON.stringify(corrected));
+}
+corrected = advanceChain(
+  { dn: 2, db: corrected.db, estYards: corrected.estYards, zone: "ANY" },
+  "short"
+);
+if (corrected.dn !== 3 || corrected.db !== "4-6" || corrected.estYards !== 6) {
+  throw new Error("after manual 7-9, short → 3rd&4-6/6 got " + JSON.stringify(corrected));
+}
+/* Exact estYards on write-back wins over band midpoint */
+const exactWb = O.writebackEstYards({ db: "10+" }, { db: "10+", estYards: 9 });
+if (exactWb.estYards !== 9) throw new Error("exact writeback want 9 got " + exactWb.estYards);
+
+/* 17) GOAL clamp — RZ / GOAL first downs */
+const goalFd = O.firstDownSituation({ dn: 3, db: "1-3", estYards: 2, zone: "REDZONE" });
+if (goalFd.dn !== 1 || goalFd.db !== "GOAL" || goalFd.estYards !== 2 || goalFd.zone !== "REDZONE") {
+  throw new Error("RZ convert → 1st&GOAL " + JSON.stringify(goalFd));
+}
+const goalClamp = O.firstDownSituation({ dn: 1, db: "GOAL", estYards: 15, zone: "REDZONE" });
+if (goalClamp.estYards !== 10 || goalClamp.db !== "GOAL") {
+  throw new Error("GOAL clamp max 10 got " + JSON.stringify(goalClamp));
+}
+const goalFloor = O.clampGoalYards(0);
+if (goalFloor !== 1) throw new Error("GOAL clamp min 1");
+const goalAdv = advanceChain(
+  { dn: 1, db: "GOAL", estYards: 3, zone: "REDZONE" },
+  "short"
+);
+if (goalAdv.dn !== 2 || goalAdv.db !== "GOAL" || goalAdv.estYards !== 1) {
+  throw new Error("GOAL advance clamp want 2nd&GOAL/1 got " + JSON.stringify(goalAdv));
+}
+const goalMoved = O.movedChainsSituation({ dn: 2, db: "GOAL", estYards: 4, zone: "REDZONE" });
+if (goalMoved.db !== "GOAL" || goalMoved.estYards !== 4) {
+  throw new Error("moved chains in GOAL stays GOAL " + JSON.stringify(goalMoved));
+}
+
+/* 18) Drive-over ramps — shared (no second math copy) */
+const overPunt = O.driveOverSituation("punt");
+if (
+  !overPunt.needsInput ||
+  overPunt.needsTry ||
+  overPunt.reason !== "change_of_possession" ||
+  overPunt.estYards !== 10 ||
+  overPunt.db !== "10+"
+) {
+  throw new Error("driveOver punt " + JSON.stringify(overPunt));
+}
+const overDowns = O.driveOverSituation("downs");
+if (overDowns.reason !== "turnover_on_downs" || overDowns.estYards !== 10) {
+  throw new Error("driveOver downs " + JSON.stringify(overDowns));
+}
+const overTake = O.driveOverSituation("takeaway");
+if (overTake.reason !== "turnover" || !overTake.needsInput) {
+  throw new Error("driveOver takeaway " + JSON.stringify(overTake));
+}
+const overScore = O.driveOverSituation("score");
+if (overScore.reason !== "td" || !overScore.needsTry || overScore.needsInput) {
+  throw new Error("driveOver score " + JSON.stringify(overScore));
+}
+
+console.log(
+  "OK caller outcome model + fold + pending + learning + infer + special teams + chain advance + conversion/GOAL/drive-over"
+);
