@@ -1175,24 +1175,12 @@
     };
   }
 
-  /**
-   * Season + live sample for a down/distance bucket (Expect strip + shift lines).
-   * opts.anyDb: match down only (3rd-down rollup).
-   */
-  function sampleFor(dn, db, opts) {
-    opts = opts || {};
-    var anyDb = !!opts.anyDb;
-    var season = [];
-    try {
-      if (typeof oppRows === "function") season = oppRows("off") || [];
-    } catch (e) {}
-    var filter = function (r) {
-      if (!r || +r.down !== +dn) return false;
-      if (!anyDb && distB(r.distance) !== db) return false;
-      return true;
-    };
-    var seasonG = season.filter(filter);
-    var live = log
+  function Sit() {
+    return global.OFFGRD_CALLER_SIT || null;
+  }
+
+  function liveRowsAsSnaps() {
+    return log
       .filter(function (l) {
         return l.playType && l.result;
       })
@@ -1211,14 +1199,76 @@
           date: "live",
           source: "live_dcall",
         };
-      })
-      .filter(filter);
-    return { season: seasonG, live: live, all: seasonG.concat(live) };
+      });
+  }
+
+  /**
+   * Season + live sample for a down/distance bucket (Expect strip + shift lines).
+   * opts.anyDb: match down only (3rd-down rollup) — bypasses sit ladder.
+   * opts.useLadder: apply shared never-blank resolver (default true for expect).
+   */
+  function sampleFor(dn, db, opts) {
+    opts = opts || {};
+    var anyDb = !!opts.anyDb;
+    var season = [];
+    try {
+      if (typeof oppRows === "function") season = oppRows("off") || [];
+    } catch (e) {}
+    var live = liveRowsAsSnaps();
+    var pool = season.concat(live);
+
+    if (!anyDb && opts.useLadder !== false) {
+      var Api = Sit();
+      if (Api && Api.resolveSituation) {
+        var filterDb = db === "GOAL" ? "1-3" : db;
+        var resolved = Api.resolveSituation(
+          pool,
+          {
+            dn: dn,
+            db: db,
+            hash: opts.hash != null ? opts.hash : sit.hash,
+            zone: opts.zone != null ? opts.zone : sit.zone,
+          },
+          { filterDb: filterDb }
+        );
+        var rows = resolved.terminal ? [] : resolved.rows;
+        var seasonG = rows.filter(function (r) {
+          return r.source !== "live_dcall" && r.date !== "live";
+        });
+        var liveG = rows.filter(function (r) {
+          return r.source === "live_dcall" || r.date === "live";
+        });
+        return {
+          season: seasonG,
+          live: liveG,
+          all: rows,
+          resolved: resolved,
+          terminal: !!resolved.terminal,
+          badge: resolved.badge,
+          conf: resolved.conf,
+          widened: !!resolved.widened,
+          rung: resolved.rung,
+        };
+      }
+    }
+
+    var filter = function (r) {
+      if (!r || +r.down !== +dn) return false;
+      if (!anyDb && distB(r.distance) !== db) return false;
+      return true;
+    };
+    var seasonG = season.filter(filter);
+    var liveG = live.filter(filter);
+    return { season: seasonG, live: liveG, all: seasonG.concat(liveG) };
   }
 
   /** Season opponent-offense rows for current sit (+ live D Caller snaps). */
   function expectSample() {
-    return sampleFor(+sit.dn, sit.db);
+    return sampleFor(+sit.dn, sit.db, {
+      hash: sit.hash,
+      zone: sit.zone,
+      useLadder: true,
+    });
   }
 
   /** Active shift lines for halftime — same tendencyShift as the Expect strip. */
@@ -1234,7 +1284,11 @@
     specs.forEach(function (spec) {
       var key = spec.bucket;
       if (seen[key]) return;
-      var sample = sampleFor(spec.dn, spec.db, { anyDb: !!spec.anyDb });
+      /* Ladder only for live "this sit"; fixed buckets stay exact. */
+      var sample = sampleFor(spec.dn, spec.db, {
+        anyDb: !!spec.anyDb,
+        useLadder: spec.bucket === "this sit",
+      });
       var shift = tendencyShift(sample);
       if (!shift) return;
       seen[key] = 1;
@@ -2353,11 +2407,15 @@
     var sample = expectSample();
     var all = sample.all;
     var thin = all.length < 6;
+    var conf = sample.conf;
     if (!all.length) {
+      var emptyMsg =
+        sample.badge ||
+        "No opponent-offense data for this sit yet · import their offense (or a full game), then log live.";
       return (
-        `<div class="rd-dc-expect is-empty no-print">` +
+        `<div class="rd-dc-expect is-empty${sample.terminal ? " is-terminal" : ""} no-print">` +
         `<span class="lbl">Expect</span>` +
-        `<span class="body">No opponent-offense data for this sit yet · import their offense (or a full game), then log live.</span>` +
+        `<span class="body">${esc(emptyMsg)}</span>` +
         `</div>`
       );
     }
@@ -2384,13 +2442,18 @@
     var mot = motionRate(all);
     var motBit = mot != null ? " · motion " + fmt(mot) : "";
     var h =
-      `<div class="rd-dc-expect${thin ? " is-thin" : ""} no-print">` +
+      `<div class="rd-dc-expect${thin ? " is-thin" : ""}${sample.widened ? " is-widened" : ""} no-print">` +
       `<div class="rd-dc-expect-big">${esc(big)}</div>` +
       `<div class="rd-dc-expect-sub">${formBits || "<span class='foot'>No formation data — run/pass only</span>"}${motBit}</div>` +
       `<div class="foot">based on ${all.length} snap${all.length === 1 ? "" : "s"}` +
       (sample.live.length ? ` · ${sample.live.length} live tonight` : "") +
       (thin ? " · thin sample" : "") +
-      `</div></div>`;
+      (conf && conf.level ? ` · ${esc(conf.level)}` : "") +
+      `</div>`;
+    if (sample.badge) {
+      h += `<div class="rd-gd-widen-badge">${esc(sample.badge)}</div>`;
+    }
+    h += `</div>`;
     var shift = tendencyShift(sample);
     if (shift) {
       h +=

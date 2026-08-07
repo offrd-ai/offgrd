@@ -24,6 +24,7 @@ const REQUIRED = [
   "OFFGRD-booth-ask.js",
   "OFFGRD-caller-sync.js",
   "OFFGRD-caller-analysis.js",
+  "OFFGRD-caller-sit.js",
   "OFFGRD-caller-summary-llm.js",
   "offgrd-sw.js",
   "OFFGRD-account.js",

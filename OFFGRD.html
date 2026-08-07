@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v253: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v254: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -327,10 +327,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=253"></script>
-<script src="OFFGRD-brand-persist.js?v=253"></script>
-<script src="supabase.js?v=253"></script>
-<script src="OFFGRD-cache-gate.js?v=253"></script>
+<script src="OFFGRD-config.js?v=254"></script>
+<script src="OFFGRD-brand-persist.js?v=254"></script>
+<script src="supabase.js?v=254"></script>
+<script src="OFFGRD-cache-gate.js?v=254"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -372,30 +372,31 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=253"></script>
-<script src="OFFGRD-pos-glossary.js?v=253"></script>
-<script src="OFFGRD-autoderive.js?v=253"></script>
-<script src="OFFGRD-scoutcards.js?v=253"></script>
-<script src="OFFGRD-tendencies.js?v=253"></script>
-<script src="OFFGRD-scout-report.js?v=253"></script>
-<script src="OFFGRD-week-autotest.js?v=253"></script>
-<script src="OFFGRD-weeklypackage.js?v=253"></script>
-<script src="OFFGRD-telestrate.js?v=253"></script>
-<script src="OFFGRD-redesign.js?v=253"></script>
-<script src="OFFGRD-shell.js?v=253"></script>
-<script src="OFFGRD-caller-outcome.js?v=253"></script>
-<script src="OFFGRD-formations-data.js?v=253"></script>
-<script src="OFFGRD-formation-canon.js?v=253"></script>
-<script src="OFFGRD-assist-import.js?v=253"></script>
-<script src="OFFGRD-cv-review.js?v=253"></script>
-<script src="OFFGRD-frame-capture.js?v=253"></script>
-<script src="OFFGRD-caller-log.js?v=253"></script>
-<script src="OFFGRD-caller-sync.js?v=253"></script>
-<script src="OFFGRD-caller-analysis.js?v=253"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=253"></script>
-<script src="OFFGRD-booth-ask.js?v=253"></script>
-<script src="OFFGRD-caller-select.js?v=253"></script>
-<script src="OFFGRD-dcaller.js?v=253"></script>
+<script src="OFFGRD-render.js?v=254"></script>
+<script src="OFFGRD-pos-glossary.js?v=254"></script>
+<script src="OFFGRD-autoderive.js?v=254"></script>
+<script src="OFFGRD-scoutcards.js?v=254"></script>
+<script src="OFFGRD-tendencies.js?v=254"></script>
+<script src="OFFGRD-scout-report.js?v=254"></script>
+<script src="OFFGRD-week-autotest.js?v=254"></script>
+<script src="OFFGRD-weeklypackage.js?v=254"></script>
+<script src="OFFGRD-telestrate.js?v=254"></script>
+<script src="OFFGRD-redesign.js?v=254"></script>
+<script src="OFFGRD-shell.js?v=254"></script>
+<script src="OFFGRD-caller-outcome.js?v=254"></script>
+<script src="OFFGRD-caller-sit.js?v=254"></script>
+<script src="OFFGRD-formations-data.js?v=254"></script>
+<script src="OFFGRD-formation-canon.js?v=254"></script>
+<script src="OFFGRD-assist-import.js?v=254"></script>
+<script src="OFFGRD-cv-review.js?v=254"></script>
+<script src="OFFGRD-frame-capture.js?v=254"></script>
+<script src="OFFGRD-caller-log.js?v=254"></script>
+<script src="OFFGRD-caller-sync.js?v=254"></script>
+<script src="OFFGRD-caller-analysis.js?v=254"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=254"></script>
+<script src="OFFGRD-booth-ask.js?v=254"></script>
+<script src="OFFGRD-caller-select.js?v=254"></script>
+<script src="OFFGRD-dcaller.js?v=254"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2436,15 +2437,39 @@ function callerPlayType(pl){
   try{ if(typeof OFFPLAYS!=="undefined" && OFFPLAYS[pl] && typeof PASSPLAYS!=="undefined" && PASSPLAYS.indexOf(pl)<0) return "Run"; }catch(e){}
   return playKind(pl);
 }
+function callerSitApi(){ return window.OFFGRD_CALLER_SIT||null; }
+/** Never-blank expect: shared ladder (hash→field→distance→down→playbook). */
 function callerExpectSample(){
-  /* GOAL filters as short yardage for scout/live matching. */
   const def=oppRows("def"), cs=callerSit;
   const dbF=callerDbFilter(cs.db, cs.estYards);
-  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
-  const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
+  const liveM=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
+  const pool=def.concat(liveM);
+  const Sit=callerSitApi();
+  let resolved=null;
+  if(Sit&&Sit.resolveSituation){
+    resolved=Sit.resolveSituation(pool, {
+      dn: cs.dn, db: cs.db, hash: cs.hash, zone: cs.zone
+    }, { filterDb: dbF });
+  }
+  const g=resolved&&!resolved.terminal?resolved.rows:(()=>{
+    /* Legacy exact match if sit module missing */
+    return pool.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
+  })();
   const gc=g.filter(r=>r.coverage&&r.coverage!=="?");
-  const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
-  return {g:g, cov:cov, target:cov?cov.k:null, def:def};
+  const cov=gc.length&&typeof shrunkDist==="function"?shrunkDist(g,"coverage",def,5).arr[0]:null;
+  return {
+    g: g,
+    cov: cov,
+    target: cov?cov.k:null,
+    def: def,
+    resolved: resolved,
+    terminal: !!(resolved&&resolved.terminal),
+    widened: !!(resolved&&resolved.widened),
+    badge: resolved?resolved.badge:null,
+    widenLabel: resolved?resolved.widenLabel:null,
+    conf: resolved?resolved.conf:null,
+    rung: resolved?resolved.rung:0
+  };
 }
 /** Caller stores blitz type on entry.pressure (playbook id). Scout algo wants pressure 0/1 + blitz string. */
 function callerPressureLabel(pressureId){
@@ -3839,16 +3864,28 @@ function callerThisPlayCardHtml(){
 function callerExpectStripHtml(expect, fr, pr, liveM){
   const g=expect&&expect.g||[];
   const cov=expect&&expect.cov;
-  let body="No sample for this sit \u2014 widen hash/field or log looks.";
+  const terminal=!!(expect&&expect.terminal);
+  const badge=expect&&expect.badge;
+  const conf=expect&&expect.conf;
+  let body=terminal
+    ? esc(badge||"No reps logged — from your call sheet, not their tendencies.")
+    : "No sample for this sit \u2014 open the playbook.";
   if(g.length){
     body=(cov?esc(cov.k)+" "+fmtPct(cov.pct):"?")
       +(fr?" \u00b7 "+esc(fr.k)+" front":"")
       +" \u00b7 "+fmtPct(pr)+" pressure \u00b7 "+g.length+" snaps"
       +(liveM&&liveM.length?" \u00b7 "+liveM.length+" live":"");
   }
+  let meta="";
+  if(badge&&(g.length||terminal)){
+    meta=`<span class="rd-gd-widen-badge">${esc(badge)}</span>`;
+  }
+  if(conf&&g.length&&conf.level){
+    meta+=`<span class="pill ${esc(conf.tone||"")} rd-gd-sit-conf">${esc(conf.level)}</span>`;
+  }
   const alert=callerBlitzThreat(pr, g);
-  const cls="rd-gd-expect-strip no-print"+(alert?(" is-blitz-"+alert.level):"");
-  return `<div class="${cls}"><span class="lbl">Expect</span><span class="body">${body}</span></div>`;
+  const cls="rd-gd-expect-strip no-print"+(alert?(" is-blitz-"+alert.level):"")+(expect&&expect.widened?" is-widened":"")+(terminal?" is-terminal":"");
+  return `<div class="${cls}"><span class="lbl">Expect</span><span class="body">${body}</span>${meta?`<span class="rd-gd-expect-meta">${meta}</span>`:""}</div>`;
 }
 /** Elevated blitz for this sit — same bands as scout grid (30% / 45%). Needs a few snaps. */
 function callerBlitzThreat(pr, g){
@@ -4267,17 +4304,34 @@ function callerSelect(){ return window.OFFGRD_CALLER_SELECT||null; }
 function callerRankedCalls(){
   const ex=(typeof callerExpectSample==="function")?callerExpectSample():{target:null,cov:null};
   const cs=callerSit, target=ex.target;
-  if(!target) return { target:null, cov:ex.cov||null, list:[] };
+  if(!target){
+    return {
+      target:null, cov:ex.cov||null, list:[],
+      terminal:!!ex.terminal, badge:ex.badge||null, conf:ex.conf||null, rung:ex.rung
+    };
+  }
   const dbF=callerDbFilter(cs.db, cs.estYards);
   const runs=bestCallsFor(target,+cs.dn,dbF,"Run").map(r=>Object.assign({kind:"Run"},r));
   const pass=bestCallsFor(target,+cs.dn,dbF,"Pass").map(r=>Object.assign({kind:"Pass"},r));
   const list=runs.concat(pass).sort((a,b)=>b.sr-a.sr||b.n-a.n);
-  return { target:target, cov:ex.cov||null, list:list };
+  return {
+    target:target, cov:ex.cov||null, list:list,
+    terminal:!!ex.terminal, badge:ex.badge||null, conf:ex.conf||null, rung:ex.rung,
+    widened:!!(ex.resolved&&ex.resolved.widened)
+  };
 }
-function callerCallReason(entry, cov){
+/** Soft-headline: lean not law. LOW/THIN (or tiny n) never claims "beats their…". */
+function callerCallReason(entry, cov, conf){
   if(!entry) return "";
-  const pct=Math.round((entry.sr||0)*100)+"% on "+(entry.n||0);
-  return cov ? `beats their ${cov.k} · ${pct}` : `${pct}`;
+  const n=+entry.n||0;
+  const pct=Math.round((entry.sr||0)*100)+"%";
+  const level=conf&&conf.level?String(conf.level).toUpperCase():"";
+  const soft=level==="LOW"||level==="THIN"||n<8;
+  if(soft){
+    if(cov) return `lean vs ${cov.k} · ${pct} on ${n} (small sample)`;
+    return `${pct} on ${n} (small sample)`;
+  }
+  return cov ? `beats their ${cov.k} · ${pct} on ${n}` : `${pct} on ${n}`;
 }
 /* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
    in his order, with the suggester woven in as marks · not a competing screen.
@@ -4300,9 +4354,9 @@ function callerCallSheetHtml(){
   /* Tier 2 · "Best now" strip only when the suggester's pick isn't on the matched sheet. */
   if(top && !topInBucket){
     const on=live&&live.play===top.play;
-    h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now</div>`;
+    h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now${ranked.badge?` <span class="rd-gd-widen-badge">${esc(ranked.badge)}</span>`:""}</div>`;
     h+=`<button type="button" class="rd-gd-bestnow-row${on?" oncall":""}" onclick="callerLog('${escN(top.play)}')">${sigTag(top.play)}<span class="nm">${esc(top.play)}</span><span class="cta">${on?"On call":"Call it"}</span></button>`;
-    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov))}</p></div>`;
+    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p></div>`;
   }
   /* Tier 1 · the call sheet (matched bucket) or the best-options fallback. */
   h+=`<div class="rd-gd-sheet">`;
@@ -4321,7 +4375,7 @@ function callerCallSheetHtml(){
       h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
-    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov))}</p>`;
+    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
   } else if(ranked.list.length){
     /* No authored bucket for this down/distance · surface the suggester's ranked list as the sheet. */
     h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} · best from your reps:</p>`;
@@ -4332,7 +4386,10 @@ function callerCallSheetHtml(){
     });
     h+=`</div>`;
   } else {
-    h+=`<p class="rd-gd-sheet-sub">${ranked.target?"No reps for this look yet · widen hash/field, or open the playbook.":"Tap the playbook to call any play."}</p>`;
+    const termMsg=ranked.terminal
+      ? (ranked.badge||"No reps logged — from your call sheet, not their tendencies.")
+      : (ranked.target?"No reps for this look yet · open the playbook.":"Tap the playbook to call any play.");
+    h+=`<p class="rd-gd-sheet-sub">${esc(termMsg)}</p>`;
   }
   h+=`</div>`;
   return h;
@@ -4418,7 +4475,8 @@ function renderCaller(){
   const dbF=callerDbFilter(cs.db, cs.estYards);
   const cRuns=target?bestCallsFor(target,+cs.dn,dbF,"Run").slice(0,2):[];
   const cPass=target?bestCallsFor(target,+cs.dn,dbF,"Pass").slice(0,2):[];
-  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
+  /* Live count for the expect strip — snaps in the *resolved* (possibly widened) set. */
+  const liveM=g.filter(r=>r.date==="live"||r.source==="live");
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
 
   if(rd){
@@ -4515,8 +4573,11 @@ function renderCaller(){
   h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+","GOAL"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
   h+=callerObsChipHtml();
   h+=`<div class="panel" data-acc-skip><div class="lbl">${ordinal(+cs.dn)} & ${cs.db}${cs.zone!=="ANY"?" &middot; "+(cs.zone==="REDZONE"?"RZ":cs.zone):""}${cs.hash!=="ANY"?" &middot; "+cs.hash+" hash":""} &mdash; they show</div>`;
-  if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
-  else h+=`<p class="foot">No reps for this exact look (try widening hash/field).</p>`;
+  if(g.length){
+    h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div>`;
+    h+=`<p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`;
+    if(expect.badge) h+=`<p class="foot widen">${esc(expect.badge)}${expect.conf&&expect.conf.level?` · ${esc(expect.conf.level)}`:""}</p>`;
+  } else h+=`<p class="foot">${esc(expect.badge||"No reps logged — from your call sheet, not their tendencies.")}</p>`;
   const liveClassic=callerLiveCall();
   const cline=c=>{
     const on=liveClassic&&liveClassic.play===c.play;
@@ -5026,7 +5087,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=253", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=254", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5349,9 +5410,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=253"></script>
-<script src="OFFGRD-role-gate.js?v=253"></script>
-<script src="OFFGRD-mobile.js?v=253"></script>
+<script type="module" src="OFFGRD-account.js?v=254"></script>
+<script src="OFFGRD-role-gate.js?v=254"></script>
+<script src="OFFGRD-mobile.js?v=254"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

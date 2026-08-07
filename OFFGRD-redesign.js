@@ -274,7 +274,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "253";
+  const ASSET_V = "254";
 
   function getScoutTool() {
     try {
@@ -1411,6 +1411,19 @@
       '}',
       'html.rd-on #view-caller .rd-gd-expect .body{color:var(--rd-text);font-size:var(--fs-body);font-weight:500;}',
       'html.rd-on #view-caller .rd-gd-expect .body b{color:var(--rd-accent);}',
+      'html.rd-on #view-caller .rd-gd-expect-strip .rd-gd-expect-meta,html.rd-on #view-dcaller .rd-dc-expect .rd-gd-widen-badge{',
+      'display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin-top:4px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-widen-badge,html.rd-on #view-dcaller .rd-gd-widen-badge,',
+      'html.rd-on #view-caller .rd-gd-bestnow-lbl .rd-gd-widen-badge{',
+      'display:inline-block;padding:2px 8px;border-radius:6px;',
+      'font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--rd-text);',
+      'background:rgba(255,210,74,.22);border:1px solid rgba(255,210,74,.45);',
+      '}',
+      'html.rd-on #view-caller .rd-gd-expect-strip.is-widened,html.rd-on #view-dcaller .rd-dc-expect.is-widened{',
+      'box-shadow:inset 3px 0 0 #FFD24A;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-sit-conf{font-size:11px;font-weight:800;}',
       'html.rd-on #view-caller .rd-gd-panel{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
       '}',
