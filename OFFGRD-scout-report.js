@@ -1,11 +1,10 @@
 /* ============================================================
    OFFGRD-scout-report.js — Scout Report v1 + Tier 2 A/B/C
    Presentation layer over SNAP_CORPUS (same reader as Predict).
-   Cheat cards · Pre-snap read sheet · Provenance badges · Readiness.
+   Cheat cards · Pre-snap read sheet · Provenance · Readiness · Takeaways.
    Tier 2: run direction · motion · personnel (zero-SQL; D held).
    Reuses OFFGRD_TENDENCIES.distBucket / fieldDist / pressureRate /
-   runShare / runByDirection.
-   Zero new aggregation RPC — two-readers rule.
+   runShare / runByDirection. Zero new aggregation RPC.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -333,13 +332,12 @@
         h +=
           "<tr><td><b>" +
           esc(g.personnel) +
-          "</b></td><td><div class=\"sr-bars\">" +
-          bars +
-          "</div>";
+          "</b></td><td>" +
+          bars;
         if (zero) {
           h +=
             '<div class="sr-spike">Cover 0 spike ' +
-            pct1(zero.n, cov.tot) +
+            pctWhole(zero.n, cov.tot) +
             "% (" +
             zero.n +
             "/" +
@@ -425,15 +423,28 @@
     return pct + "% (" + n + "/" + tot + ")";
   }
 
-  /* Match SQL view round(100.0 * n / tot, 1) for read-sheet spot-check */
-  function pct1(n, tot) {
+  /** Whole percent — (n) carries the precision. */
+  function pctWhole(n, tot) {
     if (!tot) return 0;
-    return Math.round((1000 * n) / tot) / 10;
+    return Math.round((100 * n) / tot);
+  }
+
+  /** Unified coverage casing: Cover 4 / 2-Man / Cover 0. */
+  function fmtCovLabel(raw) {
+    if (raw == null || raw === "") return "";
+    var s = String(raw).trim();
+    if (/^2[\s-]?man$/i.test(s)) return "2-Man";
+    var m = s.match(/^cover\s*([0-6])$/i);
+    if (m) return "Cover " + m[1];
+    if (/^cover\s+/i.test(s)) {
+      return "Cover " + s.replace(/^cover\s+/i, "").trim();
+    }
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
   /**
-   * Coverage mix bars that always account for full tot.
-   * Shows top `maxShow` slices; if more remain, append "+N other X% (n/tot)".
+   * Horizontal segment bars + legend. Top `maxShow` slices; remainder as "+N other".
+   * Values use whole percents; (n) on every slice. Print-safe flex track.
    */
   function coverageMixBars(covArr, tot, maxShow) {
     maxShow = maxShow == null ? 4 : maxShow;
@@ -445,27 +456,66 @@
       shownN += c.n;
     });
     var restN = tot - shownN;
-    var parts = shown.map(function (c) {
-      var p = c.pct1 != null ? c.pct1 : pct1(c.n, tot);
-      return (
-        '<span class="sr-bar-item">' + esc(c.k) + " " + p + "%</span>"
-      );
+    var segs = shown.map(function (c, i) {
+      return {
+        k: fmtCovLabel(c.k),
+        n: c.n,
+        pct: pctWhole(c.n, tot),
+        i: i,
+      };
     });
     if (restN > 0) {
-      var otherCount = Math.max(0, arr.length - shown.length);
-      parts.push(
-        '<span class="sr-bar-item sr-bar-other">+' +
-          otherCount +
-          " other " +
-          pct1(restN, tot) +
+      segs.push({
+        k: "+" + Math.max(0, arr.length - shown.length) + " other",
+        n: restN,
+        pct: pctWhole(restN, tot),
+        i: "other",
+        other: true,
+      });
+    }
+    var track = segs
+      .map(function (s) {
+        var tip = s.k + " " + s.pct + "% (" + s.n + "/" + tot + ")";
+        return (
+          '<div class="sr-seg sr-seg-' +
+          s.i +
+          (s.other ? " sr-seg-other" : "") +
+          '" style="flex:' +
+          s.n +
+          ' 1 0" title="' +
+          esc(tip) +
+          '"></div>'
+        );
+      })
+      .join("");
+    var legend = segs
+      .map(function (s) {
+        return (
+          '<span class="sr-bar-item' +
+          (s.other ? " sr-bar-other" : "") +
+          '"><i class="sr-seg-swatch sr-seg-' +
+          s.i +
+          '"></i>' +
+          esc(s.k) +
+          " " +
+          s.pct +
           "% (" +
-          restN +
+          s.n +
           "/" +
           tot +
           ")</span>"
-      );
-    }
-    return parts.join(" · ");
+        );
+      })
+      .join("");
+    return (
+      '<div class="sr-covmix">' +
+      '<div class="sr-segtrack" role="img" aria-label="Coverage mix">' +
+      track +
+      "</div>" +
+      '<div class="sr-seglegend">' +
+      legend +
+      "</div></div>"
+    );
   }
 
   function distMatches(bucketDist, distance) {
@@ -508,11 +558,6 @@
     if (!mix || !mix.total) {
       return '<span class="sr-badge sr-badge-empty" title="No review-passed snaps in scope">No corpus</span>';
     }
-    var parts = [];
-    if (mix.coach) parts.push(mix.coach + " coach-verified");
-    if (mix.ai) parts.push(mix.ai + " AI-tagged");
-    if (mix.import) parts.push(mix.import + " imported");
-    if (mix.other) parts.push(mix.other + " other");
     var tip =
       "IMPORTED · Hudl = import_batch_id, no CV · AI-TAGGED = CV provenance + reviewed · COACH-VERIFIED = reviewed_by set. Unreviewed CV never reaches this corpus.";
     var dominant =
@@ -521,6 +566,29 @@
         : mix.ai >= mix.import
           ? "ai"
           : "import";
+    if (opts.compact) {
+      var short =
+        dominant === "coach"
+          ? "✓ " + mix.coach + " coach-verified"
+          : dominant === "ai"
+            ? "✓ " + mix.ai + " AI-tagged"
+            : "✓ " + mix.import + " imported";
+      if (dominant === "coach" && !mix.coach) short = "✓ " + mix.total + " snaps";
+      return (
+        '<span class="sr-badge sr-badge-compact sr-badge-' +
+        dominant +
+        '" title="' +
+        esc(tip) +
+        '">' +
+        esc(short) +
+        "</span>"
+      );
+    }
+    var parts = [];
+    if (mix.coach) parts.push(mix.coach + " coach-verified");
+    if (mix.ai) parts.push(mix.ai + " AI-tagged");
+    if (mix.import) parts.push(mix.import + " imported");
+    if (mix.other) parts.push(mix.other + " other");
     var label =
       dominant === "coach"
         ? "COACH-VERIFIED"
@@ -565,7 +633,12 @@
         var g = byFam[f];
         var covArr = Object.keys(g.cov)
           .map(function (k) {
-            return { k: k, n: g.cov[k], pct: g.cov[k] / g.n, pct1: pct1(g.cov[k], g.n) };
+            return {
+              k: k,
+              n: g.cov[k],
+              pct: g.cov[k] / g.n,
+              pctW: pctWhole(g.cov[k], g.n),
+            };
           })
           .sort(function (a, b) { return b.n - a.n; });
         var fr = fieldDist(g.rows.filter(function (r) { return r.front; }), "front");
@@ -575,7 +648,7 @@
           return /^cover\s*0$/i.test(String(c.k || "").trim()) && c.pct >= SPIKE_PCT && c.n >= SPIKE_N;
         })[0];
         var spike = zero
-          ? { coverage: zero.k, pct: zero.pct, n: zero.n }
+          ? { coverage: fmtCovLabel(zero.k), pct: zero.pct, n: zero.n }
           : null;
         return {
           family: f,
@@ -613,13 +686,14 @@
       var runN = rows.filter(function (r) { return /run/i.test(r.playType || ""); }).length;
       var typed = passN + runN;
       var passPct = typed ? passN / typed : 0;
-      card.headline =
-        typed
-          ? Math.round(passPct * 100) +
-            "% PASS · " +
-            Math.round((1 - passPct) * 100) +
-            "% RUN"
-          : "No run/pass tags";
+      card.empty = !typed;
+      card.lean = false;
+      card.headline = typed
+        ? Math.round(passPct * 100) +
+          "% Pass · " +
+          Math.round((1 - passPct) * 100) +
+          "% Run"
+        : "no tags";
       card.headlineDetail = typed ? fmtPctN(passN, typed) + " pass" : "";
       card.concepts = topConcepts(rows, 3);
       card.sub = card.concepts.length
@@ -640,12 +714,20 @@
       );
       var top = cov.arr[0];
       var second = cov.arr[1];
+      card.empty = !top;
+      var topPct = top ? top.pct : 0;
+      var margin = top && second ? top.pct - second.pct : 1;
+      card.lean = !!(top && (topPct < 0.4 || (second && margin < 0.1)));
       card.headline = top
-        ? String(top.k).toUpperCase() + " " + Math.round(top.pct * 100) + "%"
-        : "No coverage tags";
+        ? (card.lean ? "Lean: " : "") +
+          fmtCovLabel(top.k) +
+          " " +
+          Math.round(topPct * 100) +
+          "%"
+        : "no tags";
       card.headlineDetail = top ? fmtPctN(top.n, cov.tot) : "";
       card.second = second
-        ? String(second.k) + " " + fmtPctN(second.n, cov.tot)
+        ? fmtCovLabel(second.k) + " " + fmtPctN(second.n, cov.tot)
         : "";
       card.sub = fr.arr[0]
         ? "Front lean: " + fr.arr[0].k + " " + fmtPctN(fr.arr[0].n, fr.tot)
@@ -657,6 +739,7 @@
               n: pN,
               m: rows.length,
               pct: pN / rows.length,
+              label: bucket.label,
               line:
                 "Pressure on " +
                 pN +
@@ -669,6 +752,9 @@
                 "%)"
             }
           : null;
+      card.topCov = top
+        ? { k: fmtCovLabel(top.k), n: top.n, tot: cov.tot, pct: top.pct }
+        : null;
     }
     return card;
   }
@@ -930,11 +1016,16 @@
       ".sr-sec{margin:16px 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}" +
       ".sr-sec h3{margin:0;font-size:15px;font-weight:800}" +
       ".sr-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid var(--line,var(--rd-border,#d0d7e0));background:var(--chip,var(--rd-surface-2,#f4f7fb));cursor:help}" +
+      ".sr-badge-compact{font-weight:700;letter-spacing:0}" +
       ".sr-badge b{letter-spacing:.03em}" +
       ".sr-badge-coach{border-color:#2d8a4e;color:#1d7a45}" +
       ".sr-badge-ai{border-color:#3a6ea8;color:#2a5a8a}" +
       ".sr-badge-import{border-color:#8a7a3a;color:#6a5a1a}" +
+      ".sr-takeaways{margin:8px 0 14px;padding:10px 12px;border-left:3px solid var(--accent,#a8112b);background:var(--chip,var(--rd-surface-2,#f4f7fb));border-radius:0 8px 8px 0}" +
+      ".sr-takeaways-lbl{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:4px}" +
+      ".sr-takeaways-body{margin:0;font-size:13.5px;font-weight:700;line-height:1.4}" +
       ".sr-ready{display:flex;gap:0;flex-wrap:wrap;margin:8px 0 14px;border:1px solid var(--line,var(--rd-border,#d0d7e0));border-radius:10px;overflow:hidden;background:var(--panel,var(--rd-surface,#fff))}" +
+      ".sr-ready-done{margin:8px 0 14px;padding:8px 12px;font-size:13px;font-weight:800;color:#1d7a45;border:1px solid rgba(45,138,78,.35);border-radius:8px;background:rgba(45,138,78,.08)}" +
       ".sr-step{flex:1 1 120px;min-width:110px;padding:10px 12px;border-right:1px solid var(--line,var(--rd-border,#d0d7e0));position:relative}" +
       ".sr-step:last-child{border-right:0}" +
       ".sr-step.done{background:rgba(45,138,78,.08)}" +
@@ -942,9 +1033,15 @@
       ".sr-step .sr-lbl{font-size:13px;font-weight:800;margin:2px 0}" +
       ".sr-step .sr-det{font-size:11px;opacity:.7;margin-bottom:6px}" +
       ".sr-step .sr-check{color:#1d7a45;font-weight:800;margin-right:4px}" +
-      ".sr-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin:8px 0}" +
+      ".sr-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0}" +
       ".sr-card{border:1px solid var(--line,var(--rd-border,#d0d7e0));border-radius:8px;padding:10px 12px;background:var(--panel,var(--rd-surface,#fff));min-height:120px}" +
-      ".sr-card.thin{opacity:.48;background:var(--chip,var(--rd-surface-2,#f0f2f5))}" +
+      ".sr-card.thin{opacity:.72;background:var(--chip,var(--rd-surface-2,#f0f2f5))}" +
+      ".sr-card.lean .sr-hl-lean{font-size:13px;font-weight:700;opacity:.78}" +
+      ".sr-card .sr-hl-thin{opacity:.45;font-weight:700;color:var(--muted,#64748b)}" +
+      ".sr-card-empty{min-height:0;padding:6px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;opacity:.55;background:var(--chip,var(--rd-surface-2,#f0f2f5))}" +
+      ".sr-card-empty .sr-sit{margin:0}" +
+      ".sr-empty-tag{font-size:12px;font-weight:600;opacity:.75}" +
+      ".sr-empty-n{font-size:11px;opacity:.55;margin-left:auto}" +
       ".sr-card .sr-sit{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.65;margin-bottom:4px}" +
       ".sr-card .sr-hl{font-size:16px;font-weight:900;line-height:1.15;margin:0 0 2px}" +
       ".sr-card .sr-2nd{font-size:12px;opacity:.75;margin:0 0 4px}" +
@@ -957,12 +1054,22 @@
       ".sr-chip-LOW{background:#fbf3e0;border-color:#b8860b;color:#8a5a05}" +
       ".sr-chip-THIN{background:#eee;border-color:#999;color:#666}" +
       ".sr-thin-note{font-size:10px;font-style:italic;opacity:.75;margin-top:4px}" +
-      ".sr-read-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 10px}" +
+      ".sr-read-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}" +
+      ".sr-read-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 10px;min-width:520px}" +
       ".sr-read-tbl th,.sr-read-tbl td{border:1px solid var(--line,var(--rd-border,#d0d7e0));padding:8px 10px;text-align:left;vertical-align:top}" +
       ".sr-read-tbl th{background:var(--chip,var(--rd-surface-2,#eef2f6));font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em}" +
-      ".sr-bars{display:flex;flex-wrap:wrap;gap:4px 10px}" +
-      ".sr-bar-item{font-weight:700}" +
+      ".sr-covmix{min-width:140px}" +
+      ".sr-segtrack{display:flex;height:14px;border-radius:4px;overflow:hidden;border:1px solid var(--line,var(--rd-border,#d0d7e0));background:#e8edf3;margin:0 0 5px}" +
+      ".sr-seg{min-width:3px;height:100%}" +
+      ".sr-seg-0,.sr-seg-swatch.sr-seg-0{background:#1d4ed8}" +
+      ".sr-seg-1,.sr-seg-swatch.sr-seg-1{background:#0f766e}" +
+      ".sr-seg-2,.sr-seg-swatch.sr-seg-2{background:#a16207}" +
+      ".sr-seg-3,.sr-seg-swatch.sr-seg-3{background:#9f1239}" +
+      ".sr-seg-other,.sr-seg-swatch.sr-seg-other{background:#94a3b8}" +
+      ".sr-seglegend{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:11px;line-height:1.35}" +
+      ".sr-bar-item{font-weight:700;display:inline-flex;align-items:center;gap:4px}" +
       ".sr-bar-other{opacity:.75;font-weight:600}" +
+      ".sr-seg-swatch{display:inline-block;width:8px;height:8px;border-radius:2px;flex:0 0 auto}" +
       ".sr-spike{font-size:12px;margin-top:4px;font-weight:700;color:var(--accent,#a8112b)}" +
       ".sr-actions{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}" +
       ".sr-empty{font-size:13px;opacity:.7;margin:8px 0}" +
@@ -972,14 +1079,26 @@
       ".sr-dir-lane.thin{opacity:.48;background:var(--chip,var(--rd-surface-2,#f0f2f5))}" +
       ".sr-dir-lane .sr-sit{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.65;margin-bottom:4px}" +
       ".sr-dir-lane .sr-hl{font-size:15px;font-weight:900;line-height:1.2;margin:0 0 2px}" +
-      "@media (max-width:720px){.sr-dir-lanes{grid-template-columns:1fr}}" +
+      "@media (max-width:900px){" +
+      ".sr-cards{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}" +
+      ".sr-step{flex:1 1 46%}" +
+      "}" +
+      "@media (max-width:720px){" +
+      ".sr-dir-lanes{grid-template-columns:1fr}" +
+      ".sr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}" +
+      ".sr-card .sr-hl{font-size:14px}" +
+      "}" +
       "@media print{" +
       ".sr-no-print{display:none!important}" +
       ".sr-ready{display:none!important}" +
+      ".sr-ready-done{border-color:#333;color:#111;background:#f5f5f5}" +
       ".sr-cards{grid-template-columns:repeat(5,1fr);gap:6px}" +
       ".sr-card{break-inside:avoid;min-height:90px;padding:8px;font-size:11px}" +
+      ".sr-card-empty{min-height:0;padding:4px 8px}" +
       ".sr-card .sr-hl{font-size:13px}" +
       ".sr-card.thin{opacity:.7}" +
+      ".sr-segtrack{-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+      ".sr-seg,.sr-seg-swatch{-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
       ".sr-wrap{color:#111}" +
       ".panel{break-inside:avoid}" +
       "}" +
@@ -988,14 +1107,34 @@
   }
 
   function renderCardHtml(c) {
+    if (c.empty) {
+      return (
+        '<div class="sr-card sr-card-empty" title="Bucket kept for grid muscle memory">' +
+        '<span class="sr-sit">' +
+        esc(c.label) +
+        "</span>" +
+        '<span class="sr-empty-tag">no tags</span>' +
+        (c.n
+          ? '<span class="sr-empty-n">' + c.n + " " + snapWord(c.n) + "</span>"
+          : "") +
+        "</div>"
+      );
+    }
+    var hlClass =
+      "sr-hl" +
+      (c.thin ? " sr-hl-thin" : "") +
+      (c.lean ? " sr-hl-lean" : "");
     var h =
       '<div class="sr-card' +
       (c.thin ? " thin" : "") +
+      (c.lean ? " lean" : "") +
       '">' +
       '<div class="sr-sit">' +
       esc(c.label) +
       "</div>" +
-      '<div class="sr-hl">' +
+      '<div class="' +
+      hlClass +
+      '">' +
       esc(c.headline) +
       "</div>";
     if (c.headlineDetail) {
@@ -1032,9 +1171,8 @@
       return '<p class="sr-empty">No formation-family × coverage rows yet (need review-passed snaps with family + coverage).</p>';
     }
     var h =
-      '<table class="sr-read-tbl"><thead><tr><th>Our look</th><th>Their coverage</th><th>Front lean</th><th>Pressure</th><th>n</th></tr></thead><tbody>';
+      '<div class="sr-read-scroll"><table class="sr-read-tbl"><thead><tr><th>Our look</th><th>Their coverage</th><th>Front lean</th><th>Pressure</th><th>n</th></tr></thead><tbody>';
     families.forEach(function (f) {
-      /* pct1 = round(1000*n/tot)/10 → 1/11 = 9.1 (not 0.9) */
       var bars = coverageMixBars(f.coverage, f.n, 4);
       var fr = f.front
         ? esc(f.front.k) + " " + fmtPctN(f.front.n, f.n)
@@ -1054,9 +1192,9 @@
         esc(f.family) +
         "</b>" +
         callout +
-        '</td><td><div class="sr-bars">' +
+        "</td><td>" +
         bars +
-        "</div></td><td>" +
+        "</td><td>" +
         fr +
         "</td><td>" +
         pr +
@@ -1064,14 +1202,30 @@
         f.n +
         "</td></tr>";
     });
-    h += "</tbody></table>";
+    h += "</tbody></table></div>";
     h +=
-      '<p class="foot">Same gate as <code>def_tendency_by_family</code> — review-passed corpus only. % = round(100 × n / family total, 1).</p>';
+      '<p class="foot">Same gate as <code>def_tendency_by_family</code> — review-passed corpus only. Whole %; (n) preserves precision.</p>';
     return h;
   }
 
-  function renderReadinessHtml(ready) {
+  function renderReadinessHtml(ready, mix) {
     if (!ready) return "";
+    var allDone =
+      ready.steps &&
+      ready.steps.length &&
+      ready.steps.every(function (s) {
+        return !!s.done;
+      });
+    if (allDone) {
+      var nCoach = mix && mix.coach ? mix.coach : mix && mix.total ? mix.total : 0;
+      var nTot = mix && mix.total ? mix.total : nCoach;
+      var line =
+        "✓ Report ready · " +
+        (nCoach ? nCoach + " coach-verified" : nTot + " " + snapWord(nTot));
+      return (
+        '<div class="sr-ready-done" role="status">' + esc(line) + "</div>"
+      );
+    }
     var h = '<div class="sr-ready" role="list" aria-label="Scouting readiness">';
     ready.steps.forEach(function (s) {
       h +=
@@ -1103,12 +1257,86 @@
     return h;
   }
 
+  /**
+   * Auto takeaways — rules only, ≥MED (n≥8) and share ≥40% (or Cover 0 spike).
+   * Max 3 lines; observational IP-safe copy. Empty if nothing qualifies.
+   */
+  function buildTakeaways(defRows, families, cards) {
+    var lines = [];
+    var covRows = (defRows || []).filter(function (r) {
+      return r.coverage && r.coverage !== "?" && r.coverage !== "—";
+    });
+    var cov = fieldDist(covRows, "coverage");
+    var top = cov.arr[0];
+    if (top && cov.tot >= 8 && top.pct >= 0.4) {
+      lines.push(
+        fmtCovLabel(top.k) +
+          " on " +
+          fmtPctN(top.n, cov.tot) +
+          " of snaps"
+      );
+    }
+    (cards || []).forEach(function (c) {
+      if (lines.length >= 3) return;
+      if (!c || c.empty || c.thin || !c.pressure) return;
+      if (c.n < 8 || c.pressure.pct < 0.4) return;
+      lines.push(
+        "Pressure spikes " +
+          c.label +
+          " — " +
+          fmtPctN(c.pressure.n, c.n)
+      );
+    });
+    (families || []).forEach(function (f) {
+      if (lines.length >= 3) return;
+      if (f.spike) {
+        lines.push(
+          "vs " +
+            f.family +
+            ": " +
+            f.spike.coverage +
+            " spike " +
+            pctWhole(f.spike.n, f.n) +
+            "% (" +
+            f.spike.n +
+            "/" +
+            f.n +
+            ")"
+        );
+        return;
+      }
+      var lead = f.coverage && f.coverage[0];
+      if (lead && f.n >= 8 && lead.pct >= 0.4) {
+        lines.push(
+          "vs " +
+            f.family +
+            ": " +
+            fmtCovLabel(lead.k) +
+            " " +
+            fmtPctN(lead.n, f.n)
+        );
+      }
+    });
+    return lines.slice(0, 3);
+  }
+
+  function renderTakeawaysHtml(lines) {
+    if (!(lines || []).length) return "";
+    return (
+      '<div class="sr-takeaways" role="region" aria-label="Takeaways">' +
+      '<div class="sr-takeaways-lbl">Takeaways</div>' +
+      '<p class="sr-takeaways-body">' +
+      lines.map(esc).join(" · ") +
+      "</p></div>"
+    );
+  }
+
   function sectionHead(title, mix, extraActions) {
     return (
       '<div class="sr-sec"><h3>' +
       esc(title) +
       "</h3>" +
-      badgeHtml(mix) +
+      badgeHtml(mix, { compact: true }) +
       (extraActions || "") +
       "</div>"
     );
@@ -1147,8 +1375,11 @@
     if (!(corpus || []).length) {
       h +=
         '<p class="sr-empty">No review-passed snaps for this opponent in scope. Import a breakdown and clear the Auto-Scout review queue — the report reads the same corpus as Predict.</p></div>';
-      return { html: h, cards: cards, flavor: flavor, families: families };
+      return { html: h, cards: cards, flavor: flavor, families: families, mix: mixAll };
     }
+
+    var takeaways = buildTakeaways(defRows || [], families, cards);
+    h += renderTakeawaysHtml(takeaways);
 
     /* Read sheet first when defense (most game-useful); cards after */
     if (flavor === "def") {
@@ -1324,7 +1555,10 @@
         }
       }
       var ready = buildReadiness(opp, aggregateBatches(forOpp), jobs, corpusN);
-      readyHost.innerHTML = renderReadinessHtml(ready);
+      var mixReady = provenanceMix(
+        (opts.defRows || []).concat(opts.offRows || [])
+      );
+      readyHost.innerHTML = renderReadinessHtml(ready, mixReady);
       readyHost.querySelectorAll(".sr-act").forEach(function (btn, idx) {
         btn.onclick = function () {
           var step = ready.steps.filter(function (s) { return s.action; })[
@@ -1408,9 +1642,14 @@
         }).length;
       } catch (eC) {}
       var ready = buildReadiness(opponent, aggregateBatches(forOpp), jobs, corpusN);
+      var mixMgr = provenanceMix(
+        (root.SNAP_CORPUS || []).filter(function (r) {
+          return r.opponent === opponent;
+        })
+      );
       var wrap = document.createElement("div");
       wrap.className = "sr-mgr-ready sr-no-print";
-      wrap.innerHTML = css() + renderReadinessHtml(ready);
+      wrap.innerHTML = css() + renderReadinessHtml(ready, mixMgr);
       host.appendChild(wrap);
       wrap.querySelectorAll(".sr-act").forEach(function (btn) {
         btn.onclick = function () {
