@@ -112,12 +112,35 @@
       host.className = "no-print";
       host.innerHTML =
         '<div style="background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:14px 16px;margin:12px 0 14px;font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">' +
-        '<b style="color:#13294B">Sign in to load your program</b>' +
-        '<p style="margin:6px 0 0;color:#5b626e;font-size:13px">Program data is hidden while signed out. Sign in to restore your scout, schedule, and playbook — including offline use on the sideline.</p>' +
-        "</div>";
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+        '<div style="flex:1;min-width:200px"><b style="color:#13294B">Sign in to load your program</b>' +
+        '<p style="margin:6px 0 0;color:#5b626e;font-size:13px">Program data is hidden while signed out. Sign in to restore your scout, schedule, and playbook — including offline use on the sideline.</p></div>' +
+        '<button type="button" id="ogSignedOutSignIn" style="flex:none;border:0;background:#13294B;color:#fff;border-radius:10px;padding:12px 16px;min-height:44px;font-weight:800;font-size:13px;cursor:pointer">Sign in</button>' +
+        "</div></div>";
       var tb = document.querySelector(".topbar");
       if (tb && tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling);
       else document.body.insertBefore(host, document.body.firstChild);
+      var btn = host.querySelector("#ogSignedOutSignIn");
+      if (btn) {
+        btn.onclick = function () {
+          try {
+            if (window.OFFGRD_SHELL && typeof window.OFFGRD_SHELL.openSignIn === "function") {
+              window.OFFGRD_SHELL.openSignIn();
+              return;
+            }
+          } catch (e) {}
+          try {
+            if (typeof window.openOffgrdAuthModal === "function") {
+              window.openOffgrdAuthModal(function () { try { location.reload(); } catch (e2) {} }, "signin");
+              return;
+            }
+          } catch (e3) {}
+          try {
+            var ci = document.getElementById("ci");
+            if (ci) ci.click();
+          } catch (e4) {}
+        };
+      }
     } catch (e) {}
   }
 

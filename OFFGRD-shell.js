@@ -88,6 +88,7 @@
       "align-items:center;justify-content:center;}",
       "#offopsShell .ops-avatar:focus-visible{outline:2px solid #3bd0f2;outline-offset:-2px;}",
       "#offopsShell .ops-avatar[hidden]{display:none!important;}",
+      "#offopsShell .ops-avatar.ops-in{background:rgba(75,156,211,.35);border-color:rgba(75,156,211,.55);}",
       "#offopsShell .ops-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;",
       "background:#121a2b;border:1px solid rgba(255,255,255,.14);border-radius:12px;",
       "box-shadow:0 16px 40px rgba(0,0,0,.45);padding:6px;z-index:70;}",
@@ -98,6 +99,7 @@
       "color:#e8eef7;padding:12px;min-height:44px;border-radius:8px;font:700 13px/1 Inter,sans-serif;cursor:pointer;}",
       "#offopsShell .ops-menu button:hover{background:rgba(255,255,255,.06);}",
       "#offopsShell .ops-menu button:focus-visible{outline:2px solid #3bd0f2;outline-offset:-2px;}",
+      "#offopsShell .ops-menu button[hidden]{display:none!important;}",
       "html.offops-shell-on #rdShell{top:calc(var(--offops-shell-h) + env(safe-area-inset-top,0px))!important;}",
       "html.rd-on #rdShell{top:calc(var(--offops-shell-h) + env(safe-area-inset-top,0px))!important;}",
       "html.rd-on #rdAcctHost{display:none!important;}",
@@ -112,6 +114,7 @@
     document.head.appendChild(st);
   }
 
+  /** Email only — never scrape #acct ("Sign in" → fake "SI" initials). */
   async function currentUserLabel() {
     try {
       if (root.Cloud && root.Cloud.session) {
@@ -119,12 +122,23 @@
         if (u && u.email) return u.email;
       }
     } catch (e) {}
-    try {
-      var acct = document.getElementById("acct");
-      var t = (acct && (acct.textContent || "")).trim();
-      if (t) return t.split(/\s+/).slice(0, 2).join(" ");
-    } catch (e2) {}
     return "";
+  }
+
+  function openSignIn() {
+    try {
+      if (typeof root.openOffgrdAuthModal === "function") {
+        root.openOffgrdAuthModal(function () {
+          try { location.reload(); } catch (e) {}
+        }, "signin");
+        return;
+      }
+    } catch (e) {}
+    try {
+      var ci = document.getElementById("ci");
+      if (ci) { ci.click(); return; }
+    } catch (e2) {}
+    alert("Sign in is still loading — refresh and try again.");
   }
 
   async function doSignOut() {
@@ -161,12 +175,13 @@
       + "</div>"
       + '<span class="ops-spacer"></span>'
       + '<div class="ops-profile">'
-      + '<button type="button" class="ops-avatar" id="opsAvatar" aria-label="Account menu" aria-haspopup="true" '
-      + 'aria-expanded="false" aria-controls="opsProfileMenu" hidden>?</button>'
+      + '<button type="button" class="ops-avatar ops-in" id="opsAvatar" aria-label="Account menu" aria-haspopup="true" '
+      + 'aria-expanded="false" aria-controls="opsProfileMenu">IN</button>'
       + '<div class="ops-menu" id="opsProfileMenu" role="menu">'
       + '<span class="ops-mail" id="opsWho"></span>'
-      + '<button type="button" role="menuitem" id="opsAccount">Account / password</button>'
-      + '<button type="button" role="menuitem" id="opsSignOut">Sign out</button>'
+      + '<button type="button" role="menuitem" id="opsSignIn">Sign in</button>'
+      + '<button type="button" role="menuitem" id="opsAccount" hidden>Account / password</button>'
+      + '<button type="button" role="menuitem" id="opsSignOut" hidden>Sign out</button>'
       + "</div></div>";
 
     document.body.insertBefore(bar, document.body.firstChild);
@@ -182,12 +197,26 @@
 
     var avatar = document.getElementById("opsAvatar");
     var so = document.getElementById("opsSignOut");
+    var si = document.getElementById("opsSignIn");
     var acctBtn = document.getElementById("opsAccount");
+    var signedInEmail = "";
+
     if (avatar) {
       avatar.onclick = function (e) {
         e.stopPropagation();
+        /* Signed out: one tap opens auth (don't bury Sign in behind a menu). */
+        if (!signedInEmail) {
+          openSignIn();
+          return;
+        }
         var menu = document.getElementById("opsProfileMenu");
         setProfileOpen(!(menu && menu.classList.contains("open")));
+      };
+    }
+    if (si) {
+      si.onclick = function () {
+        setProfileOpen(false);
+        openSignIn();
       };
     }
     if (acctBtn) {
@@ -217,24 +246,43 @@
 
     function paintWho() {
       currentUserLabel().then(function (label) {
+        signedInEmail = label || "";
         var el = document.getElementById("opsWho");
         var av = document.getElementById("opsAvatar");
-        if (el) el.textContent = label || "";
-        if (av) {
-          if (label) {
-            av.hidden = false;
-            av.textContent = initialsFrom(label);
-            av.title = label;
-          } else {
-            av.hidden = true;
-            setProfileOpen(false);
-          }
+        var soEl = document.getElementById("opsSignOut");
+        var siEl = document.getElementById("opsSignIn");
+        var acctEl = document.getElementById("opsAccount");
+        if (el) el.textContent = label || "Not signed in";
+        if (!av) return;
+        av.hidden = false;
+        if (label) {
+          av.textContent = initialsFrom(label);
+          av.title = label;
+          av.setAttribute("aria-label", "Account menu");
+          av.classList.remove("ops-in");
+          if (soEl) soEl.hidden = false;
+          if (acctEl) acctEl.hidden = false;
+          if (siEl) siEl.hidden = true;
+        } else {
+          av.textContent = "IN";
+          av.title = "Sign in";
+          av.setAttribute("aria-label", "Sign in");
+          av.classList.add("ops-in");
+          if (soEl) soEl.hidden = true;
+          if (acctEl) acctEl.hidden = true;
+          if (siEl) siEl.hidden = false;
+          setProfileOpen(false);
         }
       });
     }
     paintWho();
     setTimeout(paintWho, 400);
     setTimeout(paintWho, 1500);
+    try {
+      if (root.Cloud && root.Cloud.onAuth) {
+        root.Cloud.onAuth(function () { paintWho(); });
+      }
+    } catch (e) {}
 
     try {
       window.addEventListener("hashchange", rememberGameday);
@@ -257,6 +305,7 @@
     rememberGameday: rememberGameday,
     portalUrl: portalUrl,
     gamedayHome: gamedayHome,
-    mount: mount
+    mount: mount,
+    openSignIn: openSignIn
   };
 })(typeof window !== "undefined" ? window : this);
