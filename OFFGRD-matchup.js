@@ -639,7 +639,8 @@
           basisTip: r.basisTip,
           why: r.why,
           concept: conceptKey(playObj),
-          byLook: r.byLook
+          byLook: r.byLook,
+          primaryLook: primaryLookFromByLook(r.byLook)
         });
       } catch (e) {}
     }
@@ -649,6 +650,81 @@
       return String(a.name).localeCompare(String(b.name));
     });
     return scored.slice(0, limit);
+  }
+
+  function primaryLookFromByLook(byLook) {
+    if (!byLook) return null;
+    var best = null;
+    var bestEv = -1;
+    for (var i = 0; i < LOOK_FAMILIES.length; i++) {
+      var fam = LOOK_FAMILIES[i];
+      var cell = byLook[fam];
+      if (!cell) continue;
+      var e = cell.ev != null ? +cell.ev : cell.score != null ? +cell.score / 100 : -1;
+      if (e > bestEv) {
+        bestEv = e;
+        best = fam;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * P3 — Plan tab auto-drafted gameplan sheet (draft only).
+   * buckets: [{name, dn, db, zone, covDist?}]  covDist = {arr:[{k,pct},...]} per bucket
+   * Returns [{ bucketIndex, name, top: rankPlaysByEv rows (limit 3) }]
+   */
+  function draftGameplanSheet(buckets, plays, rows, opts) {
+    opts = opts || {};
+    var per = opts.perBucket != null ? opts.perBucket : 3;
+    var list = Array.isArray(buckets) ? buckets : [];
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i] || {};
+      var covDist = b.covDist || opts.covDist || { arr: [] };
+      var ranked = rankPlaysByEv(plays, covDist, rows, Object.assign({}, opts, { limit: per }));
+      out.push({
+        bucketIndex: i,
+        name: b.name || ("Bucket " + (i + 1)),
+        dn: b.dn,
+        db: b.db,
+        zone: b.zone,
+        covDist: covDist,
+        top: ranked
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Looks to up-weight after coach confirms sheet plays:
+   * opponent top-2 coverages ∩ primary looks of confirmed plays.
+   */
+  function looksForWeekUpweight(confirmedPlays, opponentTopLooks, rankedByName) {
+    var top2 = (opponentTopLooks || []).slice(0, 2).map(function (x) {
+      return typeof x === "string" ? x : x && x.k;
+    }).filter(Boolean);
+    var famTop = {};
+    for (var t = 0; t < top2.length; t++) {
+      var f = familyOf(top2[t]);
+      if (f) famTop[f] = top2[t];
+    }
+    var hits = {};
+    var plays = Array.isArray(confirmedPlays) ? confirmedPlays : [];
+    for (var i = 0; i < plays.length; i++) {
+      var nm = typeof plays[i] === "string" ? plays[i] : plays[i] && plays[i].name;
+      if (!nm) continue;
+      var row = rankedByName && rankedByName[nm];
+      var pl = row && (row.primaryLook || primaryLookFromByLook(row.byLook));
+      if (pl && famTop[pl]) {
+        hits[pl] = { family: pl, label: famTop[pl] || pl, play: nm };
+      }
+    }
+    return Object.keys(hits)
+      .sort()
+      .map(function (k) {
+        return hits[k];
+      });
   }
 
   /** Blend rank vs a single look family (Scout attack panel). */
@@ -785,6 +861,9 @@
     blendScore: blendScore,
     ev: ev,
     rankPlaysByEv: rankPlaysByEv,
+    draftGameplanSheet: draftGameplanSheet,
+    looksForWeekUpweight: looksForWeekUpweight,
+    primaryLookFromByLook: primaryLookFromByLook,
     basisLabelFor: basisLabelFor,
     TIP_SCHEME: TIP_SCHEME,
     TIP_SUCCESS: TIP_SUCCESS,

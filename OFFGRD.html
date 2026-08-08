@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v263: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v264: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=263"></script>
-<script src="OFFGRD-brand-persist.js?v=263"></script>
-<script src="supabase.js?v=263"></script>
-<script src="OFFGRD-cache-gate.js?v=263"></script>
+<script src="OFFGRD-config.js?v=264"></script>
+<script src="OFFGRD-brand-persist.js?v=264"></script>
+<script src="supabase.js?v=264"></script>
+<script src="OFFGRD-cache-gate.js?v=264"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,32 +380,32 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=263"></script>
-<script src="OFFGRD-pos-glossary.js?v=263"></script>
-<script src="OFFGRD-autoderive.js?v=263"></script>
-<script src="OFFGRD-matchup.js?v=263"></script>
-<script src="OFFGRD-scoutcards.js?v=263"></script>
-<script src="OFFGRD-tendencies.js?v=263"></script>
-<script src="OFFGRD-scout-report.js?v=263"></script>
-<script src="OFFGRD-week-autotest.js?v=263"></script>
-<script src="OFFGRD-weeklypackage.js?v=263"></script>
-<script src="OFFGRD-telestrate.js?v=263"></script>
-<script src="OFFGRD-redesign.js?v=263"></script>
-<script src="OFFGRD-shell.js?v=263"></script>
-<script src="OFFGRD-caller-outcome.js?v=263"></script>
-<script src="OFFGRD-caller-sit.js?v=263"></script>
-<script src="OFFGRD-formations-data.js?v=263"></script>
-<script src="OFFGRD-formation-canon.js?v=263"></script>
-<script src="OFFGRD-assist-import.js?v=263"></script>
-<script src="OFFGRD-cv-review.js?v=263"></script>
-<script src="OFFGRD-frame-capture.js?v=263"></script>
-<script src="OFFGRD-caller-log.js?v=263"></script>
-<script src="OFFGRD-caller-sync.js?v=263"></script>
-<script src="OFFGRD-caller-analysis.js?v=263"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=263"></script>
-<script src="OFFGRD-booth-ask.js?v=263"></script>
-<script src="OFFGRD-caller-select.js?v=263"></script>
-<script src="OFFGRD-dcaller.js?v=263"></script>
+<script src="OFFGRD-render.js?v=264"></script>
+<script src="OFFGRD-pos-glossary.js?v=264"></script>
+<script src="OFFGRD-autoderive.js?v=264"></script>
+<script src="OFFGRD-matchup.js?v=264"></script>
+<script src="OFFGRD-scoutcards.js?v=264"></script>
+<script src="OFFGRD-tendencies.js?v=264"></script>
+<script src="OFFGRD-scout-report.js?v=264"></script>
+<script src="OFFGRD-week-autotest.js?v=264"></script>
+<script src="OFFGRD-weeklypackage.js?v=264"></script>
+<script src="OFFGRD-telestrate.js?v=264"></script>
+<script src="OFFGRD-redesign.js?v=264"></script>
+<script src="OFFGRD-shell.js?v=264"></script>
+<script src="OFFGRD-caller-outcome.js?v=264"></script>
+<script src="OFFGRD-caller-sit.js?v=264"></script>
+<script src="OFFGRD-formations-data.js?v=264"></script>
+<script src="OFFGRD-formation-canon.js?v=264"></script>
+<script src="OFFGRD-assist-import.js?v=264"></script>
+<script src="OFFGRD-cv-review.js?v=264"></script>
+<script src="OFFGRD-frame-capture.js?v=264"></script>
+<script src="OFFGRD-caller-log.js?v=264"></script>
+<script src="OFFGRD-caller-sync.js?v=264"></script>
+<script src="OFFGRD-caller-analysis.js?v=264"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=264"></script>
+<script src="OFFGRD-booth-ask.js?v=264"></script>
+<script src="OFFGRD-caller-select.js?v=264"></script>
+<script src="OFFGRD-dcaller.js?v=264"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1932,6 +1932,138 @@ function bestCallsFor(target,dn,db,kind){
   });
   rankCalls(res); return res.slice(0,3);
 }
+/* P3 — EV draft for one plan bucket (P(look) from scout × blend). Draft only. */
+function matchupDraftForBucket(b, def){
+  const M=window.OFFGRD_MATCHUP;
+  if(!M||typeof M.rankPlaysByEv!=="function") return null;
+  const ds=defSituation(def,b.dn,b.db,b.zone||"ANY");
+  const g=ds.rows||[];
+  const covDist=(typeof shrunkDist==="function"&&g.length)
+    ? shrunkDist(g,"coverage",def,5)
+    : (typeof weightedDist==="function"&&g.length)
+      ? weightedDist(g.filter(r=>r.coverage&&r.coverage!=="?"),"coverage",false)
+      : {arr:[]};
+  if(!covDist.arr||!covDist.arr.length) return { list:[], covDist:covDist, ds:ds };
+  const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
+  const book=(typeof PBOOK!=="undefined"&&Array.isArray(PBOOK))?PBOOK:[];
+  const byName={}; book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
+  const names=uniq(book.map(p=>p&&p.name).concat(ours.map(r=>r&&r.play))).filter(Boolean);
+  const candidates=names.map(nm=>byName[nm]||{name:nm});
+  const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
+  const gi=(typeof gameOrderIndex==="function")?gameOrderIndex():null;
+  const opts={
+    limit:3,
+    down:b.dn==="ANY"?null:+b.dn,
+    distBucket:b.db==="ANY"?null:b.db,
+    distBucketOf:typeof distBucket==="function"?distBucket:null,
+    getSuccess:typeof callerLearnSuccess==="function"?callerLearnSuccess:null,
+    weightFn:function(row){
+      if(!useRec||!gi||typeof weightOf!=="function") return 1;
+      return weightOf(row,true,gi);
+    }
+  };
+  let ranked=[];
+  try{ ranked=M.rankPlaysByEv(candidates, covDist, ours, opts); }catch(e){ ranked=[]; }
+  return { list:ranked, covDist:covDist, ds:ds };
+}
+function planConfirmDraft(bi, name, id){
+  if(!WEEK_EDIT){ alert("Only coaches can confirm calls into this week's plan."); return; }
+  if(!WEEK){ alert("Start a week plan first, then confirm draft calls into it."); return; }
+  planCommit(bi, name, id||null);
+}
+/** Opponent top coverages ∩ primary looks of confirmed sheet plays → coach-confirm up-weight. */
+function planLookUpweightCandidates(){
+  const M=window.OFFGRD_MATCHUP;
+  if(!M||typeof M.looksForWeekUpweight!=="function") return [];
+  const opp=(WEEK&&WEEK.opponent)||(sit&&sit.opp)||"ANY";
+  const def=opp!=="ANY"?oppRows("def"):gamesRows("def");
+  if(!def.length) return [];
+  const covArr=(typeof weightedDist==="function")
+    ? weightedDist(def.filter(r=>r.coverage&&r.coverage!=="?"),"coverage",false).arr
+    : [];
+  const topLooks=(covArr||[]).slice(0,2);
+  const confirmed=[];
+  planBuckets().forEach(b=>((b&&b.plays)||[]).forEach(p=>{ if(p&&p.name) confirmed.push(p.name); }));
+  if(!confirmed.length) return [];
+  const draft=matchupDraftForBucket({dn:"ANY",db:"ANY",zone:"ANY"}, def);
+  const rankedByName={};
+  ((draft&&draft.list)||[]).forEach(r=>{ if(r&&r.name) rankedByName[r.name]=r; });
+  /* Also score confirmed plays not in the short draft list */
+  confirmed.forEach(function(nm){
+    if(rankedByName[nm]) return;
+    const one=matchupDraftForBucket({dn:"ANY",db:"ANY",zone:"ANY",name:nm}, def);
+    /* Re-rank full book once is enough — reuse draft covDist */
+  });
+  try{
+    const book=(PBOOK||[]).concat(confirmed.map(n=>({name:n})));
+    const ours=gamesRows("ours");
+    const covDist={arr:topLooks};
+    const full=M.rankPlaysByEv(book, covDist, ours, {limit:80});
+    (full||[]).forEach(r=>{ if(r&&r.name) rankedByName[r.name]=r; });
+  }catch(e){}
+  const looks=M.looksForWeekUpweight(confirmed, topLooks, rankedByName);
+  const accepted=((WEEK&&WEEK.matchup_look_upweights)||[]);
+  return looks.map(function(L){
+    const done=accepted.some(a=>a&&a.family===L.family&&a.status==="accepted");
+    return Object.assign({}, L, { status: done?"accepted":"proposed" });
+  });
+}
+async function planConfirmLookUpweight(family, label){
+  if(!WEEK_EDIT){ alert("Only coaches can confirm practice up-weights."); return; }
+  if(!confirm("Up-weight "+(label||family)+" in next week's player tests?\n\nTracked cell + test bias only — nothing auto-locks the plan.")) return;
+  const b=typeof callerBridge==="function"?callerBridge():(window.OFFGRD_CALLER_BRIDGE||null);
+  const cloud=b&&b.cloud;
+  if(!cloud||!cloud.startTrackedFocusFromGame){
+    alert("Sign in as staff to send look up-weights to practice focus.");
+    return;
+  }
+  try{
+    const schoolId=typeof callerResolveSchoolId==="function"?await callerResolveSchoolId():null;
+    if(!schoolId) throw new Error("No school linked to this team.");
+    const teamId=b.getTeamId?b.getTeamId():null;
+    await cloud.startTrackedFocusFromGame({
+      schoolId:schoolId, teamId:teamId,
+      positionGroup:"QB",
+      kind:"coverage",
+      schemeType:"coverage",
+      schemeValue:label||family,
+      dimension:null,
+      sourceTag:"matchup_plan_p3",
+      withEmphasis:true
+    });
+    if(!WEEK.matchup_look_upweights) WEEK.matchup_look_upweights=[];
+    WEEK.matchup_look_upweights.push({ family:family, label:label||family, status:"accepted", at:new Date().toISOString() });
+    try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){}
+    if(window.OFFGRD_WEEK_PUSH) window.OFFGRD_WEEK_PUSH({ matchup_look_upweights: WEEK.matchup_look_upweights });
+    renderPlan();
+  }catch(e){
+    alert((e&&e.message)||"Could not confirm look up-weight.");
+  }
+}
+function planLookUpweightHTML(){
+  if(!WEEK||PLAN_SIDE==="def") return "";
+  const cands=planLookUpweightCandidates();
+  if(!cands.length){
+    if(!(WEEK&&WEEK_EDIT)) return "";
+    const hasPlays=planBuckets().some(b=>b.plays&&b.plays.length);
+    if(!hasPlays) return '<p class="foot no-print" style="margin-top:10px">Confirm draft calls into this week\'s sheet — then you can up-weight the opponent\'s top looks in next tests.</p>';
+    return '<p class="foot no-print" style="margin-top:10px">No overlap yet between confirmed calls\' primary looks and their top-2 coverages.</p>';
+  }
+  let h='<div class="panel no-print" style="margin-top:12px;padding:10px 12px"><div class="lbl">Practice up-weight <span class="foot">(coach confirm · weekAutotest)</span></div>';
+  h+='<p class="foot" style="margin:4px 0 8px">Confirmed sheet plays whose primary look is in their top-2. Confirm to bias next Coverage-ID tests — draft only until you tap Confirm.</p>';
+  cands.forEach(function(c){
+    if(c.status==="accepted"){
+      h+='<div class="wkchip" style="margin:4px 0"><span class="wb" style="background:var(--good)">✓</span> '+esc(c.label||c.family)+' <span class="foot">up-weighted</span></div>';
+    }else if(WEEK_EDIT){
+      h+='<div class="row" style="gap:8px;margin:4px 0;align-items:center"><b>'+esc(c.label||c.family)+'</b><span class="foot">via '+esc(c.play||"")+'</span>'
+        +'<button type="button" class="ghost" style="font-weight:800" onclick="planConfirmLookUpweight(\''+esc(c.family).replace(/'/g,"")+"','"+esc(c.label||c.family).replace(/'/g,"")+"')\">Confirm</button></div>";
+    }else{
+      h+='<div class="foot" style="margin:4px 0">'+esc(c.label||c.family)+' · awaiting coach confirm</div>';
+    }
+  });
+  h+='</div>';
+  return h;
+}
 function defSituation(def,dn,db,zone){
   const m=r=>(dn==="ANY"||r.down===+dn)&&(db==="ANY"||distBucket(r.distance)===db)&&(zone==="ANY"||r.fieldZone===zone);
   let g=def.filter(m);
@@ -2287,15 +2419,39 @@ function renderPlan(){
     const mine=Array.isArray(b.plays)?b.plays:[];
     const chip=(p,j)=>`<div class="wkchip"><span class="wb">${wbLabel(wb++)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>${(WEEK&&WEEK_EDIT)?`<button class="cx no-print" data-wkdel="${bi}:${j}" title="Remove">?</button>`:""}</div>`;
     const mineStr=mine.map(chip).join("")+((WEEK&&WEEK_EDIT)?`<button class="ghost no-print" data-wkpick="${bi}" style="display:block;padding:2px 9px;margin:5px 0 0;white-space:nowrap">+ Add</button>`:"");
-    const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
+    const draft=matchupDraftForBucket(b, def);
     const rdMode=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
-    const rp=ex=> rdMode
-      ? (' class="foot rd-runpass"'+(ex?' style="'+ex+'"':''))
-      : (' class="foot" style="color:var(--accent);font-weight:800'+(ex?';'+ex:'')+'"');
-    const callStr=(runs.length||passes.length)?`<div${rp("")}>RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div${rp("margin-top:5px")}>PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
+    let callStr="";
+    if(draft&&draft.list&&draft.list.length){
+      const tipScheme=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SCHEME)||"scheme fit vs predicted look";
+      const tipSuccess=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SUCCESS)||"graded success blended with scheme fit";
+      callStr='<div class="foot" style="font-weight:800;margin-bottom:4px">Matchup draft · top 3</div>';
+      draft.list.forEach(function(r){
+        const nm=r.name||"?";
+        const evPct=Math.round((r.ev!=null?r.ev:0)*100);
+        const tip=esc(r.basisTip||(r.basis==="empirical"?tipSuccess:tipScheme));
+        const why=(r.why&&r.why[0])?' <span class="foot">'+esc(r.why[0])+'</span>':"";
+        const pill=r.basis==="empirical"&&r.n
+          ? esc(r.basisLabel||("SUCCESS · "+r.n+" SNAPS"))
+          : (evPct+'% SCHEME MATCH');
+        const already=mine.some(p=>(p.name||"").toLowerCase()===nm.toLowerCase());
+        const addBtn=(WEEK&&WEEK_EDIT&&!already)
+          ? `<button type="button" class="wkadd no-print" title="Confirm into this week's calls" onclick="planConfirmDraft(${bi},'${esc(nm).replace(/'/g,"")}','${esc(String(r.id||"")).replace(/'/g,"")}')">Confirm</button>`
+          : (already?'<span class="foot">in sheet</span>':"");
+        callStr+=`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(nm)}${why} <span class="pill" title="${tip}">${pill}</span></span>${addBtn}</div>`;
+      });
+    }else{
+      const cl2=c=>`<div class="wkcall"><span class="nm">${mine.length?"":`<span class="wb">${wbLabel(wb++)}</span>`}${esc(c.play)} <span class="foot">(${Math.round(c.sr*100)}% on ${c.n}${c.n<4?", few":""})</span></span>${(WEEK&&WEEK_EDIT)?`<button class="wkadd no-print" data-wkadd="${bi}" data-wkplay="${esc(c.play)}" title="Add to this week's calls">+</button>`:""}</div>`;
+      const rp=ex=> rdMode
+        ? (' class="foot rd-runpass"'+(ex?' style="'+ex+'"':''))
+        : (' class="foot" style="color:var(--accent);font-weight:800'+(ex?';'+ex:'')+'"');
+      callStr=(runs.length||passes.length)?`<div${rp("")}>RUN</div>`+(runs.length?runs.map(cl2).join(""):`<span class="foot">&mdash; no run reps</span>`)+`<div${rp("margin-top:5px")}>PASS</div>`+(passes.length?passes.map(cl2).join(""):`<span class="foot">&mdash; no pass reps</span>`):`<span class="foot">tag your plays vs ${target?esc(target):"this look"}</span>`;
+    }
     h+=`<tr><td><b>${esc(b.name)}</b>${badge}<div class="foot">${g.length} snaps</div></td><td>${showStr}</td>${planCol?`<td>${(mine.length||(WEEK&&WEEK_EDIT))?mineStr:'<span class="foot">?</span>'}</td>`:""}<td>${callStr}</td></tr>`;
   });
-  h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; suggestions rank your plays by on-schedule success vs the look they most likely show.`:`Best calls rank your plays by on-schedule success vs the look they most likely show.`}</p></div>`;
+  h+=`</table><p class="foot" style="margin-top:8px">${USE_WB?`Wristband slots across ${WB_PANELS} panels. `:""}${planCol?`Committed calls take the wristband slots; Matchup draft ranks your book by EV vs the look they most likely show (Confirm = coach lock-in).`:`Matchup draft ranks your book by EV vs the look they most likely show.`}</p>`;
+  h+=planLookUpweightHTML();
+  h+=`</div>`;
   host.innerHTML=h;
   wireWeekUI(host);
 }
@@ -5399,7 +5555,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=263", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=264", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5722,9 +5878,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=263"></script>
-<script src="OFFGRD-role-gate.js?v=263"></script>
-<script src="OFFGRD-mobile.js?v=263"></script>
+<script type="module" src="OFFGRD-account.js?v=264"></script>
+<script src="OFFGRD-role-gate.js?v=264"></script>
+<script src="OFFGRD-mobile.js?v=264"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
