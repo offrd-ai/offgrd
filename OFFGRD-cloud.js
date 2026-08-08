@@ -8,9 +8,13 @@
 /* Supabase client is loaded locally via <script src="vendor/supabase.js"> (window.supabase) — no external CDN. */
 const createClient = (typeof window !== "undefined" && window.supabase && window.supabase.createClient) ? window.supabase.createClient : null;
 const cfg = (typeof window !== "undefined" && window.OFFGRD_CONFIG) || {};
-const sb = createClient ? createClient(cfg.url || "", cfg.anonKey || "", {
-  auth: { persistSession: true, autoRefreshToken: true }
-}) : null;
+let sb = (typeof window !== "undefined" && window.__OFFRD_SUPABASE__) || null;
+if (!sb && createClient) {
+  sb = createClient(cfg.url || "", cfg.anonKey || "", {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
+  if (typeof window !== "undefined") window.__OFFRD_SUPABASE__ = sb;
+}
 /* Consolidation (Sprint 1 §5): OFFGRD tables now live in the `offgrd` schema of the authority
    project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
 const OG = sb ? sb.schema("offgrd") : null;
@@ -47,6 +51,26 @@ function purgeForeignAuthTokens(expectedRef) {
   return kill.length;
 }
 const EXPECTED_REF = projectRefFromUrl(cfg.url);
+
+let _myTeamsInflight = null;
+let _myTeamsRecent = null; /* { data, until } — collapses boot triple within a short TTL */
+let _myTeamsLoadCount = 0;
+let _myTeamsCountTimer = null;
+const MY_TEAMS_RECENT_MS = 2500;
+function _noteMyTeamsCall() {
+  _myTeamsLoadCount++;
+  if (_myTeamsCountTimer) clearTimeout(_myTeamsCountTimer);
+  _myTeamsCountTimer = setTimeout(function () {
+    try {
+      console.log("[Cloud.myTeams] calls per load:", _myTeamsLoadCount);
+    } catch (e) {}
+    _myTeamsLoadCount = 0;
+    _myTeamsCountTimer = null;
+  }, 6000);
+}
+function _invalidateMyTeamsCache() {
+  _myTeamsRecent = null;
+}
 
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
@@ -115,44 +139,80 @@ export const Cloud = {
     return sb.auth.signUp({ email, password, options: { data: { full_name: fullName || "" } } });
   },
   async signIn(email, password) { return sb.auth.signInWithPassword({ email, password }); },
-  async signOut() { return sb.auth.signOut(); },
-  /** Email a recovery link (lands on getOFFRD /reset-password). */
-  async resetPassword(email) {
-    return sb.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://getoffrd.com/reset-password"
-    });
-  },
-  /** Change password for the currently signed-in user. */
-  async updatePassword(password) {
-    return sb.auth.updateUser({ password });
+  async signOut() {
+    _invalidateMyTeamsCache();
+    return sb.auth.signOut();
   },
   async user() { const { data } = await sb.auth.getUser(); return data.user || null; },
   async session() { try { const { data } = await sb.auth.getSession(); return (data && data.session) ? data.session.user : null; } catch(e){ return null; } },
+  /**
+   * Revive/refresh JWT before membership RPCs. Clean-device gameday often races
+   * getSession() before the client finishes hydrating storage — without this,
+   * myTeams returns [] and never retries.
+   */
+  async ensureFreshSession() {
+    if (!sb) return null;
+    try {
+      const { data } = await sb.auth.getSession();
+      let session = data && data.session ? data.session : null;
+      if (!session) return null;
+      const exp = session.expires_at ? (session.expires_at * 1000) : 0;
+      if (exp && exp - Date.now() < 60000 * 5) {
+        try {
+          const ref = await sb.auth.refreshSession();
+          if (ref && ref.data && ref.data.session) session = ref.data.session;
+        } catch (e) {}
+      }
+      return session.user || null;
+    } catch (e) {
+      return null;
+    }
+  },
   onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
 
   /* ---------- teams ---------- */
   /**
    * Programs for the signed-in user.
-   * Prefer schema select; on empty/error fall back to public membership RPCs
-   * (same path as getOFFRD Team Home) so clean player devices don't need a
-   * prior coach Scout sync to populate local caches.
+   * Session-first: public.offgrd_my_teams (team_members) does not depend on
+   * offgrd schema Accept-Profile or a coach-warmed device cache. Schema select
+   * and school membership RPC are fallbacks only.
    */
   async myTeams() {
-    let rows = [];
-    if (OG) {
-      try {
-        const { data, error } = await OG.from("teams").select("*").order("created_at");
-        if (!error) rows = data || [];
-        else console.warn("[Cloud.myTeams] schema", error.message);
-      } catch (e) {
-        console.warn("[Cloud.myTeams] schema", e && e.message);
-      }
+    if (_myTeamsInflight) return _myTeamsInflight;
+    if (_myTeamsRecent && Date.now() < _myTeamsRecent.until) {
+      return _myTeamsRecent.data;
     }
-    if (rows.length) return rows;
+    _noteMyTeamsCall();
+    _myTeamsInflight = this._myTeamsImpl()
+      .then(function (data) {
+        _myTeamsRecent = { data: data, until: Date.now() + MY_TEAMS_RECENT_MS };
+        return data;
+      })
+      .finally(function () {
+        _myTeamsInflight = null;
+      });
+    return _myTeamsInflight;
+  },
+  async _myTeamsImpl() {
+    try { await this.ensureFreshSession(); } catch (e) {}
 
+    /* 1) Membership via team_members — works with session alone. */
+    try {
+      const { data, error } = await sb.rpc("offgrd_my_teams");
+      if (error) console.warn("[Cloud.myTeams] offgrd_my_teams", error.message);
+      else if (Array.isArray(data) && data.length) {
+        try { console.log("[Cloud.myTeams] rpc", data.length, data.map(function (t) { return t && t.id; })); } catch (e) {}
+        return data;
+      }
+    } catch (e) {
+      console.warn("[Cloud.myTeams] offgrd_my_teams", e && e.message);
+    }
+
+    /* 2) School → program membership snapshot (Team Home path). */
     try {
       const { data: mem, error } = await sb.rpc("offgrd_my_player_membership");
       if (error) throw error;
+      try { console.log("[Cloud.myTeams] membership", mem && mem.is_member, mem && mem.team_id, mem && mem.error); } catch (e) {}
       if (mem && mem.team_id && mem.is_member) {
         let schedule = [];
         let brand = mem.brand || null;
@@ -176,9 +236,23 @@ export const Cloud = {
     } catch (e) {
       console.warn("[Cloud.myTeams] membership", e && e.message);
     }
-    return [];
+
+    /* 3) Direct schema select (coaches / Accept-Profile clients). */
+    let rows = [];
+    if (OG) {
+      try {
+        const { data, error } = await OG.from("teams").select("*").order("created_at");
+        if (!error) rows = data || [];
+        else console.warn("[Cloud.myTeams] schema", error.message);
+      } catch (e) {
+        console.warn("[Cloud.myTeams] schema", e && e.message);
+      }
+    }
+    try { console.log("[Cloud.myTeams] schema rows", rows.length); } catch (e) {}
+    return rows;
   },
   async createTeam(name) {
+    _invalidateMyTeamsCache();
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
     if (error) throw error; return data; // team id
   },
@@ -198,6 +272,13 @@ export const Cloud = {
     const { data, error } = await sb.rpc("offgrd_can_create_team");
     if (error) throw error;
     return !!data;
+  },
+  /** Team Home membership snapshot — school, team_id, is_member, brand. */
+  async playerMembership() {
+    try { await this.ensureFreshSession(); } catch (e) {}
+    const { data, error } = await sb.rpc("offgrd_my_player_membership");
+    if (error) throw error;
+    return data || null;
   },
   async playerWeekPlan(teamId) {
     const { data, error } = await sb.rpc("offgrd_player_week_plan", { t: teamId });
@@ -229,8 +310,19 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
   async myRole(teamId) {
-    const { data, error } = await sb.rpc("offgrd_my_role", { t: teamId });
-    if (error) throw error; return data;
+    try {
+      const { data, error } = await sb.rpc("offgrd_my_role", { t: teamId });
+      if (!error && data) return data;
+      if (error) console.warn("[Cloud.myRole]", error.message);
+    } catch (e) {
+      console.warn("[Cloud.myRole]", e && e.message);
+    }
+    /* Fallback when schema role RPC is empty but membership exists. */
+    try {
+      const { data: mem } = await sb.rpc("offgrd_my_player_membership");
+      if (mem && mem.is_member && mem.team_id === teamId) return "player";
+    } catch (e) {}
+    return null;
   },
   async setMyPosition(teamId, pos) {
     const { error } = await sb.rpc("offgrd_set_my_position", { t: teamId, pos });
@@ -260,7 +352,12 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
   async revokeInvite(id) { const { error } = await OG.from("invites").delete().eq("id", id); if (error) throw error; },
-  async joinByCode(code) { const { data, error } = await sb.rpc("offgrd_join_by_code", { code }); if (error) throw error; return data; },
+  async joinByCode(code) {
+    _invalidateMyTeamsCache();
+    const { data, error } = await sb.rpc("offgrd_join_by_code", { code });
+    if (error) throw error;
+    return data;
+  },
   /** Phase 4: merge roster → public.players (source=team). */
   async seedPlayerFromTeam(opts) {
     const { data, error } = await sb.rpc("offgrd_seed_player_from_team", {
@@ -338,27 +435,227 @@ export const Cloud = {
     }
     if (!OG) return [];
     const { data, error } = await OG.from("scouting_games").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
-    if (error) throw error; return data || [];
+    if (error) throw error;
+    /* Direct-select fallback: apply tombstones client-side (RPC path filters server-side). */
+    const tombs = await this.listGameTombstones(teamId);
+    if (!tombs.length) return data || [];
+    return (data || []).filter((g) => !tombs.some((t) => {
+      if (t.game_id && g.id && String(t.game_id) === String(g.id)) return true;
+      return t.natural_key === this.gameNaturalKey(g.opponent, g.week, g.side);
+    }));
+  },
+  /**
+   * v212 tombstones — natural key is load-bearing (id rotates on re-INSERT).
+   * Matches offgrd.scouting_natural_key / client gameNaturalKey.
+   */
+  gameNaturalKey(opp, week, side) {
+    return String(opp || "?").trim().toLowerCase() + "|" + String(week || "?").trim().toLowerCase() + "|" + String(side || "");
+  },
+  async listGameTombstones(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scouting_game_tombstones")
+      .select("id,team_id,natural_key,opponent,week,side,game_id,reason")
+      .eq("team_id", teamId);
+    if (error) {
+      /* Pre-v212 schema: table missing — treat as no tombstones. */
+      console.warn("[Cloud.listGameTombstones]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+  async isGameTombstoned(teamId, game, tombs) {
+    if (!teamId || !game) return false;
+    const list = Array.isArray(tombs) ? tombs : await this.listGameTombstones(teamId);
+    if (!list.length) return false;
+    const key = this.gameNaturalKey(game.opponent, game.week, game.side);
+    const gid = game.id || game.cid || null;
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i];
+      if (gid && t.game_id && String(t.game_id) === String(gid)) return true;
+      if (t.natural_key && t.natural_key === key) return true;
+    }
+    return false;
+  },
+  _isTombstoneError(err) {
+    if (!err) return false;
+    if (err.code === "TOMBSTONED" || err.code === "23514") return true;
+    const msg = String(err.message || err.details || err.hint || "");
+    return /scouting_game tombstoned/i.test(msg) || /tombstoned/i.test(msg);
   },
   async saveGame(teamId, game) {
-    const row = { team_id: teamId, opponent: game.opponent, week: game.week, side: game.side, source: game.source, rows: game.rows };
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const nk = this.gameNaturalKey(game.opponent, game.week, game.side);
+    /* v212: refuse upsert when id OR natural key is tombstoned (id-rotation proof). */
+    if (await this.isGameTombstoned(teamId, game)) {
+      const err = new Error("scouting_game tombstoned: " + nk);
+      err.code = "TOMBSTONED";
+      throw err;
+    }
+    const row = {
+      team_id: teamId,
+      opponent: game.opponent,
+      week: game.week,
+      side: game.side,
+      source: game.source,
+      rows: game.rows,
+    };
     if (game.id) row.id = game.id;
+    else {
+      /* Natural-key resolve — never INSERT a second blob for opponent|week|side. */
+      try {
+        const { data: existing } = await OG.from("scouting_games")
+          .select("id")
+          .eq("team_id", teamId)
+          .eq("opponent", game.opponent)
+          .eq("week", game.week)
+          .eq("side", game.side)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing && existing.id) row.id = existing.id;
+      } catch (e) {
+        /* fall through to upsert; duplicate risk only if lookup fails */
+      }
+    }
+
+    /*
+     * Durability (v249): refuse blind last-writer-wins when the server blob moved
+     * since this client last pulled (baseUpdatedAt), or when an old client with no
+     * base tries to shrink a larger cloud blob (St Mary's 61→44 clobber class).
+     * Intentional shrink after a fresh pull still works — base matches server.
+     */
+    try {
+      let curQ = OG.from("scouting_games")
+        .select("id, updated_at, rows")
+        .eq("team_id", teamId);
+      if (row.id) curQ = curQ.eq("id", row.id);
+      else {
+        curQ = curQ
+          .eq("opponent", game.opponent)
+          .eq("week", game.week)
+          .eq("side", game.side)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+      }
+      const { data: cur } = await curQ.maybeSingle();
+      if (cur) {
+        if (!row.id) row.id = cur.id;
+        const serverN = Array.isArray(cur.rows) ? cur.rows.length : 0;
+        const localN = Array.isArray(game.rows) ? game.rows.length : 0;
+        const serverT = Date.parse(cur.updated_at || "");
+        const baseRaw = game.baseUpdatedAt || game.updatedAt || null;
+        const baseT = baseRaw ? Date.parse(baseRaw) : NaN;
+        const serverNewer =
+          Number.isFinite(serverT) && Number.isFinite(baseT) && serverT > baseT + 750;
+        const blindShrink = !Number.isFinite(baseT) && serverN > localN;
+        if (serverNewer || blindShrink) {
+          const err = new Error(
+            "scouting_game stale write: " +
+              nk +
+              " (server " +
+              serverN +
+              " rows @ " +
+              (cur.updated_at || "?") +
+              ")"
+          );
+          err.code = "STALE_WRITE";
+          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
+          throw err;
+        }
+      }
+    } catch (eCas) {
+      if (eCas && eCas.code === "STALE_WRITE") throw eCas;
+      /* CAS lookup failed — fall through to upsert (prefer availability). */
+    }
+
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
-    if (error) throw error; return data;
+    if (error) {
+      /* Trigger path (stale v211 / tombs not loaded): map to TOMBSTONED — never retry-storm. */
+      if (this._isTombstoneError(error)) {
+        const err = new Error(error.message || ("scouting_game tombstoned: " + nk));
+        err.code = "TOMBSTONED";
+        err.cause = error;
+        throw err;
+      }
+      throw error;
+    }
+    return data;
   },
   async deleteGame(id) { const { error } = await OG.from("scouting_games").delete().eq("id", id); if (error) throw error; },
+  /**
+   * v212: tombstone natural key THEN hard-delete cloud row.
+   * Local-only clears resurrect on pull; this is the durable Season Data Manager path.
+   * RLS allows INSERT (not UPDATE) on tombstones — duplicate key = already tombstoned (ok).
+   */
+  async tombstoneGame(teamId, game, reason) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId || !game) throw new Error("tombstoneGame: teamId and game required");
+    const opponent = game.opponent != null ? String(game.opponent) : "?";
+    const week = game.week != null ? String(game.week) : "?";
+    const side = game.side != null ? String(game.side) : "";
+    const nk = this.gameNaturalKey(opponent, week, side);
+    let gameId = game.id || game.cid || null;
+    if (!gameId) {
+      try {
+        const { data: existing } = await OG.from("scouting_games")
+          .select("id")
+          .eq("team_id", teamId)
+          .eq("opponent", opponent)
+          .eq("week", week)
+          .eq("side", side)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing && existing.id) gameId = existing.id;
+      } catch (eLook) {
+        /* continue — tombstone by natural key still blocks resurrection */
+      }
+    }
+    const tomb = {
+      team_id: teamId,
+      natural_key: nk,
+      opponent: opponent,
+      week: week,
+      side: side,
+      reason: reason || "user_delete",
+    };
+    if (gameId) tomb.game_id = gameId;
+    const { error: tErr } = await OG.from("scouting_game_tombstones").insert(tomb);
+    if (tErr) {
+      const code = String(tErr.code || "");
+      const msg = String(tErr.message || "");
+      const dup = code === "23505" || /duplicate|unique/i.test(msg);
+      if (!dup) throw tErr;
+    }
+    if (gameId) {
+      const { error: dErr } = await OG.from("scouting_games").delete().eq("id", gameId);
+      if (dErr) throw dErr;
+    } else {
+      const { error: dErr } = await OG.from("scouting_games")
+        .delete()
+        .eq("team_id", teamId)
+        .eq("opponent", opponent)
+        .eq("week", week)
+        .eq("side", side);
+      if (dErr) throw dErr;
+    }
+    return { natural_key: nk, game_id: gameId };
+  },
 
   /* ---------- live caller event log (multi-device, append-only) ---------- */
-  async activeCallerGame(teamId) {
+  async activeCallerGame(teamId, side) {
     if (!OG || !teamId) return null;
-    const { data, error } = await OG.from("caller_games").select("*")
-      .eq("team_id", teamId).eq("status", "active").maybeSingle();
+    const sideKey = side === "defense" ? "defense" : side === "offense" ? "offense" : null;
+    let q = OG.from("caller_games").select("*").eq("team_id", teamId).eq("status", "active");
+    if (sideKey) q = q.eq("side", sideKey);
+    const { data, error } = await q.maybeSingle();
     if (error) throw error;
     return data || null;
   },
   async ensureCallerGame(teamId, meta) {
     if (!OG || !teamId) return null;
-    const existing = await this.activeCallerGame(teamId);
+    const side = (meta && meta.side) === "defense" ? "defense" : "offense";
+    const existing = await this.activeCallerGame(teamId, side);
     if (existing) return existing;
     const row = {
       team_id: teamId,
@@ -367,12 +664,13 @@ export const Cloud = {
       game_date: (meta && meta.game_date) || null,
       status: "active",
       created_by: (meta && meta.created_by) || null,
+      side: side,
     };
     if (meta && meta.id) row.id = meta.id;
     const { data, error } = await OG.from("caller_games").insert(row).select().single();
     if (error) {
-      /* race: another device created active game */
-      const again = await this.activeCallerGame(teamId);
+      /* race: another device created active game for this side */
+      const again = await this.activeCallerGame(teamId, side);
       if (again) return again;
       throw error;
     }
@@ -382,6 +680,65 @@ export const Cloud = {
     if (!OG || !gameId) return;
     const { error } = await OG.from("caller_games").update({ status: "archived" }).eq("id", gameId);
     if (error) throw error;
+  },
+  /**
+   * Land proposed Monday Focus payload on the game row (sync path).
+   * Never calls start_tracked_focus — coach confirm only.
+   */
+  async upsertCallerGameMondayFocus(gameId, mondayFocus) {
+    if (!OG || !gameId || !mondayFocus) return null;
+    const { data, error } = await OG.from("caller_games")
+      .update({ monday_focus: mondayFocus })
+      .eq("id", gameId)
+      .select("id, monday_focus")
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  async getCallerGameMondayFocus(gameId) {
+    if (!OG || !gameId) return null;
+    const { data, error } = await OG.from("caller_games").select("id, monday_focus").eq("id", gameId).maybeSingle();
+    if (error) throw error;
+    return (data && data.monday_focus) || null;
+  },
+  /**
+   * Coach-confirmed hand-off — sole write into Focus chain for game tags.
+   * Maps to public.start_tracked_focus (tracked cell + next-test up-weight).
+   * Does NOT touch focus_today_overrides (headline stays rep-earned).
+   */
+  async startTrackedFocusFromGame(opts) {
+    if (!sb || !opts || !opts.schoolId || !opts.positionGroup || !opts.kind) {
+      throw new Error("startTrackedFocusFromGame: schoolId, positionGroup, kind required");
+    }
+    const { data, error } = await sb.rpc("start_tracked_focus", {
+      p_school_id: opts.schoolId,
+      p_team_id: opts.teamId || null,
+      p_position_group: opts.positionGroup,
+      p_kind: opts.kind,
+      p_subskill: opts.subskill || null,
+      p_baseline_accuracy: opts.baselineAccuracy != null ? opts.baselineAccuracy : null,
+      p_player_id: null,
+      p_player_name: null,
+      p_group_focus_id: null,
+      p_source_tag: opts.sourceTag || "livetag_monday",
+      p_with_emphasis: opts.withEmphasis !== false,
+      p_weight: opts.weight != null ? opts.weight : 2.0,
+      p_scheme_type: opts.schemeType || null,
+      p_scheme_value: opts.schemeValue || null,
+      p_dimension: opts.dimension || null,
+      p_baseline_correct: opts.baselineCorrect != null ? opts.baselineCorrect : null,
+      p_baseline_attempts: opts.baselineAttempts != null ? opts.baselineAttempts : null,
+    });
+    if (error) throw error;
+    return data;
+  },
+  /** Archive the live game for a side — frees one-active-per-side for Clear → new session. */
+  async archiveActiveCallerGame(teamId, side) {
+    if (!OG || !teamId) return null;
+    const g = await this.activeCallerGame(teamId, side);
+    if (!g || !g.id) return null;
+    await this.archiveCallerGame(g.id);
+    return g;
   },
   async listCallerEvents(teamId, gameId) {
     if (!OG || !teamId || !gameId) return [];
@@ -402,6 +759,7 @@ export const Cloud = {
         seq: r.seq,
         superseded: !!r.superseded,
         teamId: r.team_id,
+        side: r.side === "defense" ? "defense" : "offense",
       };
     });
   },
@@ -421,6 +779,7 @@ export const Cloud = {
         client_ts: e.clientTs,
         seq: e.seq,
         superseded: !!e.superseded,
+        side: e.side === "defense" ? "defense" : "offense",
       };
     });
     const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");
@@ -439,19 +798,37 @@ export const Cloud = {
     const ctx = (r.rep_context === "week_test" || r.rep_context === "practice")
       ? r.rep_context
       : (r.week_plan_id ? "week_test" : "practice");
+    const u = await this.session();
+    if (!u) throw new Error("Sign in to save your score.");
+    /* Client-generated id = idempotent retry key for offline queue (no schema change). */
+    const id = (r && (r.id || r.clientId)) || null;
     const row = {
       team_id: teamId,
+      user_id: u.id,
       quiz: r.quiz || "Test",
       score: r.score|0,
       total: r.total|0,
       detail: r.detail || [],
       rep_context: ctx
     };
+    if (id) row.id = id;
     if (ctx === "week_test" && r.week_plan_id) row.week_plan_id = r.week_plan_id;
     if (r.kind) row.kind = r.kind;
     if (r.position) row.position = r.position;
-    const { data, error } = await OG.from("qb_results").insert(row).select().single();
-    if (error) throw error; return data;
+    const { data, error } = await OG.from("qb_results")
+      .upsert(row, { onConflict: "id", ignoreDuplicates: true })
+      .select()
+      .maybeSingle();
+    if (error) {
+      /* 23505 / unique — already in DB (response lost on dead connection). Treat as synced. */
+      const code = error.code;
+      const msg = String(error.message || error.details || "");
+      if (code === "23505" || /23505|duplicate key|unique constraint|already exists/i.test(msg)) {
+        return { id: id || null, deduped: true };
+      }
+      throw error;
+    }
+    return data || { id: id || null, deduped: true };
   },
   async listQuizResults(teamId) {
     const { data, error } = await OG.from("qb_results").select("*").eq("team_id", teamId).order("created_at", { ascending: false });
@@ -565,7 +942,573 @@ export const Cloud = {
   async plan(teamId) {
     const { data } = await OG.from("teams").select("plan, plan_status").eq("id", teamId).single();
     return data || { plan: "free", plan_status: "active" };
-  }
+  },
+
+  /* ---------- Auto-Scout import (scout_snaps / film_column_maps / jobs) ---------- */
+  async getFilmColumnMap(teamId, provider) {
+    if (!OG || !teamId) return null;
+    const { data, error } = await OG.from("film_column_maps")
+      .select("id,team_id,provider,map,created_at")
+      .eq("team_id", teamId)
+      .eq("provider", provider || "hudl-assist")
+      .maybeSingle();
+    if (error) {
+      console.warn("[Cloud.getFilmColumnMap]", error.message);
+      return null;
+    }
+    return data;
+  },
+  async saveFilmColumnMap(teamId, provider, map) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId) throw new Error("team_id required");
+    const row = {
+      team_id: teamId,
+      provider: provider || "hudl-assist",
+      map: map || {},
+    };
+    const { data, error } = await OG.from("film_column_maps")
+      .upsert(row, { onConflict: "team_id,provider" })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  async createAutoScoutJob(row) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const insert = {
+      team_id: row.team_id,
+      opponent_id: row.opponent_id || null,
+      opponent: row.opponent || null,
+      week_plan_id: row.week_plan_id || null,
+      source: row.source || "hudl-assist-csv",
+      clip_count: row.clip_count || 0,
+      done_count: row.done_count || 0,
+      skipped_count: row.skipped_count || 0,
+      status: row.status || "queued",
+    };
+    if (row.import_batch_id) insert.import_batch_id = row.import_batch_id;
+    if (row.notes != null) insert.notes = row.notes;
+    const { data, error } = await OG.from("auto_scout_jobs")
+      .insert(insert)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  async updateAutoScoutJob(id, patch) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const { data, error } = await OG.from("auto_scout_jobs")
+      .update(patch || {})
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  /**
+   * List Auto-Scout jobs for readiness chain.
+   * Select only columns that exist on offgrd.auto_scout_jobs (no updated_at —
+   * that column is on scout_snaps; selecting it 400s the whole request).
+   * Scope by team_id in the query; opponent / batch filters are client-side
+   * so a missing optional column never breaks the request.
+   */
+  async listAutoScoutJobs(teamId, opts) {
+    if (!OG || !teamId) return [];
+    const o = opts || {};
+    /* Keep this list tight — every name must exist on auto_scout_jobs. */
+    const { data, error } = await OG.from("auto_scout_jobs")
+      .select(
+        [
+          "id",
+          "team_id",
+          "opponent",
+          "opponent_id",
+          "import_batch_id",
+          "source",
+          "status",
+          "clip_count",
+          "done_count",
+          "skipped_count",
+          "created_at",
+          "finished_at",
+        ].join(",")
+      )
+      .eq("team_id", teamId)
+      .order("created_at", { ascending: false })
+      .limit(o.limit || 200);
+    if (error) throw error;
+    let rows = data || [];
+    const batchIds = (o.import_batch_ids || []).map(String).filter(Boolean);
+    const batchSet = batchIds.length ? new Set(batchIds) : null;
+    const wantOpp = o.opponent ? String(o.opponent).trim().toLowerCase() : "";
+    if (batchSet || wantOpp) {
+      rows = rows.filter(function (j) {
+        if (batchSet && j.import_batch_id && batchSet.has(String(j.import_batch_id))) {
+          return true;
+        }
+        if (
+          wantOpp &&
+          j.opponent &&
+          String(j.opponent).trim().toLowerCase() === wantOpp
+        ) {
+          return true;
+        }
+        return false;
+      });
+    }
+    return rows;
+  },
+  /**
+   * Prior import batches for the same opponent-scout game key.
+   * Used by Assist commit supersede (v212 lesson — new batch id must not dupe).
+   */
+  async listImportBatchesForGame(teamId, opponent, week, side) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select("import_batch_id")
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import")
+      .not("import_batch_id", "is", null);
+    if (error) throw error;
+    const seen = Object.create(null);
+    const ids = [];
+    (data || []).forEach(function (r) {
+      const id = r && r.import_batch_id;
+      if (id && !seen[id]) {
+        seen[id] = true;
+        ids.push(id);
+      }
+    });
+    return ids;
+  },
+  async countImportSnapsForGame(teamId, opponent, week, side) {
+    if (!OG || !teamId) return 0;
+    const { count, error } = await OG.from("scout_snaps")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import");
+    if (error) throw error;
+    return count || 0;
+  },
+  /** RLS-gated delete of prior import rows for one game key (supersede). */
+  async deleteImportSnapsForGame(teamId, opponent, week, side) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    const { error } = await OG.from("scout_snaps")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("opponent", opponent)
+      .eq("week", week)
+      .eq("side", side)
+      .eq("tag_source", "import");
+    if (error) throw error;
+  },
+  /**
+   * List Auto-Scout import batches for the season manager.
+   * One row per import_batch_id (tag_source=import).
+   */
+  async listImportBatches(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select(
+        "import_batch_id, opponent, week, side, created_at, needs_review, prompt_version, confidence, tag_source, clip_ref, raw"
+      )
+      .eq("team_id", teamId)
+      .eq("tag_source", "import")
+      .not("import_batch_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(8000);
+    if (error) throw error;
+    const by = Object.create(null);
+    function hasF1(clipRef) {
+      if (!clipRef) return false;
+      try {
+        const j =
+          typeof clipRef === "string" && clipRef.charAt(0) === "{"
+            ? JSON.parse(clipRef)
+            : clipRef;
+        return !!(j && (j.f1 || j.F1));
+      } catch (e) {
+        return false;
+      }
+    }
+    function isSkipped(raw) {
+      try {
+        const r = typeof raw === "string" ? JSON.parse(raw) : raw;
+        return !!(r && r.capture && r.capture.skipped);
+      } catch (e2) {
+        return false;
+      }
+    }
+    (data || []).forEach(function (r) {
+      const id = r && r.import_batch_id;
+      if (!id) return;
+      if (!by[id]) {
+        by[id] = {
+          import_batch_id: id,
+          opponent: r.opponent || "Unknown",
+          week: r.week || "Wk?",
+          side: r.side || "",
+          n: 0,
+          n_review: 0,
+          n_f1: 0,
+          n_skip: 0,
+          n_cv: 0,
+          created_at: r.created_at || null,
+        };
+      }
+      by[id].n++;
+      if (isSkipped(r.raw)) by[id].n_skip++;
+      else if (hasF1(r.clip_ref)) by[id].n_f1++;
+      if (r.prompt_version || r.confidence) by[id].n_cv++;
+      /* Flagged for CV review: needs_review + CV provenance (merge or legacy) */
+      if (
+        r.needs_review &&
+        (r.prompt_version || r.confidence || r.tag_source === "cv")
+      ) {
+        by[id].n_review++;
+      }
+      if (r.created_at && (!by[id].created_at || r.created_at < by[id].created_at)) {
+        by[id].created_at = r.created_at;
+      }
+    });
+    return Object.keys(by)
+      .map(function (k) {
+        return by[k];
+      })
+      .sort(function (a, b) {
+        return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+      });
+  },
+  /** Delete one import batch's scout_snaps rows (tag_source=import). */
+  async deleteImportSnapsByBatch(teamId, importBatchId) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId || !importBatchId) throw new Error("teamId and importBatchId required");
+    const { error } = await OG.from("scout_snaps")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import");
+    if (error) throw error;
+  },
+  async upsertScoutSnapImport(pSnap) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("upsert_scout_snap_import_v1", {
+      p_snap: pSnap,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Import snaps for one batch (capture panel). Ordered by snap_index.
+   */
+  async listScoutSnapsForBatch(teamId, importBatchId) {
+    if (!OG || !teamId || !importBatchId) return [];
+    const { data, error } = await OG.from("scout_snaps")
+      .select(
+        "id, team_id, import_batch_id, snap_index, down, distance, field_zone, hash, formation, formation_family, opponent, week, side, clip_ref, raw, tag_source"
+      )
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import")
+      .order("snap_index", { ascending: true })
+      .limit(2000);
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Count import snaps still present for a batch (supersede guard). */
+  async countScoutSnapsForBatch(teamId, importBatchId) {
+    if (!OG || !teamId || !importBatchId) return 0;
+    const { count, error } = await OG.from("scout_snaps")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId)
+      .eq("import_batch_id", importBatchId)
+      .eq("tag_source", "import");
+    if (error) throw error;
+    return count || 0;
+  },
+
+  /**
+   * Merge-only capture stamp. NEVER write scout_snaps.raw directly.
+   * offgrd.patch_scout_snap_capture_v1(p_key, p_patch)
+   */
+  async patchScoutSnapCapture(pKey, pPatch) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("patch_scout_snap_capture_v1", {
+      p_key: pKey,
+      p_patch: pPatch || {},
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Upload F1/F2 jpeg to private scout-frames bucket.
+   * Path: {team_id}/{import_batch_id}/{snap_index}/F1.jpg|F2.jpg
+   * Returns storage path (not a signed URL).
+   */
+  async uploadScoutFrame(teamId, importBatchId, snapIndex, slot, blob) {
+    if (!sb) throw new Error("Supabase unavailable");
+    if (!teamId || !importBatchId || snapIndex == null) {
+      throw new Error("teamId, importBatchId, snapIndex required");
+    }
+    const s = String(slot || "").toUpperCase() === "F2" ? "F2" : "F1";
+    const path =
+      teamId + "/" + importBatchId + "/" + String(snapIndex) + "/" + s + ".jpg";
+    const up = await sb.storage.from("scout-frames").upload(path, blob, {
+      upsert: true,
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+    });
+    if (up.error) throw up.error;
+    return path;
+  },
+
+  /** Signed URL for a scout-frames path (private bucket). */
+  async signedScoutFrameUrl(path, expiresSec) {
+    if (!sb || !path) return null;
+    const { data, error } = await sb.storage
+      .from("scout-frames")
+      .createSignedUrl(path, expiresSec || 3600);
+    if (error) throw error;
+    return (data && data.signedUrl) || null;
+  },
+
+  /**
+   * Queue a vision job for a batch (source=scout-frames).
+   * clip_count = snaps with F1 (skips excluded) — caller computes.
+   */
+  async createScoutFramesJob(row) {
+    return this.createAutoScoutJob({
+      team_id: row.team_id,
+      opponent: row.opponent || null,
+      opponent_id: row.opponent_id || null,
+      week_plan_id: row.week_plan_id || null,
+      import_batch_id: row.import_batch_id,
+      source: "scout-frames",
+      clip_count: row.clip_count || 0,
+      status: "queued",
+    });
+  },
+
+  /**
+   * CV-merge onto an existing import snap (fill-NULLs).
+   * offgrd.upsert_cv_scheme_v1(p_key, p_cv) — natural key (team_id, import_batch_id, snap_index).
+   */
+  async upsertCvScheme(pKey, pCv) {
+    if (!sb) throw new Error("Supabase unavailable");
+    const { data, error } = await sb.schema("offgrd").rpc("upsert_cv_scheme_v1", {
+      p_key: pKey,
+      p_cv: pCv,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Worst-confidence-first CV review queue (security_invoker view).
+   * Optional filter: import_batch_id.
+   */
+  async listCvReviewQueue(teamId, opts) {
+    if (!OG || !teamId) return [];
+    const o = opts || {};
+    let q = OG.from("cv_review_queue")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("review_hold", { ascending: false })
+      .order("min_core_confidence", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(o.limit || 500);
+    if (o.import_batch_id) {
+      q = q.eq("import_batch_id", o.import_batch_id);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Confirm / edit-then-confirm a CV snap.
+   * offgrd.resolve_cv_snap — stamps reviewed_by=auth.uid(), needs_review=false.
+   */
+  async resolveCvSnap(snapId, fixes) {
+    if (!sb) throw new Error("Supabase unavailable");
+    if (!snapId) throw new Error("snapId required");
+    const { error } = await sb.schema("offgrd").rpc("resolve_cv_snap", {
+      p_snap_id: snapId,
+      p_fixes: fixes || {},
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * Review-gated scout_snaps corpus (Predict/Tendencies cutover).
+   * public.offgrd_scout_snaps_for_team — needs_review=false + review_hold=false.
+   */
+  async listScoutSnaps(teamId) {
+    if (!sb || !teamId) return [];
+    const { data, error } = await sb.rpc("offgrd_scout_snaps_for_team", { t: teamId });
+    if (error) {
+      console.warn("[Cloud.listScoutSnaps]", error.message);
+      throw error;
+    }
+    return data || [];
+  },
+
+  /**
+   * Map offgrd.scout_snaps → shape expected by OFFGRD_TENDENCIES / scopedOppRows.
+   * Pressure: classic bridge stores 0/1; Assist import stores BLITZ label in pressure —
+   * normalize to pressure=0|1 + blitz string so existing blitz-rate math keeps working.
+   */
+  scoutSnapToRow(s) {
+    if (!s) return null;
+    const pressureRaw = s.pressure;
+    let pressure = 0;
+    let blitz = "";
+    if (pressureRaw != null && String(pressureRaw).trim() !== "") {
+      const t = String(pressureRaw).trim();
+      if (/^(0|1)$/.test(t)) {
+        pressure = +t;
+      } else if (/^(true|false)$/i.test(t)) {
+        pressure = /^true$/i.test(t) ? 1 : 0;
+      } else {
+        pressure = 1;
+        blitz = t;
+      }
+    }
+    const mot = s.motion_type;
+    const motion =
+      mot && String(mot).toLowerCase() !== "none" && String(mot).trim() !== "" ? 1 : 0;
+    let success = null;
+    if (s.success === true || s.success === 1 || s.success === "1") success = 1;
+    else if (s.success === false || s.success === 0 || s.success === "0") success = 0;
+
+    /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw. */
+    const rawPick = this._rawPickAssist(s.raw, {
+      direction: ["play dir", "play direction", "dir", "direction", "play_dir"],
+      gap: ["gap", "hole"],
+      qtr: ["qtr", "quarter", "q", "period"],
+      series: ["series", "drive", "drive #", "drive no", "series #"],
+      personnel: [
+        "off pers",
+        "off personnel",
+        "personnel",
+        "pers",
+        "off_personnel",
+      ],
+    });
+    const direction = this._normPlayDir(rawPick.direction);
+    const gap = rawPick.gap || "";
+    let qtr = null;
+    if (rawPick.qtr != null && String(rawPick.qtr).trim() !== "") {
+      const qn = parseInt(String(rawPick.qtr).replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(qn)) qtr = qn;
+    }
+    const series = rawPick.series || "";
+    const personnel =
+      (s.off_personnel && String(s.off_personnel).trim()) ||
+      rawPick.personnel ||
+      "";
+
+    return {
+      id: s.id,
+      date: s.play_date || s.week || "",
+      opponent: s.opponent || "",
+      side: s.side || "",
+      week: s.week || "",
+      down: s.down,
+      distance: s.distance,
+      fieldZone: s.field_zone || "",
+      hash: s.hash || "",
+      coverage: s.coverage || "",
+      front: s.front || "",
+      pressure: pressure,
+      blitz: blitz,
+      playType: s.play_type || "",
+      play: s.play || "",
+      formation: s.formation || "",
+      formation_family: s.formation_family || "",
+      personnel: personnel,
+      motion: motion,
+      motion_type: mot || "",
+      gain: s.gain,
+      success: success,
+      direction: direction || null,
+      gap: gap || null,
+      qtr: qtr,
+      series: series || null,
+      snap_index: s.snap_index != null ? s.snap_index : null,
+      tag_source: s.tag_source || "",
+      clip_hash: s.clip_hash || null,
+      /* Provenance for Scout Report badges (RPC already gates unreviewed CV) */
+      import_batch_id: s.import_batch_id || null,
+      prompt_version: s.prompt_version || null,
+      confidence: s.confidence != null ? s.confidence : null,
+      reviewed_by: s.reviewed_by || null,
+      reviewed_at: s.reviewed_at || null,
+    };
+  },
+
+  /** Assist-header pick from scout_snaps.raw (zero-SQL Tier 2). */
+  _rawPickAssist(raw, fields) {
+    const out = {};
+    let obj = raw;
+    if (typeof obj === "string") {
+      try {
+        obj = JSON.parse(obj);
+      } catch (e) {
+        obj = null;
+      }
+    }
+    if (!obj || typeof obj !== "object") {
+      Object.keys(fields || {}).forEach((k) => {
+        out[k] = "";
+      });
+      return out;
+    }
+    const norm = (h) =>
+      String(h || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const byNorm = Object.create(null);
+    Object.keys(obj).forEach((k) => {
+      if (!k || String(k).charAt(0) === "_") return;
+      const n = norm(k);
+      if (n && !byNorm[n]) byNorm[n] = k;
+    });
+    Object.keys(fields || {}).forEach((field) => {
+      out[field] = "";
+      const aliases = fields[field] || [];
+      for (let i = 0; i < aliases.length; i++) {
+        const key = byNorm[norm(aliases[i])];
+        if (!key) continue;
+        const v = obj[key];
+        if (v == null || String(v).trim() === "") continue;
+        out[field] = String(v).trim();
+        break;
+      }
+    });
+    return out;
+  },
+
+  _normPlayDir(raw) {
+    if (raw == null || String(raw).trim() === "") return null;
+    const s = String(raw).trim().toUpperCase();
+    if (/^(L|LEFT|LT)\b/.test(s) || s === "L") return "L";
+    if (/^(R|RIGHT|RT)\b/.test(s) || s === "R") return "R";
+    if (/^(M|MID|MIDDLE|CTR|CENTER)\b/.test(s) || s === "M") return "M";
+    const ch = s.charAt(0);
+    if (ch === "L" || ch === "R" || ch === "M") return ch;
+    return null;
+  },
 };
 
 if (typeof window !== "undefined") window.Cloud = Cloud;
