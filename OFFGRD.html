@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v258: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v259: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -106,6 +106,12 @@
   .attack p{margin:0;font-size:14.5px;line-height:1.45}
   .attack .beat{margin-top:7px;font-size:13.5px;line-height:1.5;color:var(--ink)}
   .attack .beat b{color:var(--accent)}
+  .attack .bookbeat{margin-top:10px}
+  .attack .booklist{margin:6px 0 0;padding-left:18px;font-size:13.5px;line-height:1.55}
+  .attack .booklist .bn{font-weight:800}
+  .attack .booklist .bw{color:var(--muted);font-weight:500}
+  .attack .booklist .pill{display:inline-block;font-size:9px;letter-spacing:.4px;padding:2px 7px;margin-left:4px;background:rgba(19,41,75,.08);color:var(--ink);vertical-align:middle;text-transform:uppercase}
+  body.dark .attack .booklist .pill{background:rgba(255,255,255,.10)}
 
   .dist{margin-top:14px}
   .barrow{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:10px;margin:6px 0}
@@ -327,10 +333,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=258"></script>
-<script src="OFFGRD-brand-persist.js?v=258"></script>
-<script src="supabase.js?v=258"></script>
-<script src="OFFGRD-cache-gate.js?v=258"></script>
+<script src="OFFGRD-config.js?v=259"></script>
+<script src="OFFGRD-brand-persist.js?v=259"></script>
+<script src="supabase.js?v=259"></script>
+<script src="OFFGRD-cache-gate.js?v=259"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -372,31 +378,32 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=258"></script>
-<script src="OFFGRD-pos-glossary.js?v=258"></script>
-<script src="OFFGRD-autoderive.js?v=258"></script>
-<script src="OFFGRD-scoutcards.js?v=258"></script>
-<script src="OFFGRD-tendencies.js?v=258"></script>
-<script src="OFFGRD-scout-report.js?v=258"></script>
-<script src="OFFGRD-week-autotest.js?v=258"></script>
-<script src="OFFGRD-weeklypackage.js?v=258"></script>
-<script src="OFFGRD-telestrate.js?v=258"></script>
-<script src="OFFGRD-redesign.js?v=258"></script>
-<script src="OFFGRD-shell.js?v=258"></script>
-<script src="OFFGRD-caller-outcome.js?v=258"></script>
-<script src="OFFGRD-caller-sit.js?v=258"></script>
-<script src="OFFGRD-formations-data.js?v=258"></script>
-<script src="OFFGRD-formation-canon.js?v=258"></script>
-<script src="OFFGRD-assist-import.js?v=258"></script>
-<script src="OFFGRD-cv-review.js?v=258"></script>
-<script src="OFFGRD-frame-capture.js?v=258"></script>
-<script src="OFFGRD-caller-log.js?v=258"></script>
-<script src="OFFGRD-caller-sync.js?v=258"></script>
-<script src="OFFGRD-caller-analysis.js?v=258"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=258"></script>
-<script src="OFFGRD-booth-ask.js?v=258"></script>
-<script src="OFFGRD-caller-select.js?v=258"></script>
-<script src="OFFGRD-dcaller.js?v=258"></script>
+<script src="OFFGRD-render.js?v=259"></script>
+<script src="OFFGRD-pos-glossary.js?v=259"></script>
+<script src="OFFGRD-autoderive.js?v=259"></script>
+<script src="OFFGRD-matchup.js?v=259"></script>
+<script src="OFFGRD-scoutcards.js?v=259"></script>
+<script src="OFFGRD-tendencies.js?v=259"></script>
+<script src="OFFGRD-scout-report.js?v=259"></script>
+<script src="OFFGRD-week-autotest.js?v=259"></script>
+<script src="OFFGRD-weeklypackage.js?v=259"></script>
+<script src="OFFGRD-telestrate.js?v=259"></script>
+<script src="OFFGRD-redesign.js?v=259"></script>
+<script src="OFFGRD-shell.js?v=259"></script>
+<script src="OFFGRD-caller-outcome.js?v=259"></script>
+<script src="OFFGRD-caller-sit.js?v=259"></script>
+<script src="OFFGRD-formations-data.js?v=259"></script>
+<script src="OFFGRD-formation-canon.js?v=259"></script>
+<script src="OFFGRD-assist-import.js?v=259"></script>
+<script src="OFFGRD-cv-review.js?v=259"></script>
+<script src="OFFGRD-frame-capture.js?v=259"></script>
+<script src="OFFGRD-caller-log.js?v=259"></script>
+<script src="OFFGRD-caller-sync.js?v=259"></script>
+<script src="OFFGRD-caller-analysis.js?v=259"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=259"></script>
+<script src="OFFGRD-booth-ask.js?v=259"></script>
+<script src="OFFGRD-caller-select.js?v=259"></script>
+<script src="OFFGRD-dcaller.js?v=259"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -642,6 +649,31 @@ function beaterFor(cov){
   if(BEATERS[cov]) return BEATERS[cov];
   const k=Object.keys(BEATERS).find(k=>cov && cov.toLowerCase().startsWith(k.toLowerCase().slice(0,7)));
   return BEATERS[k] || {type:"zone/man", attack:"Read leverage and find the soft defender; flood the side away from the rotation.", tags:["flood","mesh","seam"]};
+}
+/** Scout attack panel: P1 structural beaters from PBOOK, else generic BEATERS tags. */
+function attackFromBookHTML(headK, bt){
+  const M=window.OFFGRD_MATCHUP;
+  if(!M || typeof M.rankPlaysVsLook!=="function"){
+    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>';
+  }
+  const fam=M.familyOf(headK);
+  const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+  if(!book.length){
+    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
+      '<p class="foot" style="margin-top:8px">Sign in / load playbook to see your-book beaters.</p>';
+  }
+  let ranked=[];
+  try{ ranked=fam?M.rankPlaysVsLook(book, fam, {limit:5}):[]; }catch(e){ ranked=[]; }
+  if(!ranked.length){
+    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
+      '<div class="beat bookbeat"><b>From your book</b> · no pass concepts scored for this look yet.</div>';
+  }
+  return '<div class="beat bookbeat"><b>From your book</b> · vs '+esc(fam)+
+    '<ol class="booklist">'+ranked.map(function(r){
+      return '<li><span class="bn">'+esc(r.name||"?")+'</span>'+
+        (r.why&&r.why[0]?' <span class="bw">'+esc(r.why[0])+'</span>':'')+
+        ' <span class="pill">on paper</span></li>';
+    }).join("")+'</ol></div>';
 }
 
 /* ---------- Sample dataset generator (deterministic) ---------- */
@@ -943,7 +975,7 @@ function render(){
         : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
     '</div>'+
     (bt
-      ? '<div class="attack"><div class="h">Attack · '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
+      ? '<div class="attack"><div class="h">Attack · '+esc((window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.familyOf(headK))||bt.type)+'</div><p>'+esc(bt.attack)+'</p>'+attackFromBookHTML(headK, bt)+fieldBoundaryNote(covRows)+'</div>'
       : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here · pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
     (useCoverage? '<div class="dist"><div class="lbl">Coverage distribution (observed)'+(untagged>0?' <span style="color:var(--muted);font-weight:600">('+untagged+' untagged)</span>':'')+'</div>'+cov.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join("")+'</div>' : '')+
     '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="?"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
@@ -5271,7 +5303,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=258", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=259", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5594,9 +5626,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=258"></script>
-<script src="OFFGRD-role-gate.js?v=258"></script>
-<script src="OFFGRD-mobile.js?v=258"></script>
+<script type="module" src="OFFGRD-account.js?v=259"></script>
+<script src="OFFGRD-role-gate.js?v=259"></script>
+<script src="OFFGRD-mobile.js?v=259"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
