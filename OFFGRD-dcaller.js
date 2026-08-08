@@ -2463,6 +2463,28 @@
         ` · season ${esc(shift.seasonLean)} ${fmt(shift.seasonLean === "pass" ? shift.seasonPass : 1 - shift.seasonPass)}` +
         ` (${shift.seasonN} snaps)</span></div>`;
     }
+    /* P4 — annotate top D call vs this Expect sample; never auto-select chips. */
+    try {
+      var M = global.OFFGRD_MATCHUP;
+      if (M && typeof M.rankDefCallsByEv === "function" && all.length) {
+        var ranked = M.rankDefCallsByEv(null, all, [], { limit: 1 });
+        var top = ranked && ranked[0];
+        if (top) {
+          var tip = top.basis === "empirical" ? M.TIP_SUCCESS || "" : M.TIP_SCHEME || "";
+          var pill =
+            top.basis === "empirical" && top.n
+              ? esc(top.basisLabel)
+              : Math.round((top.ev || 0) * 100) + "% SCHEME MATCH";
+          h +=
+            `<div class="rd-dc-matchup-hint no-print" title="${esc(tip)}">` +
+            `<span class="lbl">Matchup lean</span> ` +
+            `<b>${esc(top.label)}</b> ` +
+            `<span class="pill">${pill}</span>` +
+            (top.why && top.why[0] ? ` <span class="foot">${esc(top.why[0])}</span>` : "") +
+            ` <span class="foot">· coach selects</span></div>`;
+        }
+      }
+    } catch (eMatch) {}
     return h;
   }
 

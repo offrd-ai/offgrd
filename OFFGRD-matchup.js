@@ -839,9 +839,226 @@
   FIXTURES.deepPA.data.name = "PA Post Boot";
   FIXTURES.deepPA.data.family = "play-action";
 
+  /* ========== P4 — D-side mirror (call vs their offense) ========== */
+  var STRUCT_RULES_D_V = "struct_rules_d_v1";
+  var DEFAULT_D_CALLS = [
+    { id: "base-c3", front: "4-2", coverage: "Cover 3", pressure: 0, label: "4-2 · Cover 3" },
+    { id: "base-c1", front: "4-2", coverage: "Cover 1", pressure: 0, label: "4-2 · Cover 1" },
+    { id: "nickel-c2", front: "Nickel", coverage: "Cover 2", pressure: 0, label: "Nickel · Cover 2" },
+    { id: "nickel-c4", front: "Nickel", coverage: "Cover 4", pressure: 0, label: "Nickel · Quarters" },
+    { id: "bear-c0", front: "Bear", coverage: "Cover 0", pressure: 1, label: "Bear · Cover 0 pressure" },
+    { id: "base-press", front: "4-2", coverage: "Cover 1", pressure: 1, label: "4-2 · Man pressure" },
+    { id: "dime-c4", front: "Dime", coverage: "Cover 4", pressure: 0, label: "Dime · Quarters" },
+    { id: "zone-blitz", front: "3-3", coverage: "Cover 3", pressure: 1, label: "3-3 · Zone pressure" }
+  ];
+
+  function offenseProfile(rows) {
+    var list = Array.isArray(rows) ? rows : [];
+    var n = list.length || 1;
+    var run = 0,
+      pass = 0,
+      quick = 0,
+      vert = 0,
+      empty = 0,
+      heavy = 0,
+      screen = 0,
+      scramble = 0;
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i] || {};
+      var pt = String(r.playType || r.play_type || "").toLowerCase();
+      var form = String(r.formation || r.off_structure || "").toLowerCase();
+      var pers = String(r.personnel || r.off_personnel || "").toLowerCase();
+      var play = String(r.play || r.concept || "").toLowerCase();
+      var res = String(r.result || "").toLowerCase();
+      if (/run/.test(pt)) run++;
+      else pass++;
+      if (/screen|bubble|tunnel|quick|hitch|slant|flat/.test(play + " " + pt)) quick++;
+      if (/go|seam|post|fade|vert|shot|deep/.test(play)) vert++;
+      if (/empty|10\b/.test(form + " " + pers)) empty++;
+      if (/12|21|22|heavy|goal/.test(pers + " " + form)) heavy++;
+      if (/screen|bubble/.test(play)) screen++;
+      if (/scramble|qb run|keeper/.test(res + " " + play + " " + pt)) scramble++;
+    }
+    return {
+      n: list.length,
+      runRate: run / n,
+      passRate: pass / n,
+      quickRate: quick / n,
+      verticalRate: vert / n,
+      emptyRate: empty / n,
+      heavyRate: heavy / n,
+      screenRate: screen / n,
+      scrambleRate: scramble / n
+    };
+  }
+
+  function frontFamily(front) {
+    var s = String(front || "").toLowerCase();
+    if (/bear|46|goal|short|heavy|load/.test(s)) return "BOX_PLUS";
+    if (/dime|prevent/.test(s)) return "LIGHT";
+    if (/nickel|3-3|okey/.test(s)) return "NICKEL";
+    return "BASE";
+  }
+
+  function structScoreD(call, profile) {
+    var p = profile || {};
+    var score = 50;
+    var why = [];
+    var ff = frontFamily(call && call.front);
+    var cov = familyOf(call && call.coverage) || "C3";
+    var press = !!(call && (+call.pressure === 1 || call.blitz || /blitz|pressure/i.test(String(call.pressure || ""))));
+
+    if ((p.runRate || 0) >= 0.6) {
+      if (ff === "BOX_PLUS" || ff === "BASE") {
+        score += 14;
+        why.push("+box vs run-heavy");
+      }
+      if (ff === "LIGHT" || ff === "NICKEL") {
+        score -= 12;
+        why.push("light box vs run");
+      }
+    }
+    if ((p.passRate || 0) >= 0.65 || (p.emptyRate || 0) >= 0.25) {
+      if (ff === "NICKEL" || ff === "LIGHT") {
+        score += 12;
+        why.push("lighter package vs pass/empty");
+      }
+      if (ff === "BOX_PLUS") {
+        score -= 10;
+        why.push("heavy front vs empty/pass");
+      }
+    }
+    if ((p.quickRate || 0) >= 0.28 || (p.screenRate || 0) >= 0.12) {
+      if (cov === "C2M" || cov === "C1" || cov === "C0" || press) {
+        score += 12;
+        why.push("press/man vs quick access");
+      }
+      if ((cov === "C3" || cov === "C4") && !press) {
+        score -= 6;
+        why.push("soft zone vs quick game");
+      }
+      if (!press) {
+        score -= 8;
+        why.push("0-blitz soft vs quick/screens");
+      }
+    }
+    if ((p.verticalRate || 0) >= 0.22) {
+      if (cov === "C2" || cov === "C4") {
+        score += 12;
+        why.push("2-high vs verticals");
+      }
+      if (cov === "C1" || cov === "C0") {
+        score -= 10;
+        why.push("1-high vs shot game");
+      }
+    }
+    if ((p.emptyRate || 0) >= 0.2 && press && (cov === "C3" || cov === "C2" || cov === "C4")) {
+      score += 8;
+      why.push("zone pressure vs empty");
+    }
+    if ((p.scrambleRate || 0) >= 0.12) {
+      if (/spy|contain|qb/i.test(String((call && (call.label || call.front)) || ""))) {
+        score += 10;
+        why.push("spy/contain vs scramble QB");
+      }
+    }
+    if ((p.heavyRate || 0) >= 0.25 && ff === "BOX_PLUS") {
+      score += 8;
+      why.push("+box vs heavy pers");
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    return { score: score, why: why.slice(0, 2), rules_v: STRUCT_RULES_D_V, cov: cov, frontFamily: ff };
+  }
+
+  function empiricalCellD(call, offFamily, rows, opts) {
+    opts = opts || {};
+    var list = Array.isArray(rows) ? rows : [];
+    var cov = familyOf(call && call.coverage);
+    var ff = frontFamily(call && call.front);
+    var press = !!(call && (+call.pressure === 1));
+    var ok = 0,
+      n = 0,
+      wSum = 0;
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i] || {};
+      var rCov = familyOf(r.coverage || r.def_coverage);
+      var rFront = frontFamily(r.front || r.def_front);
+      var rPress = !!(+r.pressure === 1 || r.blitz);
+      if (cov && rCov && cov !== rCov) continue;
+      if (ff && rFront && ff !== rFront) continue;
+      if (press !== rPress && r.pressure != null) continue;
+      var w = opts.weightFn ? opts.weightFn(r) : 1;
+      if (w <= 0) continue;
+      /* Defensive success = offense failure */
+      var succ = null;
+      if (opts.getDefSuccess) succ = opts.getDefSuccess(r);
+      else if (r.def_success != null) succ = +r.def_success;
+      else if (r.success != null) succ = 1 - (+r.success ? 1 : 0);
+      if (succ == null) continue;
+      n += w;
+      ok += w * (succ ? 1 : 0);
+      wSum += w;
+    }
+    var sr = n > 0 ? ok / n : 0;
+    var nn = Math.round(wSum || n);
+    return { sr: sr, n: nn, w: nn / (nn + BLEND_K), basis: nn ? "empirical" : "on_paper" };
+  }
+
+  function rankDefCallsByEv(calls, offRows, loggedRows, opts) {
+    opts = opts || {};
+    var limit = opts.limit != null ? opts.limit : 5;
+    var profile = offenseProfile(offRows);
+    var catalog = Array.isArray(calls) && calls.length ? calls : DEFAULT_D_CALLS;
+    var scored = [];
+    for (var i = 0; i < catalog.length; i++) {
+      var c = catalog[i];
+      if (!c) continue;
+      try {
+        var st = structScoreD(c, profile);
+        var emp = empiricalCellD(c, null, loggedRows, opts);
+        var blended = blendScore(emp, st.score / 100);
+        scored.push({
+          call: c,
+          label: c.label || [c.front, c.coverage, c.pressure ? "pressure" : ""].filter(Boolean).join(" · "),
+          ev: blended,
+          score: Math.round(blended * 100),
+          n: emp.n || 0,
+          basis: emp.n > 0 ? "empirical" : "on_paper",
+          basisLabel: emp.n > 0 ? "STOPS " + Math.round(emp.sr * 100) + "% · " + emp.n + " SNAPS" : "SCHEME MATCH",
+          why: st.why,
+          profile: profile,
+          rules_v: STRUCT_RULES_D_V
+        });
+      } catch (e) {}
+    }
+    scored.sort(function (a, b) {
+      if (b.ev !== a.ev) return b.ev - a.ev;
+      if (b.n !== a.n) return b.n - a.n;
+      return String(a.label).localeCompare(String(b.label));
+    });
+    return scored.slice(0, limit);
+  }
+
+  function draftDefGameplanSheet(buckets, offRowsByBucket, loggedRows, opts) {
+    opts = opts || {};
+    var per = opts.perBucket != null ? opts.perBucket : 3;
+    var list = Array.isArray(buckets) ? buckets : [];
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i] || {};
+      var rows = (offRowsByBucket && offRowsByBucket[i]) || b.offRows || [];
+      var top = rankDefCallsByEv(DEFAULT_D_CALLS, rows, loggedRows, Object.assign({}, opts, { limit: per }));
+      out.push({ bucketIndex: i, name: b.name || ("Bucket " + (i + 1)), top: top, profile: offenseProfile(rows) });
+    }
+    return out;
+  }
+
   var api = {
     STRUCT_RULES_V: STRUCT_RULES_V,
+    STRUCT_RULES_D_V: STRUCT_RULES_D_V,
     LOOK_FAMILIES: LOOK_FAMILIES,
+    DEFAULT_D_CALLS: DEFAULT_D_CALLS,
     BLEND_K: BLEND_K,
     familyOf: familyOf,
     classify: classify,
@@ -864,6 +1081,12 @@
     draftGameplanSheet: draftGameplanSheet,
     looksForWeekUpweight: looksForWeekUpweight,
     primaryLookFromByLook: primaryLookFromByLook,
+    offenseProfile: offenseProfile,
+    structScoreD: structScoreD,
+    empiricalCellD: empiricalCellD,
+    rankDefCallsByEv: rankDefCallsByEv,
+    draftDefGameplanSheet: draftDefGameplanSheet,
+    frontFamily: frontFamily,
     basisLabelFor: basisLabelFor,
     TIP_SCHEME: TIP_SCHEME,
     TIP_SUCCESS: TIP_SUCCESS,
