@@ -1,5 +1,5 @@
 /* ============================================================
-   OFFGRD-matchup.js — Play vs Look structural scorer (P1)
+   OFFGRD-matchup.js — Play vs Look scorer (P1 structural + P2 blend/EV)
    Reuses OFFGRD_AUTODERIVE.classifyPlay — no second geometry parser.
    Rules versioned: STRUCT_RULES_V. Offline, deterministic.
    ============================================================ */
@@ -9,6 +9,7 @@
   var STRUCT_RULES_V = "struct_rules_v1";
   var LOOK_FAMILIES = ["C0", "C1", "C2", "C2M", "C3", "C4", "PRESS"];
   var CACHE_PREFIX = "offgrd_struct_v1:";
+  var BLEND_K = 8;
 
   function familyOf(cov) {
     if (cov == null || cov === "") return null;
@@ -341,6 +342,353 @@
     return out;
   }
 
+  /* ---------- P2: concept key, empirical, blend, EV ---------- */
+
+  function normPlayName(name) {
+    return String(name || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toUpperCase();
+  }
+
+  function conceptKey(play) {
+    if (play == null) return "";
+    if (typeof play === "string") return normPlayName(play);
+    var name = play.name || "";
+    try {
+      var c = classify(play.data || play);
+      if (c && c.concept) return String(c.concept).toLowerCase();
+    } catch (e) {}
+    if (play.concept) return String(play.concept).toLowerCase();
+    return normPlayName(name);
+  }
+
+  function rowMatchesKey(row, key) {
+    if (!row || !key) return false;
+    var playName = normPlayName(row.play);
+    var k = String(key);
+    if (playName && playName === normPlayName(k)) return true;
+    if (playName && playName === k.toUpperCase()) return true;
+    var rk = String(row.concept || row.family || "").toLowerCase();
+    if (rk && rk === k.toLowerCase()) return true;
+    /* concept keys are lowercase; play names UPPER — also match concept token in play */
+    if (k === k.toLowerCase() && playName && playName.indexOf(k.toUpperCase()) >= 0) return true;
+    return false;
+  }
+
+  function sampleWeight(row, opts) {
+    var res = String((row && row.result) || "").toLowerCase();
+    if (/sack|intercept|int\b|fumble|turnover|safety/.test(res)) return 0;
+    var g = row && row.gain != null ? +row.gain : NaN;
+    if (!isNaN(g) && g <= -7) return 0; /* sack-like */
+    var w = 1;
+    if (opts && typeof opts.weightFn === "function") {
+      var rw = +opts.weightFn(row);
+      if (!isNaN(rw) && rw > 0) w *= rw;
+    }
+    /* chunk / explosive → 1.5 */
+    var pt = String((row && row.playType) || "").toLowerCase();
+    if (!isNaN(g)) {
+      var thr = pt.indexOf("pass") >= 0 ? 16 : pt.indexOf("run") >= 0 ? 12 : 15;
+      if (g >= thr) w *= 1.5;
+    }
+    return w;
+  }
+
+  function defaultGetSuccess(row) {
+    if (!row) return null;
+    if (row.success != null && row.success !== "") return +row.success ? 1 : 0;
+    return null;
+  }
+
+  /**
+   * empiricalCell(conceptOrPlay, family, rows, opts)
+   * opts: { getSuccess, weightFn, down, distBucket, distBucketOf }
+   */
+  function empiricalCell(conceptOrPlay, family, rows, opts) {
+    opts = opts || {};
+    var fam = LOOK_FAMILIES.indexOf(family) >= 0 ? family : familyOf(family);
+    var key =
+      typeof conceptOrPlay === "string" || !conceptOrPlay
+        ? normPlayName(conceptOrPlay) || String(conceptOrPlay || "").toLowerCase()
+        : conceptKey(conceptOrPlay);
+    /* Prefer lowercase concept if play object */
+    if (conceptOrPlay && typeof conceptOrPlay !== "string") {
+      key = conceptKey(conceptOrPlay);
+    } else if (typeof conceptOrPlay === "string") {
+      var s = String(conceptOrPlay).trim();
+      key = s === s.toLowerCase() && s.indexOf(" ") < 0 ? s.toLowerCase() : normPlayName(s);
+    }
+
+    var getSuccess = typeof opts.getSuccess === "function" ? opts.getSuccess : defaultGetSuccess;
+    var list = Array.isArray(rows) ? rows : [];
+    var empty = {
+      sr: 0,
+      n: 0,
+      w: 0,
+      family: fam,
+      basis: "on_paper",
+      key: key
+    };
+    if (!fam || !key) return empty;
+
+    function famMatch(r) {
+      return familyOf(r.coverage) === fam;
+    }
+    function keyMatch(r) {
+      return rowMatchesKey(r, key);
+    }
+    function graded(r) {
+      return getSuccess(r) != null;
+    }
+
+    var pool = list.filter(function (r) {
+      return keyMatch(r) && famMatch(r) && graded(r);
+    });
+
+    /* Widen ladder: prefer down+dist, then down, then family-only (like bestCallsFor). */
+    if (opts.down != null || opts.distBucket != null) {
+      var dn = opts.down;
+      var db = opts.distBucket;
+      var distOf = typeof opts.distBucketOf === "function" ? opts.distBucketOf : null;
+      var tight = pool.filter(function (r) {
+        if (dn != null && dn !== "ANY" && +r.down !== +dn) return false;
+        if (db != null && db !== "ANY" && distOf) {
+          if (r.distance == null || distOf(r.distance) !== db) return false;
+        }
+        return true;
+      });
+      if (tight.length >= 2) pool = tight;
+      else {
+        var mid = pool.filter(function (r) {
+          return dn == null || dn === "ANY" || +r.down === +dn;
+        });
+        if (mid.length >= 2) pool = mid;
+      }
+    }
+
+    var wSum = 0;
+    var sSum = 0;
+    var nEff = 0;
+    for (var i = 0; i < pool.length; i++) {
+      var r = pool[i];
+      var sw = sampleWeight(r, opts);
+      if (sw <= 0) continue;
+      var suc = +getSuccess(r);
+      if (isNaN(suc)) continue;
+      wSum += sw;
+      sSum += sw * (suc ? 1 : 0);
+      nEff += 1;
+    }
+    if (nEff <= 0 || wSum <= 0) return empty;
+    var sr = sSum / wSum;
+    var w = nEff / (nEff + BLEND_K);
+    return {
+      sr: sr,
+      n: nEff,
+      w: w,
+      family: fam,
+      basis: "empirical",
+      key: key
+    };
+  }
+
+  function blendScore(emp, struct01) {
+    var e = emp || { sr: 0, w: 0 };
+    var w = typeof e.w === "number" ? e.w : 0;
+    var s = typeof struct01 === "number" && !isNaN(struct01) ? struct01 : 0.5;
+    var sr = typeof e.sr === "number" && !isNaN(e.sr) ? e.sr : 0;
+    return w * sr + (1 - w) * s;
+  }
+
+  function struct01ForPlay(play, fam) {
+    if (!play) return 0.5;
+    var hasGeom = !!(play.data || play.players);
+    if (!hasGeom) return 0.5;
+    try {
+      var r = structScore(play, fam);
+      return (r.score || 50) / 100;
+    } catch (e) {
+      return 0.5;
+    }
+  }
+
+  function normalizeCovDist(covDist) {
+    var arr = [];
+    if (!covDist) return arr;
+    if (Array.isArray(covDist)) arr = covDist;
+    else if (covDist.arr) arr = covDist.arr;
+    else if (typeof covDist === "object") {
+      Object.keys(covDist).forEach(function (k) {
+        var v = covDist[k];
+        if (typeof v === "number") arr.push({ k: k, pct: v });
+        else if (v && v.pct != null) arr.push({ k: v.k || k, pct: v.pct });
+      });
+    }
+    var out = [];
+    var tot = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var a = arr[i];
+      if (!a || a.pct == null || a.pct < 0.05) continue;
+      var fam = LOOK_FAMILIES.indexOf(a.k) >= 0 ? a.k : familyOf(a.k);
+      if (!fam) continue;
+      out.push({ k: a.k, fam: fam, pct: +a.pct });
+      tot += +a.pct;
+    }
+    if (tot > 0 && Math.abs(tot - 1) > 0.01) {
+      for (var j = 0; j < out.length; j++) out[j].pct = out[j].pct / tot;
+    }
+    return out;
+  }
+
+  function basisLabelFor(emp, fam) {
+    if (!emp || !emp.n) return "on paper";
+    var pct = Math.round((emp.sr || 0) * 100);
+    return emp.n + " snaps vs " + (fam || emp.family || "?") + " · " + pct + "% success";
+  }
+
+  /**
+   * ev(play, covDist, rows, opts) → { ev, n, basis, basisLabel, byLook, why }
+   */
+  function ev(play, covDist, rows, opts) {
+    opts = opts || {};
+    var mix = normalizeCovDist(covDist);
+    var byLook = {};
+    var evSum = 0;
+    var pctSum = 0;
+    var nMax = 0;
+    var bestEmp = null;
+    var why = [];
+    if (!mix.length) {
+      var fam0 = opts.fallbackFamily || "C1";
+      var emp0 = empiricalCell(play, fam0, rows, opts);
+      var s0 = struct01ForPlay(play, fam0);
+      var b0 = blendScore(emp0, s0);
+      return {
+        ev: b0,
+        n: emp0.n || 0,
+        basis: emp0.n > 0 ? "empirical" : "on_paper",
+        basisLabel: basisLabelFor(emp0, fam0),
+        byLook: {},
+        why: []
+      };
+    }
+    for (var i = 0; i < mix.length; i++) {
+      var m = mix[i];
+      var emp = empiricalCell(play, m.fam, rows, opts);
+      var s01 = struct01ForPlay(play, m.fam);
+      var blended = blendScore(emp, s01);
+      byLook[m.fam] = { emp: emp, struct: s01, score: blended, pct: m.pct };
+      evSum += m.pct * blended;
+      pctSum += m.pct;
+      if ((emp.n || 0) > nMax) {
+        nMax = emp.n;
+        bestEmp = emp;
+      }
+      try {
+        var st = structScore(play.data ? play : { name: play.name, data: play.data || play }, m.fam);
+        if (st.why && st.why[0] && why.length < 2) why.push(st.why[0]);
+      } catch (e) {}
+    }
+    var evOut = evSum;
+    if (pctSum > 1.01) evOut = evSum / pctSum;
+    else if (pctSum > 0 && pctSum < 0.5) evOut = evSum / pctSum;
+
+    return {
+      ev: evOut,
+      n: nMax,
+      basis: nMax > 0 ? "empirical" : "on_paper",
+      basisLabel: bestEmp && bestEmp.n ? basisLabelFor(bestEmp, bestEmp.family) : "on paper",
+      byLook: byLook,
+      why: why
+    };
+  }
+
+  function rankPlaysByEv(plays, covDist, rows, opts) {
+    opts = opts || {};
+    var limit = opts.limit != null ? opts.limit : 20;
+    var list = Array.isArray(plays) ? plays : [];
+    var scored = [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p) continue;
+      var name = typeof p === "string" ? p : p.name || "?";
+      var playObj = typeof p === "string" ? { name: p } : p;
+      try {
+        var r = ev(playObj, covDist, rows, opts);
+        scored.push({
+          play: playObj,
+          name: name,
+          id: playObj.id || playObj.cid || null,
+          ev: r.ev,
+          score: Math.round(r.ev * 100),
+          n: r.n,
+          basis: r.basis,
+          basisLabel: r.basisLabel,
+          why: r.why,
+          concept: conceptKey(playObj),
+          byLook: r.byLook
+        });
+      } catch (e) {}
+    }
+    scored.sort(function (a, b) {
+      if (b.ev !== a.ev) return b.ev - a.ev;
+      if (b.n !== a.n) return b.n - a.n;
+      return String(a.name).localeCompare(String(b.name));
+    });
+    return scored.slice(0, limit);
+  }
+
+  /** Blend rank vs a single look family (Scout attack panel). */
+  function rankPlaysVsLookBlended(plays, lookFamily, rows, opts) {
+    opts = opts || {};
+    var limit = opts.limit != null ? opts.limit : 5;
+    var fam = LOOK_FAMILIES.indexOf(lookFamily) >= 0 ? lookFamily : familyOf(lookFamily);
+    if (!fam) return [];
+    var list = Array.isArray(plays) ? plays : [];
+    var scored = [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p) continue;
+      var geom = false;
+      try {
+        geom = hasPassGeometry(p);
+      } catch (e0) {
+        geom = false;
+      }
+      var emp = empiricalCell(p, fam, rows, opts);
+      if (!geom && !emp.n) continue;
+      try {
+        var s01 = struct01ForPlay(p, fam);
+        var blended = blendScore(emp, s01);
+        var stWhy = [];
+        if (geom) {
+          try {
+            stWhy = structScore(p, fam).why || [];
+          } catch (e2) {}
+        }
+        scored.push({
+          play: p,
+          id: p.id || p.cid || null,
+          name: p.name || "?",
+          score: Math.round(blended * 100),
+          ev: blended,
+          why: stWhy,
+          concept: conceptKey(p),
+          basis: emp.n > 0 ? "empirical" : "on_paper",
+          basisLabel: basisLabelFor(emp, fam),
+          n: emp.n || 0,
+          rules_v: STRUCT_RULES_V
+        });
+      } catch (e) {}
+    }
+    scored.sort(function (a, b) {
+      if (b.ev !== a.ev) return b.ev - a.ev;
+      return String(a.name).localeCompare(String(b.name));
+    });
+    return scored.slice(0, limit);
+  }
+
   /* ---- Fixtures for smoke / golden tests (minimal play.data) ---- */
   function fixturePlay(name, concept, routeSpecs) {
     var players = [{ id: "qb", lab: "Q", type: "qb", x: 500, y: 380, route: [] }];
@@ -405,17 +753,25 @@
   var api = {
     STRUCT_RULES_V: STRUCT_RULES_V,
     LOOK_FAMILIES: LOOK_FAMILIES,
+    BLEND_K: BLEND_K,
     familyOf: familyOf,
     classify: classify,
+    conceptKey: conceptKey,
+    normPlayName: normPlayName,
     structScore: structScore,
     structScoreFromFeatures: structScoreFromFeatures,
     routeFeatures: routeFeatures,
     rankPlaysVsLook: rankPlaysVsLook,
+    rankPlaysVsLookBlended: rankPlaysVsLookBlended,
     scoreBook: scoreBook,
     scorePlayAllLooks: scorePlayAllLooks,
     getCached: getCached,
     setCached: setCached,
     hasPassGeometry: hasPassGeometry,
+    empiricalCell: empiricalCell,
+    blendScore: blendScore,
+    ev: ev,
+    rankPlaysByEv: rankPlaysByEv,
     FIXTURES: FIXTURES,
     fixturePlay: fixturePlay,
     RULES_V1: RULES_V1
