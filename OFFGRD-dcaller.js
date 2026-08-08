@@ -2650,6 +2650,10 @@
     var h = `<div class="rd-gd rd-dc" data-acc-skip id="dcaller-top-anchor">`;
     h += `<div class="rd-gd-top">${crestHtml}<b>${esc(oName !== "ANY" ? oName : "opponent")}</b>`;
     h += `<span class="rd-gd-chip">D CALLER</span>`;
+    try {
+      if (typeof callerOdToggleHtml === "function") h += callerOdToggleHtml("d");
+    } catch (eOd) {}
+    h += `<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth") ? "Booth on" : "Booth"}</button>`;
     h += `<button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h += syncStateHtml();
     h += driveToastHtml();

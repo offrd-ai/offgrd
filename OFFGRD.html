@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v260: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v261: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -111,7 +111,9 @@
   .attack .booklist .bn{font-weight:800}
   .attack .booklist .bw{color:var(--muted);font-weight:500}
   .attack .booklist .pill{display:inline-block;font-size:9px;letter-spacing:.4px;padding:2px 7px;margin-left:4px;background:rgba(19,41,75,.08);color:var(--ink);vertical-align:middle;text-transform:uppercase}
+  .attack .booklist .pill .pill-scheme{font-weight:900}
   body.dark .attack .booklist .pill{background:rgba(255,255,255,.10)}
+  .rd-gd-sheet .mark.scheme{opacity:.85;font-size:10px;letter-spacing:.03em}
 
   .dist{margin-top:14px}
   .barrow{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:10px;margin:6px 0}
@@ -333,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=260"></script>
-<script src="OFFGRD-brand-persist.js?v=260"></script>
-<script src="supabase.js?v=260"></script>
-<script src="OFFGRD-cache-gate.js?v=260"></script>
+<script src="OFFGRD-config.js?v=261"></script>
+<script src="OFFGRD-brand-persist.js?v=261"></script>
+<script src="supabase.js?v=261"></script>
+<script src="OFFGRD-cache-gate.js?v=261"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -378,32 +380,32 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=260"></script>
-<script src="OFFGRD-pos-glossary.js?v=260"></script>
-<script src="OFFGRD-autoderive.js?v=260"></script>
-<script src="OFFGRD-matchup.js?v=260"></script>
-<script src="OFFGRD-scoutcards.js?v=260"></script>
-<script src="OFFGRD-tendencies.js?v=260"></script>
-<script src="OFFGRD-scout-report.js?v=260"></script>
-<script src="OFFGRD-week-autotest.js?v=260"></script>
-<script src="OFFGRD-weeklypackage.js?v=260"></script>
-<script src="OFFGRD-telestrate.js?v=260"></script>
-<script src="OFFGRD-redesign.js?v=260"></script>
-<script src="OFFGRD-shell.js?v=260"></script>
-<script src="OFFGRD-caller-outcome.js?v=260"></script>
-<script src="OFFGRD-caller-sit.js?v=260"></script>
-<script src="OFFGRD-formations-data.js?v=260"></script>
-<script src="OFFGRD-formation-canon.js?v=260"></script>
-<script src="OFFGRD-assist-import.js?v=260"></script>
-<script src="OFFGRD-cv-review.js?v=260"></script>
-<script src="OFFGRD-frame-capture.js?v=260"></script>
-<script src="OFFGRD-caller-log.js?v=260"></script>
-<script src="OFFGRD-caller-sync.js?v=260"></script>
-<script src="OFFGRD-caller-analysis.js?v=260"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=260"></script>
-<script src="OFFGRD-booth-ask.js?v=260"></script>
-<script src="OFFGRD-caller-select.js?v=260"></script>
-<script src="OFFGRD-dcaller.js?v=260"></script>
+<script src="OFFGRD-render.js?v=261"></script>
+<script src="OFFGRD-pos-glossary.js?v=261"></script>
+<script src="OFFGRD-autoderive.js?v=261"></script>
+<script src="OFFGRD-matchup.js?v=261"></script>
+<script src="OFFGRD-scoutcards.js?v=261"></script>
+<script src="OFFGRD-tendencies.js?v=261"></script>
+<script src="OFFGRD-scout-report.js?v=261"></script>
+<script src="OFFGRD-week-autotest.js?v=261"></script>
+<script src="OFFGRD-weeklypackage.js?v=261"></script>
+<script src="OFFGRD-telestrate.js?v=261"></script>
+<script src="OFFGRD-redesign.js?v=261"></script>
+<script src="OFFGRD-shell.js?v=261"></script>
+<script src="OFFGRD-caller-outcome.js?v=261"></script>
+<script src="OFFGRD-caller-sit.js?v=261"></script>
+<script src="OFFGRD-formations-data.js?v=261"></script>
+<script src="OFFGRD-formation-canon.js?v=261"></script>
+<script src="OFFGRD-assist-import.js?v=261"></script>
+<script src="OFFGRD-cv-review.js?v=261"></script>
+<script src="OFFGRD-frame-capture.js?v=261"></script>
+<script src="OFFGRD-caller-log.js?v=261"></script>
+<script src="OFFGRD-caller-sync.js?v=261"></script>
+<script src="OFFGRD-caller-analysis.js?v=261"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=261"></script>
+<script src="OFFGRD-booth-ask.js?v=261"></script>
+<script src="OFFGRD-caller-select.js?v=261"></script>
+<script src="OFFGRD-dcaller.js?v=261"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -659,8 +661,12 @@ function attackFromBookHTML(headK, bt){
   const fam=M.familyOf(headK);
   const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
   if(!book.length){
+    const signed=!!(typeof TEAM!=="undefined"&&TEAM)||!!(window.OFFGRD_HAS_LIKELY_SESSION&&OFFGRD_HAS_LIKELY_SESSION());
+    const foot=signed
+      ? 'No playbook loaded yet · <a href="OFFGRD-Playbook.html">Program setup · Load your playbook</a> to see your-book beaters.'
+      : 'Sign in / load playbook to see your-book beaters.';
     return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
-      '<p class="foot" style="margin-top:8px">Sign in / load playbook to see your-book beaters.</p>';
+      '<p class="foot" style="margin-top:8px">'+foot+'</p>';
   }
   const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
   const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
@@ -684,14 +690,18 @@ function attackFromBookHTML(headK, bt){
     return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
       '<div class="beat bookbeat"><b>From your book</b> · no pass concepts scored for this look yet.</div>';
   }
+  const tipScheme=(M.TIP_SCHEME)||"ranked by how this play's design fits the predicted look — no graded reps yet";
+  const tipSuccess=(M.TIP_SUCCESS)||"your graded results vs this look, blended with scheme fit.";
   return '<div class="beat bookbeat"><b>From your book</b> · vs '+esc(fam)+
     '<ol class="booklist">'+ranked.map(function(r){
+      const evPct=Math.round((r.ev!=null?r.ev:(r.score||0)/100)*100);
+      const tip=r.basis==="empirical"&&r.n?(r.basisTip||tipSuccess):(r.basisTip||tipScheme);
       const pill=r.basis==="empirical"&&r.n
-        ? (r.n+' snaps'+(r.basisLabel&&r.basisLabel.indexOf('%')>=0?' · '+Math.round((r.ev!=null?r.ev:r.score/100)*100)+'%':''))
-        : 'on paper';
+        ? esc(r.basisLabel||("SUCCESS · "+r.n+" SNAPS"))
+        : (evPct+'% <span class="pill-scheme">SCHEME MATCH</span>');
       return '<li><span class="bn">'+esc(r.name||"?")+'</span>'+
         (r.why&&r.why[0]?' <span class="bw">'+esc(r.why[0])+'</span>':'')+
-        ' <span class="pill">'+esc(pill)+'</span></li>';
+        ' <span class="pill" title="'+esc(tip)+'">'+pill+'</span></li>';
     }).join("")+'</ol></div>';
 }
 
@@ -1790,6 +1800,14 @@ function callerModeToggleHtml(){
   return `<div class="rd-gd-mode no-print" role="group" aria-label="Caller mode">`
     +`<button type="button" class="rd-gd-mode-btn${m==="guided"?" on":""}" onclick="callerSetMode('guided')">Guided</button>`
     +`<button type="button" class="rd-gd-mode-btn${m==="advanced"?" on":""}" onclick="callerSetMode('advanced')">Advanced</button>`
+    +`</div>`;
+}
+/** O Caller / D Caller switch — redesign Gameday + Booth (legacy navbar is display:none). */
+function callerOdToggleHtml(side){
+  const on=side==="d"?"d":"o";
+  return `<div class="rd-gd-od no-print" role="group" aria-label="Offense or defense caller">`
+    +`<button type="button" class="rd-gd-od-btn${on==="o"?" on":""}" onclick="setView('caller')">O Caller</button>`
+    +`<button type="button" class="rd-gd-od-btn${on==="d"?" on":""}" onclick="setView('dcaller')">D Caller</button>`
     +`</div>`;
 }
 function callerSitDefaults(){
@@ -4550,22 +4568,24 @@ function callerRankedCalls(){
       n: r.n||0,
       kind:kind,
       basis: r.basis||"on_paper",
-      basisLabel: r.basisLabel||"on paper",
+      basisLabel: r.basisLabel||"SCHEME MATCH",
+      basisTip: r.basisTip||null,
       why: r.why||[]
     };
   }).sort((a,b)=>b.sr-a.sr||b.n-a.n);
   return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
 }
-/** Soft-headline: prefer matchup basisLabel; never hide on-paper vs earned. */
+/** Soft-headline: SCHEME MATCH (structural) or SUCCESS n% · snaps (graded). */
 function callerCallReason(entry, cov, conf){
   if(!entry) return "";
+  const pct=Math.round((entry.sr||0)*100)+"%";
+  if(entry.basis==="on_paper" || entry.basisLabel==="SCHEME MATCH"){
+    return `EV ${pct} · SCHEME MATCH`;
+  }
   if(entry.basisLabel){
-    const pct=Math.round((entry.sr||0)*100)+"%";
-    if(entry.basis==="on_paper") return `EV ${pct} · ${entry.basisLabel}`;
     return `EV ${pct} · ${entry.basisLabel}`;
   }
   const n=+entry.n||0;
-  const pct=Math.round((entry.sr||0)*100)+"%";
   const level=conf&&conf.level?String(conf.level).toUpperCase():"";
   const soft=level==="LOW"||level==="THIN"||n<8;
   if(soft){
@@ -4582,7 +4602,7 @@ function callerCallSheetHtml(){
   const cs=callerSit;
   const buckets=(typeof planBuckets==="function")?planBuckets():[];
   const ranked=callerRankedCalls();
-  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel}; });
+  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel,basisTip:r.basisTip}; });
   const sigMap=callerSignalMap();
   const live=callerLiveCall();
   const top=ranked.list[0]||null;
@@ -4591,10 +4611,15 @@ function callerCallSheetHtml(){
   const escN=s=>esc(s).replace(/'/g,"");
   const sigTag=nm=>sigMap[nm]!=null?`<span class="sig">${esc(String(sigMap[nm]))}</span>`:`<span class="sig sig-empty"></span>`;
   const topInBucket= !!(top && bucket && S && S.playInBucket(bucket, top.play));
+  const tipScheme=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SCHEME)||"ranked by how this play's design fits the predicted look — no graded reps yet";
+  const tipSuccess=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SUCCESS)||"your graded results vs this look, blended with scheme fit.";
   const markFor=r=>{
     if(!r) return `<span class="mark mark-none"></span>`;
-    if(r.basis==="on_paper") return `<span class="mark">on paper</span>`;
-    return `<span class="mark">${Math.round(r.sr*100)}%</span>`;
+    const tip=esc(r.basisTip||(r.basis==="empirical"?tipSuccess:tipScheme));
+    if(r.basis==="on_paper" || r.basisLabel==="SCHEME MATCH"){
+      return `<span class="mark" title="${tip}">${Math.round(r.sr*100)}%</span><span class="mark scheme" title="${tip}">SCHEME MATCH</span>`;
+    }
+    return `<span class="mark" title="${tip}">${esc(r.basisLabel||("SUCCESS · "+(r.n||0)+" SNAPS"))}</span>`;
   };
   let h="";
   /* Tier 2 · "Best now" strip only when the suggester's pick isn't on the matched sheet. */
@@ -4735,7 +4760,7 @@ function renderCaller(){
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
     let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     const mode=callerGetMode();
-    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span>${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
     h+=callerGuidedFlowHtml();
     h+=callerStickyBarHtml(sitTxt, pr, g);
@@ -5374,7 +5399,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=260", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=261", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5697,9 +5722,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=260"></script>
-<script src="OFFGRD-role-gate.js?v=260"></script>
-<script src="OFFGRD-mobile.js?v=260"></script>
+<script type="module" src="OFFGRD-account.js?v=261"></script>
+<script src="OFFGRD-role-gate.js?v=261"></script>
+<script src="OFFGRD-mobile.js?v=261"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

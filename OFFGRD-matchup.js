@@ -541,10 +541,19 @@
     return out;
   }
 
+  var TIP_SCHEME =
+    "ranked by how this play's design fits the predicted look — no graded reps yet";
+  var TIP_SUCCESS =
+    "your graded results vs this look, blended with scheme fit.";
+
   function basisLabelFor(emp, fam) {
-    if (!emp || !emp.n) return "on paper";
+    if (!emp || !emp.n) return "SCHEME MATCH";
     var pct = Math.round((emp.sr || 0) * 100);
-    return emp.n + " snaps vs " + (fam || emp.family || "?") + " · " + pct + "% success";
+    return "SUCCESS " + pct + "% · " + emp.n + " SNAPS";
+  }
+
+  function basisTipFor(emp) {
+    return emp && emp.n ? TIP_SUCCESS : TIP_SCHEME;
   }
 
   /**
@@ -569,6 +578,7 @@
         n: emp0.n || 0,
         basis: emp0.n > 0 ? "empirical" : "on_paper",
         basisLabel: basisLabelFor(emp0, fam0),
+        basisTip: basisTipFor(emp0),
         byLook: {},
         why: []
       };
@@ -598,7 +608,8 @@
       ev: evOut,
       n: nMax,
       basis: nMax > 0 ? "empirical" : "on_paper",
-      basisLabel: bestEmp && bestEmp.n ? basisLabelFor(bestEmp, bestEmp.family) : "on paper",
+      basisLabel: bestEmp && bestEmp.n ? basisLabelFor(bestEmp, bestEmp.family) : "SCHEME MATCH",
+      basisTip: bestEmp && bestEmp.n ? TIP_SUCCESS : TIP_SCHEME,
       byLook: byLook,
       why: why
     };
@@ -625,6 +636,7 @@
           n: r.n,
           basis: r.basis,
           basisLabel: r.basisLabel,
+          basisTip: r.basisTip,
           why: r.why,
           concept: conceptKey(playObj),
           byLook: r.byLook
@@ -677,6 +689,7 @@
           concept: conceptKey(p),
           basis: emp.n > 0 ? "empirical" : "on_paper",
           basisLabel: basisLabelFor(emp, fam),
+          basisTip: basisTipFor(emp),
           n: emp.n || 0,
           rules_v: STRUCT_RULES_V
         });
@@ -772,6 +785,9 @@
     blendScore: blendScore,
     ev: ev,
     rankPlaysByEv: rankPlaysByEv,
+    basisLabelFor: basisLabelFor,
+    TIP_SCHEME: TIP_SCHEME,
+    TIP_SUCCESS: TIP_SUCCESS,
     FIXTURES: FIXTURES,
     fixturePlay: fixturePlay,
     RULES_V1: RULES_V1

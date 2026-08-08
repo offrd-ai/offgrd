@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -161,9 +161,10 @@
     {
       id: "gameday",
       label: "Gameday",
-      views: ["caller"],
+      views: ["caller", "dcaller"],
       tools: [
-        { id: "caller", label: "Caller", view: "caller" },
+        { id: "caller", label: "O Caller", view: "caller" },
+        { id: "dcaller", label: "D Caller", view: "dcaller" },
         { id: "booth", label: "Booth mode", action: "booth" }
       ]
     }
@@ -255,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "260";
+  const ASSET_V = "261";
 
   function getScoutTool() {
     try {
@@ -1168,33 +1169,48 @@
       'html.rd-on.rd-gameday #rdTools{',
       'display:flex!important;flex-wrap:wrap;gap:6px;padding:4px 8px 8px;align-items:center;',
       '}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]){display:none!important;}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"]{display:inline-flex!important;min-height:44px;}',
+      /* Keep Booth + O/D Caller reachable on Gameday stripped chrome */
+      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]):not([data-view="caller"]):not([data-view="dcaller"]){display:none!important;}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"],html.rd-on.rd-gameday #rdTools .rd-pill[data-view="caller"],html.rd-on.rd-gameday #rdTools .rd-pill[data-view="dcaller"]{display:inline-flex!important;min-height:44px;}',
       'html.rd-on.rd-gameday #rdContext{',
       'padding:6px 12px!important;min-height:44px;',
       '}',
       'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
       'html.rd-on.rd-booth #rdShell{display:none!important;}',
       'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
-      'html.rd-on #view-caller{max-width:720px;margin:0 auto;}',
-      'html.rd-on #view-caller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
-      'html.rd-on #view-caller .rd-gd-top{',
+      'html.rd-on #view-caller,html.rd-on #view-dcaller{max-width:720px;margin:0 auto;}',
+      'html.rd-on #view-caller .rd-gd,html.rd-on #view-dcaller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
+      'html.rd-on #view-caller .rd-gd-top,html.rd-on #view-dcaller .rd-gd-top{',
       'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
       'padding:10px 12px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-top b{color:var(--rd-text);font-weight:500;font-size:var(--fs-title);}',
-      'html.rd-on #view-caller .rd-gd-chip{',
+      'html.rd-on #view-caller .rd-gd-top b,html.rd-on #view-dcaller .rd-gd-top b{color:var(--rd-text);font-weight:500;font-size:var(--fs-title);}',
+      'html.rd-on #view-caller .rd-gd-chip,html.rd-on #view-dcaller .rd-gd-chip{',
       'display:inline-flex;align-items:center;padding:6px 10px;min-height:32px;',
       'border-radius:var(--radius-pill);background:var(--rd-surface-2);border:1px solid var(--rd-border);',
       'color:var(--rd-muted);font-size:var(--fs-micro);font-weight:500;letter-spacing:1px;text-transform:uppercase;',
       '}',
-      'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-caller .rd-gd-btn{',
+      'html.rd-on #view-caller .rd-gd-od,html.rd-on #view-dcaller .rd-gd-od,html.rd-on #view-caller .rd-gd-mode{',
+      'display:inline-flex;align-items:stretch;border:1px solid var(--rd-border);border-radius:var(--radius-pill);',
+      'overflow:hidden;background:var(--rd-surface-2);',
+      '}',
+      'html.rd-on #view-caller .rd-gd-od-btn,html.rd-on #view-dcaller .rd-gd-od-btn,',
+      'html.rd-on #view-caller .rd-gd-mode-btn{',
+      'appearance:none;border:0;background:transparent;color:var(--rd-muted);font-weight:700;font-size:12px;',
+      'letter-spacing:.04em;text-transform:uppercase;min-height:40px;padding:8px 12px;cursor:pointer;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-od-btn.on,html.rd-on #view-dcaller .rd-gd-od-btn.on,',
+      'html.rd-on #view-caller .rd-gd-mode-btn.on{',
+      'background:var(--rd-accent);color:var(--rd-accent-text);',
+      '}',
+      'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-caller .rd-gd-btn,',
+      'html.rd-on #view-dcaller .rd-gd-exit,html.rd-on #view-dcaller .rd-gd-btn{',
       'min-height:44px!important;min-width:44px;padding:10px 14px!important;',
       'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
       'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;cursor:pointer;',
       '}',
-      'html.rd-on #view-caller .rd-gd-exit{margin-left:auto;}',
+      'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-dcaller .rd-gd-exit{margin-left:auto;}',
       'html.rd-on #view-caller .rd-gd-sit{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
       '}',
