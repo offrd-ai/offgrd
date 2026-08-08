@@ -583,6 +583,24 @@ export const Cloud = {
   },
   async deleteGame(id) { const { error } = await OG.from("scouting_games").delete().eq("id", id); if (error) throw error; },
   /**
+   * Deliberate import / Commit to season — remove the natural-key tombstone so upsert
+   * can proceed. Tombstones only block passive pull/mergeGames resurrection.
+   */
+  async clearGameTombstone(teamId, game) {
+    if (!OG) throw new Error("offgrd schema unavailable");
+    if (!teamId || !game) throw new Error("clearGameTombstone: teamId and game required");
+    const opponent = game.opponent != null ? String(game.opponent) : "?";
+    const week = game.week != null ? String(game.week) : "?";
+    const side = game.side != null ? String(game.side) : "";
+    const nk = this.gameNaturalKey(opponent, week, side);
+    const { error, count } = await OG.from("scouting_game_tombstones")
+      .delete({ count: "exact" })
+      .eq("team_id", teamId)
+      .eq("natural_key", nk);
+    if (error) throw error;
+    return { natural_key: nk, cleared: (count == null ? true : count > 0) };
+  },
+  /**
    * v212: tombstone natural key THEN hard-delete cloud row.
    * Local-only clears resurrect on pull; this is the durable Season Data Manager path.
    * RLS allows INSERT (not UPDATE) on tombstones — duplicate key = already tombstoned (ok).

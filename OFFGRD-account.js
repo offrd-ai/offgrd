@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=257";
-import { openAuthModal } from "./OFFGRD-auth.js?v=257";
+import { Cloud } from "./OFFGRD-cloud.js?v=258";
+import { openAuthModal } from "./OFFGRD-auth.js?v=258";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -1138,8 +1138,17 @@ async function pull(silent){
   finally{ _busy=false; }
 }
 async function push(silent){
-  if(!TEAM){ if(!silent) alert("Sign in first."); return; }
-  if(!canEdit()){ if(!silent) alert("Your role is view-only, so you can’t save to the program."); return; }
+  if(!TEAM){
+    const err=new Error("Sign in first.");
+    if(!silent) alert(err.message);
+    throw err;
+  }
+  if(!canEdit()){
+    const err=new Error("Your role is view-only, so you can’t save to the program.");
+    if(!silent) alert(err.message);
+    throw err;
+  }
+  const rejected=[];
   try{
     const items = A.get();
     if(A.kind==="playbook"){
@@ -1154,9 +1163,8 @@ async function push(silent){
     }
     else {
       const tombs = await loadTombstones(TEAM.id);
-      const rejected=[];
       for(const g of items){
-        if(isGameTombstonedLocal(g, tombs)){ rejected.push(g); continue; }
+        if(isGameTombstonedLocal(g, tombs)){ rejected.push(Object.assign({reason:"TOMBSTONED"}, g)); continue; }
         try{
           const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {
             id:g.cid,
@@ -1168,7 +1176,7 @@ async function push(silent){
         }catch(eSave){
           /* Fire-and-forget: tombstone = skip this game, continue batch. No retry. */
           if(eSave && (eSave.code==="TOMBSTONED" || (Cloud._isTombstoneError && Cloud._isTombstoneError(eSave)))){
-            rejected.push(g);
+            rejected.push(Object.assign({reason:"TOMBSTONED"}, g));
             try{ console.warn("[push] tombstoned skip", gameNaturalKey(g.opponent,g.week,g.side)); }catch(eW){}
             continue;
           }
@@ -1193,7 +1201,7 @@ async function push(silent){
               try{ console.warn("[push] stale write recovered", key, "→", (g.rows&&g.rows.length)||0, "rows"); }catch(eW2){}
               continue;
             }catch(eRec){
-              rejected.push(g);
+              rejected.push(Object.assign({reason:"STALE_WRITE"}, g));
               try{ console.warn("[push] stale write skip", gameNaturalKey(g.opponent,g.week,g.side), eRec&&eRec.message); }catch(eW3){}
               continue;
             }
@@ -1201,7 +1209,8 @@ async function push(silent){
           throw eSave;
         }
       }
-      /* Drop tombstoned (+ trigger-rejected) from local so the next Sync ↑ is quiet. */
+      /* Drop tombstoned (+ trigger-rejected) from local so the next Sync ↑ is quiet.
+         Explicit Commit clears tombstones first — rejected here means clear failed. */
       let cleaned = purgeTombstonedGames(items, tombs);
       if(rejected.length){
         const rejKeys=new Set(rejected.map(function(g){ return gameNaturalKey(g.opponent,g.week,g.side); }));
@@ -1216,11 +1225,27 @@ async function push(silent){
     syncStamp();
     /* Classic import → scouting_games → sync trigger → scout_snaps; re-fetch for Predict. */
     try{ if(A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap){}
+    if(rejected.length){
+      const labels=rejected.map(function(g){
+        return (g.opponent||"?")+" · "+(g.week||"?")+" · "+(g.side||"?")+" ("+(g.reason||"blocked")+")";
+      });
+      const err=new Error("Could not sync "+rejected.length+" game(s): "+labels.slice(0,6).join("; "));
+      err.code="PUSH_REJECTED";
+      err.rejected=rejected;
+      if(!silent) throw err;
+      return { ok:false, rejected:rejected, error:err.message, code:"PUSH_REJECTED" };
+    }
     if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" \u2713");
+    return { ok:true, rejected:rejected };
   }catch(e){
     /* Silent auto-push: swallow — never schedule a retry (Daily Check storm lesson). */
-    if(!silent) alert(e.message||"Sync failed");
+    if(!silent){
+      if(e && e.code==="PUSH_REJECTED") throw e;
+      alert(e.message||"Sync failed");
+      throw e;
+    }
     else try{ console.warn("[push] silent fail (no retry)", e && e.message); }catch(e2){}
+    return { ok:false, rejected:rejected, error:(e && e.message) || String(e) };
   }
 }
 
@@ -1718,6 +1743,20 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 
 let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; push(true); }, 1500); };
+/** Awaitable push for Commit-to-season — returns {ok, rejected, error} (never silent on failure). */
+window.OFFGRD_PUSH=async function(silent){
+  try{
+    const r = await push(!!silent);
+    return r && typeof r === "object" ? r : { ok:true, rejected:[] };
+  }catch(e){
+    return {
+      ok:false,
+      error:(e && e.message) || String(e),
+      rejected:(e && e.rejected) || [],
+      code:e && e.code
+    };
+  }
+};
 
 /** Cheap fingerprint of scout_snaps RPC rows — length + max updatedAt + id mix. */
 function scoutCorpusFp(raw){

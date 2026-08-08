@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v257: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v258: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -327,10 +327,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=257"></script>
-<script src="OFFGRD-brand-persist.js?v=257"></script>
-<script src="supabase.js?v=257"></script>
-<script src="OFFGRD-cache-gate.js?v=257"></script>
+<script src="OFFGRD-config.js?v=258"></script>
+<script src="OFFGRD-brand-persist.js?v=258"></script>
+<script src="supabase.js?v=258"></script>
+<script src="OFFGRD-cache-gate.js?v=258"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -372,31 +372,31 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=257"></script>
-<script src="OFFGRD-pos-glossary.js?v=257"></script>
-<script src="OFFGRD-autoderive.js?v=257"></script>
-<script src="OFFGRD-scoutcards.js?v=257"></script>
-<script src="OFFGRD-tendencies.js?v=257"></script>
-<script src="OFFGRD-scout-report.js?v=257"></script>
-<script src="OFFGRD-week-autotest.js?v=257"></script>
-<script src="OFFGRD-weeklypackage.js?v=257"></script>
-<script src="OFFGRD-telestrate.js?v=257"></script>
-<script src="OFFGRD-redesign.js?v=257"></script>
-<script src="OFFGRD-shell.js?v=257"></script>
-<script src="OFFGRD-caller-outcome.js?v=257"></script>
-<script src="OFFGRD-caller-sit.js?v=257"></script>
-<script src="OFFGRD-formations-data.js?v=257"></script>
-<script src="OFFGRD-formation-canon.js?v=257"></script>
-<script src="OFFGRD-assist-import.js?v=257"></script>
-<script src="OFFGRD-cv-review.js?v=257"></script>
-<script src="OFFGRD-frame-capture.js?v=257"></script>
-<script src="OFFGRD-caller-log.js?v=257"></script>
-<script src="OFFGRD-caller-sync.js?v=257"></script>
-<script src="OFFGRD-caller-analysis.js?v=257"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=257"></script>
-<script src="OFFGRD-booth-ask.js?v=257"></script>
-<script src="OFFGRD-caller-select.js?v=257"></script>
-<script src="OFFGRD-dcaller.js?v=257"></script>
+<script src="OFFGRD-render.js?v=258"></script>
+<script src="OFFGRD-pos-glossary.js?v=258"></script>
+<script src="OFFGRD-autoderive.js?v=258"></script>
+<script src="OFFGRD-scoutcards.js?v=258"></script>
+<script src="OFFGRD-tendencies.js?v=258"></script>
+<script src="OFFGRD-scout-report.js?v=258"></script>
+<script src="OFFGRD-week-autotest.js?v=258"></script>
+<script src="OFFGRD-weeklypackage.js?v=258"></script>
+<script src="OFFGRD-telestrate.js?v=258"></script>
+<script src="OFFGRD-redesign.js?v=258"></script>
+<script src="OFFGRD-shell.js?v=258"></script>
+<script src="OFFGRD-caller-outcome.js?v=258"></script>
+<script src="OFFGRD-caller-sit.js?v=258"></script>
+<script src="OFFGRD-formations-data.js?v=258"></script>
+<script src="OFFGRD-formation-canon.js?v=258"></script>
+<script src="OFFGRD-assist-import.js?v=258"></script>
+<script src="OFFGRD-cv-review.js?v=258"></script>
+<script src="OFFGRD-frame-capture.js?v=258"></script>
+<script src="OFFGRD-caller-log.js?v=258"></script>
+<script src="OFFGRD-caller-sync.js?v=258"></script>
+<script src="OFFGRD-caller-analysis.js?v=258"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=258"></script>
+<script src="OFFGRD-booth-ask.js?v=258"></script>
+<script src="OFFGRD-caller-select.js?v=258"></script>
+<script src="OFFGRD-dcaller.js?v=258"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1347,7 +1347,7 @@ function seedGames(){
   return out;
 }
 function loadGames(){ try{ const s=localStorage.getItem(STORE_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) return a; } }catch(e){} return []; }
-function upsertGame(opp,week,side,source,rows){
+function upsertGame(opp,week,side,source,rows,opts){
   const k=gameKey(opp,week,side); const existed=GAMES.some(g=>g.key===k);
   GAMES=GAMES.filter(g=>g.key!==k);
   const rowSrc=(source==="live_call")?"live_call":"scout_import";
@@ -1357,7 +1357,8 @@ function upsertGame(opp,week,side,source,rows){
     if(!r.source) r.source=rowSrc;
   });
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
-  saveGames(); rebuildActive(); return existed;
+  saveGames(opts&&opts.sync===false?{sync:false}:undefined);
+  rebuildActive(); return existed;
 }
 async function tombstoneCloudGames(games, reason){
   const C=mgrCloud(); const teamId=mgrTeamId();
@@ -2454,25 +2455,79 @@ function previewImport(){
   document.getElementById("commitBtn").style.display="";
   document.getElementById("importMsg").textContent="Review the mapping & auto-cleanup above, then Commit to season.";
 }
-function commitPending(){
-  if(!PENDING) return; const parts=[];
+async function commitPending(){
+  if(!PENDING) return;
+  const msgEl=document.getElementById("importMsg");
+  const btn=document.getElementById("commitBtn");
   const sideLbl={off:"offense",def:"defense",ours:"your-plays"};
+  const parts=[]; const errors=[];
   let hasOff=false, hasDef=false;
-  /* upsert by opponent|week|side (gameKey) — same label replaces, does not append duplicates */
-  PENDING.games.forEach(g=>{
-    if(!g.rows||!g.rows.length) return;
-    const existed=upsertGame(g.opp,PENDING.week,g.side,"import",g.rows);
+  const C=mgrCloud(); const teamId=mgrTeamId();
+  const week=PENDING.week;
+  const games=(PENDING.games||[]).filter(function(g){ return g&&g.rows&&g.rows.length; });
+  if(!games.length){
+    if(msgEl) msgEl.textContent="Nothing to commit — no parsed snaps.";
+    return;
+  }
+  if(btn){ btn.disabled=true; btn.textContent="Committing…"; }
+  if(msgEl) msgEl.textContent="Committing to season…";
+
+  /* Deliberate import: clear tombstones for these keys so Delete→re-import works.
+     Tombstones only block passive pull/mergeGames resurrection. */
+  if(C&&teamId&&typeof C.clearGameTombstone==="function"){
+    for(let i=0;i<games.length;i++){
+      const g=games[i];
+      try{
+        await C.clearGameTombstone(teamId, { opponent:g.opp, week:week, side:g.side });
+      }catch(e){
+        errors.push((g.opp||"?")+" · "+week+" · "+(sideLbl[g.side]||g.side)+": could not clear prior delete — "+((e&&e.message)||e));
+      }
+    }
+    try{ if(window.OFFGRD_LOAD_TOMBSTONES) await window.OFFGRD_LOAD_TOMBSTONES(teamId); }catch(eT){}
+  }
+
+  if(errors.length){
+    if(msgEl) msgEl.textContent="Commit blocked: "+errors.join(" | ");
+    if(btn){ btn.disabled=false; btn.textContent="Commit to season"; }
+    return;
+  }
+
+  /* upsert by opponent|week|side — same label replaces (not append). Defer sync until cloud write. */
+  games.forEach(function(g){
+    const existed=upsertGame(g.opp,week,g.side,"import",g.rows,{sync:false});
     parts.push((existed?"Replaced ":"Added ")+g.rows.length+" "+g.opp+" "+sideLbl[g.side]);
     if(g.side==="off")hasOff=true; if(g.side==="def")hasDef=true;
   });
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(GAMES)); }catch(eLS){}
+
+  let syncNote="";
+  if(typeof window.OFFGRD_PUSH==="function" && teamId){
+    if(msgEl) msgEl.textContent="Saving to cloud…";
+    const pushRes=await window.OFFGRD_PUSH(true);
+    if(!pushRes||!pushRes.ok){
+      const detail=(pushRes&&pushRes.error)||"Cloud save failed.";
+      if(msgEl) msgEl.textContent="Saved in this browser, but cloud sync failed: "+detail+" Re-try Commit or Sync after fixing access.";
+      if(btn){ btn.disabled=false; btn.textContent="Commit to season"; }
+      return;
+    }
+    syncNote=" Cloud synced.";
+  }else if(!teamId){
+    syncNote=" Saved locally only — sign in as a coach to sync to the program.";
+  }else{
+    try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(eSy){}
+    syncNote=" Sync scheduled.";
+  }
+
   SCOUT_MODE = hasOff ? "offense" : (hasDef ? "defense" : SCOUT_MODE);
   document.querySelectorAll("#seg-scoutmode button").forEach(x=>{ if(x.dataset.sm===SCOUT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
-  const primary=(PENDING.games[0]||{}).opp||sit.opp;
+  const primary=(games[0]||{}).opp||sit.opp;
   sit.opp=primary; sit.pers="ANY"; sit.form="ANY";
   buildControls(); setView("scout");
-  document.getElementById("importMsg").textContent="Committed "+PENDING.week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games.";
-  document.getElementById("importPreview").innerHTML=""; document.getElementById("commitBtn").style.display="none"; PENDING=null;
-  setTimeout(()=>document.getElementById("modal").classList.remove("show"),2600);
+  if(msgEl) msgEl.textContent="Committed "+week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games."+syncNote;
+  document.getElementById("importPreview").innerHTML="";
+  if(btn){ btn.disabled=false; btn.textContent="Commit to season"; btn.style.display="none"; }
+  PENDING=null;
+  setTimeout(function(){ const m=document.getElementById("modal"); if(m) m.classList.remove("show"); }, 2800);
 }
 
 /* ----- LIVE CALLER ----- */
@@ -5216,7 +5271,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=257", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=258", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5539,9 +5594,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=257"></script>
-<script src="OFFGRD-role-gate.js?v=257"></script>
-<script src="OFFGRD-mobile.js?v=257"></script>
+<script type="module" src="OFFGRD-account.js?v=258"></script>
+<script src="OFFGRD-role-gate.js?v=258"></script>
+<script src="OFFGRD-mobile.js?v=258"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
