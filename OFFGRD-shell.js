@@ -1,6 +1,6 @@
 /* ============================================================
-   OFFGRD-shell.js — OFFOPS unified top bar (Gameday | Team Portal)
-   Nav/shell only. Same-origin session already shared with the portal.
+   OFFGRD-shell.js - ODK OPS | MISSION CONTROL top bar
+   Gameday | Team Portal switcher. Same-origin session with portal.
    ============================================================ */
 (function (root) {
   "use strict";
@@ -8,6 +8,8 @@
   var LAST_GD = "offops_last_gameday";
   var LAST_PT = "offops_last_portal";
   var SHELL_H = "44px";
+  var BRAND_TITLE = "ODK OPS | MISSION CONTROL";
+  var LOGO_SRC = "/odk-ops-logo.png";
 
   function portalUrl() {
     try {
@@ -68,12 +70,9 @@
       "#offopsShell *,#offopsShell *::before,#offopsShell *::after{box-sizing:border-box;}",
       "#offopsShell .ops-brand{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;",
       "font-weight:800;letter-spacing:.02em;flex:0 0 auto;min-height:44px;min-width:44px;}",
-      "#offopsShell .ops-brand b{font-size:13px;}",
-      "#offopsShell .ops-brand span{opacity:.55;font-weight:700;font-size:11px;letter-spacing:.08em;}",
-      "#offopsShell .ops-brand .ops-mark{display:none;width:28px;height:28px;border-radius:8px;",
-      "background:linear-gradient(135deg,#2f6bff,#3bd0f2);color:#04121f;font:800 11px/28px Inter,sans-serif;",
-      "text-align:center;letter-spacing:0;}",
-      /* Switcher is primary nav — never shrink/truncate */
+      "#offopsShell .ops-brand .ops-mark{width:22px;height:22px;border-radius:5px;object-fit:contain;flex:0 0 auto;}",
+      "#offopsShell .ops-brand b{font-size:13px;letter-spacing:.06em;}",
+      "#offopsShell .ops-brand span{opacity:.55;font-weight:700;font-size:10px;letter-spacing:.1em;}",
       "#offopsShell .ops-switch{display:inline-flex;align-items:stretch;border:1px solid rgba(255,255,255,.16);",
       "border-radius:9px;overflow:hidden;background:rgba(255,255,255,.04);flex:0 0 auto;min-width:0;}",
       "#offopsShell .ops-switch a,#offopsShell .ops-switch button{appearance:none;border:0;background:transparent;",
@@ -87,7 +86,7 @@
       "color:#e8eef7;border-radius:999px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;",
       "font:700 12px/1 Inter,Segoe UI,system-ui,sans-serif;cursor:pointer;display:inline-flex;",
       "align-items:center;justify-content:center;}",
-      "#offopsShell .ops-avatar:focus-visible{outline:2px solid #3bd0f2;outline-offset:2px;}",
+      "#offopsShell .ops-avatar:focus-visible{outline:2px solid #3bd0f2;outline-offset:-2px;}",
       "#offopsShell .ops-avatar[hidden]{display:none!important;}",
       "#offopsShell .ops-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;",
       "background:#121a2b;border:1px solid rgba(255,255,255,.14);border-radius:12px;",
@@ -105,7 +104,6 @@
       "@media (max-width:820px){",
       "#offopsShell{gap:8px;padding-left:10px;padding-right:10px;}",
       "#offopsShell .ops-brand b,#offopsShell .ops-brand span{display:none;}",
-      "#offopsShell .ops-brand .ops-mark{display:inline-block;}",
       "#offopsShell .ops-switch{flex:1 1 auto;justify-content:center;max-width:none;}",
       "#offopsShell .ops-switch button{flex:1 1 auto;padding:10px 8px;font-size:12px;}",
       "}",
@@ -154,18 +152,20 @@
     bar.id = "offopsShell";
     bar.className = "no-print";
     bar.innerHTML = ""
-      + '<a class="ops-brand" href="' + gamedayHome().replace(/"/g, "") + '" title="OFFOPS">'
-      + '<span class="ops-mark" aria-hidden="true">OO</span>'
-      + "<b>OFFOPS</b><span>UNIFIED</span></a>"
+      + '<a class="ops-brand" href="' + gamedayHome().replace(/"/g, "") + '" title="' + BRAND_TITLE + '">'
+      + '<img class="ops-mark" src="' + LOGO_SRC + '" alt="" width="22" height="22" />'
+      + "<b>ODK OPS</b><span>MISSION CONTROL</span></a>"
       + '<div class="ops-switch" role="tablist" aria-label="App mode">'
       + '<button type="button" class="on" data-ops="gameday" aria-current="page">Gameday</button>'
       + '<button type="button" data-ops="portal">Team Portal</button>'
       + "</div>"
       + '<span class="ops-spacer"></span>'
       + '<div class="ops-profile">'
-      + '<button type="button" class="ops-avatar" id="opsAvatar" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" aria-controls="opsProfileMenu" hidden>?</button>'
+      + '<button type="button" class="ops-avatar" id="opsAvatar" aria-label="Account menu" aria-haspopup="true" '
+      + 'aria-expanded="false" aria-controls="opsProfileMenu" hidden>?</button>'
       + '<div class="ops-menu" id="opsProfileMenu" role="menu">'
       + '<span class="ops-mail" id="opsWho"></span>'
+      + '<button type="button" role="menuitem" id="opsAccount">Account / password</button>'
       + '<button type="button" role="menuitem" id="opsSignOut">Sign out</button>'
       + "</div></div>";
 
@@ -182,11 +182,23 @@
 
     var avatar = document.getElementById("opsAvatar");
     var so = document.getElementById("opsSignOut");
+    var acctBtn = document.getElementById("opsAccount");
     if (avatar) {
       avatar.onclick = function (e) {
         e.stopPropagation();
         var menu = document.getElementById("opsProfileMenu");
         setProfileOpen(!(menu && menu.classList.contains("open")));
+      };
+    }
+    if (acctBtn) {
+      acctBtn.onclick = function () {
+        setProfileOpen(false);
+        try {
+          if (typeof root.openOffgrdAccountModal === "function") root.openOffgrdAccountModal();
+          else alert("Account settings are still loading — try again in a moment.");
+        } catch (e) {
+          try { alert((e && e.message) || "Could not open account settings."); } catch (e2) {}
+        }
       };
     }
     if (so) {
@@ -224,7 +236,6 @@
     setTimeout(paintWho, 400);
     setTimeout(paintWho, 1500);
 
-    /* Refresh last-gameday as coaches move between views/pages */
     try {
       window.addEventListener("hashchange", rememberGameday);
       window.addEventListener("popstate", rememberGameday);

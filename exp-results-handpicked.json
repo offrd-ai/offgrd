@@ -1,0 +1,745 @@
+{
+  "experiment": "multi-frame-coverage-v1-handpicked",
+  "generated_at": "2026-08-06T22:36:11.834Z",
+  "non_destructive": true,
+  "guardrails": {
+    "wrote_scout_snaps": false,
+    "called_upsert_cv_scheme_v1": false,
+    "touched_production_f1_f2": false,
+    "storage_prefix_if_any": "scout-frames-exp/ (not used — local out/ only)"
+  },
+  "sample_ref": "sample.json",
+  "import_batch_id": "cb0421cb-8cc5-4cc6-b04a-1ee79926b990",
+  "team_id": "f7f14dc9-642f-469c-a896-0706f6631c9e",
+  "model": "claude-sonnet-4-6",
+  "prompt": "cv-def-v2 + temporal-adaptive-iphone addendum",
+  "schedule": {
+    "mode": "handpicked",
+    "note": "Coach-selected frames; vision-only re-run (see HANDPICK.md)",
+    "frames_dir": "D:\\mattb\\OFFRD FILES 25\\workers\\auto-scout-runner\\experiments\\multi-frame-coverage\\handpicked"
+  },
+  "sample_shell_mix": {
+    "1-high": 5,
+    "2-high": 5,
+    "other": 0
+  },
+  "vision_ran": true,
+  "plays": [
+    {
+      "snap_index": 0,
+      "hudl_play": 6,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "1-high",
+        "coverage": "cover 3"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.52,
+      "exp_notes_flags": [
+        "handpicked",
+        "safeties_cut_off",
+        "sideline_angle",
+        "run_play_developed"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=0.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 0.5,
+            "bytes": 263542,
+            "luma_mean": null,
+            "local": "frames\\6\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=1.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 1.5,
+            "bytes": 245012,
+            "luma_mean": null,
+            "local": "frames\\6\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=2.50s — last clean football frame (hand-picked)",
+            "actual_t": 2.5,
+            "bytes": 227931,
+            "luma_mean": null,
+            "local": "frames\\6\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 1,
+      "hudl_play": 7,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "2-high",
+        "coverage": "cover 4"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "cover 4"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "cover 4",
+        "front_detail": "4-2-5",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.55,
+      "exp_notes_flags": [
+        "handpicked",
+        "safeties_cut_off",
+        "midfield_snap",
+        "sideline_angle"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1.5,
+            "bytes": 289406,
+            "luma_mean": null,
+            "local": "frames\\7\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 3,
+            "bytes": 281330,
+            "luma_mean": null,
+            "local": "frames\\7\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=4.00s — last clean football frame (hand-picked)",
+            "actual_t": 4,
+            "bytes": 264696,
+            "luma_mean": null,
+            "local": "frames\\7\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 3,
+      "hudl_play": 9,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "1-high",
+        "coverage": "cover 3"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.52,
+      "exp_notes_flags": [
+        "handpicked",
+        "safeties_cut_off",
+        "sideline_angle",
+        "wide_field_view"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.00s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1,
+            "bytes": 259542,
+            "luma_mean": null,
+            "local": "frames\\9\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=2.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 2.5,
+            "bytes": 249095,
+            "luma_mean": null,
+            "local": "frames\\9\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=3.50s — last clean football frame (hand-picked)",
+            "actual_t": 3.5,
+            "bytes": 234193,
+            "luma_mean": null,
+            "local": "frames\\9\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 5,
+      "hudl_play": 11,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "2-high",
+        "coverage": "cover 4"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "cover 4"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "cover 4",
+        "front_detail": "4-2-5",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.52,
+      "exp_notes_flags": [
+        "handpicked",
+        "sideline_angle",
+        "safeties_cut_off",
+        "wide_field_view"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=2.00s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 2,
+            "bytes": 274353,
+            "luma_mean": null,
+            "local": "frames\\11\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=5.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 5.5,
+            "bytes": 253153,
+            "luma_mean": null,
+            "local": "frames\\11\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=6.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 6,
+            "bytes": 252768,
+            "luma_mean": null,
+            "local": "frames\\11\\F2.jpg"
+          },
+          {
+            "id": "F3",
+            "label": "t=6.50s — last clean football frame (hand-picked)",
+            "actual_t": 6.5,
+            "bytes": 273268,
+            "luma_mean": null,
+            "local": "frames\\11\\F3.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 6,
+      "hudl_play": 14,
+      "clip": null,
+      "coach_truth": {
+        "front": "6-1",
+        "shell": "1-high",
+        "coverage": "cover 0"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 0"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.45,
+      "exp_notes_flags": [
+        "handpicked",
+        "sideline_angle",
+        "cropped_deep",
+        "low_res",
+        "safeties_cut_off"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=2.00s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 2,
+            "bytes": 249815,
+            "luma_mean": null,
+            "local": "frames\\14\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 3,
+            "bytes": 241066,
+            "luma_mean": null,
+            "local": "frames\\14\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=3.50s — last clean football frame (hand-picked)",
+            "actual_t": 3.5,
+            "bytes": 205217,
+            "luma_mean": null,
+            "local": "frames\\14\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 8,
+      "hudl_play": 16,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "2-high",
+        "coverage": "2-man"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "2-man"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.52,
+      "exp_notes_flags": [
+        "handpicked",
+        "sideline_angle",
+        "safeties_cut_off",
+        "cropped_deep"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1.5,
+            "bytes": 273015,
+            "luma_mean": null,
+            "local": "frames\\16\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 3,
+            "bytes": 273240,
+            "luma_mean": null,
+            "local": "frames\\16\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=4.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 4,
+            "bytes": 261588,
+            "luma_mean": null,
+            "local": "frames\\16\\F2.jpg"
+          },
+          {
+            "id": "F3",
+            "label": "t=5.00s — last clean football frame (hand-picked)",
+            "actual_t": 5,
+            "bytes": 252637,
+            "luma_mean": null,
+            "local": "frames\\16\\F3.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 10,
+      "hudl_play": 18,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "1-high",
+        "coverage": "cover 1"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 1"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": null,
+        "front_detail": "4-2-5",
+        "pressure": null,
+        "man_or_zone": null
+      },
+      "exp_confidence": 0,
+      "exp_notes_flags": [
+        "handpicked",
+        "safeties_cut_off",
+        "F2_unusable",
+        "sideline_angle",
+        "low_res"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.00s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1,
+            "bytes": 292212,
+            "luma_mean": null,
+            "local": "frames\\18\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 3,
+            "bytes": 304175,
+            "luma_mean": null,
+            "local": "frames\\18\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=4.00s — last clean football frame (hand-picked)",
+            "actual_t": 4,
+            "bytes": 12288,
+            "luma_mean": null,
+            "local": "frames\\18\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 11,
+      "hudl_play": 23,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "2-high",
+        "coverage": "2-man"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "2-man"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.55,
+      "exp_notes_flags": [
+        "handpicked",
+        "sideline_angle",
+        "safeties_cut_off",
+        "low_res"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=2.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 2.5,
+            "bytes": 312862,
+            "luma_mean": null,
+            "local": "frames\\23\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 3.5,
+            "bytes": 277885,
+            "luma_mean": null,
+            "local": "frames\\23\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=4.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 4,
+            "bytes": 243802,
+            "luma_mean": null,
+            "local": "frames\\23\\F2.jpg"
+          },
+          {
+            "id": "F3",
+            "label": "t=4.50s — last clean football frame (hand-picked)",
+            "actual_t": 4.5,
+            "bytes": 252336,
+            "luma_mean": null,
+            "local": "frames\\23\\F3.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 29,
+      "hudl_play": 62,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "2-high",
+        "coverage": "cover 1"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "2-high",
+        "coverage": "cover 1"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.48,
+      "exp_notes_flags": [
+        "handpicked",
+        "sideline_angle",
+        "red_zone",
+        "cropped_deep",
+        "low_res"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1.5,
+            "bytes": 254957,
+            "luma_mean": null,
+            "local": "frames\\62\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=3.00s — motion / coverage develop (hand-picked)",
+            "actual_t": 3,
+            "bytes": 219136,
+            "luma_mean": null,
+            "local": "frames\\62\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=3.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 3.5,
+            "bytes": 187245,
+            "luma_mean": null,
+            "local": "frames\\62\\F2.jpg"
+          },
+          {
+            "id": "F3",
+            "label": "t=4.00s — last clean football frame (hand-picked)",
+            "actual_t": 4,
+            "bytes": 216701,
+            "luma_mean": null,
+            "local": "frames\\62\\F3.jpg"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "snap_index": 43,
+      "hudl_play": 99,
+      "clip": null,
+      "coach_truth": {
+        "front": "3-4",
+        "shell": "1-high",
+        "coverage": "cover 4"
+      },
+      "baseline_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 4"
+      },
+      "exp_cv": {
+        "front": "4-down",
+        "shell": "1-high",
+        "coverage": "cover 3",
+        "front_detail": "4-3",
+        "pressure": null,
+        "man_or_zone": "zone"
+      },
+      "exp_confidence": 0.45,
+      "exp_notes_flags": [
+        "handpicked",
+        "night_game",
+        "sideline_angle",
+        "safeties_cut_off",
+        "low_res"
+      ],
+      "model_version": "claude-sonnet-4-6",
+      "extract": {
+        "mode": "handpicked",
+        "sample_fps": null,
+        "duration": null,
+        "dropped": null,
+        "frames": [
+          {
+            "id": "F0",
+            "label": "t=1.50s — earliest clear pre-snap (hand-picked)",
+            "actual_t": 1.5,
+            "bytes": 268064,
+            "luma_mean": null,
+            "local": "frames\\99\\F0.jpg"
+          },
+          {
+            "id": "F1",
+            "label": "t=2.50s — motion / coverage develop (hand-picked)",
+            "actual_t": 2.5,
+            "bytes": 235220,
+            "luma_mean": null,
+            "local": "frames\\99\\F1.jpg"
+          },
+          {
+            "id": "F2",
+            "label": "t=3.50s — last clean football frame (hand-picked)",
+            "actual_t": 3.5,
+            "bytes": 255944,
+            "luma_mean": null,
+            "local": "frames\\99\\F2.jpg"
+          }
+        ]
+      },
+      "error": null
+    }
+  ],
+  "summary": {
+    "n": 10,
+    "baseline_omitted": true,
+    "baseline_note": "Frozen baseline_cv omitted — post-review snapshot equals coach truth and is not a 2-frame CV control.",
+    "fields": {
+      "front": {
+        "exp_vs_truth": {
+          "agree": 1,
+          "n": 10,
+          "pct": 0.1,
+          "pct_display": 10,
+          "not_comparable": 0
+        },
+        "note": "Compared at family level only (3-down / 4-down / 5-down). Detail labels mapped when possible."
+      },
+      "shell": {
+        "exp_vs_truth": {
+          "agree": 6,
+          "n": 10,
+          "pct": 0.6,
+          "pct_display": 60,
+          "not_comparable": 0
+        }
+      },
+      "coverage": {
+        "exp_vs_truth": {
+          "agree": 4,
+          "n": 9,
+          "pct": 0.4444444444444444,
+          "pct_display": 44,
+          "not_comparable": 1
+        }
+      }
+    }
+  },
+  "decision_gate_hint": {
+    "gate": "no_build",
+    "note": "Coverage exp-agreement 44% < ~55% — honest no-build; pivot to review-accelerator."
+  },
+  "deliverable_for_claude": "Verify the three per-field deltas (esp. coverage). Call greenlight / no_build / expand_sample."
+}

@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -161,10 +161,9 @@
     {
       id: "gameday",
       label: "Gameday",
-      views: ["caller", "dcaller"],
+      views: ["caller"],
       tools: [
-        { id: "ocaller", label: "O Caller", view: "caller" },
-        { id: "dcaller", label: "D Caller", view: "dcaller" },
+        { id: "caller", label: "Caller", view: "caller" },
         { id: "booth", label: "Booth mode", action: "booth" }
       ]
     }
@@ -180,10 +179,8 @@
     { id: "recruiting", label: "Recruiting", views: ["recruiting"], tools: [] }
   ];
 
-  /* Role pending — context bar only; never flash coach phases before we know who they are. */
-  const PHASES_NEUTRAL = [];
-
   const SETUP_ITEMS = [
+    { id: "account", label: "Account / password", action: "account" },
     { id: "import", label: "Import data", action: "import" },
     { id: "brand", label: "Team & logos", action: "brand" },
     { id: "team", label: "Team / roster", action: "team" },
@@ -197,6 +194,7 @@
   ];
 
   const SETUP_PLAYER = [
+    { id: "account", label: "Account / password", action: "account" },
     { id: "base", label: "Theme: Night / Day", action: "toggleBase" },
     { id: "signout", label: "Sign out", action: "signout" }
   ];
@@ -207,29 +205,12 @@
     } catch (e) { return false; }
   }
 
-  /** Shell chrome only — never guess coach while role/membership is still resolving. */
-  function currentShellRole() {
-    try {
-      const prog = root.OFFGRD_PROGRAM;
-      if (prog && prog.shellRole) return prog.shellRole;
-    } catch (e) {}
-    try {
-      if (root.OFFGRD_HAS_LIKELY_SESSION && root.OFFGRD_HAS_LIKELY_SESSION()) return "neutral";
-    } catch (e) {}
-    return "coach";
-  }
-
   function activePhases() {
-    const sr = currentShellRole();
-    if (sr === "player") return PHASES_PLAYER;
-    if (sr === "neutral") return PHASES_NEUTRAL;
-    return PHASES;
+    return isPlayerRole() ? PHASES_PLAYER : PHASES;
   }
 
   function activeSetup() {
-    const sr = currentShellRole();
-    if (sr === "player" || sr === "neutral") return SETUP_PLAYER;
-    return SETUP_ITEMS;
+    return isPlayerRole() ? SETUP_PLAYER : SETUP_ITEMS;
   }
 
   function isRedesign() {
@@ -274,7 +255,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "254";
+  const ASSET_V = "85";
 
   function getScoutTool() {
     try {
@@ -556,9 +537,6 @@
       'background:var(--rd-surface);border-bottom:1px solid var(--rd-border);}',
       'html.rd-on #rdShell{display:flex;}',
       'html.rd-on .topbar,html.rd-on #navbar{display:none!important;}',
-      /* Neutral hold — context bar only until role resolves (no coach phase flash). */
-      'html.rd-on.rd-neutral #rdNavBody{display:none!important;}',
-      'html.rd-on.rd-neutral body{padding-bottom:0!important;}',
       /* Player flat phase bar — no coach sub-tool pills */
       'html.rd-on.rd-player #rdTools{display:none!important;}',
       'html.rd-on.rd-player #rdPhases{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:6px;padding:8px 12px;width:100%;}',
@@ -1186,18 +1164,19 @@
       'padding:8px 10px;min-height:40px;font-size:12px;',
       '}',
       'html.rd-on.rd-gameday #rdPhases .rd-phase:not(.on){opacity:.55;}',
-      /* Gameday tools: O Caller / D Caller / Booth (phase sync already hides other phases). */
+      /* Keep Booth reachable on Gameday — hide other tool pills only */
       'html.rd-on.rd-gameday #rdTools{',
       'display:flex!important;flex-wrap:wrap;gap:6px;padding:4px 8px 8px;align-items:center;',
       '}',
-      'html.rd-on.rd-gameday #rdTools .rd-pill:not([hidden]){display:inline-flex!important;min-height:44px;}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill:not([data-action="booth"]){display:none!important;}',
+      'html.rd-on.rd-gameday #rdTools .rd-pill[data-action="booth"]{display:inline-flex!important;min-height:44px;}',
       'html.rd-on.rd-gameday #rdContext{',
       'padding:6px 12px!important;min-height:44px;',
       '}',
       'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
       'html.rd-on.rd-booth #rdShell{display:none!important;}',
       'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
-      'html.rd-on #view-caller,html.rd-on #view-dcaller{max-width:720px;margin:0 auto;}',
+      'html.rd-on #view-caller{max-width:720px;margin:0 auto;}',
       'html.rd-on #view-caller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
       'html.rd-on #view-caller .rd-gd-top{',
       'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
@@ -1247,81 +1226,21 @@
       'color:var(--rd-muted);margin:0 0 4px;',
       '}',
       'html.rd-on #view-caller .rd-gd-edit{display:none!important;}',
-      /* Outcome model — one-tap result buckets + optional flags (O + D Caller) */
-      'html.rd-on #view-caller .caller-out-results,html.rd-on #view-caller .caller-out-flags,html.rd-on #view-caller .caller-out-concept,',
-      'html.rd-on #view-dcaller .caller-out-results,html.rd-on #view-dcaller .caller-out-flags,html.rd-on #view-dcaller .caller-out-concept{',
+      /* Outcome model — one-tap result buckets + optional flags */
+      'html.rd-on #view-caller .caller-out-results,html.rd-on #view-caller .caller-out-flags,html.rd-on #view-caller .caller-out-concept{',
       'display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0;',
       '}',
-      'html.rd-on #view-caller .caller-out-btn,html.rd-on #view-caller .caller-out-flag,',
-      'html.rd-on #view-dcaller .caller-out-btn,html.rd-on #view-dcaller .caller-out-flag{',
+      'html.rd-on #view-caller .caller-out-btn,html.rd-on #view-caller .caller-out-flag{',
       'min-height:44px!important;padding:8px 10px!important;border-radius:var(--radius-ctl)!important;',
       'border:2px solid var(--rd-border)!important;background:var(--rd-surface-2)!important;',
       'color:var(--rd-text)!important;font-weight:700!important;font-size:13px;cursor:pointer;',
       '}',
-      'html.rd-on #view-caller .caller-out-btn.on,html.rd-on #view-dcaller .caller-out-btn.on{',
+      'html.rd-on #view-caller .caller-out-btn.on{',
       'background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;',
       '}',
-      'html.rd-on #view-caller .caller-out-btn.suggest,html.rd-on #view-dcaller .caller-out-btn.suggest{',
-      'border-color:#FFD24A!important;box-shadow:0 0 0 1px #FFD24A;',
-      '}',
-      'html.rd-on #view-caller .caller-out-convert,html.rd-on #view-dcaller .caller-out-convert{',
-      'flex:1 1 100%;font-weight:800!important;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-drive-over,html.rd-on #view-dcaller .rd-gd-drive-over{',
-      'margin:8px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-drive-over .seg,html.rd-on #view-dcaller .rd-gd-drive-over .seg{',
-      'display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-drive-over button,html.rd-on #view-dcaller .rd-gd-drive-over button{',
-      'min-height:40px!important;padding:8px 12px!important;font-weight:700!important;',
-      'border-radius:var(--radius-ctl)!important;border:1px solid var(--rd-border)!important;',
-      'background:var(--rd-surface-2)!important;color:var(--rd-text)!important;cursor:pointer;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit-reset,html.rd-on #view-dcaller .rd-gd-sit-reset{',
-      'min-height:40px!important;padding:8px 14px!important;font-weight:800!important;',
-      'background:var(--rd-surface-2)!important;border:2px solid #13294B!important;color:var(--rd-text)!important;',
-      'border-radius:var(--radius-ctl)!important;cursor:pointer;',
-      '}',
-      'html.rd-on #view-caller .caller-out-flag.on,html.rd-on #view-dcaller .caller-out-flag.on{',
+      'html.rd-on #view-caller .caller-out-flag.on{',
       'background:#13294B!important;border-color:#FFD24A!important;color:#FFD24A!important;',
       '}',
-      /* D Caller — Run/Pass/Dir selected state + large yards grid */
-      'html.rd-on #view-dcaller .covlog{gap:6px;background:transparent!important;padding:0!important;}',
-      'html.rd-on #view-dcaller .covlog button,html.rd-on #view-dcaller .rd-dc-rp-btn,html.rd-on #view-dcaller .rd-dc-dir-btn{',
-      'min-height:52px!important;min-width:72px;padding:12px 14px!important;flex:1 1 auto;',
-      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:700!important;',
-      'cursor:pointer!important;font-size:16px;',
-      '}',
-      'html.rd-on #view-dcaller .covlog button.on,html.rd-on #view-dcaller .rd-dc-rp-btn.on,html.rd-on #view-dcaller .rd-dc-dir-btn.on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;',
-      'color:var(--rd-accent-text)!important;font-weight:800!important;',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-rp{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;}',
-      'html.rd-on #view-dcaller .rd-dc-dir{display:grid!important;grid-template-columns:1fr 1fr 1fr;gap:8px;}',
-      'html.rd-on #view-dcaller .rd-dc-grade-card{',
-      'margin-top:10px;padding:14px;border-radius:var(--radius-card);',
-      'background:var(--rd-surface);border:2px solid var(--rd-border);',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-grade-card.is-pending{',
-      'border-color:var(--rd-accent);box-shadow:0 0 0 1px var(--rd-accent);',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-grade-card.is-waiting{opacity:.85;border-style:dashed;}',
-      'html.rd-on #view-dcaller .rd-dc-grade-title{',
-      'font-size:18px;font-weight:800;color:var(--rd-text);margin:0 0 4px;letter-spacing:.01em;',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-grade-sub{',
-      'font-size:13px;font-weight:600;color:var(--rd-muted);margin:0 0 12px;',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-yards{',
-      'display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;',
-      '}',
-      'html.rd-on #view-dcaller .rd-dc-yards .caller-out-btn{',
-      'min-height:56px!important;padding:12px 8px!important;font-size:16px!important;font-weight:800!important;',
-      'width:100%;',
-      '}',
-      '@media (max-width:420px){html.rd-on #view-dcaller .rd-dc-yards{grid-template-columns:repeat(2,minmax(0,1fr));}}',
       'html.rd-on #view-caller .caller-pending-count{font-weight:700;margin:0 0 8px;color:var(--rd-text);}',
       'html.rd-on #view-caller .caller-pending-row{',
       'border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:10px 12px;margin:0 0 8px;background:var(--rd-surface-2);',
@@ -1346,23 +1265,11 @@
       'html.rd-on #view-caller .rd-gd-sit-infer-bar{',
       'display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sit-confirm,html.rd-on #view-dcaller .rd-gd-sit-confirm{',
+      'html.rd-on #view-caller .rd-gd-sit-confirm{',
       'min-height:40px!important;padding:8px 14px!important;font-weight:800!important;',
       'background:#FFD24A!important;border:2px solid #13294B!important;color:#0E1116!important;',
       'border-radius:var(--radius-ctl)!important;cursor:pointer;',
       '}',
-      'html.rd-on #view-dcaller .rd-gd-sit-infer-bar{',
-      'display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;',
-      '}',
-      'html.rd-on #view-dcaller .rd-gd-sit-inferred{',
-      'border:2px dashed var(--rd-border)!important;background:rgba(255,210,74,.08)!important;',
-      '}',
-      'html.rd-on #view-dcaller .rd-gd-sit-est,html.rd-on #view-dcaller .rd-gd-sit-need{',
-      'display:inline-block;margin-left:8px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:800;',
-      'letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;',
-      '}',
-      'html.rd-on #view-dcaller .rd-gd-sit-est{background:rgba(255,210,74,.35);color:var(--rd-text);}',
-      'html.rd-on #view-dcaller .rd-gd-sit-need{background:rgba(230,162,60,.25);color:var(--rd-text);}',
       'html.rd-on #view-caller .caller-edit-last,html.rd-on #view-caller .caller-undo{',
       'min-width:88px;padding:8px 10px!important;',
       '}',
@@ -1411,19 +1318,6 @@
       '}',
       'html.rd-on #view-caller .rd-gd-expect .body{color:var(--rd-text);font-size:var(--fs-body);font-weight:500;}',
       'html.rd-on #view-caller .rd-gd-expect .body b{color:var(--rd-accent);}',
-      'html.rd-on #view-caller .rd-gd-expect-strip .rd-gd-expect-meta,html.rd-on #view-dcaller .rd-dc-expect .rd-gd-widen-badge{',
-      'display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin-top:4px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-widen-badge,html.rd-on #view-dcaller .rd-gd-widen-badge,',
-      'html.rd-on #view-caller .rd-gd-bestnow-lbl .rd-gd-widen-badge{',
-      'display:inline-block;padding:2px 8px;border-radius:6px;',
-      'font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--rd-text);',
-      'background:rgba(255,210,74,.22);border:1px solid rgba(255,210,74,.45);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-expect-strip.is-widened,html.rd-on #view-dcaller .rd-dc-expect.is-widened{',
-      'box-shadow:inset 3px 0 0 #FFD24A;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit-conf{font-size:11px;font-weight:800;}',
       'html.rd-on #view-caller .rd-gd-panel{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
       '}',
@@ -1434,76 +1328,7 @@
       'html.rd-on #view-caller .covlog button{',
       'min-height:48px!important;min-width:72px;padding:10px 12px!important;flex:1 1 auto;',
       'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
-      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:600!important;',
-      'cursor:pointer!important;pointer-events:auto!important;',
-      '}',
-      /* Must beat .covlog button !important — without this, Look chips never show selected. */
-      'html.rd-on #view-caller .covlog button.on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;',
-      'color:var(--rd-accent-text)!important;font-weight:800!important;',
-      '}',
-      /* Numbered section headers — Play call / What they showed / D call / Result */
-      'html.rd-on #view-caller .rd-gd-section,html.rd-on #view-dcaller .rd-gd-section{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:4px solid var(--rd-accent);',
-      'border-radius:var(--radius-card);padding:12px 14px;margin:0 0 12px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-section-kicker,html.rd-on #view-dcaller .rd-gd-section-kicker{',
-      'display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;',
-      'margin:0 0 10px;padding:0;font-size:15px;font-weight:800;color:var(--rd-text);line-height:1.2;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-section-num,html.rd-on #view-dcaller .rd-gd-section-num{',
-      'display:inline-flex;align-items:center;justify-content:center;',
-      'min-width:28px;height:28px;padding:0 8px;border-radius:8px;',
-      'background:var(--rd-accent);color:var(--rd-accent-text);font-size:14px;font-weight:800;letter-spacing:0;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-section-title,html.rd-on #view-dcaller .rd-gd-section-title{',
-      'font-size:16px;font-weight:800;color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-section-sub,html.rd-on #view-dcaller .rd-gd-section-sub{',
-      'font-size:12px;font-weight:700;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-sit-kicker,html.rd-on #view-dcaller .rd-gd-sit-kicker{',
-      'display:inline-flex;align-items:center;gap:8px;margin-right:8px;',
-      'font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--rd-accent);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow,html.rd-on #view-dcaller .rd-gd-flow{',
-      'display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow-step,html.rd-on #view-dcaller .rd-gd-flow-step{',
-      'display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow-step i,html.rd-on #view-dcaller .rd-gd-flow-step i{',
-      'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);font-style:normal;font-size:11px;font-weight:800;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow-step.on,html.rd-on #view-dcaller .rd-gd-flow-step.on{color:var(--rd-text);}',
-      'html.rd-on #view-caller .rd-gd-flow-step.on i,html.rd-on #view-dcaller .rd-gd-flow-step.on i{',
-      'background:var(--rd-accent);border-color:var(--rd-accent);color:var(--rd-accent-text);',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow-step.done i,html.rd-on #view-dcaller .rd-gd-flow-step.done i{',
-      'background:rgba(45,190,108,.25);border-color:rgba(45,190,108,.5);color:#86efac;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-flow-sep,html.rd-on #view-dcaller .rd-gd-flow-sep{color:var(--rd-muted);opacity:.7;}',
-      'html.rd-on #view-caller .rd-gd-thisplay{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:4px solid var(--rd-accent);',
-      'border-radius:var(--radius-card);padding:12px 14px;margin:0 0 10px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-thisplay-head{',
-      'display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin:0 0 10px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-thisplay-kicker{font-weight:800;color:var(--rd-text);}',
-      'html.rd-on #view-caller .rd-gd-step,html.rd-on #view-dcaller .rd-gd-step{',
-      'display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;margin:0 0 12px;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-step-n,html.rd-on #view-dcaller .rd-gd-step-n{',
-      'width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;',
-      'background:var(--rd-accent);color:var(--rd-accent-text);font-weight:800;font-size:13px;line-height:1;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-step-body,html.rd-on #view-dcaller .rd-gd-step-body{min-width:0;}',
-      'html.rd-on #view-caller .rd-look-lbl,html.rd-on #view-dcaller .rd-look-lbl{',
-      'color:var(--rd-accent)!important;font-size:12px!important;font-weight:800!important;',
-      'letter-spacing:.06em;text-transform:uppercase;margin:10px 0 6px!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;',
       '}',
       'html.rd-on #view-caller .rd-gd-outcomes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}',
       'html.rd-on #view-caller .rd-gd-outcomes button{',
@@ -1532,11 +1357,7 @@
       'html.rd-on #view-caller .caller-oncall-empty .caller-oncall-idle{',
       'background:transparent!important;border:2px dashed var(--rd-border)!important;',
       '}',
-      /* Live ungraded = green; graded history = gold (inline styles; don't flatten both to gold). */
-      'html.rd-on #view-caller .caller-oncall-liveplay .caller-oncall-live{',
-      'background:#2DBE6C!important;border-color:#0B3D24!important;color:#0E1116!important;',
-      '}',
-      'html.rd-on #view-caller .caller-oncall-graded .caller-oncall-live{',
+      'html.rd-on #view-caller .caller-oncall-live{',
       'background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;',
       '}',
       'html.rd-on #view-caller .caller-oncall-lbl{',
@@ -1608,76 +1429,6 @@
       'html.rd-on #view-caller .rd-gd-st-btn{flex:1 1 30%;min-height:52px;padding:10px 12px;background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:700!important;font-size:15px;cursor:pointer;}',
       'html.rd-on #view-caller .rd-gd-st-btn.on{background:#FFD24A!important;border-color:#13294B!important;color:#0E1116!important;}',
       'html.rd-on #view-caller .caller-st-stats{font-weight:700;margin:6px 0 0;color:var(--rd-text);}',
-      /* ---- In-game AI panel + Ask Booth (was unstyled → browser-default white) ---- */
-      'html.rd-on #view-caller .rd-live-panel,html.rd-on #view-dcaller .rd-live-panel{',
-      'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
-      'padding:12px 14px;margin:0 0 10px;',
-      '}',
-      'html.rd-on #view-caller .rd-live-panel-bar,html.rd-on #view-dcaller .rd-live-panel-bar{',
-      'display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;',
-      '}',
-      'html.rd-on #view-caller .rd-live-panel-title,html.rd-on #view-dcaller .rd-live-panel-title{',
-      'font-weight:800;font-size:15px;color:var(--rd-text);letter-spacing:.02em;',
-      '}',
-      'html.rd-on #view-caller .rd-live-panel-meta,html.rd-on #view-dcaller .rd-live-panel-meta{color:var(--rd-muted);}',
-      'html.rd-on #view-caller .rd-live-panel-toggle,html.rd-on #view-dcaller .rd-live-panel-toggle{margin-left:auto;}',
-      'html.rd-on #view-caller .rd-live-panel-note,html.rd-on #view-dcaller .rd-live-panel-note{margin:0 0 10px;color:var(--rd-muted);}',
-      'html.rd-on #view-caller .rd-live-sec,html.rd-on #view-dcaller .rd-live-sec{margin:0 0 12px;}',
-      'html.rd-on #view-caller .rd-live-h,html.rd-on #view-dcaller .rd-live-h{',
-      'margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--rd-muted);',
-      '}',
-      'html.rd-on #view-caller .rd-live-line,html.rd-on #view-dcaller .rd-live-line{',
-      'margin:0 0 4px;font-size:13.5px;font-weight:600;color:var(--rd-text);line-height:1.35;',
-      '}',
-      'html.rd-on #view-caller .rd-live-feed-line,html.rd-on #view-dcaller .rd-live-feed-line{',
-      'margin:0 0 4px;font-size:13px;font-weight:600;color:var(--rd-text);',
-      '}',
-      'html.rd-on #view-caller .rd-live-feed-kind,html.rd-on #view-dcaller .rd-live-feed-kind{',
-      'display:inline-block;margin-right:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;',
-      'letter-spacing:.04em;text-transform:uppercase;background:var(--rd-surface-2);color:var(--rd-muted);border:1px solid var(--rd-border);',
-      '}',
-      'html.rd-on #view-caller .rd-booth,html.rd-on #view-dcaller .rd-booth{',
-      'margin-top:12px;padding-top:12px;border-top:1px solid var(--rd-border);',
-      '}',
-      'html.rd-on #view-caller .rd-booth-chips,html.rd-on #view-dcaller .rd-booth-chips{',
-      'display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-chip,html.rd-on #view-dcaller .rd-booth-chip{',
-      'min-height:40px;padding:8px 12px!important;border-radius:var(--radius-ctl)!important;',
-      'border:1px solid var(--rd-border)!important;background:var(--rd-surface-2)!important;',
-      'color:var(--rd-text)!important;font-weight:700!important;font-size:13px;cursor:pointer;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-chip.on,html.rd-on #view-caller .rd-booth-chip.is-on,',
-      'html.rd-on #view-dcaller .rd-booth-chip.on,html.rd-on #view-dcaller .rd-booth-chip.is-on{',
-      'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-ask,html.rd-on #view-dcaller .rd-booth-ask{',
-      'display:flex;gap:8px;align-items:stretch;margin:0 0 8px;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-ask-input,html.rd-on #view-dcaller .rd-booth-ask-input{',
-      'flex:1;min-width:0;min-height:44px;padding:10px 12px!important;box-sizing:border-box;',
-      'border:1px solid var(--rd-border)!important;border-radius:var(--radius-ctl)!important;',
-      'background:var(--rd-surface-2)!important;color:var(--rd-text)!important;',
-      'font-weight:600!important;font-size:14px;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-ask-input::placeholder,html.rd-on #view-dcaller .rd-booth-ask-input::placeholder{',
-      'color:var(--rd-muted);opacity:.85;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-ask-btn,html.rd-on #view-dcaller .rd-booth-ask-btn{',
-      'min-height:44px;padding:10px 16px!important;border-radius:var(--radius-ctl)!important;',
-      'border:1px solid var(--rd-accent)!important;background:var(--rd-accent)!important;',
-      'color:var(--rd-accent-text)!important;font-weight:800!important;font-size:14px;cursor:pointer;white-space:nowrap;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-answer,html.rd-on #view-dcaller .rd-booth-answer{',
-      'margin:8px 0 0;padding:10px 12px;border-radius:var(--radius-card);',
-      'background:var(--rd-surface-2);border:1px solid var(--rd-border);',
-      '}',
-      'html.rd-on #view-caller .rd-booth-line,html.rd-on #view-dcaller .rd-booth-line{',
-      'margin:0 0 4px;font-size:13.5px;font-weight:600;color:var(--rd-text);line-height:1.35;',
-      '}',
-      'html.rd-on #view-caller .rd-booth-line.is-thin,html.rd-on #view-dcaller .rd-booth-line.is-thin{opacity:.7;}',
-      'html.rd-on #view-caller .rd-booth-offline,html.rd-on #view-dcaller .rd-booth-offline,',
-      'html.rd-on #view-caller .rd-booth-ask-status,html.rd-on #view-dcaller .rd-booth-ask-status{margin:6px 0 0;color:var(--rd-muted);}',
       /* ---- Play selection: Best-now strip (Tier 2) ---- */
       'html.rd-on #view-caller .rd-gd-bestnow{background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid #FFD24A;border-radius:var(--radius-card);padding:10px 12px;margin-bottom:10px;}',
       'html.rd-on #view-caller .rd-gd-bestnow-lbl{font-size:var(--fs-micro);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#FFD24A;margin-bottom:6px;}',
@@ -1870,6 +1621,15 @@
         break;
       case "load":
         clickExisting("cd");
+        break;
+      case "account":
+        try {
+          if (typeof root.openOffgrdAccountModal === "function") root.openOffgrdAccountModal();
+          else if (root.OFFGRD_AUTH && typeof root.OFFGRD_AUTH.openAccountModal === "function") root.OFFGRD_AUTH.openAccountModal();
+          else alert("Account settings are still loading — try again in a moment.");
+        } catch (e) {
+          try { alert((e && e.message) || "Could not open account settings."); } catch (e2) {}
+        }
         break;
       case "signout":
         /* #co doesn't exist on the redesigned shell, so the old clickExisting was a no-op.
@@ -2207,7 +1967,6 @@
   function maybePlayerLanding() {
     if (_playerLandingDone) return;
     if (appKind() !== "scout") return;
-    if (!isRoleResolved() || currentShellRole() !== "player") return;
     if (!isPlayerRole()) return;
     _playerLandingDone = true;
     /* Render the landing view once on load so This Week populates without a click.
@@ -2247,23 +2006,16 @@
     }
   }
 
-  function applyShellRoleClasses(role) {
-    try {
-      document.documentElement.classList.toggle("rd-player", role === "player");
-      document.documentElement.classList.toggle("rd-coach", role === "coach");
-      document.documentElement.classList.toggle("rd-neutral", role === "neutral");
-    } catch (e) {}
-  }
-
   let _shellRole = null;
   function rebuildShellIfNeeded() {
     const shell = document.getElementById("rdShell");
     if (!shell || !isRedesign()) return false;
-    const role = currentShellRole();
+    const role = isPlayerRole() ? "player" : "coach";
     if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
-    try { console.log("[shell]", { shellRole: role, prev: _shellRole, rebuild: true }); } catch (e) {}
     _shellRole = role;
-    applyShellRoleClasses(role);
+    try {
+      document.documentElement.classList.toggle("rd-player", role === "player");
+    } catch (e) {}
     shell.innerHTML = buildShellHtml();
     wireShell(shell);
     adoptAcct();
@@ -2303,7 +2055,9 @@
     }
 
     document.documentElement.classList.add("rd-on");
-    applyShellRoleClasses(currentShellRole());
+    try {
+      document.documentElement.classList.toggle("rd-player", isPlayerRole());
+    } catch (e) {}
     ensureCss();
     patchApplyTeamColors();
     setBase(getBase()); /* retunes from raw team hex — no data-base MutationObserver */
@@ -2317,8 +2071,7 @@
       const top = document.querySelector(".topbar");
       if (top && top.parentNode) top.parentNode.insertBefore(shell, top);
       else document.body.insertBefore(shell, document.body.firstChild);
-      _shellRole = currentShellRole();
-      try { console.log("[shell]", { shellRole: _shellRole, prev: null, initial: true }); } catch (e) {}
+      _shellRole = isPlayerRole() ? "player" : "coach";
       shell.innerHTML = buildShellHtml();
       wireShell(shell);
     } else {
@@ -2397,32 +2150,23 @@
     setTimeout(boot, 0);
   }
 
-  function isRoleResolved() {
-    try {
-      const prog = root.OFFGRD_PROGRAM;
-      if (prog && typeof prog.roleResolved === "boolean") return prog.roleResolved;
-    } catch (e) {}
-    return true;
-  }
-
   /* Role may resolve after first paint — rebuild player/coach shell then. */
   document.addEventListener("offgrd-program-ready", function () {
     if (queryFlag() === 0 || !isRedesign()) return;
     try {
       applyRedesignShell();
       rebuildShellIfNeeded();
-      /* Landing only once role is known — never clobber an active player selection. */
-      if (isRoleResolved()) maybePlayerLanding();
+      /* Landing only once — never clobber an active player selection. */
+      maybePlayerLanding();
     } catch (e) {}
   });
 
-  /* Re-apply accent when cloud brand lands — CSS only; cache write is OFFGRD_persistBrand (account). */
+  /* Re-apply accent when cloud brand lands (may overwrite earlier wrap) */
   const prevBrand = root.OFFGRD_BRAND;
-  root.OFFGRD_BRAND = function (name, brand) {
+  root.OFFGRD_BRAND = function () {
     if (typeof prevBrand === "function") {
       try { prevBrand.apply(this, arguments); } catch (e) {}
     }
-    if (brand && brand.bg) noteRawTeamHex(brand.bg);
     if (isRedesign()) applyTokens(getBase());
   };
 
@@ -2443,7 +2187,6 @@
     PHASES: PHASES,
     PHASES_PLAYER: PHASES_PLAYER,
     isPlayerRole: isPlayerRole,
-    currentShellRole: currentShellRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
     markPlayerLandingDone: markPlayerLandingDone
   };

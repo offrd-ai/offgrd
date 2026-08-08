@@ -1,6 +1,6 @@
-/* OFFGRD shared auth modal — sign in / create account. Self-contained (own styles).
-   Used by the apps (via OFFGRD-account.js) and the landing page. */
-import { Cloud } from "./OFFGRD-cloud.js?v=254";
+/* OFFGRD shared auth modal — sign in / create account / forgot / change password.
+   Self-contained (own styles). Used by the apps (via OFFGRD-account.js) and the landing page. */
+import { Cloud } from "./OFFGRD-cloud.js?v=229";
 
 let root = null;
 function injectStyles(){
@@ -18,12 +18,15 @@ function injectStyles(){
   .oga-f{display:block;font-size:12px;font-weight:800;color:#5b626e;margin:12px 0 5px;letter-spacing:.3px}
   .oga-in{width:100%;box-sizing:border-box;border:1px solid #d7dbe2;border-radius:10px;padding:12px 13px;font-size:15px}
   .oga-in:focus{outline:none;border-color:#7BAFD4;box-shadow:0 0 0 3px rgba(123,175,212,.28)}
-  .oga-go{width:100%;margin-top:18px;background:#13294B;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800;font-size:15px;cursor:pointer}
+  .oga-in:disabled{background:#f3f5f8;color:#5b626e}
+  .oga-go{width:100%;margin-top:18px;background:#13294B;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;min-height:48px}
   .oga-go:disabled{opacity:.6;cursor:default}
   .oga-alt{text-align:center;margin-top:14px;font-size:13px;color:#5b626e}
-  .oga-link{color:#2c6fb3;font-weight:800;cursor:pointer;background:none;border:0;font-size:13px}
+  .oga-link{color:#2c6fb3;font-weight:800;cursor:pointer;background:none;border:0;font-size:13px;padding:0}
   .oga-err{color:#b3261e;font-size:13px;margin-top:12px;min-height:16px;font-weight:600}
-  .oga-x{margin-left:auto;border:0;background:none;font-size:20px;color:#9aa4b2;cursor:pointer;line-height:1}`;
+  .oga-ok{color:#1d7a45}
+  .oga-x{margin-left:auto;border:0;background:none;font-size:20px;color:#9aa4b2;cursor:pointer;line-height:1}
+  .oga-row-links{display:flex;justify-content:flex-end;margin-top:8px}`;
   document.head.appendChild(s);
 }
 function ensure(){
@@ -31,15 +34,24 @@ function ensure(){
   injectStyles();
   root = document.createElement("div"); root.className="oga-ov"; root.id="ogaModal";
   root.innerHTML = `<div class="oga-card">
-    <div class="oga-top"><div class="oga-logo">OG</div><div class="oga-brand">OFFGRD</div><button class="oga-x" id="ogaX">×</button></div>
+    <div class="oga-top"><div class="oga-logo">OG</div><div class="oga-brand">OFFGRD</div><button class="oga-x" id="ogaX" type="button" aria-label="Close">\u00d7</button></div>
     <div class="oga-h" id="ogaTitle">Sign in</div>
-    <p class="oga-sub" id="ogaSub">Welcome back — sign in to your program.</p>
-    <label class="oga-f" for="ogaEmail">Email</label>
+    <p class="oga-sub" id="ogaSub">Welcome back \u2014 sign in to your program.</p>
+    <label class="oga-f" for="ogaEmail" id="ogaEmailLbl">Email</label>
     <input class="oga-in" id="ogaEmail" type="email" autocomplete="email" placeholder="you@school.org">
-    <label class="oga-f" for="ogaPw">Password</label>
-    <input class="oga-in" id="ogaPw" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div id="ogaPwBlock">
+      <label class="oga-f" for="ogaPw" id="ogaPwLbl">Password</label>
+      <input class="oga-in" id="ogaPw" type="password" autocomplete="current-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022">
+      <div class="oga-row-links" id="ogaForgotRow">
+        <button type="button" class="oga-link" id="ogaForgot">Forgot password?</button>
+      </div>
+    </div>
+    <div id="ogaPw2Block" style="display:none">
+      <label class="oga-f" for="ogaPw2">Confirm new password</label>
+      <input class="oga-in" id="ogaPw2" type="password" autocomplete="new-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022">
+    </div>
     <div class="oga-err" id="ogaErr"></div>
-    <button class="oga-go" id="ogaGo">Sign in</button>
+    <button class="oga-go" id="ogaGo" type="button">Sign in</button>
     <div class="oga-alt" id="ogaAlt"></div>
   </div>`;
   document.body.appendChild(root);
@@ -50,47 +62,190 @@ function ensure(){
 function close(){ if(root) root.classList.remove("show"); }
 
 let mode="signin", onOk=null;
+
+function setErr(msg, ok){
+  const err=root.querySelector("#ogaErr");
+  err.textContent=msg||"";
+  err.classList.toggle("oga-ok", !!ok);
+}
+
 function paint(){
   const t=root.querySelector("#ogaTitle"), sub=root.querySelector("#ogaSub"), go=root.querySelector("#ogaGo"),
-        alt=root.querySelector("#ogaAlt"), pw=root.querySelector("#ogaPw"), err=root.querySelector("#ogaErr");
-  err.textContent="";
+        alt=root.querySelector("#ogaAlt"), pw=root.querySelector("#ogaPw"),
+        pwBlock=root.querySelector("#ogaPwBlock"), pw2Block=root.querySelector("#ogaPw2Block"),
+        forgotRow=root.querySelector("#ogaForgotRow"), emailEl=root.querySelector("#ogaEmail"),
+        pwLbl=root.querySelector("#ogaPwLbl");
+  setErr("");
+  emailEl.disabled = false;
+  pw2Block.style.display = "none";
+  pwBlock.style.display = "";
+  forgotRow.style.display = "none";
+
+  const forgotBtn=root.querySelector("#ogaForgot");
+  if(forgotBtn) forgotBtn.textContent="Forgot password?";
+
   if(mode==="signin"){
-    t.textContent="Sign in"; sub.textContent="Welcome back — sign in to your program."; go.textContent="Sign in"; pw.autocomplete="current-password";
-    alt.innerHTML='New to OFFGRD? <button class="oga-link" id="ogaSwap">Create an account</button>';
-  } else {
-    t.textContent="Create your account"; sub.textContent="Set up your login. A head coach can start a program next."; go.textContent="Create account"; pw.autocomplete="new-password";
-    alt.innerHTML='Already have an account? <button class="oga-link" id="ogaSwap">Sign in</button>';
+    t.textContent="Sign in";
+    sub.textContent="Welcome back \u2014 sign in to your program.";
+    go.textContent="Sign in";
+    pw.autocomplete="current-password";
+    pwLbl.textContent="Password";
+    forgotRow.style.display="";
+    alt.innerHTML='New to OFFGRD? <button type="button" class="oga-link" id="ogaSwap">Create an account</button>';
+  } else if(mode==="signup"){
+    t.textContent="Create your account";
+    sub.textContent="Set up your login. A head coach can start a program next.";
+    go.textContent="Create account";
+    pw.autocomplete="new-password";
+    pwLbl.textContent="Password";
+    alt.innerHTML='Already have an account? <button type="button" class="oga-link" id="ogaSwap">Sign in</button>';
+  } else if(mode==="forgot"){
+    t.textContent="Reset password";
+    sub.textContent="We\u2019ll email you a link to choose a new password.";
+    go.textContent="Send reset link";
+    pwBlock.style.display="none";
+    alt.innerHTML='<button type="button" class="oga-link" id="ogaSwap">Back to sign in</button>';
+  } else if(mode==="account"){
+    t.textContent="Account";
+    sub.textContent="Change your password, or email yourself a reset link.";
+    go.textContent="Update password";
+    pw.autocomplete="new-password";
+    pwLbl.textContent="New password";
+    pw2Block.style.display="";
+    emailEl.disabled = true;
+    forgotRow.style.display="";
+    root.querySelector("#ogaForgot").textContent="Email me a reset link instead";
+    alt.innerHTML='<button type="button" class="oga-link" id="ogaSwap">Close</button>';
   }
-  root.querySelector("#ogaSwap").onclick=()=>{ mode = mode==="signin"?"signup":"signin"; paint(); };
+
+  const swap=root.querySelector("#ogaSwap");
+  if(swap){
+    swap.onclick=()=>{
+      if(mode==="account"){ close(); return; }
+      if(mode==="forgot"){ mode="signin"; paint(); return; }
+      mode = mode==="signin"?"signup":"signin";
+      paint();
+    };
+  }
+  const forgot=root.querySelector("#ogaForgot");
+  if(forgot){
+    forgot.onclick=()=>{
+      if(mode==="account"){ sendResetFromAccount(); return; }
+      mode="forgot"; paint();
+      setTimeout(()=>root.querySelector("#ogaEmail").focus(),30);
+    };
+  }
 }
+
+async function sendResetFromAccount(){
+  const email=root.querySelector("#ogaEmail").value.trim();
+  const go=root.querySelector("#ogaGo");
+  if(!email){ setErr("No email on this session."); return; }
+  if(!Cloud || !Cloud.ready){ setErr("Cloud isn\u2019t loaded \u2014 reload the page."); return; }
+  go.disabled=true; setErr("");
+  try{
+    const r = await Cloud.resetPassword(email);
+    if(r.error){ setErr(r.error.message); go.disabled=false; return; }
+    setErr("Reset link sent to "+email+". Check your inbox.", true);
+  }catch(e){ setErr(e.message||"Could not send reset email."); }
+  go.disabled=false;
+}
+
 async function submit(){
   const email=root.querySelector("#ogaEmail").value.trim();
   const pw=root.querySelector("#ogaPw").value;
-  const err=root.querySelector("#ogaErr"), go=root.querySelector("#ogaGo");
-  if(!email){ err.textContent="Enter your email."; return; }
-  if(!pw || pw.length<6){ err.textContent="Password must be at least 6 characters."; return; }
-  go.disabled=true; err.textContent="";
-  if(!Cloud || !Cloud.ready){ err.textContent="Cloud isn\u2019t loaded \u2014 reload the page. If it persists, the supabase.js file hasn\u2019t deployed yet."; go.disabled=false; return; }
+  const pw2=root.querySelector("#ogaPw2").value;
+  const go=root.querySelector("#ogaGo");
+  if(!email){ setErr("Enter your email."); return; }
+  if(!Cloud || !Cloud.ready){ setErr("Cloud isn\u2019t loaded \u2014 reload the page. If it persists, the supabase.js file hasn\u2019t deployed yet."); return; }
+
+  go.disabled=true; setErr("");
   try{
+    if(mode==="forgot"){
+      const r = await Cloud.resetPassword(email);
+      if(r.error){ setErr(r.error.message); go.disabled=false; return; }
+      setErr("Reset link sent to "+email+". Open it to set a new password.", true);
+      go.disabled=false;
+      return;
+    }
+
+    if(mode==="account"){
+      if(!pw || pw.length<6){ setErr("Password must be at least 6 characters."); go.disabled=false; return; }
+      if(pw !== pw2){ setErr("Passwords do not match."); go.disabled=false; return; }
+      const r = await Cloud.updatePassword(pw);
+      if(r.error){ setErr(r.error.message); go.disabled=false; return; }
+      setErr("Password updated.", true);
+      root.querySelector("#ogaPw").value="";
+      root.querySelector("#ogaPw2").value="";
+      go.disabled=false;
+      setTimeout(close, 900);
+      return;
+    }
+
+    if(!pw || pw.length<6){ setErr("Password must be at least 6 characters."); go.disabled=false; return; }
+
     let r;
     if(mode==="signin"){
       r = await Cloud.signIn(email, pw);
-      if(r.error){ err.textContent = /invalid/i.test(r.error.message) ? "Wrong email or password." : r.error.message; go.disabled=false; return; }
+      if(r.error){ setErr(/invalid/i.test(r.error.message) ? "Wrong email or password." : r.error.message); go.disabled=false; return; }
     } else {
       r = await Cloud.signUp(email, pw);
-      if(r.error){ err.textContent = r.error.message; go.disabled=false; return; }
-      if(!r.data.session){ err.style.color="#1d7a45"; err.textContent="Account created. If email confirmation is on, confirm it, then sign in."; mode="signin"; setTimeout(()=>{err.style.color="";paint();},2200); go.disabled=false; return; }
+      if(r.error){ setErr(r.error.message); go.disabled=false; return; }
+      if(!r.data.session){
+        setErr("Account created. If email confirmation is on, confirm it, then sign in.", true);
+        mode="signin";
+        setTimeout(()=>{ setErr(""); paint(); },2200);
+        go.disabled=false;
+        return;
+      }
     }
     close(); go.disabled=false;
     if(typeof onOk==="function") onOk();
-  }catch(e){ err.textContent = e.message||"Something went wrong."; go.disabled=false; }
+  }catch(e){ setErr(e.message||"Something went wrong."); go.disabled=false; }
 }
-export function openAuthModal(onSuccess, startMode){
-  ensure(); onOk=onSuccess||null; mode = startMode==="signup"?"signup":"signin"; paint();
+
+function bindSubmit(){
   root.querySelector("#ogaGo").onclick=submit;
   const submitOnEnter=e=>{ if(e.key==="Enter") submit(); };
   root.querySelector("#ogaEmail").onkeydown=submitOnEnter;
   root.querySelector("#ogaPw").onkeydown=submitOnEnter;
-  root.classList.add("show");
-  setTimeout(()=>root.querySelector("#ogaEmail").focus(),30);
+  root.querySelector("#ogaPw2").onkeydown=submitOnEnter;
 }
+
+export function openAuthModal(onSuccess, startMode){
+  ensure(); onOk=onSuccess||null;
+  mode = startMode==="signup" ? "signup" : (startMode==="forgot" ? "forgot" : "signin");
+  paint();
+  bindSubmit();
+  root.classList.add("show");
+  setTimeout(()=>{
+    const el = mode==="forgot" || mode==="signin" || mode==="signup"
+      ? root.querySelector("#ogaEmail")
+      : root.querySelector("#ogaPw");
+    if(el && el.focus) el.focus();
+  },30);
+}
+
+/** Signed-in account sheet: change password or email a reset link. */
+export async function openAccountModal(){
+  ensure(); onOk=null; mode="account";
+  let email="";
+  try{
+    const u = await Cloud.session();
+    email = (u && u.email) || "";
+  }catch(e){}
+  if(!email){
+    openAuthModal(null, "forgot");
+    return;
+  }
+  paint();
+  root.querySelector("#ogaEmail").value = email;
+  root.querySelector("#ogaPw").value = "";
+  root.querySelector("#ogaPw2").value = "";
+  bindSubmit();
+  root.classList.add("show");
+  setTimeout(()=>root.querySelector("#ogaPw").focus(),30);
+}
+
+try{ window.openOffgrdAccountModal = openAccountModal; }catch(e){}
+try{ window.openOffgrdAuthModal = openAuthModal; }catch(e){}
