@@ -17,21 +17,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v261: UTF-8 recover (CP1252 FFFD scrub) + U+FFFD smoke -->
+<!-- v262: UTF-8 recover (CP1252 FFFD scrub) + U+FFFD smoke -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=261"></script>
-<script src="OFFGRD-brand-persist.js?v=261"></script>
-<script src="supabase.js?v=261"></script>
-<script src="OFFGRD-cache-gate.js?v=261"></script>
-<script src="OFFGRD-render.js?v=261"></script>
-<script src="OFFGRD-formations-data.js?v=261"></script>
-<script src="OFFGRD-formation-canon.js?v=261"></script>
-<script src="OFFGRD-align-key.js?v=261"></script>
-<script src="OFFGRD-pos-glossary.js?v=261"></script>
-<script src="OFFGRD-autoderive.js?v=261"></script>
-<script src="OFFGRD-redesign.js?v=261"></script>
-<script src="OFFGRD-shell.js?v=261"></script>
+<script src="OFFGRD-config.js?v=262"></script>
+<script src="OFFGRD-brand-persist.js?v=262"></script>
+<script src="supabase.js?v=262"></script>
+<script src="OFFGRD-cache-gate.js?v=262"></script>
+<script src="OFFGRD-render.js?v=262"></script>
+<script src="OFFGRD-formations-data.js?v=262"></script>
+<script src="OFFGRD-formation-canon.js?v=262"></script>
+<script src="OFFGRD-align-key.js?v=262"></script>
+<script src="OFFGRD-pos-glossary.js?v=262"></script>
+<script src="OFFGRD-autoderive.js?v=262"></script>
+<script src="OFFGRD-redesign.js?v=262"></script>
+<script src="OFFGRD-shell.js?v=262"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -4536,6 +4536,46 @@ function readinessHTML(roster,rows){
   +'</div>';
 }
 /* ---------- coach results ---------- */
+/** Ticket B — position-group mastery strip from this week's week-test rows. */
+function masteryStripHTML(roster, rows){
+ const wk=weekRowsOf(rows||[]);
+ if(!wk.length) return "";
+ const AT=window.OFFGRD_WEEK_AUTOTEST;
+ const posOf={};
+ (roster||[]).forEach(m=>{
+  const ps=AT&&AT.parseMemberPositions?AT.parseMemberPositions(m):[];
+  const p=ps[0]||String(m.position||"").toUpperCase()||"?";
+  posOf[m.user_id]=p;
+ });
+ const LAB={routes:"routes",coverage:"Cover-ID",protect:"fits",reads:"reads",align:"align",blitz:"blitz"};
+ const cell={};
+ wk.forEach(r=>{
+  const pos=posOf[r.user_id]||"?";
+  const kind=String(r.kind||r.quiz||"").toLowerCase().replace(/\s+/g,"_");
+  const k=kind.indexOf("route")>=0?"routes":kind.indexOf("cover")>=0?"coverage":kind.indexOf("protect")>=0||kind.indexOf("fit")>=0?"protect":kind.indexOf("read")>=0?"reads":kind.indexOf("align")>=0?"align":kind.indexOf("blitz")>=0?"blitz":kind;
+  const key=pos+"|"+k;
+  if(!cell[key]) cell[key]={pos:pos,kind:k,label:LAB[k]||k,ok:0,n:0};
+  const tot=+r.total||0, sc=+r.score||0;
+  cell[key].n+=tot; cell[key].ok+=sc;
+ });
+ const items=Object.keys(cell).map(k=>cell[k]).filter(c=>c.n>0).sort((a,b)=>a.pos.localeCompare(b.pos)||a.kind.localeCompare(b.kind));
+ if(!items.length) return "";
+ const byPos={}; items.forEach(c=>{ (byPos[c.pos]=byPos[c.pos]||[]).push(c); });
+ let h='<div id="masteryStrip" style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:12px 14px;margin:0 0 14px">';
+ h+='<div class="row" style="justify-content:space-between;gap:8px;margin-bottom:8px"><b style="color:var(--navy,#13294B)">Position mastery · this week</b>';
+ h+='<label class="tag" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700"><input type="checkbox" id="lbToggle" checked style="width:16px;height:16px"> Player board on</label></div>';
+ h+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+ Object.keys(byPos).sort().forEach(pos=>{
+  const bits=byPos[pos].map(c=>{
+   const pct=Math.round(100*c.ok/Math.max(1,c.n));
+   return '<button type="button" class="mastery-cell" data-pos="'+esc(pos)+'" style="appearance:none;border:1px solid var(--line,#cfe0f3);background:#fff;border-radius:999px;padding:6px 10px;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer">'
+    +esc(pos)+' <span style="color:var(--navy)">'+pct+'%</span> '+esc(c.label)+'</button>';
+  }).join("");
+  h+=bits;
+ });
+ h+='</div><p class="tag" style="margin:8px 0 0">Tap a cell to jump to that position group below.</p></div>';
+ return h;
+}
 async function showResults(){
  const rp=document.getElementById("resultPanel");
  rp.innerHTML='<p class="tag">Loading results—</p>';
@@ -4551,13 +4591,33 @@ async function showResults(){
  if(!WEEKPLAN && window.QB.weekContext){ try{ const wc=await window.QB.weekContext(); if(wc&&wc.plan){ WEEKPLAN=wc.plan; WEEKDEF=(wc.plan&&wc.plan.def_aligns)||{}; buildWeekSet(); renderWeekBar(); } }catch(e){} }
  let myPos=[]; try{ if(!coach) myPos=await resolveMyRosterPositions(); }catch(e){}
  const ready = coach ? readinessHTML(data.roster, rows) : myReadinessHTML(rows, ctx.user.id, myPos);
- if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Tap your week-test cards on the week checklist (Train tab) to take a counting week test. Builder runs are practice only.</p></div>'; return; }
+ const strip = coach ? masteryStripHTML(data.roster, rows) : "";
+ if(!rows.length){ rp.innerHTML='<h3 style="margin:0 0 8px;color:var(--navy)">Results</h3>'+strip+ready+'<div style="background:var(--chip,#eef5fc);border:1px solid var(--line,#cfe0f3);border-radius:12px;padding:14px;color:var(--ink)"><b style="color:var(--navy)">No test results yet</b><p class="tag" style="margin:6px 0 0;line-height:1.5">Tap your week-test cards on the week checklist (Train tab) to take a counting week test. Builder runs are practice only.</p></div>'; wireMasteryStrip(ctx); return; }
  rp.innerHTML=`<h3 style="margin:0 0 4px;color:var(--navy)">Results \u2014 ${ctx.team.name}</h3>
- <p class="tag">${coach?"Your whole roster's scores.":"Your saved scores."}</p>`+ready+`
+ <p class="tag">${coach?"Your whole roster's scores.":"Your saved scores."}</p>`+strip+ready+`
  <table class="res"><thead><tr><th>Player</th><th>Test</th><th>Score</th><th>%</th><th>When</th></tr></thead><tbody>`+
  rows.map(r=>{ const pct=r.total?Math.round(r.score/r.total*100):0; const when=new Date(r.created_at).toLocaleDateString();
  return `<tr><td>${(nameOf[r.user_id]||"—")}</td><td>${r.quiz||"Test"}</td><td>${r.score}/${r.total}</td><td>${pct}%</td><td>${when}</td></tr>`; }).join("")+
  `</tbody></table>`;
+ wireMasteryStrip(ctx);
+}
+function wireMasteryStrip(ctx){
+ const host=document.getElementById("resultPanel"); if(!host) return;
+ [].forEach.call(host.querySelectorAll(".mastery-cell"),btn=>{
+  btn.onclick=()=>{
+   const pos=btn.getAttribute("data-pos")||"";
+   const blocks=[].slice.call(host.querySelectorAll("span"));
+   const hit=blocks.find(el=>el.textContent&&el.textContent.trim().toUpperCase()===pos.toUpperCase());
+   if(hit&&hit.scrollIntoView) hit.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+ });
+ const tg=document.getElementById("lbToggle");
+ if(tg&&ctx&&ctx.team&&window.Cloud&&Cloud.setLeaderboardEnabled){
+  Cloud.getLeaderboardEnabled(ctx.team.id).then(function(on){ tg.checked=on!==false; }).catch(function(){});
+  tg.onchange=function(){
+   Cloud.setLeaderboardEnabled(ctx.team.id, !!tg.checked).catch(function(e){ alert(e.message||e); tg.checked=!tg.checked; });
+  };
+ }
 }
 
 /* ---------- view switching ---------- */
@@ -4707,13 +4767,13 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=261"></script>
-<script src="OFFGRD-scoutcards.js?v=261"></script>
-<script src="OFFGRD-week-autotest.js?v=261"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=261"></script>
+<script src="OFFGRD-mobile.js?v=262"></script>
+<script src="OFFGRD-scoutcards.js?v=262"></script>
+<script src="OFFGRD-week-autotest.js?v=262"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=262"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=261"></script>
-<script src="OFFGRD-role-gate.js?v=261"></script>
+<script type="module" src="OFFGRD-account.js?v=262"></script>
+<script src="OFFGRD-role-gate.js?v=262"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

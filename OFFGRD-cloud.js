@@ -853,6 +853,29 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
 
+  /** Ticket B — player locker board toggle (default ON). */
+  async getLeaderboardEnabled(teamId) {
+    if (!sb || !teamId) return true;
+    const { data, error } = await sb.rpc("offgrd_leaderboard_enabled", { p_team_id: teamId });
+    if (error) { console.warn("[Cloud.getLeaderboardEnabled]", error.message); return true; }
+    return data !== false;
+  },
+  async setLeaderboardEnabled(teamId, enabled) {
+    if (!sb || !teamId) throw new Error("Not signed in");
+    const { data, error } = await sb.rpc("offgrd_set_leaderboard_enabled", {
+      p_team_id: teamId,
+      p_enabled: !!enabled
+    });
+    if (error) throw error;
+    return data !== false;
+  },
+  async positionMasteryStrip(teamId) {
+    if (!sb || !teamId) return [];
+    const { data, error } = await sb.rpc("offgrd_position_mastery_strip", { p_team_id: teamId });
+    if (error) { console.warn("[Cloud.positionMasteryStrip]", error.message); return []; }
+    return Array.isArray(data) ? data : [];
+  },
+
   /** Slice 4d Follow-up G: active (non-consumed) focus flags for test-gen up-weight. */
   async getActiveFocusFlags(schoolId) {
     if (!sb || !schoolId) return [];
