@@ -546,10 +546,15 @@
   var TIP_SUCCESS =
     "your graded results vs this look, blended with scheme fit.";
 
+  function snapCountLabel(n) {
+    n = n || 0;
+    return n + " SNAP" + (n === 1 ? "" : "S");
+  }
+
   function basisLabelFor(emp, fam) {
     if (!emp || !emp.n) return "SCHEME MATCH";
     var pct = Math.round((emp.sr || 0) * 100);
-    return "SUCCESS " + pct + "% · " + emp.n + " SNAPS";
+    return "SUCCESS " + pct + "% · " + snapCountLabel(emp.n);
   }
 
   function basisTipFor(emp) {
