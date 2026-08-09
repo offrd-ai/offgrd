@@ -63,6 +63,13 @@
       ".panel.collapsed .acc-head{margin-bottom:-14px;border-bottom:0;border-radius:12px}",
       ".panel.collapsed .acc-head .chev{transform:rotate(-90deg)}",
       ".panel.collapsed .acc-body{display:none}",
+      /* accordion bodies must clip builder chrome (Playbook skillBar rows) */
+      ".panel{overflow:hidden;max-width:100%}",
+      ".panel .acc-body{overflow-x:hidden;max-width:100%}",
+      ".panel .acc-body>.row{flex-wrap:wrap!important;max-width:100%;gap:8px!important}",
+      "#skillBar .skillSeg{margin-left:0!important;flex:0 1 auto;max-width:100%}",
+      "#skillBar .hint{display:none}",
+      "#skillBar .btn.go{flex:1 1 100%;max-width:100%}",
     "}"
   ].join("");
   document.head.appendChild(css);
@@ -76,6 +83,8 @@
     // Scout (static)
     if(q("#seg-scoutmode")) return "Scout mode & opponent";
     if(q("#seg-down")||q("[data-preset]")) return "Situation & filters";
+    // Reps — week install + filters live in setupPanel; don't bury under "Source"
+    if(panel.id==="setupPanel" && q("#weekBar")) return "This week";
     // Playbook
     if(q("#formSel")) return "Setup & tools";
     if(panel.id==="routePanel") return "Routes · concepts · blocks";
@@ -98,6 +107,15 @@
 
   function keyFor(title){ return "offgrd_sec_"+title.toLowerCase().replace(/[^a-z0-9]+/g,"_"); }
 
+  /** Player landing panels should open on first paint — zero taps to see the week. */
+  function defaultOpenFor(panel){
+    if(panel.id==="setupPanel" && panel.querySelector("#weekBar")) return true;
+    if(panel.closest("#view-practice")) return true;
+    if(panel.closest("#view-thisweek")) return true;
+    if(panel.closest("#view-recruiting")) return true;
+    return false;
+  }
+
   function enhance(panel){
     if(skip(panel)) return;
     var title = titleFor(panel);
@@ -117,7 +135,8 @@
 
     var k = keyFor(title);
     var saved = null; try{ saved = localStorage.getItem(k); }catch(e){}
-    if(saved==="open") panel.classList.remove("collapsed");
+    var open = saved==="open" || (saved!=="closed" && defaultOpenFor(panel));
+    if(open) panel.classList.remove("collapsed");
     else panel.classList.add("collapsed");
 
     head.addEventListener("click", function(){

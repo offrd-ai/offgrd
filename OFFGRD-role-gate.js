@@ -361,15 +361,31 @@
 
   /** Wait for OFFGRD-account.js module to publish the week loader (classic vs module race). */
   function waitForPlayerWeekLoader(maxMs){
-    maxMs = maxMs == null ? 4000 : maxMs;
+    if(maxMs == null){
+      try{ maxMs = window.matchMedia("(max-width:820px)").matches ? 12000 : 8000; }
+      catch(e){ maxMs = 8000; }
+    }
     return new Promise(function(resolve){
       var load = window.OFFGRD_LOAD_PLAYER_WEEK;
       if(typeof load === "function"){ resolve(load); return; }
+      var done = false;
+      function finish(fn){
+        if(done) return;
+        done = true;
+        clearInterval(iv);
+        try{ document.removeEventListener("offgrd-week-bridge-ready", onBridge); }catch(e){}
+        resolve(fn);
+      }
+      function onBridge(){
+        var fn = window.OFFGRD_LOAD_PLAYER_WEEK;
+        if(typeof fn === "function") finish(fn);
+      }
+      try{ document.addEventListener("offgrd-week-bridge-ready", onBridge); }catch(e){}
       var t0 = Date.now();
       var iv = setInterval(function(){
         var fn = window.OFFGRD_LOAD_PLAYER_WEEK;
-        if(typeof fn === "function"){ clearInterval(iv); resolve(fn); return; }
-        if(Date.now() - t0 >= maxMs){ clearInterval(iv); resolve(null); }
+        if(typeof fn === "function"){ finish(fn); return; }
+        if(Date.now() - t0 >= maxMs){ finish(null); }
       }, 50);
     });
   }
@@ -378,7 +394,11 @@
     var host = document.getElementById("view-thisweek");
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading this week…</p></div>';
-    var load = await waitForPlayerWeekLoader(4000);
+    var load = await waitForPlayerWeekLoader();
+    if(!load && prog().ready){
+      host.innerHTML = '<div class="panel"><p class="foot">Still loading your week…</p></div>';
+      load = await waitForPlayerWeekLoader(8000);
+    }
     if(!load){ host.innerHTML = '<div class="panel"><p class="foot">'+PLAYER_WEEK_JOIN_SENTINEL+'</p></div>'; return; }
     try{
       var wp = await load();
@@ -581,10 +601,14 @@
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading practice\u2026</p></div>';
     try{
-      var wp = await loadPlayerWeekCached(false);
-      if(!wp){
-        /* One forced retry in case first paint raced program ready */
-        wp = await loadPlayerWeekCached(true);
+      var load = await waitForPlayerWeekLoader();
+      if(!load){
+        host.innerHTML = '<div class="panel"><p class="foot">'+PLAYER_WEEK_JOIN_SENTINEL+'</p></div>';
+        return;
+      }
+      var wp = await load();
+      if(!wp && prog().ready){
+        wp = await load();
       }
       host.innerHTML = renderPlayerPracticeHtml(wp);
     }catch(e){
@@ -711,6 +735,8 @@
         /* Hide only Defense authoring tools (.modebar inside that panel) via .modebar rule below. */
         "html.offgrd-player-ro #routePanel,",
         "html.offgrd-player-ro #asnPanel,",
+        "html.offgrd-player-ro #skillBar,",
+        "html.offgrd-player-ro #wizDock,",
         "html.offgrd-player-ro .panel[data-sec='Offense'],",
         "html.offgrd-player-ro #wizBtn,",
         "html.offgrd-player-ro #saveBtn,",
@@ -897,9 +923,15 @@
       var txt = host ? (host.innerText || "").trim() : "";
       /* Join sentinel is long enough to fake "done" while the account bridge is still loading. */
       var isJoinSentinel = txt.indexOf(PLAYER_WEEK_JOIN_SENTINEL) !== -1;
-      var isLoading = /^Loading/i.test(txt);
+      var isLoading = /^Loading/i.test(txt) || /Still loading/i.test(txt);
       var done = host && host.offsetParent !== null && txt.length > 20 && !isJoinSentinel && !isLoading;
-      if(done || ++tries > 40){ clearInterval(iv); return; }
+      if(isJoinSentinel){
+        try{
+          if(v === "thisweek") renderPlayerWeek();
+          else if(v === "practice") loadPlayerPractice();
+        }catch(e){}
+      }
+      if(done || ++tries > 60){ clearInterval(iv); return; }
       try{ if(window.setView) window.setView(v); }catch(e){}
     }, 200);
   }
@@ -916,9 +948,9 @@
   document.addEventListener("offgrd-week-bridge-ready", function(){
     if(isPlayer()){
       try{
-        if(window.CURRENT_VIEW === "thisweek" || !window.CURRENT_VIEW){
-          renderPlayerWeek();
-        }
+        var v = window.CURRENT_VIEW || "thisweek";
+        if(v === "thisweek" || !window.CURRENT_VIEW) renderPlayerWeek();
+        else if(v === "practice") loadPlayerPractice();
       }catch(e){}
       ensurePlayerLandingRendered();
     }
