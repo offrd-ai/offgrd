@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "270";
+  const ASSET_V = "271";
 
   function getScoutTool() {
     try {
@@ -641,7 +641,7 @@
       'html.rd-on #view-package .plan-tbl,html.rd-on #view-package .tn-tbl,',
       'html.rd-on #view-report .tn-tbl,html.rd-on #view-caller .plan-tbl{',
       'display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}',
-      'html.rd-on #view-package .wkpkg-root,html.rd-on #view-caller{max-width:100%;overflow-x:hidden;}',
+      'html.rd-on #view-package .wkpkg-root,html.rd-on #view-caller,html.rd-on #view-dcaller{max-width:100%;overflow-x:hidden;}',
       '}',
       /* ---- Phase 2: Scout body (presentation only) ---- */
       'html.rd-on #view-scout{gap:10px;}',
@@ -1211,33 +1211,35 @@
       'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;font-weight:500!important;cursor:pointer;',
       '}',
       'html.rd-on #view-caller .rd-gd-exit,html.rd-on #view-dcaller .rd-gd-exit{margin-left:auto;}',
-      'html.rd-on #view-caller .rd-gd-sit{',
+      'html.rd-on #view-caller .rd-gd-sit,html.rd-on #view-dcaller .rd-gd-sit{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);padding:12px 14px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sit-txt{',
+      'html.rd-on #view-caller .rd-gd-sit-txt,html.rd-on #view-dcaller .rd-gd-sit-txt{',
       'font-size:22px;font-weight:500;color:var(--rd-text);line-height:1.15;margin-bottom:10px;',
       '}',
-      'html.rd-on.rd-booth #view-caller .rd-gd-sit-txt{font-size:28px;}',
-      'html.rd-on #view-caller .rd-gd-sit .seg{',
+      'html.rd-on.rd-booth #view-caller .rd-gd-sit-txt,html.rd-on.rd-booth #view-dcaller .rd-gd-sit-txt{font-size:28px;}',
+      'html.rd-on #view-caller .rd-gd-sit .seg,html.rd-on #view-dcaller .rd-gd-sit .seg{',
+      'display:flex;flex-wrap:wrap;min-width:0;',
       'background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:4px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sit .seg button{',
-      'min-height:48px!important;min-width:56px;flex:1;padding:10px 8px!important;',
+      'html.rd-on #view-caller .rd-gd-sit .seg button,html.rd-on #view-dcaller .rd-gd-sit .seg button{',
+      'min-height:48px!important;min-width:56px;flex:1 1 auto;padding:10px 8px!important;',
       'background:transparent!important;border:1px solid transparent!important;',
       'color:var(--rd-muted)!important;font-weight:500!important;border-radius:var(--radius-pill);font-size:15px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sit .seg button.on{',
+      'html.rd-on #view-caller .rd-gd-sit .seg button.on,html.rd-on #view-dcaller .rd-gd-sit .seg button.on{',
       'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
       '}',
       /* Situation controls always visible — not behind Edit situation <details>. */
-      'html.rd-on #view-caller .rd-gd-sit-grid{',
+      'html.rd-on #view-caller .rd-gd-sit-grid,html.rd-on #view-dcaller .rd-gd-sit-grid{',
       'display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:4px;',
       '}',
-      'html.rd-on.rd-booth #view-caller .rd-gd-sit-grid{',
+      'html.rd-on #view-caller .rd-gd-sit-grid > div,html.rd-on #view-dcaller .rd-gd-sit-grid > div{min-width:0;}',
+      'html.rd-on.rd-booth #view-caller .rd-gd-sit-grid,html.rd-on.rd-booth #view-dcaller .rd-gd-sit-grid{',
       'grid-template-columns:1fr 1fr 1fr 1fr;gap:10px 8px;',
       '}',
-      '@media (max-width:720px){html.rd-on.rd-booth #view-caller .rd-gd-sit-grid{grid-template-columns:1fr 1fr;}}',
-      'html.rd-on #view-caller .rd-gd-sit-grid .lbl{',
+      '@media (max-width:720px){html.rd-on.rd-booth #view-caller .rd-gd-sit-grid,html.rd-on.rd-booth #view-dcaller .rd-gd-sit-grid{grid-template-columns:1fr 1fr;}}',
+      'html.rd-on #view-caller .rd-gd-sit-grid .lbl,html.rd-on #view-dcaller .rd-gd-sit-grid .lbl{',
       'font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;',
       'color:var(--rd-muted);margin:0 0 4px;',
       '}',
@@ -1524,7 +1526,7 @@
       'html.rd-on #view-caller details.rd-gd-ref[open] .rd-gd-ref-sum::after{content:"\\25b4";}',
       'html.rd-on #view-caller .rd-gd-ref-body{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px;}',
       '@media (min-width:820px){html.rd-on #view-caller{max-width:960px;}html.rd-on #view-caller .rd-gd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;}}',
-      '@media (max-width:480px){html.rd-on #view-caller .rd-gd-hero-name{font-size:30px;}html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:38px;}html.rd-on #view-caller .rd-gd-hero{padding:12px 14px;}html.rd-on #view-caller .rd-gd-sit{padding:10px 12px;}html.rd-on #view-caller .rd-gd-sit-txt{font-size:18px;margin-bottom:8px;}}',
+      '@media (max-width:480px){html.rd-on #view-caller .rd-gd-hero-name{font-size:30px;}html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:38px;}html.rd-on #view-caller .rd-gd-hero{padding:12px 14px;}html.rd-on #view-caller .rd-gd-sit,html.rd-on #view-dcaller .rd-gd-sit{padding:10px 12px;}html.rd-on #view-caller .rd-gd-sit-txt,html.rd-on #view-dcaller .rd-gd-sit-txt{font-size:18px;margin-bottom:8px;}html.rd-on #view-caller .rd-gd-sit .seg button,html.rd-on #view-dcaller .rd-gd-sit .seg button{flex:1 1 calc(50% - 4px);min-width:calc(50% - 4px);max-width:100%;}}',
       /* --- Special teams: 4th-down Go/Punt/FG row + ST stats readout --- */
       'html.rd-on #view-caller .rd-gd-st{background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);border-radius:var(--radius-card);padding:12px 14px;}',
       'html.rd-on #view-caller .rd-gd-st .lbl{font-size:var(--fs-micro);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--rd-muted);margin-bottom:8px;}',
