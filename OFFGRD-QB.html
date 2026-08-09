@@ -17,21 +17,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#13294B">
 <title>OFFGRD &#8212; Reps Lab</title>
-<!-- v262: UTF-8 recover (CP1252 FFFD scrub) + U+FFFD smoke -->
+<!-- v264: attempt_n same-day play_key restamp (10 then 4) -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="icon" href="icon.svg">
-<script src="OFFGRD-config.js?v=262"></script>
-<script src="OFFGRD-brand-persist.js?v=262"></script>
-<script src="supabase.js?v=262"></script>
-<script src="OFFGRD-cache-gate.js?v=262"></script>
-<script src="OFFGRD-render.js?v=262"></script>
-<script src="OFFGRD-formations-data.js?v=262"></script>
-<script src="OFFGRD-formation-canon.js?v=262"></script>
-<script src="OFFGRD-align-key.js?v=262"></script>
-<script src="OFFGRD-pos-glossary.js?v=262"></script>
-<script src="OFFGRD-autoderive.js?v=262"></script>
-<script src="OFFGRD-redesign.js?v=262"></script>
-<script src="OFFGRD-shell.js?v=262"></script>
+<script src="OFFGRD-config.js?v=264"></script>
+<script src="OFFGRD-brand-persist.js?v=264"></script>
+<script src="supabase.js?v=264"></script>
+<script src="OFFGRD-cache-gate.js?v=264"></script>
+<script src="OFFGRD-render.js?v=264"></script>
+<script src="OFFGRD-formations-data.js?v=264"></script>
+<script src="OFFGRD-formation-canon.js?v=264"></script>
+<script src="OFFGRD-align-key.js?v=264"></script>
+<script src="OFFGRD-pos-glossary.js?v=264"></script>
+<script src="OFFGRD-autoderive.js?v=264"></script>
+<script src="OFFGRD-redesign.js?v=264"></script>
+<script src="OFFGRD-shell.js?v=264"></script>
 <style>
  :root{--navy:#13294B;--carolina:#7BAFD4;--ink:#16181d;--line:#e2e5ea;--muted:#6b7280;--ok:#1d7a45;--bad:#b3261e;}
  *{box-sizing:border-box}
@@ -4165,9 +4165,90 @@ function repPointsFor(correct, attemptN){
   if(!correct) return 1;
   return (attemptN|0)<=1 ? 10 : 4;
 }
+/** Local calendar day (program TZ when available; else America/Chicago). */
+function quizLocalDay(iso){
+  try{
+    var d=iso?new Date(iso):new Date();
+    if(isNaN(d.getTime())) d=new Date();
+    var tz="America/Chicago";
+    try{
+      if(window.QB&&window.QB._teamTimezone) tz=String(window.QB._teamTimezone);
+      else if(window.Cloud&&Cloud.activeTeamSync){
+        var t=Cloud.activeTeamSync();
+        if(t&&t.timezone) tz=String(t.timezone);
+      }
+    }catch(e0){}
+    return new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+  }catch(e){
+    var n=new Date();
+    return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");
+  }
+}
+/**
+ * play_key for same-item identity:
+ *   (player, kind, play_key, program-local day)
+ * play_key mirrors expand_reps_results subskill = concept|subskill|coverage.
+ * kind + day are applied by the caller (session kind + quizLocalDay filter).
+ */
+function quizPlayKey(r){
+  if(!r) return "";
+  return String(r.concept||r.subskill||r.coverage||"").trim().toLowerCase();
+}
+function quizItemKey(r){ return quizPlayKey(r); }
+/** Stamp attempt_n in detail order from a prior-count base (same-day same-kind). */
+function stampDetailAttempts(baseCounts, detail){
+  var counts=Object.assign(Object.create(null), baseCounts||{});
+  return (detail||[]).map(function(r){
+    var row=Object.assign({}, r||{});
+    var k=quizPlayKey(row);
+    var n=k?Math.min(20,(counts[k]|0)+1):1;
+    if(k) counts[k]=n;
+    row.attempt_n=n;
+    return row;
+  });
+}
+/** Count prior same-day same-kind same-play_key attempts (other sessions). */
+async function loadPriorAttemptCounts(){
+  if(!test) return;
+  test.priorAttempts=Object.create(null);
+  test.priorAttemptsBase=Object.create(null);
+  var today=quizLocalDay();
+  var kind=test.kind||"";
+  try{
+    if(!(window.QB&&window.QB.ready)) return;
+    var pack=await window.QB.results();
+    var rows=(pack&&pack.rows)||[];
+    var me=null;
+    try{ var ctx=await window.QB.context(); me=ctx&&ctx.user&&ctx.user.id; }catch(e1){}
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(!row) continue;
+      if(me&&row.user_id&&row.user_id!==me) continue;
+      if(kind&&row.kind&&row.kind!==kind) continue;
+      if(quizLocalDay(row.created_at)!==today) continue;
+      var detail=Array.isArray(row.detail)?row.detail:[];
+      for(var j=0;j<detail.length;j++){
+        var k=quizPlayKey(detail[j]);
+        if(!k) continue;
+        test.priorAttempts[k]=(test.priorAttempts[k]|0)+1;
+      }
+    }
+  }catch(e){}
+  test.priorAttemptsBase=Object.assign(Object.create(null), test.priorAttempts);
+}
+function nextAttemptNFor(r){
+  if(!test) return 1;
+  test.priorAttempts=test.priorAttempts||Object.create(null);
+  var k=quizPlayKey(r);
+  if(!k) return 1;
+  var n=Math.min(20, (test.priorAttempts[k]|0)+1);
+  test.priorAttempts[k]=n;
+  return n;
+}
 function pushGradedResult(r){
   if(!test||!r) return;
-  if(r.attempt_n==null||r.attempt_n==="") r.attempt_n=1;
+  /* Always derive — never trust a caller-supplied attempt_n=1. */
+  r.attempt_n=nextAttemptNFor(r);
   test.results.push(r);
   var pts=repPointsFor(!!r.correct, r.attempt_n|0);
   if(r.correct) test.correctStreak=(test.correctStreak|0)+1;
@@ -4189,9 +4270,12 @@ async function startTest(opts){
  const n=parseInt(document.getElementById("testLen").value,10)||10;
  test={
   queue:[],i:0,results:[],kind:TESTKIND,correctStreak:0,
+  priorAttempts:Object.create(null),
+  priorAttemptsBase:Object.create(null),
   repContext:repContext,
   week:(repContext==="week_test"&&WEEKPLAN)?{opp:WEEKPLAN.opponent||"",due:WEEKPLAN.game_date||"",id:WEEKPLAN.id||null}:null
  };
+ try{ await loadPriorAttemptCounts(); }catch(ePrior){}
  try{
    const kn=document.getElementById("kindNote");
    if(kn){
@@ -4352,11 +4436,9 @@ async function finishTest(){
  const kind=test.kind||(AT&&AT.quizKindFromLabel&&AT.quizKindFromLabel(quiz))||null;
  const position=(test.positions&&test.positions[0])||null;
  const weekPlanId=isWeekTest?((test.week&&test.week.id)||(WEEKPLAN&&WEEKPLAN.id)||null):null;
- const detail=(test.results||[]).map(function(r){
-  var row=Object.assign({}, r);
-  if(row.attempt_n==null||row.attempt_n==="") row.attempt_n=1;
-  return row;
- });
+ /* Authoritative restamp: (player, kind, play_key, program-local day). */
+ const detail=stampDetailAttempts(test.priorAttemptsBase||Object.create(null), test.results||[]);
+ test.results=detail;
  await window.QB.save({
   quiz:quiz, score:got, total:tot, detail:detail, kind:kind, position:position,
   week_plan_id:weekPlanId,
@@ -4767,13 +4849,13 @@ function init(){
 }
 init();
 </script>
-<script src="OFFGRD-mobile.js?v=262"></script>
-<script src="OFFGRD-scoutcards.js?v=262"></script>
-<script src="OFFGRD-week-autotest.js?v=262"></script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=262"></script>
+<script src="OFFGRD-mobile.js?v=264"></script>
+<script src="OFFGRD-scoutcards.js?v=264"></script>
+<script src="OFFGRD-week-autotest.js?v=264"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=264"></script>
 <script>try{ if(window.OFFGRD_POS_GLOSSARY) OFFGRD_POS_GLOSSARY.boot(); }catch(e){}</script>
-<script type="module" src="OFFGRD-account.js?v=262"></script>
-<script src="OFFGRD-role-gate.js?v=262"></script>
+<script type="module" src="OFFGRD-account.js?v=264"></script>
+<script src="OFFGRD-role-gate.js?v=264"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
