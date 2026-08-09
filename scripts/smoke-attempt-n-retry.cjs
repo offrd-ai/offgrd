@@ -1,11 +1,14 @@
 /**
  * Ticket A — attempt_n stamping / same-day retry points.
+ * Same-item identity: (player, kind, play_key, program-local day)
+ *   play_key = lower(trim(concept|subskill|coverage))
+ *
  * Fails when a same-day same-item pair both pay 10 on correct singles.
  *
  * Pure unit checks (no DB):
  *   node scripts/smoke-attempt-n-retry.cjs
  *
- * Live Braden check (after a retake; needs .env.prod.pull or env):
+ * Live Braden check (needs .env.prod.pull or env):
  *   node scripts/smoke-attempt-n-retry.cjs --live
  */
 "use strict";
@@ -15,6 +18,12 @@ const path = require("path");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || "assert failed");
+}
+
+function playKey(r) {
+  return String((r && (r.concept || r.subskill || r.coverage)) || "")
+    .trim()
+    .toLowerCase();
 }
 
 function repPoints(correct, total, attemptN) {
@@ -27,13 +36,11 @@ function repPoints(correct, total, attemptN) {
   return 4;
 }
 
-/** Same algorithm the quiz client uses after loadPriorAttemptCounts. */
+/** Same algorithm the quiz client uses (stampDetailAttempts). */
 function stampAttempts(priorCounts, detail) {
   const counts = Object.assign(Object.create(null), priorCounts || {});
   return (detail || []).map((r) => {
-    const key = String(r.concept || r.subskill || r.coverage || "")
-      .trim()
-      .toLowerCase();
+    const key = playKey(r);
     const n = key ? Math.min(20, (counts[key] || 0) + 1) : 1;
     if (key) counts[key] = n;
     return Object.assign({}, r, { attempt_n: n });
@@ -41,12 +48,13 @@ function stampAttempts(priorCounts, detail) {
 }
 
 function findDoubleTenPairs(rows) {
-  /* rows: { tested_on, kind, subskill|concept, correct, total, attempt_n, points? } */
+  /* Identity: tested_on|kind|play_key */
   const by = Object.create(null);
   for (const r of rows || []) {
     if (+r.correct <= 0 || (+r.total || 1) !== 1) continue;
-    const key = [r.tested_on, r.kind || "", String(r.subskill || r.concept || "").trim().toLowerCase()].join("|");
-    if (!key.endsWith("|") && !String(r.subskill || r.concept || "").trim()) continue;
+    const pk = playKey(r);
+    if (!pk) continue;
+    const key = [r.tested_on, r.kind || "", pk].join("|");
     (by[key] || (by[key] = [])).push(r);
   }
   const bad = [];
@@ -78,17 +86,34 @@ assert(stamped[1].attempt_n === 1, "fresh item → 1");
 assert(stamped[2].attempt_n === 3, "second in-session → 3");
 assert(repPoints(1, 1, stamped[0].attempt_n) === 4, "stamped retry pays 4");
 
+/* Braden Aug 8 reads pattern: Slam West correct, miss, correct — must not both pay 10 */
+const bradenSlamWest = stampAttempts({}, [
+  { concept: "Slam West", correct: true },
+  { concept: "Slam West", correct: false },
+  { concept: "Slam West", correct: true },
+]);
+assert(bradenSlamWest.map((r) => r.attempt_n).join(",") === "1,2,3", "in-session play_key increments");
+assert(repPoints(1, 1, bradenSlamWest[0].attempt_n) === 10, "first Slam West correct = 10");
+assert(repPoints(1, 1, bradenSlamWest[2].attempt_n) === 4, "retried Slam West correct = 4");
+
 const badUnit = findDoubleTenPairs([
-  { tested_on: "2026-08-08", kind: "routes", subskill: "Slam — X", correct: 1, total: 1, attempt_n: 1 },
-  { tested_on: "2026-08-08", kind: "routes", subskill: "Slam — X", correct: 1, total: 1, attempt_n: 1 },
+  { tested_on: "2026-08-08", kind: "reads", subskill: "Slam West", correct: 1, total: 1, attempt_n: 1 },
+  { tested_on: "2026-08-08", kind: "reads", subskill: "Slam West", correct: 1, total: 1, attempt_n: 1 },
 ]);
 assert(badUnit.length === 1, "detects double-10 same-day same-item");
 
 const okUnit = findDoubleTenPairs([
-  { tested_on: "2026-08-08", kind: "routes", subskill: "Slam — X", correct: 1, total: 1, attempt_n: 1 },
-  { tested_on: "2026-08-08", kind: "routes", subskill: "Slam — X", correct: 1, total: 1, attempt_n: 2 },
+  { tested_on: "2026-08-08", kind: "reads", subskill: "Slam West", correct: 1, total: 1, attempt_n: 1 },
+  { tested_on: "2026-08-08", kind: "reads", subskill: "Slam West", correct: 1, total: 1, attempt_n: 2 },
 ]);
 assert(okUnit.length === 0, "10 then 4 is fine");
+
+/* Cross-kind same play_key name is a different item */
+const crossKind = findDoubleTenPairs([
+  { tested_on: "2026-08-08", kind: "reads", subskill: "Slam", correct: 1, total: 1, attempt_n: 1 },
+  { tested_on: "2026-08-08", kind: "protect", subskill: "Slam — LG (pre+stunt)", correct: 1, total: 1, attempt_n: 1 },
+]);
+assert(crossKind.length === 0, "different kind/play_key are distinct items");
 
 console.log("PASS unit: attempt_n stamp + double-10 detector");
 
@@ -118,8 +143,24 @@ async function liveCheck() {
     console.warn("SKIP live: no SUPABASE_URL / SERVICE_ROLE_KEY");
     return;
   }
-  /* Prefer Management API via npx is heavy — use PostgREST if granted; else note. */
-  const { createClient } = require(path.join(__dirname, "..", "node_modules", "@supabase/supabase-js"));
+  let createClient;
+  try {
+    ({ createClient } = require(path.join(__dirname, "..", "node_modules", "@supabase/supabase-js")));
+  } catch (e1) {
+    try {
+      ({ createClient } = require(path.join(
+        __dirname,
+        "..",
+        "..",
+        "OFFRD FILES 25",
+        "node_modules",
+        "@supabase/supabase-js"
+      )));
+    } catch (e2) {
+      console.warn("SKIP live: @supabase/supabase-js not found — use supabase db query");
+      return;
+    }
+  }
   const svc = createClient(url, key, { auth: { persistSession: false }, db: { schema: "offgrd" } });
   const braden = "fbd940e2-d26f-4a4e-bdc0-2ad00685d878";
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -133,18 +174,19 @@ async function liveCheck() {
     .select("tested_on,tested_at,kind,subskill,correct,total,attempt_n")
     .eq("user_id", braden)
     .eq("tested_on", today)
-    .eq("kind", "routes")
     .order("tested_at", { ascending: true });
   if (error) {
     console.warn("LIVE query error (use supabase db query if 42501):", error.message);
     return;
   }
   const rows = data || [];
-  console.log("LIVE Braden routes today:", rows.length, "tested_on=", today);
+  console.log("LIVE Braden reps today:", rows.length, "tested_on=", today);
   for (const r of rows) {
     const pts = repPoints(r.correct, r.total, r.attempt_n);
     console.log(
-      [r.tested_at, r.subskill, "c=" + r.correct + "/" + r.total, "attempt_n=" + r.attempt_n, "pts=" + pts].join(" | ")
+      [r.kind, r.tested_at, r.subskill, "c=" + r.correct + "/" + r.total, "attempt_n=" + r.attempt_n, "pts=" + pts].join(
+        " | "
+      )
     );
   }
   const bad = findDoubleTenPairs(rows);
@@ -156,7 +198,8 @@ async function liveCheck() {
   if (!rows.length) {
     console.warn("LIVE: no rows yet — retake still pending");
   } else if (!retries.length) {
-    console.warn("LIVE: rows present but no attempt_n>1 — client stamp may still be broken/undeployed");
+    console.error("FAIL: rows present but every attempt_n=1 — quiz client not detecting same-day repeats");
+    process.exit(2);
   } else {
     console.log("PASS live: retries present, no double-10 pairs");
   }
