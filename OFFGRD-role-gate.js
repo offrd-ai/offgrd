@@ -357,12 +357,29 @@
     return h;
   }
 
+  var PLAYER_WEEK_JOIN_SENTINEL = "Sign in and join your program first.";
+
+  /** Wait for OFFGRD-account.js module to publish the week loader (classic vs module race). */
+  function waitForPlayerWeekLoader(maxMs){
+    maxMs = maxMs == null ? 4000 : maxMs;
+    return new Promise(function(resolve){
+      var load = window.OFFGRD_LOAD_PLAYER_WEEK;
+      if(typeof load === "function"){ resolve(load); return; }
+      var t0 = Date.now();
+      var iv = setInterval(function(){
+        var fn = window.OFFGRD_LOAD_PLAYER_WEEK;
+        if(typeof fn === "function"){ clearInterval(iv); resolve(fn); return; }
+        if(Date.now() - t0 >= maxMs){ clearInterval(iv); resolve(null); }
+      }, 50);
+    });
+  }
+
   async function renderPlayerWeek(){
     var host = document.getElementById("view-thisweek");
     if(!host) return;
     host.innerHTML = '<div class="panel"><p class="foot">Loading this week…</p></div>';
-    var load = window.OFFGRD_LOAD_PLAYER_WEEK;
-    if(!load){ host.innerHTML = '<div class="panel"><p class="foot">Sign in and join your program first.</p></div>'; return; }
+    var load = await waitForPlayerWeekLoader(4000);
+    if(!load){ host.innerHTML = '<div class="panel"><p class="foot">'+PLAYER_WEEK_JOIN_SENTINEL+'</p></div>'; return; }
     try{
       var wp = await load();
       /* Players don't sync the coach's raw scouting charts — show their week opponent
@@ -877,8 +894,12 @@
       var v = window.CURRENT_VIEW;
       if(!(v === "thisweek" || v === "practice" || v === "recruiting")) v = "thisweek";
       var host = document.getElementById("view-" + v);
-      var done = host && host.offsetParent !== null && (host.innerText || "").trim().length > 20;
-      if(done || ++tries > 24){ clearInterval(iv); return; }
+      var txt = host ? (host.innerText || "").trim() : "";
+      /* Join sentinel is long enough to fake "done" while the account bridge is still loading. */
+      var isJoinSentinel = txt.indexOf(PLAYER_WEEK_JOIN_SENTINEL) !== -1;
+      var isLoading = /^Loading/i.test(txt);
+      var done = host && host.offsetParent !== null && txt.length > 20 && !isJoinSentinel && !isLoading;
+      if(done || ++tries > 40){ clearInterval(iv); return; }
       try{ if(window.setView) window.setView(v); }catch(e){}
     }, 200);
   }
@@ -892,6 +913,16 @@
   }
 
   document.addEventListener("offgrd-program-ready", apply);
+  document.addEventListener("offgrd-week-bridge-ready", function(){
+    if(isPlayer()){
+      try{
+        if(window.CURRENT_VIEW === "thisweek" || !window.CURRENT_VIEW){
+          renderPlayerWeek();
+        }
+      }catch(e){}
+      ensurePlayerLandingRendered();
+    }
+  });
   if(prog().ready) apply();
   var n = 0, t = setInterval(function(){
     if(prog().ready || ++n > 40){ clearInterval(t); apply(); }

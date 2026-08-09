@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=264";
-import { openAuthModal } from "./OFFGRD-auth.js?v=264";
+import { Cloud } from "./OFFGRD-cloud.js?v=266";
+import { openAuthModal } from "./OFFGRD-auth.js?v=266";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -462,6 +462,7 @@ async function resolveWeekPlan(){
 }
 window.OFFGRD_LOAD_WEEK_PLAN = resolveWeekPlan;
 window.OFFGRD_LOAD_PLAYER_WEEK = resolveWeekPlan;
+try{ document.dispatchEvent(new CustomEvent("offgrd-week-bridge-ready")); }catch(eBridge){}
 window.OFFGRD_RESOLVE_WEEK_TEAM_ID = resolveWeekTeamId;
 window.OFFGRD_READ_WEEK_CACHE = readPlayerWeekCache;
 window.OFFGRD_WEEK_CACHE_AGE = formatWeekCacheAge;
