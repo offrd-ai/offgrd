@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v273: SIT chips — CSS grid auto-fit (fixes Distance/Field clip on phone) -->
+<!-- v274: SIT always single-column + seg-cols-4/5 explicit grid -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -320,9 +320,11 @@
     #view-caller .grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
     #view-caller .rd-gd-sit-grid{grid-template-columns:1fr!important;gap:8px!important}
     #view-caller .rd-gd-sit .seg,#view-caller .rd-gd-drive-over .seg{
-      display:grid!important;grid-template-columns:repeat(auto-fit,minmax(58px,1fr))!important;
-      gap:4px!important;width:100%!important;max-width:100%!important;overflow:visible!important;
+      display:grid!important;gap:4px!important;width:100%!important;max-width:100%!important;overflow:visible!important;
     }
+    #view-caller .rd-gd-sit .seg-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+    #view-caller .rd-gd-sit .seg-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+    #view-caller .rd-gd-drive-over .seg-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
     #view-caller .rd-gd-sit .seg button,#view-caller .rd-gd-drive-over .seg button{
       flex:none!important;width:100%!important;min-width:0!important;min-height:44px;font-size:14px;padding:8px 4px
     }
@@ -343,10 +345,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=273"></script>
-<script src="OFFGRD-brand-persist.js?v=273"></script>
-<script src="supabase.js?v=273"></script>
-<script src="OFFGRD-cache-gate.js?v=273"></script>
+<script src="OFFGRD-config.js?v=274"></script>
+<script src="OFFGRD-brand-persist.js?v=274"></script>
+<script src="supabase.js?v=274"></script>
+<script src="OFFGRD-cache-gate.js?v=274"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -388,32 +390,32 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=273"></script>
-<script src="OFFGRD-pos-glossary.js?v=273"></script>
-<script src="OFFGRD-autoderive.js?v=273"></script>
-<script src="OFFGRD-matchup.js?v=273"></script>
-<script src="OFFGRD-scoutcards.js?v=273"></script>
-<script src="OFFGRD-tendencies.js?v=273"></script>
-<script src="OFFGRD-scout-report.js?v=273"></script>
-<script src="OFFGRD-week-autotest.js?v=273"></script>
-<script src="OFFGRD-weeklypackage.js?v=273"></script>
-<script src="OFFGRD-telestrate.js?v=273"></script>
-<script src="OFFGRD-redesign.js?v=273"></script>
-<script src="OFFGRD-shell.js?v=273"></script>
-<script src="OFFGRD-caller-outcome.js?v=273"></script>
-<script src="OFFGRD-caller-sit.js?v=273"></script>
-<script src="OFFGRD-formations-data.js?v=273"></script>
-<script src="OFFGRD-formation-canon.js?v=273"></script>
-<script src="OFFGRD-assist-import.js?v=273"></script>
-<script src="OFFGRD-cv-review.js?v=273"></script>
-<script src="OFFGRD-frame-capture.js?v=273"></script>
-<script src="OFFGRD-caller-log.js?v=273"></script>
-<script src="OFFGRD-caller-sync.js?v=273"></script>
-<script src="OFFGRD-caller-analysis.js?v=273"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=273"></script>
-<script src="OFFGRD-booth-ask.js?v=273"></script>
-<script src="OFFGRD-caller-select.js?v=273"></script>
-<script src="OFFGRD-dcaller.js?v=273"></script>
+<script src="OFFGRD-render.js?v=274"></script>
+<script src="OFFGRD-pos-glossary.js?v=274"></script>
+<script src="OFFGRD-autoderive.js?v=274"></script>
+<script src="OFFGRD-matchup.js?v=274"></script>
+<script src="OFFGRD-scoutcards.js?v=274"></script>
+<script src="OFFGRD-tendencies.js?v=274"></script>
+<script src="OFFGRD-scout-report.js?v=274"></script>
+<script src="OFFGRD-week-autotest.js?v=274"></script>
+<script src="OFFGRD-weeklypackage.js?v=274"></script>
+<script src="OFFGRD-telestrate.js?v=274"></script>
+<script src="OFFGRD-redesign.js?v=274"></script>
+<script src="OFFGRD-shell.js?v=274"></script>
+<script src="OFFGRD-caller-outcome.js?v=274"></script>
+<script src="OFFGRD-caller-sit.js?v=274"></script>
+<script src="OFFGRD-formations-data.js?v=274"></script>
+<script src="OFFGRD-formation-canon.js?v=274"></script>
+<script src="OFFGRD-assist-import.js?v=274"></script>
+<script src="OFFGRD-cv-review.js?v=274"></script>
+<script src="OFFGRD-frame-capture.js?v=274"></script>
+<script src="OFFGRD-caller-log.js?v=274"></script>
+<script src="OFFGRD-caller-sync.js?v=274"></script>
+<script src="OFFGRD-caller-analysis.js?v=274"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=274"></script>
+<script src="OFFGRD-booth-ask.js?v=274"></script>
+<script src="OFFGRD-caller-select.js?v=274"></script>
+<script src="OFFGRD-dcaller.js?v=274"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -4280,7 +4282,7 @@ function callerResultChipsHtml(l, i, opts){
 }
 function callerDriveOverHtml(){
   if(callerSit.pendingTry||callerSit.forTwo) return "";
-  return `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`
+  return `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg seg-cols-4">`
     +`<button type="button" onclick="callerDriveOver('punt')">Punt</button>`
     +`<button type="button" onclick="callerDriveOver('downs')">Downs</button>`
     +`<button type="button" onclick="callerDriveOver('takeaway')">Takeaway</button>`
@@ -4792,10 +4794,10 @@ function renderCaller(){
       h+=`</div>`;
     }
     h+=`<div class="rd-gd-sit-grid">`;
-    h+=`<div><div class="lbl">Down</div><div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
-    h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+","GOAL"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
-    h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
-    h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Down</div><div class="seg seg-cols-4">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Distance</div><div class="seg seg-cols-5">`+["1-3","4-6","7-9","10+","GOAL"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Hash</div><div class="seg seg-cols-4">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Field</div><div class="seg seg-cols-4">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`</div>`;
     h+=callerDriveOverHtml();
     h+=`</div>`;
@@ -5407,7 +5409,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=273", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=274", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5730,9 +5732,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=273"></script>
-<script src="OFFGRD-role-gate.js?v=273"></script>
-<script src="OFFGRD-mobile.js?v=273"></script>
+<script type="module" src="OFFGRD-account.js?v=274"></script>
+<script src="OFFGRD-role-gate.js?v=274"></script>
+<script src="OFFGRD-mobile.js?v=274"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

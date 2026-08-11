@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "273";
+  const ASSET_V = "274";
 
   function getScoutTool() {
     try {
@@ -1237,7 +1237,7 @@
       '}',
       /* Situation controls always visible — not behind Edit situation <details>. */
       'html.rd-on #view-caller .rd-gd-sit-grid,html.rd-on #view-dcaller .rd-gd-sit-grid{',
-      'display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:4px;',
+      'display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px;',
       '}',
       'html.rd-on #view-caller .rd-gd-sit-grid > div,html.rd-on #view-dcaller .rd-gd-sit-grid > div{min-width:0;}',
       'html.rd-on.rd-booth #view-caller .rd-gd-sit-grid,html.rd-on.rd-booth #view-dcaller .rd-gd-sit-grid{',
@@ -1531,9 +1531,10 @@
       'html.rd-on #view-caller details.rd-gd-ref[open] .rd-gd-ref-sum::after{content:"\\25b4";}',
       'html.rd-on #view-caller .rd-gd-ref-body{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px;}',
       '@media (min-width:820px){html.rd-on #view-caller{max-width:960px;}html.rd-on #view-caller .rd-gd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;}}',
-      '@media (max-width:820px){',
-      'html.rd-on #view-caller .rd-gd-sit-grid,html.rd-on #view-dcaller .rd-gd-sit-grid{grid-template-columns:1fr!important;gap:8px;}',
-      'html.rd-on #view-caller .rd-gd-sit-grid > div,html.rd-on #view-dcaller .rd-gd-sit-grid > div{width:100%;max-width:100%;overflow:visible;}',
+      'html.rd-on #view-caller .rd-gd-sit .seg-cols-4,html.rd-on #view-dcaller .rd-gd-sit .seg-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))!important;}',
+      'html.rd-on #view-caller .rd-gd-sit .seg-cols-5,html.rd-on #view-dcaller .rd-gd-sit .seg-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))!important;}',
+      '@media (max-width:380px){',
+      'html.rd-on #view-caller .rd-gd-sit .seg-cols-5,html.rd-on #view-dcaller .rd-gd-sit .seg-cols-5{grid-template-columns:repeat(3,minmax(0,1fr))!important;}',
       '}',
       '@media (max-width:480px){html.rd-on #view-caller .rd-gd-hero-name{font-size:30px;}html.rd-on.rd-booth #view-caller .rd-gd-hero-name{font-size:38px;}html.rd-on #view-caller .rd-gd-hero{padding:12px 14px;}html.rd-on #view-caller .rd-gd-sit,html.rd-on #view-dcaller .rd-gd-sit{padding:10px 12px;}html.rd-on #view-caller .rd-gd-sit-txt,html.rd-on #view-dcaller .rd-gd-sit-txt{font-size:18px;margin-bottom:8px;}}',
       /* --- Special teams: 4th-down Go/Punt/FG row + ST stats readout --- */

@@ -2682,28 +2682,28 @@
       h += `</div>`;
     }
     h += `<div class="rd-gd-sit-grid">`;
-    h += `<div><div class="lbl">Down</div><div class="seg">` +
+    h += `<div><div class="lbl">Down</div><div class="seg seg-cols-4">` +
       [1, 2, 3, 4]
         .map(function (o, i) {
           return `<button type="button"${+sit.dn === o ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('dn','${o}')">${["1ST", "2ND", "3RD", "4TH"][i]}</button>`;
         })
         .join("") +
       `</div></div>`;
-    h += `<div><div class="lbl">Distance</div><div class="seg">` +
+    h += `<div><div class="lbl">Distance</div><div class="seg seg-cols-5">` +
       ["1-3", "4-6", "7-9", "10+", "GOAL"]
         .map(function (o) {
           return `<button type="button"${sit.db === o ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('db','${o}')">${o}</button>`;
         })
         .join("") +
       `</div></div>`;
-    h += `<div><div class="lbl">Hash</div><div class="seg">` +
+    h += `<div><div class="lbl">Hash</div><div class="seg seg-cols-4">` +
       [["ANY", "ANY"], ["L", "L"], ["M", "M"], ["R", "R"]]
         .map(function (p) {
           return `<button type="button"${sit.hash === p[0] ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('hash','${p[0]}')">${p[1]}</button>`;
         })
         .join("") +
       `</div></div>`;
-    h += `<div><div class="lbl">Field</div><div class="seg">` +
+    h += `<div><div class="lbl">Field</div><div class="seg seg-cols-4">` +
       [["ANY", "ANY"], ["OWN", "OWN"], ["PLUS", "PLUS"], ["REDZONE", "RZ"]]
         .map(function (p) {
           return `<button type="button"${sit.zone === p[0] ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('zone','${p[0]}')">${p[1]}</button>`;
@@ -2712,7 +2712,7 @@
       `</div></div>`;
     h += `</div>`;
     if (!sitTry && !sitTwo) {
-      h += `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`;
+      h += `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg seg-cols-4">`;
       h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('punt')">Punt</button>`;
       h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('downs')">Downs</button>`;
       h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('takeaway')">Takeaway</button>`;
