@@ -164,7 +164,12 @@
       });
     }
     if (long && fam === "screen") {
-      out.push({ delta: 16, why: "Screen / draw vs 10+" });
+      /* 1st & 10 is a neutral down — do not treat it as a passing situation. */
+      if (down === 3 || down === 4) {
+        out.push({ delta: 16, why: "Screen / draw vs 3rd/4th & 10+" });
+      } else if (down === 2) {
+        out.push({ delta: 8, why: "Screen / draw vs 2nd & 10+" });
+      }
     }
     if (goal && (fam === "deep" || (feat && feat.vertsShape) || (feat && feat.nGoSeam >= 2))) {
       out.push({ delta: -20, why: "Vertical compressed at GOAL" });

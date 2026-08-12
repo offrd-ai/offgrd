@@ -8,6 +8,8 @@
  *   - Ohio takes 3rd & short over chalk Florida West
  *   - 4th & 1 surfaces a short-yardage family
  *   - Best Now varies by distance band (1-3 vs 10+ vs GOAL)
+ *   - 1st & 10+ Best Now is a core dropback/flood/smash family, not a screen
+ *   - 3rd & 12 (10+ band) may legitimately surface the screen
  */
 "use strict";
 
@@ -144,6 +146,25 @@ assert(
   "Best Now must vary by distance band; 1-3=" + best13 + " 10+=" + best10 + " GOAL=" + bestGoal
 );
 
+/* 1st & 10 is a neutral down — core dropback/flood/smash, not a screen opener. */
+const firstTen = audit.find((r) => r.dn === 1 && r.db === "10+");
+assert(firstTen, "1st & 10+ row");
+assert(
+  !/screen|draw/i.test(firstTen.best),
+  "1st & 10+ Best Now must not be a screen; got " + firstTen.best
+);
+assert(
+  /flood|florida|smash|curl|mesh|verts|post|ohio/i.test(firstTen.best),
+  "1st & 10+ Best Now from core dropback/flood/smash family; got " + firstTen.best
+);
+
+/* 3rd & 12 maps to 10+ — screen may legitimately surface. */
+const thirdLong = rankAt(3, "10+");
+assert(
+  thirdLong.some((r) => /screen|draw/i.test(r.name)),
+  "3rd & 12 may surface the screen; got " + namesOf(thirdLong)
+);
+
 /* Determinism */
 const a = rankAt(3, "1-3").map((x) => x.name + ":" + x.ev.toFixed(6));
 const b = rankAt(3, "1-3").map((x) => x.name + ":" + x.ev.toFixed(6));
@@ -155,3 +176,5 @@ audit.forEach((row) => {
 });
 console.log("  Ohio vs Florida West @ 3rd & 1-3:", ohio3.ev.toFixed(3), ">", flood3.ev.toFixed(3));
 console.log("  Best Now 1-3 / 10+ / GOAL:", best13, "/", best10, "/", bestGoal);
+console.log("  1st & 10+ Best Now:", firstTen.best);
+console.log("  3rd & 12 top:", namesOf(thirdLong.slice(0, 3)));

@@ -165,9 +165,15 @@ assert(ohioShort.score > ohioLook.score, "Ohio boosted at 1-3");
 const isoShort = M.structScore(F.iso, "C1", { down: 4, distBucket: "1-3" });
 assert(isoShort.score >= 60, "ISO run sit-boosted at 4th & 1, got " + isoShort.score);
 
-const screenLong = M.structScore(F.screen, "C1", { down: 1, distBucket: "10+" });
 const screenLook = M.structScore(F.screen, "C1");
-assert(screenLong.score > screenLook.score, "screen boosted at 10+");
+const screen1st = M.structScore(F.screen, "C1", { down: 1, distBucket: "10+" });
+const screen2nd = M.structScore(F.screen, "C1", { down: 2, distBucket: "10+" });
+const screen3rd = M.structScore(F.screen, "C1", { down: 3, distBucket: "10+" });
+assert(screen1st.score === screenLook.score, "screen NOT boosted at 1st & 10+");
+assert(screen2nd.score > screenLook.score, "screen reduced boost at 2nd & 10+");
+assert(screen3rd.score > screen2nd.score, "screen full boost at 3rd & 10+ > 2nd");
+assert(screen3rd.score - screenLook.score === 16, "3rd & 10+ full +16, got " + (screen3rd.score - screenLook.score));
+assert(screen2nd.score - screenLook.score === 8, "2nd & 10+ reduced +8, got " + (screen2nd.score - screenLook.score));
 
 const vertsGoal = M.structScore(F.verts, "C3", { down: 1, db: "GOAL" });
 const vertsLook = M.structScore(F.verts, "C3");
