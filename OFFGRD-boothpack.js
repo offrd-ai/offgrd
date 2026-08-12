@@ -184,10 +184,31 @@
     if (m.oSnaps != null) lines.push("O snaps " + m.oSnaps);
     if (m.dSnaps != null) lines.push("D snaps " + m.dSnaps);
     (pack.working || []).forEach(function (r) {
-      lines.push(r.k + " n=" + r.n + " okPct=" + r.okPct + (r.ypa != null ? " ypa=" + r.ypa : ""));
+      lines.push(
+        r.k +
+          " n=" +
+          r.n +
+          " okPct=" +
+          r.okPct +
+          "%" +
+          (r.ypa != null ? " ypa=" + r.ypa : "") +
+          " chunkPct=" +
+          r.chunkPct +
+          "%"
+      );
     });
     (pack.beating || []).forEach(function (r) {
-      lines.push("cold " + r.k + " n=" + r.n + " okPct=" + r.okPct + " chunkPct=" + r.chunkPct);
+      lines.push(
+        "cold " +
+          r.k +
+          " n=" +
+          r.n +
+          " okPct=" +
+          r.okPct +
+          "% chunkPct=" +
+          r.chunkPct +
+          "%"
+      );
     });
     (pack.shifts || []).forEach(function (s) {
       lines.push(
@@ -241,6 +262,7 @@
     });
     sums.d_snap_graded_n = dN;
     sums.d_chunk_n = dChunk;
+    if (dN) sums.d_chunk_pct = Math.round((100 * dChunk) / dN);
     var wN = 0;
     (working || []).forEach(function (r) {
       wN += r.n || 0;
@@ -296,14 +318,24 @@
     var llm = Llm();
     var lines = factLines(pack || {});
     var blob = lines.join("\n") + "\n" + JSON.stringify(pack || {});
+    var atoms;
     if (llm && typeof llm.extractNumericAtoms === "function") {
-      return llm.extractNumericAtoms(blob);
+      atoms = llm.extractNumericAtoms(blob);
+    } else {
+      atoms = Object.create(null);
+      var re = /\d+(?:\.\d+)?/g;
+      var m;
+      while ((m = re.exec(blob))) atoms[m[0]] = 1;
     }
-    /* Minimal fallback if summary-llm not loaded. */
-    var atoms = Object.create(null);
-    var re = /\d+(?:\.\d+)?/g;
-    var m;
-    while ((m = re.exec(blob))) atoms[m[0]] = 1;
+    /* JSON stores okPct as bare ints — expand 0–100 → N% / 0.NN synonyms for validator. */
+    Object.keys(atoms).forEach(function (k) {
+      if (!/^\d+$/.test(k)) return;
+      var n = +k;
+      if (n < 0 || n > 100) return;
+      atoms[n + "%"] = 1;
+      atoms[(n / 100).toFixed(2)] = 1;
+      if (n < 100) atoms["0." + String(n).padStart(2, "0")] = 1;
+    });
     return atoms;
   }
 
