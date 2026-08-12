@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "277";
+  const ASSET_V = "278";
 
   function getScoutTool() {
     try {
@@ -1431,6 +1431,24 @@
       'html.rd-on #view-caller .rd-gd-sit-conf{',
       'font-size:10px!important;font-weight:800!important;padding:2px 8px!important;',
       '}',
+      /* BLITZ TREND — same kicker/body/hint stack as Expect strip (no run-together line) */
+      'html.rd-on #view-caller .rd-gd-blitz-alert{',
+      'display:flex;flex-direction:column;gap:4px;',
+      'margin:8px 0 10px;padding:10px 12px;',
+      'background:var(--rd-surface-2);border-left:4px solid var(--rd-accent);',
+      'border-radius:0 var(--radius-card) var(--radius-card) 0;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-blitz-alert.is-heavy{border-left-color:#c45c26;}',
+      'html.rd-on #view-caller .rd-gd-blitz-alert-kicker{',
+      'font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rd-accent);line-height:1.2;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-blitz-alert.is-heavy .rd-gd-blitz-alert-kicker{color:#c45c26;}',
+      'html.rd-on #view-caller .rd-gd-blitz-alert-body{',
+      'font-size:14px;font-weight:600;color:var(--rd-text);line-height:1.35;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-blitz-alert-hint{',
+      'font-size:12px;font-weight:600;color:var(--rd-muted);line-height:1.3;',
+      '}',
       /* In-game AI live panel + Ask Booth */
       'html.rd-on #view-caller .rd-live-panel,html.rd-on #view-dcaller .rd-live-panel{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:4px solid var(--rd-accent);',
@@ -1798,6 +1816,9 @@
       'html.rd-on #view-caller .rd-gd-sheet-list{display:flex;flex-direction:column;gap:6px;}',
       'html.rd-on #view-caller .rd-gd-sheet-row{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 12px;background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);color:var(--rd-text);font-weight:700;font-size:16px;cursor:pointer;text-align:left;}',
       'html.rd-on #view-caller .rd-gd-sheet-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark-stack{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:72px;line-height:1.15;flex:0 0 auto;}',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark-stack .mark.ev{font-size:15px;font-weight:800;color:var(--rd-text);min-width:auto;text-align:right;}',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark-stack .mark.basis{font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--rd-muted);min-width:auto;white-space:nowrap;}',
       'html.rd-on #view-caller .rd-gd-sheet-row .mark{font-size:13px;font-weight:800;color:var(--rd-muted);min-width:38px;text-align:right;}',
       'html.rd-on #view-caller .rd-gd-sheet-row .mark.best{color:#0E1116;background:#FFD24A;border-radius:7px;padding:2px 8px;min-width:auto;}',
       'html.rd-on #view-caller .rd-gd-sheet-row .mark.mark-none{min-width:38px;}',
@@ -1813,10 +1834,11 @@
       'flex:1 1 calc(100% - 46px);min-width:12ch;max-width:100%;',
       'overflow:visible;text-overflow:clip;white-space:normal;word-break:break-word;line-height:1.25;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sheet-row .mark,html.rd-on #view-caller .rd-gd-sheet-row .mark.scheme{',
-      'flex:0 0 auto;font-size:11px;min-width:auto;padding:2px 6px;white-space:nowrap;',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark,html.rd-on #view-caller .rd-gd-sheet-row .mark-stack{',
+      'flex:0 0 auto;min-width:auto;',
       '}',
-      'html.rd-on #view-caller .rd-gd-sheet-row .mark.scheme{font-size:10px;letter-spacing:-0.01em;}',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark-stack .mark.ev{font-size:13px;}',
+      'html.rd-on #view-caller .rd-gd-sheet-row .mark-stack .mark.basis{font-size:9px;padding:0;white-space:nowrap;}',
       'html.rd-on #view-caller .rd-gd-sheet-row .cta{flex:0 0 auto;margin-left:auto;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row{flex-wrap:wrap;row-gap:4px;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row .nm{',

@@ -17,7 +17,7 @@ function assert(cond, msg) {
 }
 
 assert(AD && typeof AD.classifyPlay === "function", "OFFGRD_AUTODERIVE.classifyPlay missing");
-assert(M.STRUCT_RULES_V === "struct_rules_v1", "STRUCT_RULES_V");
+assert(M.STRUCT_RULES_V === "struct_rules_v2", "STRUCT_RULES_V");
 assert(M.LOOK_FAMILIES.length === 7, "LOOK_FAMILIES");
 
 /* familyOf normalization */
@@ -31,7 +31,7 @@ assert(M.familyOf("Press") === "PRESS", "fam Press");
 assert(M.familyOf("Cover 3") === "C3", "fam C3");
 
 const F = M.FIXTURES;
-assert(F.mesh && F.smash && F.verts && F.screen && F.curlflat, "fixtures present");
+assert(F.mesh && F.smash && F.verts && F.screen && F.curlflat && F.flood && F.ohio && F.iso, "fixtures present");
 
 function score(play, fam) {
   return M.structScore(play, fam);
@@ -147,6 +147,40 @@ assert(JSON.stringify(a1.why) === JSON.stringify(a2.why), "determinism why");
 const r1 = M.rankPlaysVsLook(seed, "C1", { limit: 5 }).map((x) => x.id + ":" + x.score);
 const r2 = M.rankPlaysVsLook(seed, "C1", { limit: 5 }).map((x) => x.id + ":" + x.score);
 assert(JSON.stringify(r1) === JSON.stringify(r2), "determinism rank");
+
+/* struct_rules_v2 sit-fit: look-only path unchanged; sit opts move flood/smash off short */
+const flood3rd = M.structScore(F.flood, "C3", { down: 3, distBucket: "1-3" });
+const floodLook = M.structScore(F.flood, "C3");
+assert(flood3rd.score < floodLook.score, "flood penalized on 3rd & 1-3 vs look-only");
+assert(/Deep-developing/.test((flood3rd.why || []).join(" ")), "flood sit why");
+
+const smash4th = M.structScore(F.smash, "C4", { down: 4, distBucket: "1-3" });
+const smashLook = M.structScore(F.smash, "C4");
+assert(smash4th.score < smashLook.score, "smash penalized on 4th & 1");
+
+const ohioShort = M.structScore(F.ohio, "C1", { down: 3, distBucket: "1-3" });
+const ohioLook = M.structScore(F.ohio, "C1");
+assert(ohioShort.score > ohioLook.score, "Ohio boosted at 1-3");
+
+const isoShort = M.structScore(F.iso, "C1", { down: 4, distBucket: "1-3" });
+assert(isoShort.score >= 60, "ISO run sit-boosted at 4th & 1, got " + isoShort.score);
+
+const screenLook = M.structScore(F.screen, "C1");
+const screen1st = M.structScore(F.screen, "C1", { down: 1, distBucket: "10+" });
+const screen2nd = M.structScore(F.screen, "C1", { down: 2, distBucket: "10+" });
+const screen3rd = M.structScore(F.screen, "C1", { down: 3, distBucket: "10+" });
+assert(screen1st.score === screenLook.score, "screen NOT boosted at 1st & 10+");
+assert(screen2nd.score > screenLook.score, "screen reduced boost at 2nd & 10+");
+assert(screen3rd.score > screen2nd.score, "screen full boost at 3rd & 10+ > 2nd");
+assert(screen3rd.score - screenLook.score === 16, "3rd & 10+ full +16, got " + (screen3rd.score - screenLook.score));
+assert(screen2nd.score - screenLook.score === 8, "2nd & 10+ reduced +8, got " + (screen2nd.score - screenLook.score));
+
+const vertsGoal = M.structScore(F.verts, "C3", { down: 1, db: "GOAL" });
+const vertsLook = M.structScore(F.verts, "C3");
+assert(vertsGoal.score < vertsLook.score, "verts compressed at GOAL");
+
+/* Look-only cache path must ignore sit (no opts) */
+assert(M.structScore(F.mesh, "C1").score === M.structScore(F.mesh, "C1", {}).score, "empty opts = look-only");
 
 /* classify hard-fail path when AD present works */
 const c = M.classify(F.mesh.data);

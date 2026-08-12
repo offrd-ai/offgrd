@@ -3,7 +3,8 @@
   "private": true,
   "description": "OFFGRD coaching suite (static bundle)",
   "scripts": {
-    "check": "node scripts/check-parse.js && node scripts/check-accent.js && node scripts/smoke-mojibake-chrome.cjs && node scripts/smoke-attempt-n-retry.cjs",
+    "check": "node scripts/check-parse.js && node scripts/check-accent.js && node scripts/smoke-mojibake-chrome.cjs && node scripts/smoke-attempt-n-retry.cjs && node scripts/smoke-matchup-struct.cjs && node scripts/smoke-matchup-blend.cjs && node scripts/smoke-matchup-sit.cjs",
+    "smoke:matchup": "node scripts/smoke-matchup-struct.cjs && node scripts/smoke-matchup-blend.cjs && node scripts/smoke-matchup-sit.cjs",
     "check:assets": "node scripts/check-deploy-assets.cjs",
     "pin": "node scripts/pin-assets.cjs",
     "build": "node scripts/check-deploy-assets.cjs",

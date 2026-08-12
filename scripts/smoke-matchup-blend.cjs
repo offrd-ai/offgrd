@@ -17,23 +17,24 @@ function approx(a, b, eps) {
   return Math.abs(a - b) <= (eps != null ? eps : 1e-9);
 }
 
-assert(M.BLEND_K === 8, "BLEND_K");
+assert(M.BLEND_K === 4, "BLEND_K");
+assert(M.EV_TIE_EPS === 0.03, "EV_TIE_EPS");
 assert(typeof M.empiricalCell === "function", "empiricalCell");
 assert(typeof M.blendScore === "function", "blendScore");
 assert(typeof M.ev === "function", "ev");
 assert(typeof M.rankPlaysByEv === "function", "rankPlaysByEv");
 
-/* w(0)=0, w(8)=0.5, w(32)=0.8 */
+/* w(0)=0, w(4)=0.5, w(16)=0.8 */
 function empN(n, sr) {
   return { sr: sr != null ? sr : 0.7, n: n, w: n / (n + M.BLEND_K), basis: n ? "empirical" : "on_paper" };
 }
 assert(approx(empN(0).w, 0), "w(0)=0");
-assert(approx(empN(8).w, 0.5), "w(8)=0.5");
-assert(approx(empN(32).w, 0.8), "w(32)=0.8");
+assert(approx(empN(4).w, 0.5), "w(4)=0.5");
+assert(approx(empN(16).w, 0.8), "w(16)=0.8");
 
 /* blendScore */
 assert(approx(M.blendScore(empN(0, 0.9), 0.6), 0.6), "n=0 pure struct");
-assert(approx(M.blendScore(empN(8, 0.8), 0.4), 0.5 * 0.8 + 0.5 * 0.4), "n=8 50/50");
+assert(approx(M.blendScore(empN(4, 0.8), 0.4), 0.5 * 0.8 + 0.5 * 0.4), "n=4 50/50");
 
 /* Seeded empirical rows */
 const rows = [];
@@ -76,7 +77,7 @@ const cell = M.empiricalCell(M.FIXTURES.mesh, "C1", rows, {
   getSuccess: (r) => (r.success != null ? +r.success : null)
 });
 assert(cell.n === 8, "mesh C1 n=8 (sack excluded), got " + cell.n);
-assert(approx(cell.w, 0.5), "mesh C1 w=0.5");
+assert(approx(cell.w, 8 / 12), "mesh C1 w=8/12, got " + cell.w);
 assert(approx(cell.sr, 0.75), "mesh C1 sr=0.75, got " + cell.sr);
 assert(cell.basis === "empirical", "empirical basis");
 
@@ -182,6 +183,48 @@ const b = M.rankPlaysByEv(book, festus, rows, {
   getSuccess: (r) => (r.success != null ? +r.success : null)
 }).map((x) => x.name + ":" + x.ev.toFixed(6));
 assert(JSON.stringify(a) === JSON.stringify(b), "determinism");
+
+/* Tie-break within 3 EV points prefers n≥3 */
+assert(typeof M.cmpEv === "function", "cmpEv");
+assert(
+  M.cmpEv({ ev: 0.6, n: 5, name: "Proven" }, { ev: 0.62, n: 1, name: "Thin" }) < 0,
+  "n≥3 wins within 3 EV pts"
+);
+assert(
+  M.cmpEv({ ev: 0.7, n: 1, name: "Hot" }, { ev: 0.6, n: 5, name: "Proven" }) < 0,
+  "EV gap >3 pts wins"
+);
+const tieRows = [];
+for (let i = 0; i < 5; i++) {
+  tieRows.push({
+    play: "Mesh Cross",
+    coverage: "Cover 1",
+    down: 1,
+    distance: 10,
+    gain: 6,
+    success: 1,
+    playType: "Pass"
+  });
+}
+tieRows.push({
+  play: "Smash Z",
+  coverage: "Cover 1",
+  down: 1,
+  distance: 10,
+  gain: 8,
+  success: 1,
+  playType: "Pass"
+});
+const tieRank = M.rankPlaysByEv([M.FIXTURES.smash, M.FIXTURES.mesh], [{ k: "Cover 1", pct: 1 }], tieRows, {
+  limit: 2,
+  getSuccess: (r) => (r.success != null ? +r.success : null)
+});
+const meshRow = tieRank.find((r) => /mesh/i.test(r.name));
+const smashRow = tieRank.find((r) => /smash/i.test(r.name));
+assert(meshRow && smashRow, "tie-break rank has both");
+if (Math.abs(meshRow.ev - smashRow.ev) <= 0.03) {
+  assert(tieRank[0].n >= 3, "within 3pts, n≥3 leads: " + tieRank[0].name + " n=" + tieRank[0].n);
+}
 
 console.log("smoke-matchup-blend: PASS");
 console.log("  Festus top5:", topNames);
