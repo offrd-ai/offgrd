@@ -3326,8 +3326,11 @@ function callerBoothChipsHtml(opts){
   const askId=isFinal?"rd-booth-ask-q-final":"rd-booth-ask-q";
   const askFn=isFinal?"callerBoothAskSubmit('final')":"callerBoothAskSubmit()";
   let h=`<section class="rd-booth${isFinal?" rd-booth-final":""} no-print" aria-label="Ask Booth">`;
-  h+=`<h3 class="${isFinal?"rd-gd-halftime-h":"rd-live-h"}">Ask Booth${isFinal?" · Final":""}</h3>`;
-  if(isFinal) h+=`<p class="foot rd-booth-final-note">Full game · same numbers as the sections above · free text online.</p>`;
+  h+=`<header class="rd-booth-head">`;
+  h+=`<p class="rd-booth-kicker">Knowledge center</p>`;
+  h+=`<h3 class="rd-booth-title">Ask Booth${isFinal?" · Final":""}</h3>`;
+  h+=`<p class="rd-booth-sub">${isFinal?"Full-game facts · same numbers as above · free text online.":"Tonight's numbers · chips offline · free text when connected."}</p>`;
+  h+=`</header>`;
   h+=`<div class="rd-booth-chips">`;
   defs.forEach(c=>{
     const on=CALLER_BOOTH_CHIP===c.id?" is-on":"";
@@ -3361,7 +3364,11 @@ function callerBoothChipsHtml(opts){
 function callerLivePanelHtml(){
   const view=callerBuildLiveView();
   let h=`<div id="rd-live-panel" class="rd-live-panel no-print${CALLER_LIVE_EXPANDED?" is-expanded":""}" role="region" aria-label="In-game AI">`;
-  h+=`<div class="rd-live-panel-bar"><span class="rd-live-panel-title">In-game AI</span>`;
+  h+=`<div class="rd-live-panel-bar">`;
+  h+=`<div class="rd-live-panel-head">`;
+  h+=`<span class="rd-live-panel-kicker">Live analysis</span>`;
+  h+=`<span class="rd-live-panel-title">In-game AI</span>`;
+  h+=`</div>`;
   h+=`<span class="foot rd-live-panel-meta">Live · ${CALLER_LOG.length} snap${CALLER_LOG.length===1?"":"s"}</span>`;
   h+=CALLER_LIVE_EXPANDED
     ?`<button type="button" class="ghost rd-live-panel-toggle" onclick="callerSetLiveExpanded(false)">Collapse</button>`
@@ -4089,15 +4096,20 @@ function callerThisPlayCardHtml(){
     const resLbl=O&&O.resultLabel?O.resultLabel(on.result):(on.result||"");
     let h=`<div class="rd-gd-lastplay rd-gd-lastplay-flags no-print" id="caller-thisplay-anchor">`;
     h+=`<div class="rd-gd-lastplay-row">`;
-    h+=`<span class="foot">Last play</span> <b>${esc(on.play)}</b>`;
-    h+=`<span class="foot"> \u00b7 ${esc(on.sitTxt||"")} \u00b7 ${esc(resLbl)}</span>`;
+    h+=`<span class="rd-gd-lastplay-kicker">Last play</span>`;
+    h+=`<b class="rd-gd-lastplay-name">${esc(on.play)}</b>`;
+    h+=`<span class="foot rd-gd-lastplay-meta">${esc(on.sitTxt||"")} \u00b7 ${esc(resLbl)}</span>`;
     h+=callerTagInfoBtnHtml();
-    h+=`<button type="button" class="ghost" style="margin-left:auto;padding:6px 10px;font-weight:700" onclick="callerOpenEdit(${on.playIndex})">Edit</button>`;
+    h+=`<button type="button" class="ghost rd-gd-lastplay-edit" onclick="callerOpenEdit(${on.playIndex})">Edit</button>`;
     h+=`</div>`;
     if(!isST){
-      h+=`<div class="lbl" style="margin-top:8px">Flag <span class="foot">optional</span></div>`;
+      h+=`<div class="rd-gd-lastplay-block rd-gd-lastplay-flag-block">`;
+      h+=`<div class="rd-gd-lastplay-block-lbl">Flag <span class="foot">optional</span></div>`;
       h+=callerFlagChipsHtml(on, idx);
+      h+=`</div>`;
+      h+=`<div class="rd-gd-lastplay-block rd-gd-lastplay-call-block">`;
       h+=callerConceptChipsHtml(on, idx);
+      h+=`</div>`;
     }
     h+=`</div>`;
     return h;
@@ -4344,10 +4356,12 @@ function callerConceptChipsHtml(l, i){
   const cur=l.conceptOverride||l.concept||"";
   /* Labels = call quality (not yards). Drop/Protection/etc. auto "Call right" so we don't bury a good concept. */
   const opts=[["worked","Call right"],["didnt_work","Bad call"],["worked_untested","Untested"]];
-  let h=`<div class="caller-out-concept"><span class="foot" style="margin-right:6px">Call</span>${callerTagInfoBtnHtml()}`+opts.map(([id,lab])=>{
+  let h=`<div class="caller-out-concept">`;
+  h+=`<div class="rd-gd-lastplay-block-lbl caller-out-concept-lbl">Call quality ${callerTagInfoBtnHtml()}</div>`;
+  h+=`<div class="caller-out-concept-chips">`+opts.map(([id,lab])=>{
     const on=cur===id;
     return `<button type="button" class="caller-out-flag${on?" on":""}" onclick="callerSetConcept(${i},'${id}')">${lab}</button>`;
-  }).join("")+`</div>`;
+  }).join("")+`</div></div>`;
   return h;
 }
 function callerPendingQueueHtml(opts){
@@ -4373,7 +4387,14 @@ function callerPendingQueueHtml(opts){
     h+=callerLookChipsHtml(l, l.playIndex);
     h+=`<div class="lbl" style="margin:8px 0 0">Result</div>`;
     h+=callerResultChipsHtml(l,i,{});
-    if(l.result){ h+=callerFlagChipsHtml(l,i); h+=callerConceptChipsHtml(l,i); }
+    if(l.result){
+      h+=`<div class="rd-gd-lastplay-block"><div class="rd-gd-lastplay-block-lbl">Flag <span class="foot">optional</span></div>`;
+      h+=callerFlagChipsHtml(l,i);
+      h+=`</div>`;
+      h+=`<div class="rd-gd-lastplay-block">`;
+      h+=callerConceptChipsHtml(l,i);
+      h+=`</div>`;
+    }
     h+=`</div>`;
   });
   h+=`</div>`;

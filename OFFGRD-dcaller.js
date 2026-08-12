@@ -712,12 +712,15 @@
       : "OFFGRD_DCALLER.boothAskSubmit()";
     var h =
       `<section class="rd-booth${isFinal ? " rd-booth-final" : ""} no-print" aria-label="Ask Booth">`;
-    h += `<h3 class="${isFinal ? "rd-gd-halftime-h" : "rd-live-h"}">Ask Booth${
-      isFinal ? " · Final" : ""
-    }</h3>`;
-    if (isFinal) {
-      h += `<p class="foot rd-booth-final-note">Full game · same numbers as the sections above · free text online.</p>`;
-    }
+    h += `<header class="rd-booth-head">`;
+    h += `<p class="rd-booth-kicker">Knowledge center</p>`;
+    h += `<h3 class="rd-booth-title">Ask Booth${isFinal ? " · Final" : ""}</h3>`;
+    h += `<p class="rd-booth-sub">${
+      isFinal
+        ? "Full-game facts · same numbers as above · free text online."
+        : "Tonight's numbers · chips offline · free text when connected."
+    }</p>`;
+    h += `</header>`;
     h += `<div class="rd-booth-chips">`;
     defs.forEach(function (c) {
       var on = boothChip === c.id ? " is-on" : "";
@@ -766,7 +769,7 @@
     if (!view || !view.sections) {
       return (
         `<div class="rd-live-panel no-print">` +
-        `<div class="rd-live-panel-bar"><span class="rd-live-panel-title">In-game AI</span></div>` +
+        `<div class="rd-live-panel-bar"><div class="rd-live-panel-head"><span class="rd-live-panel-kicker">Live analysis</span><span class="rd-live-panel-title">In-game AI</span></div></div>` +
         `<div class="rd-live-panel-body"><p class="foot">Log snaps — analysis updates live.</p>` +
         boothChipsHtml() +
         `</div></div>`
@@ -779,7 +782,10 @@
     var h =
       `<div id="rd-live-panel" class="rd-live-panel no-print${liveExpanded ? " is-expanded" : ""}" role="region" aria-label="In-game AI">`;
     h += `<div class="rd-live-panel-bar">`;
+    h += `<div class="rd-live-panel-head">`;
+    h += `<span class="rd-live-panel-kicker">Live analysis</span>`;
     h += `<span class="rd-live-panel-title">In-game AI</span>`;
+    h += `</div>`;
     h += `<span class="foot rd-live-panel-meta">Live · ${log.length} snap${log.length === 1 ? "" : "s"}</span>`;
     h += liveExpanded
       ? `<button type="button" class="ghost rd-live-panel-toggle" onclick="OFFGRD_DCALLER.setLiveExpanded(false)">Collapse</button>`
@@ -2661,7 +2667,8 @@
       }
       h += `</div>`;
       if (live.result && !isTwo) {
-        h += `<div class="lbl" style="margin-top:10px">Tag <span class="foot">optional · multi</span></div>`;
+        h += `<div class="rd-gd-lastplay-block rd-dc-tag-block">`;
+        h += `<div class="rd-gd-lastplay-block-lbl">Tag <span class="foot">optional · multi</span></div>`;
         h += `<div class="caller-out-flags">`;
         var cur = Array.isArray(live.flags) ? live.flags : live.flag ? [live.flag] : [];
         h += flags
@@ -2670,7 +2677,7 @@
             return `<button type="button" class="caller-out-flag${on ? " on" : ""}" onclick="OFFGRD_DCALLER.toggleFlag(${live.playIndex},'${f.id}')">${esc(f.label)}</button>`;
           })
           .join("");
-        h += `</div>`;
+        h += `</div></div>`;
       } else if (!live.result) {
         h += `<p class="foot" style="margin:8px 0 0">${isTwo ? "Tap Converted or Failed" : "Tap yards — jumps you to the next sit · flags optional after"}</p>`;
       }
