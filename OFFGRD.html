@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v270: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v272: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=270"></script>
-<script src="OFFGRD-brand-persist.js?v=270"></script>
-<script src="supabase.js?v=270"></script>
-<script src="OFFGRD-cache-gate.js?v=270"></script>
+<script src="OFFGRD-config.js?v=272"></script>
+<script src="OFFGRD-brand-persist.js?v=272"></script>
+<script src="supabase.js?v=272"></script>
+<script src="OFFGRD-cache-gate.js?v=272"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,32 +380,34 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=270"></script>
-<script src="OFFGRD-pos-glossary.js?v=270"></script>
-<script src="OFFGRD-autoderive.js?v=270"></script>
-<script src="OFFGRD-matchup.js?v=270"></script>
-<script src="OFFGRD-scoutcards.js?v=270"></script>
-<script src="OFFGRD-tendencies.js?v=270"></script>
-<script src="OFFGRD-scout-report.js?v=270"></script>
-<script src="OFFGRD-week-autotest.js?v=270"></script>
-<script src="OFFGRD-weeklypackage.js?v=270"></script>
-<script src="OFFGRD-telestrate.js?v=270"></script>
-<script src="OFFGRD-redesign.js?v=270"></script>
-<script src="OFFGRD-shell.js?v=270"></script>
-<script src="OFFGRD-caller-outcome.js?v=270"></script>
-<script src="OFFGRD-caller-sit.js?v=270"></script>
-<script src="OFFGRD-formations-data.js?v=270"></script>
-<script src="OFFGRD-formation-canon.js?v=270"></script>
-<script src="OFFGRD-assist-import.js?v=270"></script>
-<script src="OFFGRD-cv-review.js?v=270"></script>
-<script src="OFFGRD-frame-capture.js?v=270"></script>
-<script src="OFFGRD-caller-log.js?v=270"></script>
-<script src="OFFGRD-caller-sync.js?v=270"></script>
-<script src="OFFGRD-caller-analysis.js?v=270"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=270"></script>
-<script src="OFFGRD-booth-ask.js?v=270"></script>
-<script src="OFFGRD-caller-select.js?v=270"></script>
-<script src="OFFGRD-dcaller.js?v=270"></script>
+<script src="OFFGRD-render.js?v=272"></script>
+<script src="OFFGRD-pos-glossary.js?v=272"></script>
+<script src="OFFGRD-autoderive.js?v=272"></script>
+<script src="OFFGRD-matchup.js?v=272"></script>
+<script src="OFFGRD-scoutcards.js?v=272"></script>
+<script src="OFFGRD-tendencies.js?v=272"></script>
+<script src="OFFGRD-scout-report.js?v=272"></script>
+<script src="OFFGRD-week-autotest.js?v=272"></script>
+<script src="OFFGRD-weeklypackage.js?v=272"></script>
+<script src="OFFGRD-telestrate.js?v=272"></script>
+<script src="OFFGRD-redesign.js?v=272"></script>
+<script src="OFFGRD-shell.js?v=272"></script>
+<script src="OFFGRD-caller-outcome.js?v=272"></script>
+<script src="OFFGRD-caller-sit.js?v=272"></script>
+<script src="OFFGRD-formations-data.js?v=272"></script>
+<script src="OFFGRD-formation-canon.js?v=272"></script>
+<script src="OFFGRD-assist-import.js?v=272"></script>
+<script src="OFFGRD-cv-review.js?v=272"></script>
+<script src="OFFGRD-frame-capture.js?v=272"></script>
+<script src="OFFGRD-caller-log.js?v=272"></script>
+<script src="OFFGRD-caller-sync.js?v=272"></script>
+<script src="OFFGRD-caller-analysis.js?v=272"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=272"></script>
+<script src="OFFGRD-booth-ask.js?v=272"></script>
+<script src="OFFGRD-boothpack.js?v=272"></script>
+<script src="OFFGRD-booth-chat.js?v=272"></script>
+<script src="OFFGRD-caller-select.js?v=272"></script>
+<script src="OFFGRD-dcaller.js?v=272"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -3196,28 +3198,82 @@ function callerBoothFinalFacts(){
   }catch(e){}
   return null;
 }
+function callerBoothChatOpts(surface){
+  const isFinal=surface==="final";
+  const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
+  const payload=callerBoothAskPayload(isFinal?"final":"live");
+  return {
+    side:"offense",
+    payload:payload,
+    session:sess,
+    sit:typeof callerSit!=="undefined"?callerSit:null,
+    gameId:sess&&sess.gameId,
+    breaks:typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[]
+  };
+}
+function callerBoothThreadHtml(){
+  const Chat=window.OFFGRD_BOOTH_CHAT;
+  if(!Chat||typeof Chat.getThread!=="function") return "";
+  const snap=(CALLER_LOG||[]).length+((typeof callerDefenseLog==="function"?callerDefenseLog():[])||[]).length;
+  try{ Chat.markStale(snap); }catch(e){}
+  const th=Chat.getThread()||[];
+  if(!th.length) return "";
+  let h=`<div class="rd-booth-thread" id="rd-booth-thread">`;
+  th.forEach(m=>{
+    const role=m.role==="user"?"user":"assistant";
+    const stale=m.stale?" is-stale":"";
+    h+=`<div class="rd-booth-msg rd-booth-msg-${role}${stale}" data-id="${esc(m.id||"")}">`;
+    if(role==="user") h+=`<p class="rd-booth-msg-q">${esc(m.text||"")}</p>`;
+    else{
+      const lines=(m.lines&&m.lines.length)?m.lines:String(m.text||"").split(/\n+/).filter(Boolean);
+      if(m.status==="pending"||m.status==="streaming"){
+        h+=`<p class="foot rd-booth-ask-status" data-booth-stream="1">${esc(m.status==="streaming"?(m.text||"…"):(m.notice||"Asking Booth…"))}</p>`;
+      }
+      lines.forEach(ln=>{ h+=`<p class="rd-booth-line">${esc(ln)}</p>`; });
+      if(m.snapAt!=null) h+=`<p class="foot rd-booth-fresh">as of snap ${esc(String(m.snapAt))}</p>`;
+      if(m.notice) h+=`<p class="foot rd-booth-notice">${esc(m.notice)}</p>`;
+      if(m.stale) h+=`<button type="button" class="rd-booth-reask" onclick="callerBoothReask('${esc(m.id||"")}')">Re-ask</button>`;
+    }
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+function callerBoothPatchStream(){
+  const el=document.querySelector("#rd-booth-thread [data-booth-stream]");
+  const Chat=window.OFFGRD_BOOTH_CHAT;
+  if(!el||!Chat) return;
+  const th=Chat.getThread()||[];
+  const last=th[th.length-1];
+  if(last&&last.role==="assistant") el.textContent=last.text||"Asking Booth…";
+}
+function callerBoothReask(id){
+  const Chat=window.OFFGRD_BOOTH_CHAT;
+  if(!Chat||typeof Chat.reask!=="function") return;
+  CALLER_BOOTH_CHIP=null;
+  Chat.reask(id, callerBoothChatOpts("live"), function(st){
+    if(!st) return;
+    if(st.status==="streaming"){ callerBoothPatchStream(); return; }
+    CALLER_BOOTH_ASK={ status:st.status, message:st.message||st.notice||null, question:"", lines:st.lines||[], thin:[] };
+    renderCaller();
+  });
+}
 function callerBoothAskSubmit(surface){
   const isFinal=surface==="final";
-  const B=window.OFFGRD_BOOTH_ASK;
+  const Chat=window.OFFGRD_BOOTH_CHAT;
   const inp=document.getElementById(isFinal?"rd-booth-ask-q-final":"rd-booth-ask-q");
   const q=inp?inp.value:"";
-  if(!B||typeof B.ask!=="function"){
-    CALLER_BOOTH_ASK={ status:"error", message:"Booth ask not loaded.", lines:[], thin:[] };
+  /* B1: typed text → booth-chat free-form. Chips stay on closed-intent. */
+  if(!Chat||typeof Chat.askFreeform!=="function"){
+    CALLER_BOOTH_ASK={ status:"error", message:"Booth chat not loaded.", lines:[], thin:[] };
     renderCaller();
     return;
   }
   CALLER_BOOTH_CHIP=null;
-  const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
-  B.ask(q,{
-    payload:callerBoothAskPayload(isFinal?"final":"live"),
-    tier:isFinal?"final":"live",
-    gameId:sess&&sess.gameId,
-    snapCount:(CALLER_LOG||[]).length,
-    session:sess
-  },function(st){
+  if(inp) inp.value="";
+  Chat.askFreeform(q, callerBoothChatOpts(isFinal?"final":"live"), function(st){
     if(!st) return;
-    /* Ignore late template settle after a newer ask started. */
-    if(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.token&&st.token&&CALLER_BOOTH_ASK.token!==st.token) return;
+    if(st.status==="streaming"){ callerBoothPatchStream(); return; }
     if(st.status==="offline"){
       CALLER_BOOTH_ASK={ status:"offline", message:st.message||"Free questions need a connection — chips work anywhere.", lines:[], thin:[] };
       renderCaller();
@@ -3229,20 +3285,18 @@ function callerBoothAskSubmit(surface){
       return;
     }
     if(st.status==="pending"){
-      CALLER_BOOTH_ASK={ status:"pending", question:st.question, message:st.message||"Asking Booth…", lines:[], thin:[] };
+      CALLER_BOOTH_ASK={ status:"pending", question:q, message:st.message||"Asking Booth…", lines:[], thin:[] };
       renderCaller();
       return;
     }
-    if(st.status==="template"||st.status==="done"){
+    if(st.status==="done"){
       CALLER_BOOTH_ASK={
-        status:st.status,
-        question:st.question,
-        intent:st.intent,
+        status:"done",
+        question:q,
         lines:st.lines||[],
-        thin:st.thin||[],
-        source:st.source||"template",
-        refused:!!st.refused,
-        message:st.refused?null:(st.source==="llm"?null:"Booth says")
+        thin:[],
+        source:"chat",
+        message:st.notice||null
       };
       renderCaller();
     }
@@ -3283,22 +3337,17 @@ function callerBoothChipsHtml(opts){
   if(online){
     const qKeep=(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.question)||"";
     h+=`<form class="rd-booth-ask" onsubmit="${askFn};return false;">`;
-    h+=`<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="160" autocomplete="off" placeholder="${isFinal?"Ask Booth about tonight's game…":"Ask Booth a question…"}" value="${esc(qKeep)}">`;
+    h+=`<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="240" autocomplete="off" placeholder="${isFinal?"Ask Booth about tonight's game…":"Ask Booth a question…"}" value="${esc(qKeep)}">`;
     h+=`<button type="submit" class="rd-booth-ask-btn">Ask</button>`;
     h+=`</form>`;
   }else{
     h+=`<p class="foot rd-booth-offline">Free questions need a connection — chips work anywhere.</p>`;
   }
-  if(CALLER_BOOTH_ASK&&(CALLER_BOOTH_ASK.status==="pending"||CALLER_BOOTH_ASK.message)&&!(CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length)){
+  h+=callerBoothThreadHtml();
+  if(CALLER_BOOTH_ASK&&(CALLER_BOOTH_ASK.status==="pending"||CALLER_BOOTH_ASK.message)&&!(CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length)&&!(window.OFFGRD_BOOTH_CHAT&&OFFGRD_BOOTH_CHAT.getThread&&OFFGRD_BOOTH_CHAT.getThread().length)){
     h+=`<p class="foot rd-booth-ask-status">${esc(CALLER_BOOTH_ASK.message||"Asking Booth…")}</p>`;
   }
-  if(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length){
-    h+=`<div class="rd-booth-answer">`;
-    (CALLER_BOOTH_ASK.lines||[]).forEach((ln,i)=>{
-      h+=`<p class="rd-booth-line${CALLER_BOOTH_ASK.thin&&CALLER_BOOTH_ASK.thin[i]?" is-thin":""}">${esc(ln)}</p>`;
-    });
-    h+=`</div>`;
-  }else if(CALLER_BOOTH_CHIP){
+  if(CALLER_BOOTH_CHIP){
     const ans=A.boothChipAnswer(CALLER_BOOTH_CHIP,payload);
     h+=`<div class="rd-booth-answer">`;
     (ans.lines||[]).forEach((ln,i)=>{
@@ -3435,6 +3484,7 @@ function callerRefold(opts){
   CALLER_LOG=folded.log||[];
   CALLER_COLLISIONS=folded.collisions||[];
   CALLER_ACTIVITY=folded.activity||[];
+  try{ if(window.OFFGRD_BOOTHPACK&&OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate(); }catch(e){}
   callerSyncToGames(opts);
 }
 /** Write folded (non-superseded) calls into GAMES ours · one dataset for bestCallsFor. */
@@ -5399,7 +5449,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=270", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=272", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5722,9 +5772,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=270"></script>
-<script src="OFFGRD-role-gate.js?v=270"></script>
-<script src="OFFGRD-mobile.js?v=270"></script>
+<script type="module" src="OFFGRD-account.js?v=272"></script>
+<script src="OFFGRD-role-gate.js?v=272"></script>
+<script src="OFFGRD-mobile.js?v=272"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
