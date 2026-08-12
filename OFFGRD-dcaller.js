@@ -554,74 +554,148 @@
     return null;
   }
 
+  function boothChatOpts(surface) {
+    var isFinal = surface === "final";
+    var sess = ensureSession();
+    return {
+      side: "defense",
+      payload: boothAskPayload(isFinal ? "final" : "live"),
+      session: sess,
+      sit: sit,
+      gameId: sess && sess.gameId,
+      breaks: breaks || [],
+    };
+  }
+
+  function boothThreadHtml() {
+    var Chat = global.OFFGRD_BOOTH_CHAT;
+    if (!Chat || typeof Chat.getThread !== "function") return "";
+    var oLen = 0;
+    try {
+      if (typeof global.CALLER_LOG !== "undefined" && global.CALLER_LOG) oLen = global.CALLER_LOG.length;
+    } catch (e) {}
+    var snap = oLen + (log || []).length;
+    try {
+      Chat.markStale(snap);
+    } catch (e2) {}
+    var th = Chat.getThread() || [];
+    if (!th.length) return "";
+    var h = `<div class="rd-booth-thread" id="rd-booth-thread-d">`;
+    th.forEach(function (m) {
+      var role = m.role === "user" ? "user" : "assistant";
+      var stale = m.stale ? " is-stale" : "";
+      h += `<div class="rd-booth-msg rd-booth-msg-${role}${stale}" data-id="${esc(m.id || "")}">`;
+      if (role === "user") h += `<p class="rd-booth-msg-q">${esc(m.text || "")}</p>`;
+      else {
+        var lines =
+          m.lines && m.lines.length ? m.lines : String(m.text || "").split(/\n+/).filter(Boolean);
+        if (m.status === "pending" || m.status === "streaming") {
+          h += `<p class="foot rd-booth-ask-status" data-booth-stream="1">${esc(
+            m.status === "streaming" ? m.text || "…" : m.notice || "Asking Booth…"
+          )}</p>`;
+        }
+        lines.forEach(function (ln) {
+          h += `<p class="rd-booth-line">${esc(ln)}</p>`;
+        });
+        if (m.snapAt != null) h += `<p class="foot rd-booth-fresh">as of snap ${esc(String(m.snapAt))}</p>`;
+        if (m.notice) h += `<p class="foot rd-booth-notice">${esc(m.notice)}</p>`;
+        if (m.stale) {
+          h += `<button type="button" class="rd-booth-reask" onclick="OFFGRD_DCALLER.boothReask('${esc(
+            m.id || ""
+          )}')">Re-ask</button>`;
+        }
+      }
+      h += `</div>`;
+    });
+    h += `</div>`;
+    return h;
+  }
+
+  function boothPatchStream() {
+    var el = document.querySelector("#rd-booth-thread-d [data-booth-stream], #rd-booth-thread [data-booth-stream]");
+    var Chat = global.OFFGRD_BOOTH_CHAT;
+    if (!el || !Chat) return;
+    var th = Chat.getThread() || [];
+    var last = th[th.length - 1];
+    if (last && last.role === "assistant") el.textContent = last.text || "Asking Booth…";
+  }
+
+  function boothReask(id) {
+    var Chat = global.OFFGRD_BOOTH_CHAT;
+    if (!Chat || typeof Chat.reask !== "function") return;
+    boothChip = null;
+    Chat.reask(id, boothChatOpts("live"), function (st) {
+      if (!st) return;
+      if (st.status === "streaming") {
+        boothPatchStream();
+        return;
+      }
+      boothAsk = { status: st.status, message: st.message || st.notice || null, question: "", lines: st.lines || [], thin: [] };
+      render();
+    });
+  }
+
   function boothAskSubmit(surface) {
     var isFinal = surface === "final";
-    var B = global.OFFGRD_BOOTH_ASK;
+    var Chat = global.OFFGRD_BOOTH_CHAT;
     var inp = document.getElementById(isFinal ? "rd-booth-ask-q-d-final" : "rd-booth-ask-q-d");
     var q = inp ? inp.value : "";
-    if (!B || typeof B.ask !== "function") {
-      boothAsk = { status: "error", message: "Booth ask not loaded.", lines: [], thin: [] };
+    if (!Chat || typeof Chat.askFreeform !== "function") {
+      boothAsk = { status: "error", message: "Booth chat not loaded.", lines: [], thin: [] };
       render();
       return;
     }
     boothChip = null;
-    var sess = ensureSession();
-    B.ask(
-      q,
-      {
-        payload: boothAskPayload(isFinal ? "final" : "live"),
-        tier: isFinal ? "final" : "live",
-        gameId: sess && sess.gameId,
-        snapCount: (log || []).length,
-        session: sess,
-      },
-      function (st) {
-        if (!st) return;
-        if (st.status === "offline") {
-          boothAsk = {
-            status: "offline",
-            message: st.message || "Free questions need a connection — chips work anywhere.",
-            lines: [],
-            thin: [],
-          };
-          render();
-          return;
-        }
-        if (st.status === "error") {
-          boothAsk = {
-            status: "error",
-            message: st.message || "Couldn't reach Booth — try the chips.",
-            lines: [],
-            thin: [],
-          };
-          render();
-          return;
-        }
-        if (st.status === "pending") {
-          boothAsk = {
-            status: "pending",
-            question: st.question,
-            message: st.message || "Asking Booth…",
-            lines: [],
-            thin: [],
-          };
-          render();
-          return;
-        }
-        if (st.status === "template" || st.status === "done") {
-          boothAsk = {
-            status: st.status,
-            question: st.question,
-            intent: st.intent,
-            lines: st.lines || [],
-            thin: st.thin || [],
-            source: st.source || "template",
-            refused: !!st.refused,
-          };
-          render();
-        }
+    if (inp) inp.value = "";
+    Chat.askFreeform(q, boothChatOpts(isFinal ? "final" : "live"), function (st) {
+      if (!st) return;
+      if (st.status === "streaming") {
+        boothPatchStream();
+        return;
       }
-    );
+      if (st.status === "offline") {
+        boothAsk = {
+          status: "offline",
+          message: st.message || "Free questions need a connection — chips work anywhere.",
+          lines: [],
+          thin: [],
+        };
+        render();
+        return;
+      }
+      if (st.status === "error") {
+        boothAsk = {
+          status: "error",
+          message: st.message || "Couldn't reach Booth — try the chips.",
+          lines: [],
+          thin: [],
+        };
+        render();
+        return;
+      }
+      if (st.status === "pending") {
+        boothAsk = {
+          status: "pending",
+          question: q,
+          message: st.message || "Asking Booth…",
+          lines: [],
+          thin: [],
+        };
+        render();
+        return;
+      }
+      if (st.status === "done") {
+        boothAsk = {
+          status: "done",
+          question: q,
+          lines: st.lines || [],
+          thin: [],
+          source: "chat",
+          message: st.notice || null,
+        };
+        render();
+      }
+    });
   }
 
   function boothChipsHtml(opts) {
@@ -656,7 +730,7 @@
     if (online) {
       var qKeep = (boothAsk && boothAsk.question) || "";
       h += `<form class="rd-booth-ask" onsubmit="${askFn};return false;">`;
-      h += `<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="160" autocomplete="off" placeholder="${
+      h += `<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="240" autocomplete="off" placeholder="${
         isFinal ? "Ask Booth about tonight's game…" : "Ask Booth a question…"
       }" value="${esc(qKeep)}">`;
       h += `<button type="submit" class="rd-booth-ask-btn">Ask</button>`;
@@ -664,21 +738,16 @@
     } else {
       h += `<p class="foot rd-booth-offline">Free questions need a connection — chips work anywhere.</p>`;
     }
+    h += boothThreadHtml();
     if (
       boothAsk &&
       (boothAsk.status === "pending" || boothAsk.message) &&
-      !(boothAsk.lines && boothAsk.lines.length)
+      !(boothAsk.lines && boothAsk.lines.length) &&
+      !(global.OFFGRD_BOOTH_CHAT && OFFGRD_BOOTH_CHAT.getThread && OFFGRD_BOOTH_CHAT.getThread().length)
     ) {
       h += `<p class="foot rd-booth-ask-status">${esc(boothAsk.message || "Asking Booth…")}</p>`;
     }
-    if (boothAsk && boothAsk.lines && boothAsk.lines.length) {
-      h += `<div class="rd-booth-answer">`;
-      (boothAsk.lines || []).forEach(function (ln, i) {
-        var thin = boothAsk.thin && boothAsk.thin[i] ? " is-thin" : "";
-        h += `<p class="rd-booth-line${thin}">${esc(ln)}</p>`;
-      });
-      h += `</div>`;
-    } else if (boothChip) {
+    if (boothChip) {
       var ans = An.boothChipAnswer(boothChip, payload);
       h += `<div class="rd-booth-answer">`;
       (ans.lines || []).forEach(function (ln, i) {
@@ -998,6 +1067,9 @@
     if (!eng || !eng.foldCallerEvents) return;
     var folded = eng.foldCallerEvents(events);
     log = folded.log || [];
+    try {
+      if (global.OFFGRD_BOOTHPACK && OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate();
+    } catch (e) {}
   }
 
   function loadSession() {
@@ -2823,6 +2895,7 @@
     sendMondayFocusToPractice: sendMondayFocusToPractice,
     setBoothChip: setBoothChip,
     boothAskSubmit: boothAskSubmit,
+    boothReask: boothReask,
     tendencyShiftSample: tendencyShiftSample,
     collectActiveShifts: collectActiveShifts,
     /** Always rebuild from folded log (same rows the call log displays). */

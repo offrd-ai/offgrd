@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "271";
+  const ASSET_V = "272";
 
   function getScoutTool() {
     try {
@@ -1411,6 +1411,17 @@
       'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
       '}',
       'html.rd-on #view-caller .rd-booth-ask{display:flex;gap:8px;align-items:stretch;margin:0 0 8px;}',
+      'html.rd-on #view-caller .rd-booth-thread{display:flex;flex-direction:column;gap:10px;margin:0 0 10px;max-height:42vh;overflow:auto;}',
+      'html.rd-on #view-caller .rd-booth-msg{padding:8px 10px;border-radius:var(--radius-ctl);background:var(--rd-surface-2);border:1px solid var(--rd-border);}',
+      'html.rd-on #view-caller .rd-booth-msg-user{background:transparent;border-style:dashed;}',
+      'html.rd-on #view-caller .rd-booth-msg-q{margin:0;font-weight:700;font-size:14px;color:var(--rd-text);}',
+      'html.rd-on #view-caller .rd-booth-msg.is-stale{opacity:.55;}',
+      'html.rd-on #view-caller .rd-booth-fresh,.rd-booth-notice{margin:4px 0 0;font-size:11px;}',
+      'html.rd-on #view-caller .rd-booth-reask{',
+      'margin-top:6px;min-height:36px;padding:6px 10px;font-weight:700;font-size:12px;cursor:pointer;',
+      'background:var(--rd-surface)!important;border:1px solid var(--rd-border)!important;color:var(--rd-text)!important;',
+      'border-radius:var(--radius-ctl)!important;',
+      '}',
       'html.rd-on #view-caller .rd-booth-ask-input{',
       'flex:1;min-width:0;min-height:44px;padding:10px 12px;box-sizing:border-box;',
       'background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);',
