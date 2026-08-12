@@ -2748,15 +2748,38 @@
     h += driveToastHtml();
     h += lastPlayBarHtml();
     h += editPanelHtml();
-    h += `<div class="rd-gd-flow no-print"><span class="rd-gd-flow-step on"><i>1</i>Sit</span><span class="rd-gd-flow-sep">→</span>`;
-    h += `<span class="rd-gd-flow-step"><i>2</i>Expect</span><span class="rd-gd-flow-sep">→</span>`;
-    h += `<span class="rd-gd-flow-step"><i>3</i>Call</span><span class="rd-gd-flow-sep">→</span>`;
-    h += `<span class="rd-gd-flow-step"><i>4</i>Result</span></div>`;
+    var flowCur = 1;
+    var liveOn = liveCall();
+    if (liveOn && liveOn.play && !liveOn.result) {
+      flowCur = sit.coverage || sit.front || sit.pressure ? 4 : 3;
+    } else if (sit.needsInput || sit.inferred) {
+      flowCur = 1;
+    } else if (liveOn && liveOn.play && liveOn.result) {
+      flowCur = 1;
+    } else {
+      flowCur = 2; /* sit set · Expect / ready */
+    }
+    var flowSteps = [
+      { n: 1, l: "Sit" },
+      { n: 2, l: "Expect" },
+      { n: 3, l: "Call" },
+      { n: 4, l: "Result" },
+    ];
+    h += `<div class="rd-gd-flow no-print" aria-label="Guided call loop">`;
+    flowSteps.forEach(function (s, i) {
+      var cls =
+        "rd-gd-flow-step" +
+        (s.n === flowCur ? " on" : "") +
+        (s.n < flowCur ? " done" : "");
+      if (i) h += `<span class="rd-gd-flow-sep" aria-hidden="true">→</span>`;
+      h += `<span class="${cls}"><i>${s.n}</i>${s.l}</span>`;
+    });
+    h += `</div>`;
 
     var sitTry = !!sit.pendingTry;
     var sitTwo = !!sit.forTwo;
     h += `<div id="dcaller-sit-anchor" class="rd-gd-sit${sit.inferred ? " rd-gd-sit-inferred" : ""}${sit.needsInput || sitTry || sitTwo ? " rd-gd-sit-needs" : ""}">`;
-    h += `<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker">1 · Their situation</span> ${esc(sitTwo ? "2-pt" : sitTxt())}`;
+    h += `<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker"><span class="rd-gd-section-num">1</span><span class="rd-gd-section-title">Their situation</span></span> ${esc(sitTwo ? "2-pt" : sitTxt())}`;
     if (sit.inferred) h += ` <span class="rd-gd-sit-est">est.</span>`;
     if (sit.needsInput) h += ` <span class="rd-gd-sit-need">confirm</span>`;
     if (sitTry) h += ` <span class="rd-gd-sit-need">try</span>`;
@@ -2825,7 +2848,7 @@
         h += sectionKickerHtml(
           3,
           "Your D call",
-          "Front / Coverage / Blitz/Stunt · optional · clears after each snap"
+          "Front · Coverage · Blitz/Stunt · optional · clears after each snap"
         );
         h += lookHtml();
         h += stRowHtml();
