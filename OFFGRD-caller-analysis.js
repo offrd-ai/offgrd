@@ -878,14 +878,217 @@
     );
   }
 
+  /** Live panel line — string or {text,badge,low,n}. LOW when n<3. */
+  function liveLine(text, nOrOpts) {
+    var opts =
+      nOrOpts != null && typeof nOrOpts === "object" && !Array.isArray(nOrOpts)
+        ? nOrOpts
+        : { n: nOrOpts };
+    var n = opts.n;
+    var low = !!opts.low || (n != null && n < 3);
+    var o = { text: String(text == null ? "" : text) };
+    if (n != null) o.n = n;
+    if (low) {
+      o.low = true;
+      o.badge = "LOW";
+    }
+    return o;
+  }
+
+  function lineText(ln) {
+    if (ln == null) return "";
+    if (typeof ln === "string") return ln;
+    return ln.text != null ? String(ln.text) : "";
+  }
+
+  function normalizeSectionLines(sec) {
+    if (!sec || !sec.lines) return sec;
+    sec.lines = sec.lines.map(function (ln) {
+      if (typeof ln === "string") return liveLine(ln);
+      if (ln && typeof ln === "object" && ln.text != null) return ln;
+      return liveLine(String(ln));
+    });
+    return sec;
+  }
+
+  function coverFamilyOf(cov) {
+    var M = global.OFFGRD_MATCHUP;
+    if (M && typeof M.familyOf === "function") {
+      try {
+        return M.familyOf(cov);
+      } catch (e) {}
+    }
+    if (cov == null || cov === "") return null;
+    var l = String(cov).toLowerCase();
+    var m = l.match(/cover\s*([0-6])|cov\s*([0-6])|\bc\s*([0-6])\b/);
+    if (m) {
+      var n = m[1] || m[2] || m[3];
+      if (n === "0") return "C0";
+      if (n === "1") return "C1";
+      if (n === "2") return "C2";
+      if (n === "3" || n === "5") return "C3";
+      if (n === "4" || n === "6") return "C4";
+    }
+    if (/quarter/.test(l)) return "C4";
+    if (/\bman\b/.test(l)) return "C1";
+    return null;
+  }
+
+  /** Histogram of coverage / front / pressure on graded O snaps. */
+  function lookFieldMix(log, field) {
+    var counts = {};
+    var tagged = 0;
+    var graded = 0;
+    (log || []).forEach(function (e) {
+      if (!isGraded(e) || isNegated(e) || isTrySnap(e) || isSpecialType(e.playType)) return;
+      graded++;
+      var v = e[field];
+      if (v == null || v === "" || v === "?") return;
+      if (field === "pressure" && (v === "none" || v === 0 || v === "0")) return;
+      tagged++;
+      var key = String(v);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    var rows = Object.keys(counts)
+      .map(function (k) {
+        return { k: k, n: counts[k], pct: tagged ? counts[k] / tagged : 0, fam: coverFamilyOf(k) };
+      })
+      .sort(function (a, b) {
+        return b.n - a.n;
+      });
+    return {
+      rows: rows,
+      tagged: tagged,
+      graded: graded,
+      rate: graded ? tagged / graded : 0,
+    };
+  }
+
+  /** tonight covDist shape for matchup.rankPlaysByEv / normalizeCovDist. */
+  function tonightCovDistFromLog(log) {
+    var mix = lookFieldMix(log, "coverage");
+    if (!mix.tagged) return { arr: [] };
+    var byFam = {};
+    mix.rows.forEach(function (r) {
+      var fam = r.fam || r.k;
+      if (!fam) return;
+      byFam[fam] = (byFam[fam] || 0) + r.pct;
+    });
+    var arr = Object.keys(byFam).map(function (fam) {
+      return { k: fam, fam: fam, pct: byFam[fam] };
+    });
+    var tot = arr.reduce(function (s, a) {
+      return s + a.pct;
+    }, 0);
+    if (tot > 0) {
+      arr.forEach(function (a) {
+        a.pct = a.pct / tot;
+      });
+    }
+    return { arr: arr };
+  }
+
+  function seasonPctForFam(seasonCovDist, fam, label) {
+    if (!seasonCovDist || !fam) return null;
+    var arr = Array.isArray(seasonCovDist)
+      ? seasonCovDist
+      : seasonCovDist.arr || [];
+    for (var i = 0; i < arr.length; i++) {
+      var a = arr[i];
+      if (!a) continue;
+      var af = a.fam || coverFamilyOf(a.k) || a.k;
+      if (af === fam || a.k === label || a.k === fam) return +a.pct;
+    }
+    return null;
+  }
+
+  function groupRatesByPlay(log) {
+    var groups = {};
+    (log || []).forEach(function (e) {
+      if (!isGraded(e) || isNegated(e) || isTrySnap(e)) return;
+      if (isSpecialType(e.playType)) return;
+      var key = e.play ? String(e.play) : "?";
+      if (!groups[key]) groups[key] = { key: key, n: 0, success: 0, yards: 0, yardsN: 0 };
+      groups[key].n++;
+      if (e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db))) groups[key].success++;
+      if (e.gain != null && !isNaN(+e.gain)) {
+        groups[key].yards += +e.gain;
+        groups[key].yardsN++;
+      }
+    });
+    return Object.keys(groups)
+      .map(function (k) {
+        return groups[k];
+      })
+      .sort(function (a, b) {
+        return b.n - a.n;
+      });
+  }
+
+  function playRateLine(g) {
+    var sr = g.n ? g.success / g.n : 0;
+    var ypa = g.yardsN > 0 ? (g.yards / g.yardsN).toFixed(1) : "—";
+    return liveLine(
+      g.key + " · " + fmtPct(sr) + " success · " + ypa + " yds · n=" + g.n,
+      g.n
+    );
+  }
+
   /**
-   * Halftime — flagship, full-screen, 4 sections. Template-only (no LLM).
-   * Must paint offline in <2s. Shift lines use the same tendencyShift result objects
-   * the Expect strip uses (callers pass opts.shifts from that function).
-   *
-   * opts: { offenseLog, defenseLog, shifts:[{bucket,shift}], shift }
+   * Strong drive-end signals for feed inference (deterministic).
+   * Returns { kind: score|takeaway|downs, label, playIndex } or null.
    */
-  function halftimeTemplate(opts) {
+  function inferDriveEndFromSnap(e) {
+    if (!e || !isGraded(e) || isNegated(e)) return null;
+    var pi = e.playIndex != null ? e.playIndex : null;
+    if (e.result === "td" || e.result === "safety") {
+      return { kind: "score", label: e.result === "safety" ? "Safety" : "Score", playIndex: pi };
+    }
+    if (e.result === "turnover" || e.result === "def_td") {
+      return {
+        kind: "takeaway",
+        label: e.result === "def_td" ? "Def TD" : "Takeaway",
+        playIndex: pi,
+      };
+    }
+    var pe = possessionEnd(e);
+    if (pe === "turnover_on_downs") {
+      return { kind: "downs", label: "Failed 4th", playIndex: pi };
+    }
+    return null;
+  }
+
+  /** Coverage look-shift when tonight mix vs season crosses ≥3 and ≥25pp. */
+  function lookCoverageShift(oLog, seasonCovDist) {
+    var mix = lookFieldMix(oLog, "coverage");
+    if (mix.tagged < 3) return null;
+    var top = mix.rows[0];
+    if (!top) return null;
+    var fam = top.fam || top.k;
+    var seasonPct = seasonPctForFam(seasonCovDist, fam, top.k);
+    if (seasonPct == null) return null;
+    var delta = top.pct - seasonPct;
+    if (Math.abs(delta) < 0.25) return null;
+    return {
+      label: top.k,
+      fam: fam,
+      livePct: top.pct,
+      seasonPct: seasonPct,
+      liveN: top.n,
+      delta: delta,
+      line:
+        top.k +
+        " " +
+        fmtPct(top.pct) +
+        " tonight · " +
+        fmtPct(seasonPct) +
+        " season (n=" +
+        top.n +
+        ")",
+    };
+  }
+
+  function defenseLiveSections(opts) {
     opts = opts || {};
     var oLog = opts.offenseLog || [];
     var dLog = opts.defenseLog || [];
@@ -899,16 +1102,19 @@
       offenseN: oLog.length,
       defenseN: dLog.length,
       shifts: [],
+      side: "defense",
     };
 
-    /* ---- 1. What they're doing (D) ---- */
     var whatLines = [];
     var whatFacts = { defenseN: dLog.length };
     var dPass = passShare(dLog);
     if (dPass != null) {
       whatFacts.dPass = dPass;
       whatLines.push(
-        "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")"
+        liveLine(
+          "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")",
+          dLog.length
+        )
       );
     }
     ["1st", "2nd short", "2nd long", "3rd"].forEach(function (bucket) {
@@ -916,8 +1122,13 @@
         return isGraded(e) && !isNegated(e) && !isTrySnap(e) && downBucket(e) === bucket;
       });
       var ps = passShare(snaps);
-      if (ps != null && snaps.length >= 2) {
-        whatLines.push(bucket + ": " + fmtPct(1 - ps) + " / " + fmtPct(ps) + " (n=" + snaps.length + ")");
+      if (ps != null && snaps.length >= 1) {
+        whatLines.push(
+          liveLine(
+            bucket + ": " + fmtPct(1 - ps) + " / " + fmtPct(ps) + " (n=" + snaps.length + ")",
+            snaps.length
+          )
+        );
         whatFacts[bucket] = { pass: ps, n: snaps.length };
       }
     });
@@ -930,14 +1141,14 @@
       return dirCounts[b] - dirCounts[a];
     })[0];
     if (topDir) {
-      whatLines.push("Direction lean: " + topDir + " (" + dirCounts[topDir] + ")");
+      whatLines.push(liveLine("Direction lean: " + topDir + " (" + dirCounts[topDir] + ")", dirCounts[topDir]));
       whatFacts.topDir = { dir: topDir, n: dirCounts[topDir] };
     }
     shifts.forEach(function (row) {
       if (!row || !row.shift) return;
       var line = shiftLine(row.bucket || "", row.shift);
       if (line) {
-        whatLines.push(line);
+        whatLines.push(liveLine(line, row.shift.liveN));
         facts.shifts.push({
           bucket: row.bucket || "",
           livePass: row.shift.livePass,
@@ -948,8 +1159,8 @@
         });
       }
     });
-    whatLines.push("Formations: season data (live snaps have no formation tags)");
-    if (!whatLines.length) whatLines.push("No graded D snaps yet.");
+    whatLines.push(liveLine("Formations: season data (live snaps have no formation tags)", { low: false }));
+    if (!whatLines.length) whatLines.push(liveLine("No graded D snaps yet.", 0));
     sections.push({
       id: "what_they",
       title: "What they're doing",
@@ -957,7 +1168,6 @@
       facts: whatFacts,
     });
 
-    /* ---- 2. What's working / failing ---- */
     var workLines = [];
     var workFacts = {};
     var dGroups = groupRates(dLog, "defense").slice(0, 6);
@@ -965,14 +1175,19 @@
       return { key: g.key, n: g.n, chunks: g.chunks, success: g.success };
     });
     dGroups.forEach(function (g) {
-      workLines.push(g.key + ": " + g.n + " snaps, " + g.chunks + " chunk" + (g.chunks === 1 ? "" : "s") + " allowed");
+      workLines.push(
+        liveLine(
+          g.key + ": " + g.n + " snaps, " + g.chunks + " chunk" + (g.chunks === 1 ? "" : "s") + " allowed",
+          g.n
+        )
+      );
     });
     var oGroups = groupRates(oLog, "offense").slice(0, 4);
     workFacts.oGroups = oGroups.map(function (g) {
       return { key: g.key, n: g.n, success: g.success };
     });
     oGroups.forEach(function (g) {
-      workLines.push("O " + g.key + ": " + g.success + "/" + g.n + " success");
+      workLines.push(liveLine("O " + g.key + ": " + g.success + "/" + g.n + " success", g.n));
     });
     var o3 = oLog.filter(function (e) {
       return +e.dn === 3 && isGraded(e) && !isNegated(e);
@@ -982,7 +1197,7 @@
         return e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db));
       }).length;
       workFacts.o3 = { ok: o3ok, n: o3.length };
-      workLines.push("O 3rd down: " + o3ok + "/" + o3.length);
+      workLines.push(liveLine("O 3rd down: " + o3ok + "/" + o3.length, o3.length));
     }
     var d3 = dLog.filter(function (e) {
       return +e.dn === 3 && isGraded(e) && !isNegated(e);
@@ -992,7 +1207,7 @@
         return e.isStop || e.success === 1 || (e.gain != null && +e.gain < dbToNum(e.db));
       }).length;
       workFacts.d3 = { stop: d3stop, n: d3.length };
-      workLines.push("D 3rd down stops: " + d3stop + "/" + d3.length);
+      workLines.push(liveLine("D 3rd down stops: " + d3stop + "/" + d3.length, d3.length));
     }
     var rz = function (e) {
       return e.zone === "RZ" || e.zone === "red" || /red/i.test(String(e.zone || ""));
@@ -1004,10 +1219,12 @@
       return rz(e) && isGraded(e) && !isNegated(e);
     });
     if (oRz.length || dRz.length) {
-      workLines.push("Red zone: O " + oRz.length + " snaps · D " + dRz.length + " snaps");
+      workLines.push(
+        liveLine("Red zone: O " + oRz.length + " snaps · D " + dRz.length + " snaps", oRz.length + dRz.length)
+      );
       workFacts.redZone = { o: oRz.length, d: dRz.length };
     }
-    if (!workLines.length) workLines.push("Not enough graded snaps for call rates yet.");
+    if (!workLines.length) workLines.push(liveLine("Not enough graded snaps for call rates yet.", 0));
     sections.push({
       id: "working",
       title: "What's working / failing",
@@ -1015,7 +1232,6 @@
       facts: workFacts,
     });
 
-    /* ---- 3. Suggested looks (rule-based — never LLM-originated) ---- */
     var looks = [];
     shifts.forEach(function (row) {
       if (!row || !row.shift) return;
@@ -1029,6 +1245,9 @@
           fmtPct(s.livePass) +
           " pass vs season " +
           fmtPct(s.seasonPass),
+        n: s.liveN,
+        low: s.liveN < 3,
+        badge: s.liveN < 3 ? "LOW" : undefined,
         facts: {
           kind: "shift",
           bucket: row.bucket || "",
@@ -1043,7 +1262,7 @@
     var secondLong = dLog.filter(function (e) {
       return isGraded(e) && !isNegated(e) && !isTrySnap(e) && downBucket(e) === "2nd long";
     });
-    if (secondLong.length >= 3) {
+    if (secondLong.length >= 1) {
       var slPass = passShare(secondLong);
       var slY = yardsSum(secondLong);
       var ypa = slY.n ? (slY.yards / slY.n).toFixed(1) : null;
@@ -1055,6 +1274,9 @@
           secondLong.length +
           ")" +
           (ypa != null ? " · " + ypa + " yds/att" : ""),
+        n: secondLong.length,
+        low: secondLong.length < 3,
+        badge: secondLong.length < 3 ? "LOW" : undefined,
         facts: {
           kind: "2nd_long",
           pass: slPass,
@@ -1063,57 +1285,56 @@
         },
       });
     }
-    var held = rankCallFamilies(
-      groupRates(dLog, "defense").filter(function (g) {
-        return g.n >= 3;
-      }),
-      "held"
-    ).slice(0, 3);
+    var held = rankCallFamilies(groupRates(dLog, "defense"), "held").slice(0, 3);
     held.forEach(function (g) {
-      var ypa =
-        g.yardsN > 0 ? (g.yards / g.yardsN).toFixed(1) : null;
+      var yHeld = g.yardsN > 0 ? (g.yards / g.yardsN).toFixed(1) : null;
       looks.push({
         text:
           g.key +
           " held them" +
-          (ypa != null ? " to " + ypa + " yds/att" : "") +
+          (yHeld != null ? " to " + yHeld + " yds/att" : "") +
           " · " +
           g.chunks +
           "/" +
           g.n +
           " chunks",
+        n: g.n,
+        low: g.n < 3,
+        badge: g.n < 3 ? "LOW" : undefined,
         facts: {
           kind: "held_call",
           key: g.key,
           n: g.n,
           chunks: g.chunks,
-          ypa: ypa != null ? +ypa : null,
+          ypa: yHeld != null ? +yHeld : null,
         },
       });
     });
     if (!looks.length) {
       looks.push({
-        text: "No rule-based looks yet — need ≥3 snaps in a bucket or a shift line.",
+        text: "No rule-based looks yet — waiting on snaps or a shift line.",
         facts: { kind: "empty" },
+        low: true,
+        badge: "LOW",
+        n: 0,
       });
     }
     sections.push({
       id: "suggested",
       title: "Suggested looks",
       lines: looks.map(function (l) {
-        return l.text;
+        return liveLine(l.text, { n: l.n, low: l.low });
       }),
       looks: looks,
       facts: { lookN: looks.length },
     });
 
-    /* ---- 4. Tag rollup (D) ---- */
     var tags = tagRollup(dLog);
     var tagLines = tags.length
       ? tags.map(function (t) {
-          return t.label + ": " + t.n;
+          return liveLine(t.label + ": " + t.n, t.n);
         })
-      : ["No scheme tags yet — Monday pipeline empty at half."];
+      : [liveLine("No scheme tags yet — Monday pipeline empty at half.", 0)];
     sections.push({
       id: "tags",
       title: "Tag rollup",
@@ -1121,11 +1342,257 @@
       facts: { tags: tags },
     });
 
+    return { sections: sections, facts: facts };
+  }
+
+  function offenseLiveSections(opts) {
+    opts = opts || {};
+    var oLog = opts.offenseLog || [];
+    var seasonCov = opts.seasonCovDist || null;
+    var plays = opts.plays || [];
+    var scoutRows = opts.scoutRows || [];
+    var sections = [];
+    var facts = {
+      offenseN: oLog.length,
+      defenseN: (opts.defenseLog || []).length,
+      side: "offense",
+      shifts: [],
+    };
+
+    /* ---- 1. What they're showing ---- */
+    var covMix = lookFieldMix(oLog, "coverage");
+    var frontMix = lookFieldMix(oLog, "front");
+    var pressMix = lookFieldMix(oLog, "pressure");
+    var showLines = [];
+    var showFacts = {
+      tagRate: covMix.rate,
+      coverageTagged: covMix.tagged,
+      graded: covMix.graded,
+    };
+    var thinTags = covMix.graded > 0 && covMix.rate < 0.3;
+
+    if (!thinTags && covMix.rows.length) {
+      covMix.rows.slice(0, 4).forEach(function (r) {
+        var fam = r.fam || r.k;
+        var seasonPct = seasonPctForFam(seasonCov, fam, r.k);
+        var txt = r.k + " " + fmtPct(r.pct) + " tonight";
+        if (seasonPct != null) txt += " · " + fmtPct(seasonPct) + " season";
+        txt += " (n=" + r.n + ")";
+        showLines.push(liveLine(txt, r.n));
+      });
+      if (frontMix.rows[0]) {
+        showLines.push(
+          liveLine(
+            "Front lean: " + frontMix.rows[0].k + " " + fmtPct(frontMix.rows[0].pct) + " (n=" + frontMix.rows[0].n + ")",
+            frontMix.rows[0].n
+          )
+        );
+      }
+      if (pressMix.rows[0]) {
+        showLines.push(
+          liveLine(
+            "Pressure: " + pressMix.rows[0].k + " " + fmtPct(pressMix.rows[0].pct) + " (n=" + pressMix.rows[0].n + ")",
+            pressMix.rows[0].n
+          )
+        );
+      }
+    } else {
+      /* Scout-led fallback when tags are thin */
+      var sArr = seasonCov && (Array.isArray(seasonCov) ? seasonCov : seasonCov.arr);
+      if (sArr && sArr.length) {
+        showLines.push(liveLine("Look tags thin tonight — season profile:", { low: true }));
+        sArr.slice(0, 3).forEach(function (a) {
+          showLines.push(
+            liveLine((a.k || a.fam || "?") + " " + fmtPct(a.pct) + " season", { low: true })
+          );
+        });
+      } else if (covMix.rows.length) {
+        covMix.rows.slice(0, 3).forEach(function (r) {
+          showLines.push(liveLine(r.k + " " + fmtPct(r.pct) + " tonight (n=" + r.n + ")", r.n));
+        });
+      } else {
+        showLines.push(liveLine("No look tags yet — chip Front / Coverage after the snap.", 0));
+      }
+      if (thinTags && covMix.tagged) {
+        showLines.push(
+          liveLine(
+            "Tagged " + covMix.tagged + "/" + covMix.graded + " snaps — season lines lead until tags thicken.",
+            covMix.tagged
+          )
+        );
+      }
+    }
+    showFacts.rows = covMix.rows.slice(0, 6);
+    sections.push({
+      id: "what_showing",
+      title: "What they're showing",
+      lines: showLines,
+      facts: showFacts,
+    });
+
+    /* ---- 2. What's working / failing (by play name) ---- */
+    var byPlay = groupRatesByPlay(oLog);
+    var workLines = [];
+    var workFacts = { plays: byPlay.length };
+    var rankedHot = byPlay.slice().sort(function (a, b) {
+      var d = b.n ? b.success / b.n : 0;
+      var c = a.n ? a.success / a.n : 0;
+      if (d !== c) return d - c;
+      return b.n - a.n;
+    });
+    var rankedCold = byPlay.slice().sort(function (a, b) {
+      var d = a.n ? a.success / a.n : 1;
+      var c = b.n ? b.success / b.n : 1;
+      if (d !== c) return d - c;
+      return b.n - a.n;
+    });
+    if (rankedHot.length) {
+      workLines.push(liveLine("Working", { low: false }));
+      rankedHot.slice(0, 3).forEach(function (g) {
+        workLines.push(playRateLine(g));
+      });
+    }
+    if (rankedCold.length) {
+      workLines.push(liveLine("Failing", { low: false }));
+      rankedCold.slice(0, 3).forEach(function (g) {
+        workLines.push(playRateLine(g));
+      });
+    }
+    var o3b = oLog.filter(function (e) {
+      return +e.dn === 3 && isGraded(e) && !isNegated(e);
+    });
+    if (o3b.length) {
+      var o3okb = o3b.filter(function (e) {
+        return e.success === 1 || (e.gain != null && +e.gain >= dbToNum(e.db));
+      }).length;
+      workFacts.o3 = { ok: o3okb, n: o3b.length };
+      workLines.push(liveLine("3rd down: " + o3okb + "/" + o3b.length + " converted", o3b.length));
+    } else {
+      var rzO = oLog.filter(function (e) {
+        return (
+          (e.zone === "RZ" || e.zone === "red" || /red/i.test(String(e.zone || ""))) &&
+          isGraded(e) &&
+          !isNegated(e)
+        );
+      });
+      if (rzO.length) {
+        workLines.push(liveLine("Red zone: " + rzO.length + " snaps", rzO.length));
+        workFacts.redZone = { o: rzO.length };
+      }
+    }
+    if (!byPlay.length) workLines.push(liveLine("No graded plays yet for call rates.", 0));
+    sections.push({
+      id: "working",
+      title: "What's working / failing",
+      lines: workLines,
+      facts: workFacts,
+    });
+
+    /* ---- 3. Call ideas (EV reweighted by tonight looks) ---- */
+    var ideaLines = [];
+    var ideaFacts = { source: "fallback" };
+    var tonightDist = tonightCovDistFromLog(oLog);
+    var M = global.OFFGRD_MATCHUP;
+    var called = {};
+    oLog.forEach(function (e) {
+      if (e && e.play) called[String(e.play)] = (called[String(e.play)] || 0) + 1;
+    });
+    var rankedEv = [];
+    if (M && typeof M.rankPlaysByEv === "function" && plays.length && tonightDist.arr.length) {
+      try {
+        rankedEv = M.rankPlaysByEv(plays, tonightDist, scoutRows, { limit: 8 }) || [];
+        ideaFacts.source = "matchup_ev";
+      } catch (eEv) {
+        rankedEv = [];
+      }
+    }
+    if (rankedEv.length) {
+      rankedEv.slice(0, 3).forEach(function (r) {
+        var nm = r.name || (r.play && r.play.name) || "?";
+        var lab = r.basisLabel || "SCHEME MATCH";
+        var evPct = r.ev != null ? Math.round(+r.ev * 100) + "%" : "—";
+        ideaLines.push(
+          liveLine(nm + " · EV " + evPct + " · " + lab, r.n != null ? r.n : 0)
+        );
+      });
+      var unused = null;
+      for (var ui = 0; ui < rankedEv.length; ui++) {
+        var cand = rankedEv[ui];
+        var cname = cand.name || (cand.play && cand.play.name) || "";
+        if (cname && !called[cname]) {
+          unused = cand;
+          break;
+        }
+      }
+      if (unused) {
+        var un = unused.name || (unused.play && unused.play.name) || "?";
+        var uev = unused.ev != null ? Math.round(+unused.ev * 100) + "%" : "—";
+        ideaLines.push(
+          liveLine(
+            "Unused high-EV: " + un + " · EV " + uev + " · " + (unused.basisLabel || "SCHEME MATCH"),
+            unused.n != null ? unused.n : 0
+          )
+        );
+      }
+    } else {
+      /* Deterministic fallback from working / failing ranks */
+      ideaFacts.source = "play_rates";
+      rankedHot.slice(0, 2).forEach(function (g) {
+        ideaLines.push(liveLine("Lean on " + g.key + " — " + fmtPct(g.n ? g.success / g.n : 0) + " tonight", g.n));
+      });
+      rankedCold.slice(0, 1).forEach(function (g) {
+        ideaLines.push(liveLine("Park " + g.key + " — cold at " + fmtPct(g.n ? g.success / g.n : 0), g.n));
+      });
+      var rareHot = rankedHot.filter(function (g) {
+        return (called[g.key] || 0) <= 1;
+      })[0];
+      if (rareHot) {
+        ideaLines.push(liveLine("Unused / rare: " + rareHot.key + " still grading well", rareHot.n));
+      }
+      if (!ideaLines.length) ideaLines.push(liveLine("Call ideas fill as snaps and look tags land.", 0));
+    }
+    sections.push({
+      id: "call_ideas",
+      title: "Call ideas",
+      lines: ideaLines,
+      facts: ideaFacts,
+    });
+
+    /* ---- 4. Tag rollup (O flags) for skeleton parity ---- */
+    var oTags = tagRollup(oLog);
+    var oTagLines = oTags.length
+      ? oTags.map(function (t) {
+          return liveLine(t.label + ": " + t.n, t.n);
+        })
+      : [liveLine("No outcome flags yet — optional after the grade.", 0)];
+    sections.push({
+      id: "tags",
+      title: "Flag rollup",
+      lines: oTagLines,
+      facts: { tags: oTags },
+    });
+
+    return { sections: sections, facts: facts };
+  }
+
+  /**
+   * Live / halftime skeleton — picks offense or defense content provider.
+   * opts.side: "offense" | "defense" (default defense for Final / legacy smokes).
+   * Never blends O+D into one provider.
+   */
+  function halftimeTemplate(opts) {
+    opts = opts || {};
+    var side = opts.side === "offense" ? "offense" : "defense";
+    var packed = side === "offense" ? offenseLiveSections(opts) : defenseLiveSections(opts);
+    var sections = (packed.sections || []).map(normalizeSectionLines);
+    var facts = packed.facts || {};
+    facts.side = side;
+
     var flat = [];
     sections.forEach(function (sec) {
       flat.push(sec.title);
       (sec.lines || []).forEach(function (ln) {
-        flat.push(ln);
+        flat.push(lineText(ln));
       });
     });
 
@@ -1133,6 +1600,7 @@
       sections: sections,
       facts: facts,
       lines: flat,
+      side: side,
       renderedAt: Date.now(),
     };
   }
@@ -1635,6 +2103,7 @@
     turnoverSummary: turnoverSummary,
     driveChart: driveChart,
     groupRates: groupRates,
+    groupRatesByPlay: groupRatesByPlay,
     rankCallFamilies: rankCallFamilies,
     boothChipAnswer: boothChipAnswer,
     boothChipDefs: boothChipDefs,
@@ -1642,6 +2111,14 @@
     downBucket: downBucket,
     yardsSum: yardsSum,
     endLabel: endLabel,
+    liveLine: liveLine,
+    lineText: lineText,
+    lookFieldMix: lookFieldMix,
+    tonightCovDistFromLog: tonightCovDistFromLog,
+    lookCoverageShift: lookCoverageShift,
+    inferDriveEndFromSnap: inferDriveEndFromSnap,
+    offenseLiveSections: offenseLiveSections,
+    defenseLiveSections: defenseLiveSections,
     /* Step 3 note: LLM number validation must normalize 8/11 ≡ 8 of 11 ≡ 73% before compare. */
     LLM_NUMBER_NORMALIZE_NOTE:
       "Normalize digit facts before LLM validation (8/11 === 8 of 11 === pct forms).",

@@ -254,6 +254,7 @@
     var shifts = collectActiveShifts();
     var shift = shifts.length ? shifts[0].shift : tendencyShift(expectSample());
     return {
+      side: "defense",
       offenseLog: offenseLogSnap(),
       /* Same folded log the call display reads — never raw outcome events. */
       defenseLog: log,
@@ -491,7 +492,8 @@
 
   function feedLineHtml(ev) {
     var text = ev.llmLine || ev.line || "";
-    return `<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind || "")}</span> ${esc(text)}</p>`;
+    var auto = ev.inferred || ev.auto ? ` <span class="rd-live-feed-auto">auto</span>` : "";
+    return `<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind || "")}</span> ${esc(text)}${auto}</p>`;
   }
 
   function seasonTopForm() {
@@ -807,7 +809,15 @@
       }
       if (!n) return;
       h += `<section class="rd-live-sec"><h3 class="rd-live-h">${esc(sec.title)}</h3>`;
-      for (var i = 0; i < n; i++) h += `<p class="rd-live-line">${esc(lines[i])}</p>`;
+      for (var i = 0; i < n; i++) {
+        var ln = lines[i];
+        var text = typeof ln === "string" ? ln : ln && ln.text != null ? ln.text : "";
+        var low = !!(ln && typeof ln === "object" && (ln.low || ln.badge === "LOW"));
+        var badge = ln && typeof ln === "object" && ln.badge ? ln.badge : "";
+        h += `<p class="rd-live-line${low ? " is-low" : ""}">${esc(text)}`;
+        if (badge) h += ` <span class="rd-live-badge">${esc(badge)}</span>`;
+        h += `</p>`;
+      }
       h += `</section>`;
     }
 
@@ -2791,11 +2801,15 @@
       `</div></div>`;
     h += `</div>`;
     if (!sitTry && !sitTwo) {
-      h += `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`;
-      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('punt')">Punt</button>`;
-      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('downs')">Downs</button>`;
-      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('takeaway')">Takeaway</button>`;
-      h += `<button type="button" onclick="OFFGRD_DCALLER.driveOver('score')">Score</button>`;
+      h += `<div class="rd-gd-drive-over no-print" role="group" aria-label="Drive over">`;
+      h += `<div class="rd-gd-drive-over-head"><span class="rd-gd-drive-over-kicker">Possession</span>`;
+      h += `<span class="rd-gd-drive-over-title">Drive over</span>`;
+      h += `<span class="foot rd-gd-drive-over-sub">Tap when the series ends</span></div>`;
+      h += `<div class="rd-gd-drive-over-btns">`;
+      h += `<button type="button" class="rd-gd-drive-over-btn" onclick="OFFGRD_DCALLER.driveOver('punt')">Punt</button>`;
+      h += `<button type="button" class="rd-gd-drive-over-btn" onclick="OFFGRD_DCALLER.driveOver('downs')">Downs</button>`;
+      h += `<button type="button" class="rd-gd-drive-over-btn" onclick="OFFGRD_DCALLER.driveOver('takeaway')">Takeaway</button>`;
+      h += `<button type="button" class="rd-gd-drive-over-btn" onclick="OFFGRD_DCALLER.driveOver('score')">Score</button>`;
       h += `</div></div>`;
     }
     h += `</div>`;

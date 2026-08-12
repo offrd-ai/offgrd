@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v273: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v276: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=273"></script>
-<script src="OFFGRD-brand-persist.js?v=273"></script>
-<script src="supabase.js?v=273"></script>
-<script src="OFFGRD-cache-gate.js?v=273"></script>
+<script src="OFFGRD-config.js?v=276"></script>
+<script src="OFFGRD-brand-persist.js?v=276"></script>
+<script src="supabase.js?v=276"></script>
+<script src="OFFGRD-cache-gate.js?v=276"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,34 +380,34 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=273"></script>
-<script src="OFFGRD-pos-glossary.js?v=273"></script>
-<script src="OFFGRD-autoderive.js?v=273"></script>
-<script src="OFFGRD-matchup.js?v=273"></script>
-<script src="OFFGRD-scoutcards.js?v=273"></script>
-<script src="OFFGRD-tendencies.js?v=273"></script>
-<script src="OFFGRD-scout-report.js?v=273"></script>
-<script src="OFFGRD-week-autotest.js?v=273"></script>
-<script src="OFFGRD-weeklypackage.js?v=273"></script>
-<script src="OFFGRD-telestrate.js?v=273"></script>
-<script src="OFFGRD-redesign.js?v=273"></script>
-<script src="OFFGRD-shell.js?v=273"></script>
-<script src="OFFGRD-caller-outcome.js?v=273"></script>
-<script src="OFFGRD-caller-sit.js?v=273"></script>
-<script src="OFFGRD-formations-data.js?v=273"></script>
-<script src="OFFGRD-formation-canon.js?v=273"></script>
-<script src="OFFGRD-assist-import.js?v=273"></script>
-<script src="OFFGRD-cv-review.js?v=273"></script>
-<script src="OFFGRD-frame-capture.js?v=273"></script>
-<script src="OFFGRD-caller-log.js?v=273"></script>
-<script src="OFFGRD-caller-sync.js?v=273"></script>
-<script src="OFFGRD-caller-analysis.js?v=273"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=273"></script>
-<script src="OFFGRD-booth-ask.js?v=273"></script>
-<script src="OFFGRD-boothpack.js?v=273"></script>
-<script src="OFFGRD-booth-chat.js?v=273"></script>
-<script src="OFFGRD-caller-select.js?v=273"></script>
-<script src="OFFGRD-dcaller.js?v=273"></script>
+<script src="OFFGRD-render.js?v=276"></script>
+<script src="OFFGRD-pos-glossary.js?v=276"></script>
+<script src="OFFGRD-autoderive.js?v=276"></script>
+<script src="OFFGRD-matchup.js?v=276"></script>
+<script src="OFFGRD-scoutcards.js?v=276"></script>
+<script src="OFFGRD-tendencies.js?v=276"></script>
+<script src="OFFGRD-scout-report.js?v=276"></script>
+<script src="OFFGRD-week-autotest.js?v=276"></script>
+<script src="OFFGRD-weeklypackage.js?v=276"></script>
+<script src="OFFGRD-telestrate.js?v=276"></script>
+<script src="OFFGRD-redesign.js?v=276"></script>
+<script src="OFFGRD-shell.js?v=276"></script>
+<script src="OFFGRD-caller-outcome.js?v=276"></script>
+<script src="OFFGRD-caller-sit.js?v=276"></script>
+<script src="OFFGRD-formations-data.js?v=276"></script>
+<script src="OFFGRD-formation-canon.js?v=276"></script>
+<script src="OFFGRD-assist-import.js?v=276"></script>
+<script src="OFFGRD-cv-review.js?v=276"></script>
+<script src="OFFGRD-frame-capture.js?v=276"></script>
+<script src="OFFGRD-caller-log.js?v=276"></script>
+<script src="OFFGRD-caller-sync.js?v=276"></script>
+<script src="OFFGRD-caller-analysis.js?v=276"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=276"></script>
+<script src="OFFGRD-booth-ask.js?v=276"></script>
+<script src="OFFGRD-boothpack.js?v=276"></script>
+<script src="OFFGRD-booth-chat.js?v=276"></script>
+<script src="OFFGRD-caller-select.js?v=276"></script>
+<script src="OFFGRD-dcaller.js?v=276"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1780,7 +1780,9 @@ let CALLER_MONDAY_FOCUS=null;
 let CALLER_LIVE_EXPANDED=false;
 let CALLER_EVENT_FEED=[];
 let CALLER_LAST_SHIFT_SIG="";
+let CALLER_LAST_LOOK_SHIFT_SIG="";
 let CALLER_LAST_DRIVE_FEED_PI=null;
+let CALLER_STREAK_FEED_DRIVE=null; /* drive tip playIndex that already got a streak line */
 let CALLER_BOOTH_CHIP=null;
 let CALLER_BOOTH_ASK=null; /* Tier-2: { status, question, lines, thin, message, source, intent } */
 /** playIndex being edited via Edit last play (correction), or null */
@@ -2908,16 +2910,89 @@ function callerPushFeed(ev){
   if(!ev||!ev.line) return;
   const id=ev.id||(ev.kind+"-"+Date.now());
   if(CALLER_EVENT_FEED.some(x=>x.id===id)) return;
-  const row={ id:id, kind:ev.kind||"note", line:String(ev.line), llmLine:null, at:Date.now(), playIndex:ev.playIndex!=null?ev.playIndex:null };
+  const row={
+    id:id,
+    kind:ev.kind||"note",
+    line:String(ev.line),
+    llmLine:null,
+    at:Date.now(),
+    playIndex:ev.playIndex!=null?ev.playIndex:null,
+    inferred:!!ev.inferred,
+    auto:!!ev.auto,
+    driveKind:ev.driveKind||null
+  };
   CALLER_EVENT_FEED.unshift(row);
   if(CALLER_EVENT_FEED.length>40) CALLER_EVENT_FEED.length=40;
   const L=window.OFFGRD_CALLER_SUMMARY_LLM;
-  if(L&&L.requestEventLine){
+  if(L&&L.requestEventLine && !row.inferred){
     L.requestEventLine(row.line, { eventId:row.id, session:callerEnsureSession() }, function(text){
       const hit=CALLER_EVENT_FEED.find(x=>x.id===row.id);
       if(!hit||!text) return;
       hit.llmLine=text;
       renderCaller();
+    });
+  }
+}
+/** Infer drive-end feed line from a graded snap. Dedupes by playIndex+kind. */
+function callerMaybeInferDriveEnd(entry){
+  const A=callerAnalysis();
+  if(!A||!A.inferDriveEndFromSnap||!entry) return;
+  const inf=A.inferDriveEndFromSnap(entry);
+  if(!inf) return;
+  const pi=inf.playIndex!=null?inf.playIndex:entry.playIndex;
+  const id="drive-auto-"+inf.kind+"-"+(pi!=null?pi:"x");
+  callerPushFeed({
+    kind:"drive",
+    id:id,
+    line:inf.label+" · drive over (auto)",
+    playIndex:pi,
+    inferred:true,
+    auto:true,
+    driveKind:inf.kind
+  });
+}
+/** Explicit drive-over button merges/overrides a recent inferred line. */
+function callerMergeDriveOverFeed(kind){
+  const map={ punt:"punt", downs:"downs", takeaway:"takeaway", score:"score" };
+  const dk=map[kind]||kind;
+  const lastPi=CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null;
+  /* Find inferred drive within last ~2 snaps */
+  const recent=CALLER_LOG.slice(-3).map(l=>l.playIndex);
+  let hit=null;
+  for(let i=0;i<CALLER_EVENT_FEED.length;i++){
+    const ev=CALLER_EVENT_FEED[i];
+    if(!ev||ev.kind!=="drive"||!ev.inferred) continue;
+    if(ev.driveKind&&ev.driveKind!==dk && !(dk==="score"&&ev.driveKind==="score")) {
+      /* allow kind remap only when same tip window */
+    }
+    if(ev.playIndex!=null && recent.indexOf(ev.playIndex)<0 && ev.playIndex!==lastPi) continue;
+    hit=ev;
+    break;
+  }
+  const line=
+    (kind==="score"?"Score":kind==="takeaway"?"Takeaway":kind==="downs"?"Downs":"Punt")+
+    " · drive over";
+  if(hit){
+    hit.line=line;
+    hit.inferred=false;
+    hit.auto=false;
+    hit.llmLine=null;
+    hit.driveKind=dk;
+    hit.id="drive-"+dk+"-"+(hit.playIndex!=null?hit.playIndex:Date.now());
+    /* Drop duplicate auto ids for same tip */
+    CALLER_EVENT_FEED=CALLER_EVENT_FEED.filter(function(ev,idx,arr){
+      if(ev===hit) return true;
+      if(ev.kind!=="drive"||!ev.inferred) return true;
+      if(hit.playIndex!=null&&ev.playIndex===hit.playIndex) return false;
+      return true;
+    });
+  }else{
+    callerPushFeed({
+      kind:"drive",
+      id:"drive-"+dk+"-"+(lastPi!=null?lastPi:Date.now()),
+      line:line,
+      playIndex:lastPi,
+      driveKind:dk
     });
   }
 }
@@ -2927,16 +3002,37 @@ function callerDefenseLog(){
 }
 function callerLiveOpts(){
   let shifts=[], shift=null;
+  let seasonCovDist=null;
+  let plays=[];
+  let scoutRows=[];
   try{
     if(window.OFFGRD_DCALLER&&typeof OFFGRD_DCALLER.collectActiveShifts==="function") shifts=OFFGRD_DCALLER.collectActiveShifts()||[];
     if(shifts.length) shift=shifts[0].shift;
     else if(window.OFFGRD_DCALLER&&typeof OFFGRD_DCALLER.tendencyShiftSample==="function") shift=OFFGRD_DCALLER.tendencyShiftSample();
   }catch(e){}
+  try{
+    const ex=(typeof callerExpectSample==="function")?callerExpectSample():{};
+    const def=ex.def||((typeof oppRows==="function")?oppRows("def"):[]);
+    const g=ex.g||[];
+    if(typeof shrunkDist==="function" && (g.length||def.length)){
+      seasonCovDist=shrunkDist(g.length?g:def,"coverage",def,5);
+    }
+    scoutRows=(typeof gamesRows==="function")?gamesRows("ours"):[];
+    const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+    const byName={};
+    book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
+    const names=uniq(book.map(p=>p&&p.name).concat((scoutRows||[]).map(r=>r&&r.play)));
+    plays=names.map(nm=> byName[nm] || { name:nm });
+  }catch(e2){}
   return {
+    side: "offense",
     offenseLog: CALLER_LOG,
     defenseLog: callerDefenseLog(),
     shifts: shifts,
     shift: shift,
+    seasonCovDist: seasonCovDist,
+    plays: plays,
+    scoutRows: scoutRows,
     breaks: CALLER_BREAKS,
     session: callerEnsureSession()
   };
@@ -2989,6 +3085,53 @@ function callerTickLiveEvents(){
       }catch(e2){}
     }
   }
+  /* O look-tag coverage shift (tonight vs season) */
+  try{
+    const A=callerAnalysis();
+    if(A&&A.lookCoverageShift){
+      const opts=callerLiveOpts();
+      const sh=A.lookCoverageShift(CALLER_LOG, opts.seasonCovDist);
+      if(sh&&sh.line){
+        const lsig=sh.fam+"|"+Math.round(sh.livePct*100)+"|"+sh.liveN;
+        if(lsig!==CALLER_LAST_LOOK_SHIFT_SIG){
+          const prevL=CALLER_LAST_LOOK_SHIFT_SIG;
+          CALLER_LAST_LOOK_SHIFT_SIG=lsig;
+          if(prevL){
+            callerPushFeed({
+              kind:"shift",
+              id:"look-shift-"+lsig,
+              line:"Look shift: "+sh.line
+            });
+          }
+        }
+      }
+    }
+  }catch(eLook){}
+  /* Streak line — 1 per drive max */
+  try{
+    const A2=callerAnalysis();
+    if(A2&&A2.deriveDrives&&CALLER_LOG.length>=3){
+      const drives=A2.deriveDrives(CALLER_LOG,{ breaks:CALLER_BREAKS });
+      const open=drives.filter(d=>d.open&&!d.truncated).slice(-1)[0];
+      if(open&&open.snaps&&open.snaps.length>=3){
+        const tip=open.snaps[open.snaps.length-1];
+        const tipPi=tip&&tip.playIndex;
+        if(tipPi!=null&&CALLER_STREAK_FEED_DRIVE!==tipPi){
+          const last3=open.snaps.slice(-3);
+          const plays=last3.map(s=>s.play).filter(Boolean);
+          if(plays.length===3&&plays[0]===plays[1]&&plays[1]===plays[2]){
+            CALLER_STREAK_FEED_DRIVE=tipPi;
+            callerPushFeed({
+              kind:"streak",
+              id:"streak-"+tipPi,
+              line:"Streak: "+plays[0]+" ×3 this drive",
+              playIndex:tipPi
+            });
+          }
+        }
+      }
+    }
+  }catch(eSt){}
 }
 /** Quarter/Half = bookmarks. Final = end-of-game review + Monday payload. */
 function callerMarkBreak(kind){
@@ -3387,23 +3530,42 @@ function callerLivePanelHtml(){
     const n=max!=null?Math.min(lines.length,max):lines.length;
     if(!n) return;
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">${esc(sec.title)}</h3>`;
-    for(let i=0;i<n;i++) h+=`<p class="rd-live-line">${esc(lines[i])}</p>`;
+    for(let i=0;i<n;i++){
+      const ln=lines[i];
+      const text=typeof ln==="string"?ln:(ln&&ln.text!=null?ln.text:"");
+      const low=!!(ln&&typeof ln==="object"&&(ln.low||ln.badge==="LOW"));
+      const badge=ln&&typeof ln==="object"&&ln.badge?ln.badge:"";
+      h+=`<p class="rd-live-line${low?" is-low":""}">${esc(text)}`;
+      if(badge) h+=` <span class="rd-live-badge">${esc(badge)}</span>`;
+      h+=`</p>`;
+    }
     h+=`</section>`;
   }
+  const side=view.side||(view.facts&&view.facts.side)||"offense";
   if(CALLER_LIVE_EXPANDED){
-    writeSec(byId.what_they); writeSec(byId.working); writeSec(byId.suggested); writeSec(byId.tags);
+    if(side==="offense"){
+      writeSec(byId.what_showing); writeSec(byId.working); writeSec(byId.call_ideas); writeSec(byId.tags);
+    }else{
+      writeSec(byId.what_they); writeSec(byId.working); writeSec(byId.suggested); writeSec(byId.tags);
+    }
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">Event feed</h3>`;
     if(!CALLER_EVENT_FEED.length) h+=`<p class="rd-live-line foot">Drive ends, shifts, and marks land here.</p>`;
     else CALLER_EVENT_FEED.slice(0,20).forEach(ev=>{
-      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}</p>`;
+      const auto=ev.inferred||ev.auto?` <span class="rd-live-feed-auto">auto</span>`:"";
+      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}${auto}</p>`;
     });
     h+=`</section>`;
   } else {
-    writeSec(byId.what_they,4); writeSec(byId.working,3); writeSec(byId.suggested,2);
+    if(side==="offense"){
+      writeSec(byId.what_showing,4); writeSec(byId.working,4); writeSec(byId.call_ideas,3);
+    }else{
+      writeSec(byId.what_they,4); writeSec(byId.working,3); writeSec(byId.suggested,2);
+    }
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">Feed</h3>`;
     if(!CALLER_EVENT_FEED.length) h+=`<p class="rd-live-line foot">Waiting on drive / shift / mark…</p>`;
     else CALLER_EVENT_FEED.slice(0,4).forEach(ev=>{
-      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}</p>`;
+      const auto=ev.inferred||ev.auto?` <span class="rd-live-feed-auto">auto</span>`:"";
+      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}${auto}</p>`;
     });
     h+=`</section>`;
   }
@@ -3826,6 +3988,7 @@ function callerDriveOver(kind){
   if(!O||!O.driveOverSituation) return;
   const next=O.driveOverSituation(kind, callerSit);
   if(!next||next.skip) return;
+  try{ callerMergeDriveOverFeed(kind); }catch(eFeed){}
   callerApplyInfer(next);
   callerSaveLocal();
   renderCaller();
@@ -4255,6 +4418,7 @@ function callerGrade(i, resultId){
   if(next){
     const graded=CALLER_LOG.find(l=>l.playIndex===pi);
     if(graded) callerMaybeAdvanceAfterGrade(graded);
+    try{ callerMaybeInferDriveEnd(graded||entry); }catch(eInf){}
   }
   if(next){
     callerRefreshDriveToast();
@@ -4334,11 +4498,15 @@ function callerResultChipsHtml(l, i, opts){
 }
 function callerDriveOverHtml(){
   if(callerSit.pendingTry||callerSit.forTwo) return "";
-  return `<div class="rd-gd-drive-over no-print"><span class="lbl">Drive over</span><div class="seg">`
-    +`<button type="button" onclick="callerDriveOver('punt')">Punt</button>`
-    +`<button type="button" onclick="callerDriveOver('downs')">Downs</button>`
-    +`<button type="button" onclick="callerDriveOver('takeaway')">Takeaway</button>`
-    +`<button type="button" onclick="callerDriveOver('score')">Score</button>`
+  return `<div class="rd-gd-drive-over no-print" role="group" aria-label="Drive over">`
+    +`<div class="rd-gd-drive-over-head"><span class="rd-gd-drive-over-kicker">Possession</span>`
+    +`<span class="rd-gd-drive-over-title">Drive over</span>`
+    +`<span class="foot rd-gd-drive-over-sub">Tap when the series ends</span></div>`
+    +`<div class="rd-gd-drive-over-btns">`
+    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('punt')">Punt</button>`
+    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('downs')">Downs</button>`
+    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('takeaway')">Takeaway</button>`
+    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('score')">Score</button>`
     +`</div></div>`;
 }
 function callerFlagChipsHtml(l, i){
@@ -5165,7 +5333,7 @@ function callerClear(){
   GAMES=GAMES.filter(g=>g.key!==k);
   CALLER_LOG=[]; CALLER_EVENTS=[]; CALLER_COLLISIONS=[]; CALLER_ACTIVITY=[]; CALLER_SEQ=0;
   CALLER_BREAKS=[]; CALLER_DRIVE_TOAST=null; CALLER_HALFTIME=null; CALLER_MONDAY_FOCUS=null;
-  CALLER_EVENT_FEED=[]; CALLER_LIVE_EXPANDED=false; CALLER_LAST_SHIFT_SIG=""; CALLER_LAST_DRIVE_FEED_PI=null;
+  CALLER_EVENT_FEED=[]; CALLER_LIVE_EXPANDED=false; CALLER_LAST_SHIFT_SIG=""; CALLER_LAST_LOOK_SHIFT_SIG=""; CALLER_LAST_DRIVE_FEED_PI=null; CALLER_STREAK_FEED_DRIVE=null;
   callerSit=callerSitDefaults();
   CALLER_SESSION=null;
   callerPresenceStop();
@@ -5470,7 +5638,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=273", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=276", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5793,9 +5961,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=273"></script>
-<script src="OFFGRD-role-gate.js?v=273"></script>
-<script src="OFFGRD-mobile.js?v=273"></script>
+<script type="module" src="OFFGRD-account.js?v=276"></script>
+<script src="OFFGRD-role-gate.js?v=276"></script>
+<script src="OFFGRD-mobile.js?v=276"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

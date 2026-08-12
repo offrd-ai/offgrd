@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "273";
+  const ASSET_V = "276";
 
   function getScoutTool() {
     try {
@@ -1419,6 +1419,43 @@
       'html.rd-on #view-caller .rd-live-feed-kind,html.rd-on #view-dcaller .rd-live-feed-kind{',
       'display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;',
       'color:var(--rd-accent);margin-right:6px;',
+      '}',
+      'html.rd-on #view-caller .rd-live-line.is-low,html.rd-on #view-dcaller .rd-live-line.is-low{',
+      'opacity:.62;color:var(--rd-muted);',
+      '}',
+      'html.rd-on #view-caller .rd-live-badge,html.rd-on #view-dcaller .rd-live-badge{',
+      'display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;',
+      'font-size:9px;font-weight:800;letter-spacing:.06em;vertical-align:middle;',
+      'background:var(--rd-surface);border:1px solid var(--rd-border);color:var(--rd-muted);',
+      '}',
+      'html.rd-on #view-caller .rd-live-feed-auto,html.rd-on #view-dcaller .rd-live-feed-auto{',
+      'display:inline-block;margin-left:6px;font-size:9px;font-weight:800;letter-spacing:.05em;',
+      'text-transform:uppercase;color:var(--rd-muted);opacity:.85;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over,html.rd-on #view-dcaller .rd-gd-drive-over{',
+      'margin:10px 0 12px;padding:12px 14px;background:var(--rd-surface);',
+      'border:1px solid var(--rd-border);border-left:4px solid var(--rd-accent);',
+      'border-radius:var(--radius-card);',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over-head,html.rd-on #view-dcaller .rd-gd-drive-over-head{',
+      'display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0 0 10px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over-kicker,html.rd-on #view-dcaller .rd-gd-drive-over-kicker{',
+      'font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rd-accent);',
+      'width:100%;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over-title,html.rd-on #view-dcaller .rd-gd-drive-over-title{',
+      'font-size:16px;font-weight:800;color:var(--rd-text);',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over-sub,html.rd-on #view-dcaller .rd-gd-drive-over-sub{font-size:12px;}',
+      'html.rd-on #view-caller .rd-gd-drive-over-btns,html.rd-on #view-dcaller .rd-gd-drive-over-btns{',
+      'display:flex;flex-wrap:wrap;gap:8px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-drive-over-btn,html.rd-on #view-dcaller .rd-gd-drive-over-btn{',
+      'min-height:48px!important;flex:1 1 40%;padding:10px 12px!important;',
+      'background:var(--rd-surface-2)!important;border:2px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;',
+      'font-weight:800!important;font-size:14px!important;cursor:pointer;',
       '}',
       /* Last play — Flag optional + Call quality */
       'html.rd-on #view-caller .rd-gd-lastplay,html.rd-on #view-dcaller .rd-gd-lastplay{',
