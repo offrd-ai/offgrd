@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "270";
+  const ASSET_V = "271";
 
   function getScoutTool() {
     try {
@@ -1218,13 +1218,15 @@
       'font-size:22px;font-weight:500;color:var(--rd-text);line-height:1.15;margin-bottom:10px;',
       '}',
       'html.rd-on.rd-booth #view-caller .rd-gd-sit-txt{font-size:28px;}',
+      /* Sit chip rows must wrap (Distance has 5 chips; half-width cells clip at ≤480px). */
       'html.rd-on #view-caller .rd-gd-sit .seg{',
-      'background:var(--rd-surface-2);border-radius:var(--radius-pill);padding:3px;gap:4px;',
+      'display:flex;flex-wrap:wrap;align-content:flex-start;overflow:visible;',
+      'background:var(--rd-surface-2);border-radius:var(--radius-ctl);padding:3px;gap:4px;',
       '}',
       'html.rd-on #view-caller .rd-gd-sit .seg button{',
-      'min-height:48px!important;min-width:56px;flex:1;padding:10px 8px!important;',
+      'min-height:48px!important;min-width:0;flex:1 1 3.25rem;padding:10px 6px!important;',
       'background:transparent!important;border:1px solid transparent!important;',
-      'color:var(--rd-muted)!important;font-weight:500!important;border-radius:var(--radius-pill);font-size:15px;',
+      'color:var(--rd-muted)!important;font-weight:500!important;border-radius:var(--radius-ctl);font-size:15px;',
       '}',
       'html.rd-on #view-caller .rd-gd-sit .seg button.on{',
       'background:var(--rd-accent)!important;border-color:var(--rd-accent)!important;color:var(--rd-accent-text)!important;',
@@ -1240,6 +1242,15 @@
       'html.rd-on #view-caller .rd-gd-sit-grid .lbl{',
       'font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;',
       'color:var(--rd-muted);margin:0 0 4px;',
+      '}',
+      /* Narrow phones: Distance/Field get full card width so chips wrap like Down. */
+      '@media (max-width:480px){',
+      'html.rd-on #view-caller .rd-gd-sit-grid{grid-template-columns:1fr 1fr;gap:8px 10px;}',
+      'html.rd-on #view-caller .rd-gd-sit-grid > div:nth-child(2),',
+      'html.rd-on #view-caller .rd-gd-sit-grid > div:nth-child(4){grid-column:1 / -1;}',
+      'html.rd-on #view-caller .rd-gd-sit .seg button{',
+      'min-height:44px!important;flex:1 1 calc(20% - 4px);font-size:13px;padding:8px 4px!important;',
+      '}',
       '}',
       'html.rd-on #view-caller .rd-gd-edit{display:none!important;}',
       /* Outcome model — one-tap result buckets + optional flags */
