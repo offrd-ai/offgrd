@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v277: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v278: matchup struct_rules_v2 sit-fit + blend K=4 + Best-options EV stack -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=277"></script>
-<script src="OFFGRD-brand-persist.js?v=277"></script>
-<script src="supabase.js?v=277"></script>
-<script src="OFFGRD-cache-gate.js?v=277"></script>
+<script src="OFFGRD-config.js?v=278"></script>
+<script src="OFFGRD-brand-persist.js?v=278"></script>
+<script src="supabase.js?v=278"></script>
+<script src="OFFGRD-cache-gate.js?v=278"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,34 +380,34 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=277"></script>
-<script src="OFFGRD-pos-glossary.js?v=277"></script>
-<script src="OFFGRD-autoderive.js?v=277"></script>
-<script src="OFFGRD-matchup.js?v=277"></script>
-<script src="OFFGRD-scoutcards.js?v=277"></script>
-<script src="OFFGRD-tendencies.js?v=277"></script>
-<script src="OFFGRD-scout-report.js?v=277"></script>
-<script src="OFFGRD-week-autotest.js?v=277"></script>
-<script src="OFFGRD-weeklypackage.js?v=277"></script>
-<script src="OFFGRD-telestrate.js?v=277"></script>
-<script src="OFFGRD-redesign.js?v=277"></script>
-<script src="OFFGRD-shell.js?v=277"></script>
-<script src="OFFGRD-caller-outcome.js?v=277"></script>
-<script src="OFFGRD-caller-sit.js?v=277"></script>
-<script src="OFFGRD-formations-data.js?v=277"></script>
-<script src="OFFGRD-formation-canon.js?v=277"></script>
-<script src="OFFGRD-assist-import.js?v=277"></script>
-<script src="OFFGRD-cv-review.js?v=277"></script>
-<script src="OFFGRD-frame-capture.js?v=277"></script>
-<script src="OFFGRD-caller-log.js?v=277"></script>
-<script src="OFFGRD-caller-sync.js?v=277"></script>
-<script src="OFFGRD-caller-analysis.js?v=277"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=277"></script>
-<script src="OFFGRD-booth-ask.js?v=277"></script>
-<script src="OFFGRD-boothpack.js?v=277"></script>
-<script src="OFFGRD-booth-chat.js?v=277"></script>
-<script src="OFFGRD-caller-select.js?v=277"></script>
-<script src="OFFGRD-dcaller.js?v=277"></script>
+<script src="OFFGRD-render.js?v=278"></script>
+<script src="OFFGRD-pos-glossary.js?v=278"></script>
+<script src="OFFGRD-autoderive.js?v=278"></script>
+<script src="OFFGRD-matchup.js?v=278"></script>
+<script src="OFFGRD-scoutcards.js?v=278"></script>
+<script src="OFFGRD-tendencies.js?v=278"></script>
+<script src="OFFGRD-scout-report.js?v=278"></script>
+<script src="OFFGRD-week-autotest.js?v=278"></script>
+<script src="OFFGRD-weeklypackage.js?v=278"></script>
+<script src="OFFGRD-telestrate.js?v=278"></script>
+<script src="OFFGRD-redesign.js?v=278"></script>
+<script src="OFFGRD-shell.js?v=278"></script>
+<script src="OFFGRD-caller-outcome.js?v=278"></script>
+<script src="OFFGRD-caller-sit.js?v=278"></script>
+<script src="OFFGRD-formations-data.js?v=278"></script>
+<script src="OFFGRD-formation-canon.js?v=278"></script>
+<script src="OFFGRD-assist-import.js?v=278"></script>
+<script src="OFFGRD-cv-review.js?v=278"></script>
+<script src="OFFGRD-frame-capture.js?v=278"></script>
+<script src="OFFGRD-caller-log.js?v=278"></script>
+<script src="OFFGRD-caller-sync.js?v=278"></script>
+<script src="OFFGRD-caller-analysis.js?v=278"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=278"></script>
+<script src="OFFGRD-booth-ask.js?v=278"></script>
+<script src="OFFGRD-boothpack.js?v=278"></script>
+<script src="OFFGRD-booth-chat.js?v=278"></script>
+<script src="OFFGRD-caller-select.js?v=278"></script>
+<script src="OFFGRD-dcaller.js?v=278"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -4789,6 +4789,8 @@ function callerRankedCalls(){
     limit:40,
     down:+cs.dn,
     distBucket:dbF,
+    db:cs.db,
+    zone:cs.zone,
     distBucketOf: typeof distBucket==="function" ? distBucket : null,
     getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null,
     weightFn: function(row){
@@ -4811,7 +4813,13 @@ function callerRankedCalls(){
       basisTip: r.basisTip||null,
       why: r.why||[]
     };
-  }).sort((a,b)=>b.sr-a.sr||b.n-a.n);
+  }).sort((a,b)=>{
+    const d=(b.sr||0)-(a.sr||0);
+    if(Math.abs(d)>0.03) return d;
+    const aOk=(a.n||0)>=3, bOk=(b.n||0)>=3;
+    if(aOk!==bOk) return aOk?-1:1;
+    return (b.n||0)-(a.n||0)||String(a.play).localeCompare(String(b.play));
+  });
   return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
 }
 /** Soft-headline: SCHEME MATCH (structural) or SUCCESS n% · snaps (graded). */
@@ -4855,10 +4863,9 @@ function callerCallSheetHtml(){
   const markFor=r=>{
     if(!r) return `<span class="mark mark-none"></span>`;
     const tip=esc(r.basisTip||(r.basis==="empirical"?tipSuccess:tipScheme));
-    if(r.basis==="on_paper" || r.basisLabel==="SCHEME MATCH"){
-      return `<span class="mark" title="${tip}">${Math.round(r.sr*100)}%</span><span class="mark scheme" title="${tip}">SCHEME MATCH</span>`;
-    }
-    return `<span class="mark" title="${tip}">${esc(r.basisLabel||("SUCCESS · "+(r.n||0)+" SNAP"+((r.n||0)===1?"":"S")))}</span>`;
+    const evPct=Math.round((r.sr||0)*100);
+    const basis=r.basisLabel||(r.basis==="on_paper"?"SCHEME MATCH":("SUCCESS "+evPct+"% · "+(r.n||0)+" SNAP"+((r.n||0)===1?"":"S")));
+    return `<span class="mark-stack" title="${tip}"><span class="mark ev">${evPct}%</span><span class="mark basis">${esc(basis)}</span></span>`;
   };
   let h="";
   /* Tier 2 · "Best now" strip only when the suggester's pick isn't on the matched sheet. */
@@ -4880,8 +4887,8 @@ function callerCallSheetHtml(){
       const best= top && nm===top.play;
       h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>`;
       if(best) h+=`<span class="mark best">Best</span>`;
-      else if(r) h+=markFor(r);
-      else h+=`<span class="mark mark-none"></span>`;
+      if(r) h+=markFor(r);
+      else if(!best) h+=`<span class="mark mark-none"></span>`;
       h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
@@ -5638,7 +5645,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=277", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=278", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5961,9 +5968,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=277"></script>
-<script src="OFFGRD-role-gate.js?v=277"></script>
-<script src="OFFGRD-mobile.js?v=277"></script>
+<script type="module" src="OFFGRD-account.js?v=278"></script>
+<script src="OFFGRD-role-gate.js?v=278"></script>
+<script src="OFFGRD-mobile.js?v=278"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

@@ -6,10 +6,11 @@
 (function (root) {
   "use strict";
 
-  var STRUCT_RULES_V = "struct_rules_v1";
+  var STRUCT_RULES_V = "struct_rules_v2";
   var LOOK_FAMILIES = ["C0", "C1", "C2", "C2M", "C3", "C4", "PRESS"];
-  var CACHE_PREFIX = "offgrd_struct_v1:";
-  var BLEND_K = 8;
+  var CACHE_PREFIX = "offgrd_struct_v2:";
+  var BLEND_K = 4;
+  var EV_TIE_EPS = 0.03; /* 3 EV points — prefer n≥3 inside this band */
 
   function familyOf(cov) {
     if (cov == null || cov === "") return null;
@@ -96,8 +97,82 @@
       name: name,
       smashShape: (concept === "smash" || concept === "curlflat") || (nCurlHitch >= 1 && nFlat >= 1),
       meshShape: concept === "mesh" || nDrag >= 2,
-      vertsShape: concept === "verts" || nGoSeam >= 3
+      vertsShape: concept === "verts" || nGoSeam >= 3,
+      nFade: types.fade || 0
     };
+  }
+
+  /**
+   * Situation-fit family for distance-band modifiers (struct_rules_v2).
+   * Independent of look family — applied after RULES_V1 when sit is present.
+   */
+  function sitFitFamily(feat) {
+    var name = String((feat && feat.name) || "");
+    if (feat && (feat.nScreen >= 1 || /\bscreen\b|\bdraw\b/.test(name))) return "screen";
+    if (feat && (feat.isRun || /\b(iso|power|counter|dive|wedge|sneak|inside zone|outside zone)\b/.test(name))) {
+      return "run";
+    }
+    if (feat && (feat.concept === "flood" || feat.vertsShape || (feat.isPA && feat.maxDepth >= 16))) {
+      return "deep";
+    }
+    /* Stick / hitch before smashShape — hitch+flat is a smash look, not a stick family. */
+    if (
+      feat &&
+      (feat.concept === "stick" ||
+        feat.nQuick >= 2 ||
+        (feat.maxDepth <= 6 && feat.concept !== "smash" && feat.concept !== "curlflat") ||
+        (feat.nCurlHitch >= 1 && feat.maxDepth <= 8 && feat.concept !== "smash" && feat.concept !== "curlflat"))
+    ) {
+      return "quick";
+    }
+    if (feat && (feat.smashShape || feat.concept === "smash" || feat.concept === "curlflat")) return "smash";
+    if (feat && (feat.meshShape || feat.concept === "mesh" || (feat.nFade >= 1) || /\bfade\b|\brub\b/.test(name))) {
+      return "rub";
+    }
+    return "neutral";
+  }
+
+  function sitBandOf(opts) {
+    opts = opts || {};
+    if (opts.db === "GOAL" || opts.zone === "GOAL") return "GOAL";
+    var raw = opts.db || opts.distBucket || null;
+    if (raw === "GOAL") return "GOAL";
+    return opts.distBucket || raw || null;
+  }
+
+  /** Distance-band modifiers. Empty when no sit is passed (scout look-only path). */
+  function sitFitDeltas(feat, opts) {
+    var band = sitBandOf(opts);
+    var down = opts && opts.down != null && opts.down !== "" ? +opts.down : null;
+    if (!band && !(down >= 1)) return [];
+    var fam = sitFitFamily(feat);
+    var out = [];
+    var short = band === "1-3";
+    var long = band === "10+";
+    var goal = band === "GOAL";
+    var lateShort = short && (down === 3 || down === 4);
+    if ((short || goal) && (fam === "quick" || fam === "run")) {
+      out.push({
+        delta: fam === "run" ? 16 : 14,
+        why: "Short-yardage fit (" + (band || "1-3") + ")"
+      });
+    }
+    if (lateShort && (fam === "deep" || fam === "smash")) {
+      out.push({
+        delta: fam === "deep" ? -24 : -18,
+        why: "Deep-developing vs 3rd/4th & short"
+      });
+    }
+    if (long && fam === "screen") {
+      out.push({ delta: 16, why: "Screen / draw vs 10+" });
+    }
+    if (goal && (fam === "deep" || (feat && feat.vertsShape) || (feat && feat.nGoSeam >= 2))) {
+      out.push({ delta: -20, why: "Vertical compressed at GOAL" });
+    }
+    if (goal && (fam === "rub" || (feat && feat.nFade >= 1))) {
+      out.push({ delta: 16, why: "Rub / fade family at GOAL" });
+    }
+    return out;
   }
 
   /**
@@ -183,52 +258,54 @@
     return Math.max(lo, Math.min(hi, n));
   }
 
-  function structScoreFromFeatures(feat, lookFamily) {
-    if (!lookFamily || LOOK_FAMILIES.indexOf(lookFamily) < 0) {
-      return {
-        score: 50,
-        why: ["Unknown look family"],
-        concept: feat.concept,
-        rules_v: STRUCT_RULES_V,
-        basis: "on_paper"
-      };
-    }
-    if (feat.isRun || (!feat.routes.length && !feat.concept)) {
-      return {
-        score: 50,
-        why: ["run concepts: structural look scoring in P2"],
-        concept: feat.concept,
-        rules_v: STRUCT_RULES_V,
-        basis: "on_paper"
-      };
-    }
-
+  function structScoreFromFeatures(feat, lookFamily, opts) {
+    feat = feat || {};
     var score = 50;
     var fired = [];
-    for (var i = 0; i < RULES_V1.length; i++) {
-      var rule = RULES_V1[i];
-      if (rule.looks.indexOf(lookFamily) < 0) continue;
-      if (!rule.test(feat)) continue;
-      score += rule.delta;
-      fired.push({ delta: rule.delta, why: rule.why, abs: Math.abs(rule.delta) });
+    var whyFallback = "Unknown look family";
+    var skipLook =
+      !lookFamily ||
+      LOOK_FAMILIES.indexOf(lookFamily) < 0 ||
+      feat.isRun ||
+      (!feat.routes.length && !feat.concept);
+    if (!lookFamily || LOOK_FAMILIES.indexOf(lookFamily) < 0) {
+      whyFallback = "Unknown look family";
+    } else if (feat.isRun || (!feat.routes.length && !feat.concept)) {
+      whyFallback = "run concepts: structural look scoring in P2";
+    } else {
+      whyFallback = "Neutral on paper vs " + lookFamily;
+      for (var i = 0; i < RULES_V1.length; i++) {
+        var rule = RULES_V1[i];
+        if (rule.looks.indexOf(lookFamily) < 0) continue;
+        if (!rule.test(feat)) continue;
+        score += rule.delta;
+        fired.push({ delta: rule.delta, why: rule.why, abs: Math.abs(rule.delta) });
+      }
+    }
+    var sit = sitFitDeltas(feat, opts);
+    for (var s = 0; s < sit.length; s++) {
+      score += sit[s].delta;
+      fired.push({ delta: sit[s].delta, why: sit[s].why, abs: Math.abs(sit[s].delta) });
     }
     fired.sort(function (a, b) { return b.abs - a.abs; });
     var why = fired.slice(0, 2).map(function (f) { return f.why; });
-    if (!why.length) why = ["Neutral on paper vs " + lookFamily];
+    if (!why.length) why = [whyFallback];
     return {
       score: clamp(Math.round(score), 0, 100),
       why: why,
       concept: feat.concept,
       rules_v: STRUCT_RULES_V,
-      basis: "on_paper"
+      basis: "on_paper",
+      sit: sit.length > 0,
+      skipLook: !!skipLook
     };
   }
 
-  function structScore(play, lookFamily) {
+  function structScore(play, lookFamily, opts) {
     var fam = LOOK_FAMILIES.indexOf(lookFamily) >= 0 ? lookFamily : familyOf(lookFamily);
     var classified = classify(play && (play.data || play));
     var feat = routeFeatures(classified);
-    var out = structScoreFromFeatures(feat, fam);
+    var out = structScoreFromFeatures(feat, fam, opts);
     out.playId = play && (play.id || play.cid || null);
     out.name = (play && play.name) || classified.name || "";
     return out;
@@ -501,12 +578,10 @@
     return w * sr + (1 - w) * s;
   }
 
-  function struct01ForPlay(play, fam) {
+  function struct01ForPlay(play, fam, opts) {
     if (!play) return 0.5;
-    var hasGeom = !!(play.data || play.players);
-    if (!hasGeom) return 0.5;
     try {
-      var r = structScore(play, fam);
+      var r = structScore(play, fam, opts);
       return (r.score || 50) / 100;
     } catch (e) {
       return 0.5;
@@ -576,7 +651,7 @@
     if (!mix.length) {
       var fam0 = opts.fallbackFamily || "C1";
       var emp0 = empiricalCell(play, fam0, rows, opts);
-      var s0 = struct01ForPlay(play, fam0);
+      var s0 = struct01ForPlay(play, fam0, opts);
       var b0 = blendScore(emp0, s0);
       return {
         ev: b0,
@@ -591,7 +666,7 @@
     for (var i = 0; i < mix.length; i++) {
       var m = mix[i];
       var emp = empiricalCell(play, m.fam, rows, opts);
-      var s01 = struct01ForPlay(play, m.fam);
+      var s01 = struct01ForPlay(play, m.fam, opts);
       var blended = blendScore(emp, s01);
       byLook[m.fam] = { emp: emp, struct: s01, score: blended, pct: m.pct };
       evSum += m.pct * blended;
@@ -601,7 +676,7 @@
         bestEmp = emp;
       }
       try {
-        var st = structScore(play.data ? play : { name: play.name, data: play.data || play }, m.fam);
+        var st = structScore(play.data ? play : { name: play.name, data: play.data || play }, m.fam, opts);
         if (st.why && st.why[0] && why.length < 2) why.push(st.why[0]);
       } catch (e) {}
     }
@@ -618,6 +693,20 @@
       byLook: byLook,
       why: why
     };
+  }
+
+  /** Sort: EV desc; within 3 EV points prefer n≥3; then n; then name. */
+  function cmpEv(a, b) {
+    var ae = a && a.ev != null ? a.ev : 0;
+    var be = b && b.ev != null ? b.ev : 0;
+    if (Math.abs(ae - be) > EV_TIE_EPS) return be - ae;
+    var aOk = ((a && a.n) || 0) >= 3;
+    var bOk = ((b && b.n) || 0) >= 3;
+    if (aOk !== bOk) return aOk ? -1 : 1;
+    var an = (a && a.n) || 0;
+    var bn = (b && b.n) || 0;
+    if (bn !== an) return bn - an;
+    return String((a && a.name) || "").localeCompare(String((b && b.name) || ""));
   }
 
   function rankPlaysByEv(plays, covDist, rows, opts) {
@@ -648,11 +737,7 @@
         });
       } catch (e) {}
     }
-    scored.sort(function (a, b) {
-      if (b.ev !== a.ev) return b.ev - a.ev;
-      if (b.n !== a.n) return b.n - a.n;
-      return String(a.name).localeCompare(String(b.name));
-    });
+    scored.sort(cmpEv);
     return scored.slice(0, limit);
   }
 
@@ -676,12 +761,12 @@
       var emp = empiricalCell(p, fam, rows, opts);
       if (!geom && !emp.n) continue;
       try {
-        var s01 = struct01ForPlay(p, fam);
+        var s01 = struct01ForPlay(p, fam, opts);
         var blended = blendScore(emp, s01);
         var stWhy = [];
         if (geom) {
           try {
-            stWhy = structScore(p, fam).why || [];
+            stWhy = structScore(p, fam, opts).why || [];
           } catch (e2) {}
         }
         scored.push({
@@ -700,10 +785,7 @@
         });
       } catch (e) {}
     }
-    scored.sort(function (a, b) {
-      if (b.ev !== a.ev) return b.ev - a.ev;
-      return String(a.name).localeCompare(String(b.name));
-    });
+    scored.sort(cmpEv);
     return scored.slice(0, limit);
   }
 
@@ -735,6 +817,22 @@
     };
   }
 
+  function fixtureRun(name) {
+    return {
+      id: "fix-" + name.replace(/\s+/g, "-").toLowerCase(),
+      name: name,
+      type: "run",
+      concept: null,
+      data: {
+        name: name,
+        type: "run",
+        family: "run",
+        players: [{ id: "qb", lab: "Q", type: "qb", x: 500, y: 380, route: [] }],
+        defs: []
+      }
+    };
+  }
+
   var FIXTURES = {
     mesh: fixturePlay("Mesh Cross", "mesh", [
       { rname: "Drag", depth: 6, lat: 120, x: 420 },
@@ -762,6 +860,20 @@
     deepPA: fixturePlay("PA Post Boot", null, [
       { rname: "Post", depth: 20, lat: 60, x: 520 },
       { rname: "Go", depth: 22, lat: 0, x: 400 }
+    ]),
+    flood: fixturePlay("Florida West", "flood", [
+      { rname: "Flat", depth: 3, lat: 90, x: 560 },
+      { rname: "Out", depth: 12, lat: 70, x: 540 },
+      { rname: "Go", depth: 22, lat: 0, x: 400 }
+    ]),
+    ohio: fixturePlay("Ohio", "stick", [
+      { rname: "Stick", depth: 5, lat: 40, x: 540 },
+      { rname: "Hitch", depth: 6, lat: 20, x: 420 },
+      { rname: "Slant", depth: 4, lat: -30, x: 400 }
+    ]),
+    iso: fixtureRun("ISO"),
+    fade: fixturePlay("Z Fade", null, [
+      { rname: "Fade", depth: 18, lat: 10, x: 600 }
     ])
   };
   FIXTURES.deepPA.name = "PA Post Boot";
@@ -772,6 +884,7 @@
     STRUCT_RULES_V: STRUCT_RULES_V,
     LOOK_FAMILIES: LOOK_FAMILIES,
     BLEND_K: BLEND_K,
+    EV_TIE_EPS: EV_TIE_EPS,
     familyOf: familyOf,
     classify: classify,
     conceptKey: conceptKey,
@@ -779,6 +892,9 @@
     structScore: structScore,
     structScoreFromFeatures: structScoreFromFeatures,
     routeFeatures: routeFeatures,
+    sitFitFamily: sitFitFamily,
+    sitFitDeltas: sitFitDeltas,
+    sitBandOf: sitBandOf,
     rankPlaysVsLook: rankPlaysVsLook,
     rankPlaysVsLookBlended: rankPlaysVsLookBlended,
     scoreBook: scoreBook,
@@ -790,11 +906,13 @@
     blendScore: blendScore,
     ev: ev,
     rankPlaysByEv: rankPlaysByEv,
+    cmpEv: cmpEv,
     basisLabelFor: basisLabelFor,
     TIP_SCHEME: TIP_SCHEME,
     TIP_SUCCESS: TIP_SUCCESS,
     FIXTURES: FIXTURES,
     fixturePlay: fixturePlay,
+    fixtureRun: fixtureRun,
     RULES_V1: RULES_V1
   };
 
