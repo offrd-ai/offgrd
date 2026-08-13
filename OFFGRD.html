@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v278: matchup struct_rules_v2 sit-fit + blend K=4 + Best-options EV stack -->
+<!-- v228: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -106,14 +106,6 @@
   .attack p{margin:0;font-size:14.5px;line-height:1.45}
   .attack .beat{margin-top:7px;font-size:13.5px;line-height:1.5;color:var(--ink)}
   .attack .beat b{color:var(--accent)}
-  .attack .bookbeat{margin-top:10px}
-  .attack .booklist{margin:6px 0 0;padding-left:18px;font-size:13.5px;line-height:1.55}
-  .attack .booklist .bn{font-weight:800}
-  .attack .booklist .bw{color:var(--muted);font-weight:500}
-  .attack .booklist .pill{display:inline-block;font-size:9px;letter-spacing:.4px;padding:2px 7px;margin-left:4px;background:rgba(19,41,75,.08);color:var(--ink);vertical-align:middle;text-transform:uppercase}
-  .attack .booklist .pill .pill-scheme{font-weight:900}
-  body.dark .attack .booklist .pill{background:rgba(255,255,255,.10)}
-  .rd-gd-sheet .mark.scheme{opacity:.85;font-size:10px;letter-spacing:.03em}
 
   .dist{margin-top:14px}
   .barrow{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:10px;margin:6px 0}
@@ -206,9 +198,7 @@
   .cv-frame{border:1px solid var(--line);border-radius:10px;background:var(--chip);min-height:140px;overflow:hidden;display:flex;flex-direction:column}
   .cv-frame img{width:100%;height:auto;max-height:220px;object-fit:contain;background:#0b1017;display:block}
   .cv-frame-lbl{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px 0}
-  .cv-frame-empty .cv-frame-ph,.cv-frame-loading .cv-frame-ph{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:700;padding:24px 8px}
-  .cv-frame-loading img.cv-frame-img:not([src]),.cv-frame-loading img.cv-frame-img[src=""]{display:none}
-  .cv-frame img.cv-frame-img[src]:not([src=""]){display:block}
+  .cv-frame-empty .cv-frame-ph{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:700;padding:24px 8px}
   .cv-badges{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .cv-field{margin:0 0 10px}
   .cv-field-lbl{display:flex;align-items:center;gap:8px;margin-bottom:4px}
@@ -224,23 +214,9 @@
   .cv-pressure-hint{margin:0 0 6px!important;opacity:.8}
   .cv-field-extra .cv-field{margin-top:4px}
   .cv-field-extra .lbl{display:none}
-  .cv-orient{margin:0 0 10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.12);color:#86efac;font-size:14px;font-weight:800;letter-spacing:.2px;line-height:1.35}
-  body:not(.dark) .cv-orient{color:#14532d;background:rgba(34,197,94,.14);border-color:rgba(22,163,74,.4)}
-  .cv-orient-mark{opacity:.9;margin-right:2px}
   .cv-meta{font-size:13px;font-weight:700;margin-bottom:6px}
   .cv-keys{margin-top:6px!important;opacity:.85}
   .cv-review-actions{align-items:center}
-  .cv-review-actions button:disabled,.cv-queue-empty .cv-chip{opacity:.45;cursor:not-allowed;pointer-events:none}
-  .cv-lane-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
-  .cv-lane-chip{font-size:11px;font-weight:800;letter-spacing:.3px;padding:3px 8px;border-radius:6px;border:1px solid var(--line)}
-  .cv-lane-chip-green{border-color:rgba(63,199,119,.55);color:var(--good);background:rgba(63,199,119,.1)}
-  .cv-lane-chip-amber{border-color:rgba(231,184,75,.55);color:var(--warn);background:rgba(231,184,75,.1)}
-  .cv-lane{margin:0 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:700;line-height:1.35}
-  .cv-lane-green{border:1px solid rgba(63,199,119,.45);background:rgba(63,199,119,.12);color:var(--good)}
-  .cv-lane-amber{border:1px solid rgba(231,184,75,.5);background:rgba(231,184,75,.12);color:var(--warn)}
-  .cv-gate-reason{font-weight:800}
-  .cv-prov-pill{font-size:10px;font-weight:800;letter-spacing:.4px;vertical-align:middle}
-  .fc-guide{margin:4px 0 0;font-size:12.5px;font-weight:700;color:var(--accent);letter-spacing:.2px}
   @media (max-width:560px){
     .cv-frames{grid-template-columns:1fr}
   }
@@ -262,8 +238,6 @@
   .fc-actions{align-items:center}
   .fc-keys{margin-top:6px!important;opacity:.85}
   .fc-supersede{padding:14px;border:1px solid var(--bad);border-radius:10px;background:rgba(180,40,40,.08);font-size:14px}
-  .fc-toast{margin:10px 0 0;padding:12px 14px;border-radius:10px;border:1px solid #b7e0c6;background:#e8f7ee;color:#14532d;font-size:14px;font-weight:800;line-height:1.35}
-  .fc-toast[hidden]{display:none!important}
   #fcRun:disabled{opacity:.45;cursor:not-allowed}
   @media (max-width:560px){
     .fc-slots{grid-template-columns:1fr}
@@ -335,10 +309,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=278"></script>
-<script src="OFFGRD-brand-persist.js?v=278"></script>
-<script src="supabase.js?v=278"></script>
-<script src="OFFGRD-cache-gate.js?v=278"></script>
+<script src="OFFGRD-config.js?v=228"></script>
+<script src="OFFGRD-brand-persist.js?v=228"></script>
+<script src="supabase.js?v=228"></script>
+<script src="OFFGRD-cache-gate.js?v=228"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,34 +354,29 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=278"></script>
-<script src="OFFGRD-pos-glossary.js?v=278"></script>
-<script src="OFFGRD-autoderive.js?v=278"></script>
-<script src="OFFGRD-matchup.js?v=278"></script>
-<script src="OFFGRD-scoutcards.js?v=278"></script>
-<script src="OFFGRD-tendencies.js?v=278"></script>
-<script src="OFFGRD-scout-report.js?v=278"></script>
-<script src="OFFGRD-week-autotest.js?v=278"></script>
-<script src="OFFGRD-weeklypackage.js?v=278"></script>
-<script src="OFFGRD-telestrate.js?v=278"></script>
-<script src="OFFGRD-redesign.js?v=278"></script>
-<script src="OFFGRD-shell.js?v=278"></script>
-<script src="OFFGRD-caller-outcome.js?v=278"></script>
-<script src="OFFGRD-caller-sit.js?v=278"></script>
-<script src="OFFGRD-formations-data.js?v=278"></script>
-<script src="OFFGRD-formation-canon.js?v=278"></script>
-<script src="OFFGRD-assist-import.js?v=278"></script>
-<script src="OFFGRD-cv-review.js?v=278"></script>
-<script src="OFFGRD-frame-capture.js?v=278"></script>
-<script src="OFFGRD-caller-log.js?v=278"></script>
-<script src="OFFGRD-caller-sync.js?v=278"></script>
-<script src="OFFGRD-caller-analysis.js?v=278"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=278"></script>
-<script src="OFFGRD-booth-ask.js?v=278"></script>
-<script src="OFFGRD-boothpack.js?v=278"></script>
-<script src="OFFGRD-booth-chat.js?v=278"></script>
-<script src="OFFGRD-caller-select.js?v=278"></script>
-<script src="OFFGRD-dcaller.js?v=278"></script>
+<script src="OFFGRD-render.js?v=228"></script>
+<script src="OFFGRD-pos-glossary.js?v=228"></script>
+<script src="OFFGRD-autoderive.js?v=228"></script>
+<script src="OFFGRD-scoutcards.js?v=228"></script>
+<script src="OFFGRD-tendencies.js?v=228"></script>
+<script src="OFFGRD-week-autotest.js?v=228"></script>
+<script src="OFFGRD-weeklypackage.js?v=228"></script>
+<script src="OFFGRD-telestrate.js?v=228"></script>
+<script src="OFFGRD-redesign.js?v=230"></script>
+<script src="OFFGRD-shell.js?v=228"></script>
+<script src="OFFGRD-caller-outcome.js?v=228"></script>
+<script src="OFFGRD-formations-data.js?v=228"></script>
+<script src="OFFGRD-formation-canon.js?v=228"></script>
+<script src="OFFGRD-assist-import.js?v=228"></script>
+<script src="OFFGRD-cv-review.js?v=228"></script>
+<script src="OFFGRD-frame-capture.js?v=228"></script>
+<script src="OFFGRD-caller-log.js?v=228"></script>
+<script src="OFFGRD-caller-sync.js?v=228"></script>
+<script src="OFFGRD-caller-analysis.js?v=228"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=228"></script>
+<script src="OFFGRD-booth-ask.js?v=228"></script>
+<script src="OFFGRD-caller-select.js?v=228"></script>
+<script src="OFFGRD-dcaller.js?v=228"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -653,58 +622,6 @@ function beaterFor(cov){
   if(BEATERS[cov]) return BEATERS[cov];
   const k=Object.keys(BEATERS).find(k=>cov && cov.toLowerCase().startsWith(k.toLowerCase().slice(0,7)));
   return BEATERS[k] || {type:"zone/man", attack:"Read leverage and find the soft defender; flood the side away from the rotation.", tags:["flood","mesh","seam"]};
-}
-/** Scout attack panel: P2 blended beaters from PBOOK (+ ours empirical), else BEATERS tags. */
-function attackFromBookHTML(headK, bt){
-  const M=window.OFFGRD_MATCHUP;
-  if(!M || (typeof M.rankPlaysVsLookBlended!=="function" && typeof M.rankPlaysVsLook!=="function")){
-    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>';
-  }
-  const fam=M.familyOf(headK);
-  const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
-  if(!book.length){
-    const signed=!!(typeof TEAM!=="undefined"&&TEAM)||!!(window.OFFGRD_HAS_LIKELY_SESSION&&OFFGRD_HAS_LIKELY_SESSION());
-    const foot=signed
-      ? 'No playbook loaded yet · <a href="OFFGRD-Playbook.html">Program setup · Load your playbook</a> to see your-book beaters.'
-      : 'Sign in / load playbook to see your-book beaters.';
-    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
-      '<p class="foot" style="margin-top:8px">'+foot+'</p>';
-  }
-  const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
-  const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
-  const gi=(typeof gameOrderIndex==="function")?gameOrderIndex():null;
-  const opts={
-    limit:5,
-    getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null,
-    weightFn: function(row){
-      if(!useRec || !gi || typeof weightOf!=="function") return 1;
-      return weightOf(row, true, gi);
-    }
-  };
-  let ranked=[];
-  try{
-    if(fam && typeof M.rankPlaysVsLookBlended==="function")
-      ranked=M.rankPlaysVsLookBlended(book, fam, ours, opts);
-    else if(fam)
-      ranked=M.rankPlaysVsLook(book, fam, {limit:5});
-  }catch(e){ ranked=[]; }
-  if(!ranked.length){
-    return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
-      '<div class="beat bookbeat"><b>From your book</b> · no pass concepts scored for this look yet.</div>';
-  }
-  const tipScheme=(M.TIP_SCHEME)||"ranked by how this play's design fits the predicted look — no graded reps yet";
-  const tipSuccess=(M.TIP_SUCCESS)||"your graded results vs this look, blended with scheme fit.";
-  return '<div class="beat bookbeat"><b>From your book</b> · vs '+esc(fam)+
-    '<ol class="booklist">'+ranked.map(function(r){
-      const evPct=Math.round((r.ev!=null?r.ev:(r.score||0)/100)*100);
-      const tip=r.basis==="empirical"&&r.n?(r.basisTip||tipSuccess):(r.basisTip||tipScheme);
-      const pill=r.basis==="empirical"&&r.n
-        ? esc(r.basisLabel||("SUCCESS · "+r.n+" SNAP"+(r.n===1?"":"S")))
-        : (evPct+'% <span class="pill-scheme">SCHEME MATCH</span>');
-      return '<li><span class="bn">'+esc(r.name||"?")+'</span>'+
-        (r.why&&r.why[0]?' <span class="bw">'+esc(r.why[0])+'</span>':'')+
-        ' <span class="pill" title="'+esc(tip)+'">'+pill+'</span></li>';
-    }).join("")+'</ol></div>';
 }
 
 /* ---------- Sample dataset generator (deterministic) ---------- */
@@ -963,7 +880,7 @@ function render(){
       '<div class="reslead">Coverage predictor</div>'+
       '<div class="callline"><div class="callname" style="font-size:30px">No coverage data yet</div></div>'+
       (noDef
-        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button class="rd-scout-cta" onclick="showGetStarted()" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer')+'">Get started ?</button></div>'
+        ? '<p class="foot" style="font-size:13.5px">No defensive coverage is tagged for <b>'+opp+'</b> yet. In Hudl, tag <b>fronts, blitzes, and coverages</b> on their defensive snaps, then <b>Import data \u2192 Defense (DC scout)</b>. The moment that is in, this screen predicts their coverage, pressure, front, and the best calls against it.</p><div style="margin-top:14px"><button class="rd-scout-cta" onclick="showGetStarted()" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer')+'">Get started \u2192</button></div>'
         : '<p class="foot">No charted snaps fit this exact situation. Loosen a filter or pick a different look.</p>');
     renderGrid(useRec); return;
   }
@@ -1006,7 +923,7 @@ function render(){
         : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
     '</div>'+
     (bt
-      ? '<div class="attack"><div class="h">Attack · '+esc((window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.familyOf(headK))||bt.type)+'</div><p>'+esc(bt.attack)+'</p>'+attackFromBookHTML(headK, bt)+fieldBoundaryNote(covRows)+'</div>'
+      ? '<div class="attack"><div class="h">Attack · '+esc(bt.type)+'</div><p>'+esc(bt.attack)+'</p><div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+fieldBoundaryNote(covRows)+'</div>'
       : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here · pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
     (useCoverage? '<div class="dist"><div class="lbl">Coverage distribution (observed)'+(untagged>0?' <span style="color:var(--muted);font-weight:600">('+untagged+' untagged)</span>':'')+'</div>'+cov.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join("")+'</div>' : '')+
     '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="?"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
@@ -1410,7 +1327,7 @@ function seedGames(){
   return out;
 }
 function loadGames(){ try{ const s=localStorage.getItem(STORE_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) return a; } }catch(e){} return []; }
-function upsertGame(opp,week,side,source,rows,opts){
+function upsertGame(opp,week,side,source,rows){
   const k=gameKey(opp,week,side); const existed=GAMES.some(g=>g.key===k);
   GAMES=GAMES.filter(g=>g.key!==k);
   const rowSrc=(source==="live_call")?"live_call":"scout_import";
@@ -1420,44 +1337,9 @@ function upsertGame(opp,week,side,source,rows,opts){
     if(!r.source) r.source=rowSrc;
   });
   GAMES.push({key:k,opponent:opp,week:week,side:side,source:source||"import",rows:rows});
-  saveGames(opts&&opts.sync===false?{sync:false}:undefined);
-  rebuildActive(); return existed;
+  saveGames(); rebuildActive(); return existed;
 }
-async function tombstoneCloudGames(games, reason){
-  const C=mgrCloud(); const teamId=mgrTeamId();
-  if(!C||!teamId||typeof C.tombstoneGame!=="function") return { mode:"local_only", errors:[] };
-  const errors=[];
-  for(let i=0;i<(games||[]).length;i++){
-    const g=games[i];
-    try{ await C.tombstoneGame(teamId, g, reason||"user_delete"); }
-    catch(e){ errors.push((g&&g.opponent?g.opponent:"?")+" · "+(g&&g.week?g.week:"?")+" — "+((e&&e.message)||e)); }
-  }
-  try{ if(window.OFFGRD_LOAD_TOMBSTONES) await window.OFFGRD_LOAD_TOMBSTONES(teamId); }catch(e2){}
-  return { mode:"cloud", errors:errors };
-}
-async function deleteGameIdx(i){
-  const g=GAMES[i]; if(!g) return;
-  if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?\n\nThis tombstones the cloud copy so Sync cannot restore it.")) return;
-  const msg=document.getElementById("mgrMsg");
-  const C=mgrCloud(); const teamId=mgrTeamId();
-  if(C&&teamId&&typeof C.tombstoneGame==="function"){
-    if(msg) msg.textContent="Tombstoning in cloud…";
-    try{
-      await C.tombstoneGame(teamId, g, "user_delete");
-      try{ if(window.OFFGRD_LOAD_TOMBSTONES) await window.OFFGRD_LOAD_TOMBSTONES(teamId); }catch(eT){}
-    }catch(e){
-      if(msg) msg.textContent="Cloud delete failed — local library unchanged. "+((e&&e.message)||e);
-      alert("Could not tombstone cloud game: "+((e&&e.message)||e));
-      return;
-    }
-  }else if(typeof confirm==="function" && !confirm("Not signed in (or cloud unavailable). Delete locally only?\n\nIf you are signed in later, Sync may restore this game within ~60s.")){
-    return;
-  }
-  GAMES.splice(i,1);
-  saveGames({sync:false});
-  rebuildActive(); buildControls(); render(); renderManager();
-  if(msg) msg.textContent=(C&&teamId)?"Deleted and tombstoned in cloud.":"Deleted locally only (not signed in).";
-}
+function deleteGameIdx(i){ const g=GAMES[i]; if(!g) return; if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?")) return; GAMES.splice(i,1); saveGames(); rebuildActive(); buildControls(); render(); renderManager(); }
 /* ---------- season schedule (shared to the OFFRD recruiting page) ---------- */
 function schedUID(){ return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function openSchedule(){ const m=document.getElementById("sched"); if(m){ m.classList.add("show"); const p=document.getElementById("schedPid"); if(p){ p.innerHTML = SCHED_TEAM_ID ? ('Program ID for your OFFRD link: <code>'+esc(SCHED_TEAM_ID)+'</code> <button class="ghost" style="padding:2px 8px" onclick="schedCopyId()">Copy</button>') : '<span class="foot">Sign in to your program to see your OFFRD link ID.</span>'; } renderSchedule(); } }
@@ -1594,20 +1476,13 @@ async function renderImportManager(){
           +'<td style="white-space:nowrap">'+captureBtn+reviewBtn
           +'<button type="button" class="ghost" style="padding:3px 9px;color:var(--bad)" data-batch="'+esc(id)+'" data-label="'+esc(lbl)+'" onclick="deleteImportBatch(this)">Delete</button></td></tr>';
       }).join("");
-      html+='<div class="mgr-import-opp" data-opp="'+esc(opp)+'" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
+      html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
         +'<span class="foot">'+list.length+' import'+(list.length===1?"":"s")+' · '+tot+' snaps</span>'
         +'<button class="ghost" data-opp="'+esc(opp)+'" style="margin-left:auto;padding:4px 12px" onclick="setOpponentFromLib(this.getAttribute(\'data-opp\'))">Scout \u2192</button></div>'
-        +'<div class="mgr-sr-ready-slot" data-opp="'+esc(opp)+'"></div>'
         +'<table><tbody>'+rows+'</tbody></table></div>';
     });
     host.innerHTML=html;
-    if(window.OFFGRD_SCOUT_REPORT && typeof OFFGRD_SCOUT_REPORT.renderManagerReadiness==="function"){
-      host.querySelectorAll(".mgr-sr-ready-slot").forEach(function(slot){
-        var o=slot.getAttribute("data-opp");
-        if(o) OFFGRD_SCOUT_REPORT.renderManagerReadiness(slot, o);
-      });
-    }
   }catch(e){
     host.innerHTML='<p class="foot" style="color:var(--bad)">Could not load Auto-Scout imports: '+esc(e&&e.message?e.message:e)+'</p>';
   }
@@ -1675,27 +1550,7 @@ function importSeason(text){
     document.getElementById("mgrMsg").textContent="Loaded season file: "+GAMES.length+" games.";
   }catch(e){ document.getElementById("mgrMsg").textContent="That does not look like a valid OFFGRD season file."; }
 }
-async function clearSeason(){
-  if(typeof confirm==="function" && !confirm("Clear ALL games from the library? Export first if you want a backup.\n\nSigned-in coaches: each game is tombstoned in cloud so Sync cannot restore them.")) return;
-  const msg=document.getElementById("mgrMsg");
-  const snapshot=GAMES.slice();
-  const C=mgrCloud(); const teamId=mgrTeamId();
-  if(C&&teamId&&typeof C.tombstoneGame==="function"){
-    if(msg) msg.textContent="Tombstoning "+snapshot.length+" game(s) in cloud…";
-    const r=await tombstoneCloudGames(snapshot, "user_clear_all");
-    if(r.errors&&r.errors.length){
-      alert("Some cloud tombstones failed:\n"+r.errors.slice(0,8).join("\n")+(r.errors.length>8?"\n…":""));
-      if(msg) msg.textContent="Partial cloud tombstone failure — local clear aborted. Fix errors and retry.";
-      return;
-    }
-  }else if(typeof confirm==="function" && !confirm("Not signed in (or cloud unavailable). Clear locally only?\n\nCloud Sync will restore games within ~60s if they still exist server-side.")){
-    return;
-  }
-  GAMES=[];
-  saveGames({sync:false});
-  rebuildActive(); buildControls(); render(); renderManager();
-  if(msg) msg.textContent=(C&&teamId)?"Library cleared and tombstoned in cloud.":"Library cleared locally only (not signed in).";
-}
+function clearSeason(){ if(typeof confirm==="function" && !confirm("Clear ALL games from the library? Export first if you want a backup.")) return; GAMES=[]; saveGames(); rebuildActive(); buildControls(); render(); renderManager(); document.getElementById("mgrMsg").textContent="Library cleared."; }
 function openManager(){ document.getElementById("mgr").classList.add("show"); renderManager(); const st=document.getElementById("mgrStore"); if(st){ let ok=false; try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); ok=true; }catch(e){} st.textContent= ok?"Auto-save: ON for this browser. Use Export to back up or share with staff.":"Auto-save unavailable in this browser · use Export/Import season file to keep your data."; } }
 
 /* ---------- TEAM BRANDING / CRESTS ---------- */
@@ -1768,7 +1623,7 @@ let CALLER_FLASH_UNTIL=0;
 let _callerFlashT=null;
 const CALLER_KEY="offgrd_caller_v1"; /* legacy snapshot · migrated once into events */
 let CALLER_SESSION=null; /* {opp, week, gameId} */
-let callerSit={dn:1,db:"10+",estYards:10,hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false, pendingTry:false, forTwo:false, needReason:null};
+let callerSit={dn:1,db:"10+",hash:"ANY",zone:"ANY", front:null, pressure:null, frontJustSet:false, pressureJustSet:false, inferred:false, needsInput:false, pendingTry:false, forTwo:false, needReason:null};
 /** Coach marks · {kind:'quarter'|'half'|'final', afterPlayIndex} · feed deriveDrives breaks */
 let CALLER_BREAKS=[];
 /** Dismissible drive summary toast · {lines, facts} or null */
@@ -1780,9 +1635,7 @@ let CALLER_MONDAY_FOCUS=null;
 let CALLER_LIVE_EXPANDED=false;
 let CALLER_EVENT_FEED=[];
 let CALLER_LAST_SHIFT_SIG="";
-let CALLER_LAST_LOOK_SHIFT_SIG="";
 let CALLER_LAST_DRIVE_FEED_PI=null;
-let CALLER_STREAK_FEED_DRIVE=null; /* drive tip playIndex that already got a streak line */
 let CALLER_BOOTH_CHIP=null;
 let CALLER_BOOTH_ASK=null; /* Tier-2: { status, question, lines, thin, message, source, intent } */
 /** playIndex being edited via Edit last play (correction), or null */
@@ -1806,53 +1659,8 @@ function callerModeToggleHtml(){
     +`<button type="button" class="rd-gd-mode-btn${m==="advanced"?" on":""}" onclick="callerSetMode('advanced')">Advanced</button>`
     +`</div>`;
 }
-/** O Caller / D Caller switch — redesign Gameday + Booth (legacy navbar is display:none). */
-function callerOdToggleHtml(side){
-  const on=side==="d"?"d":"o";
-  return `<div class="rd-gd-od no-print" role="group" aria-label="Offense or defense caller">`
-    +`<button type="button" class="rd-gd-od-btn${on==="o"?" on":""}" onclick="setView('caller')">O Caller</button>`
-    +`<button type="button" class="rd-gd-od-btn${on==="d"?" on":""}" onclick="setView('dcaller')">D Caller</button>`
-    +`</div>`;
-}
 function callerSitDefaults(){
-  return {dn:1,db:"10+",estYards:10,hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false,inferred:false,needsInput:false,pendingTry:false,forTwo:false,needReason:null};
-}
-function callerEstYardsForBucket(db){
-  const O=callerOut();
-  if(O&&O.estYardsForBucket) return O.estYardsForBucket(db);
-  if(db==="GOAL") return 3;
-  if(db==="1-3") return 2;
-  if(db==="4-6") return 5;
-  if(db==="7-9") return 8;
-  return 10;
-}
-/** GOAL has no scout bucket — derive filter band from estYards. */
-function callerDbFilter(db, estY){
-  if(db!=="GOAL") return db;
-  const O=callerOut();
-  const y=estY!=null?estY:(callerSit&&callerSit.estYards);
-  if(O&&O.yardsToDb&&y!=null) return O.yardsToDb(y);
-  return "1-3";
-}
-function callerNormalizeSit(s){
-  s=Object.assign(callerSitDefaults(), s||{});
-  if(s.estYards==null||isNaN(+s.estYards)) s.estYards=callerEstYardsForBucket(s.db);
-  else if(s.db==="GOAL"){
-    const O=callerOut();
-    s.estYards=O&&O.clampGoalYards?O.clampGoalYards(s.estYards):Math.min(10,Math.max(1,Math.round(+s.estYards)));
-  }else s.estYards=Math.max(1,Math.round(+s.estYards));
-  return s;
-}
-function callerSitLabel(cs){
-  cs=cs||callerSit;
-  const dist=cs.db==="GOAL"?"GOAL":cs.db;
-  return (ordinal(+cs.dn)+"").toUpperCase()+" & "+dist;
-}
-function callerResetFirstDownLabel(cs){
-  cs=cs||callerSit;
-  const O=callerOut();
-  if(O&&O.isGoalSituation&&O.isGoalSituation(cs)) return "1ST & GOAL";
-  return "1ST & 10";
+  return {dn:1,db:"10+",hash:"ANY",zone:"ANY",front:null,pressure:null,frontJustSet:false,pressureJustSet:false,inferred:false,needsInput:false,pendingTry:false,forTwo:false,needReason:null};
 }
 let _callerSyncT=null;
 let _callerChan=null;
@@ -2178,9 +1986,8 @@ function renderReport(){
   const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
   const scoutTool=rd&&OFFGRD_REDESIGN.getScoutTool?OFFGRD_REDESIGN.getScoutTool():null;
 
-  /* Redesign: Tendencies tab = heat tables. Report tab = Scout Report v1 (cheat cards /
-     read sheet / badges / readiness) over SNAP_CORPUS. Classic flag-off still combines
-     heat + legacy skim when tendency flag is on. */
+  /* Redesign: Tendencies tab = heat tables only. Report tab = Top Tells / skim report only.
+     Flag-off keeps the combined page (heat + Top tells) byte-for-byte. */
   if(window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.isTendency() && (!rd || scoutTool==="tendency")){
     const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
     OFFGRD_TENDENCIES.injectInto(host, def, off, {
@@ -2200,19 +2007,6 @@ function renderReport(){
         host.insertBefore(strip, host.firstChild);
       }
     }
-    return;
-  }
-
-  /* Scout Report v1 — view over SNAP_CORPUS (same pool as Predict). */
-  if(window.OFFGRD_SCOUT_REPORT && typeof OFFGRD_SCOUT_REPORT.injectInto==="function"){
-    const scopeLab=typeof scopeLabelText==="function"?scopeLabelText():"season library scope";
-    OFFGRD_SCOUT_REPORT.injectInto(host, def, off, {
-      opponent: opp,
-      oppName: oppName,
-      scopeLabel: scopeLab,
-      defRows: def,
-      offRows: off
-    });
     return;
   }
 
@@ -2361,7 +2155,6 @@ function wirePractice(host){
 /** Caller / plan distance label ? representative yards. Null if unrecognised (never invent 10+). */
 const CALLER_DB_BUCKETS=["1-3","4-6","7-9","10+"];
 function dbToNum(db){
-  if(db==="GOAL") return 3;
   if(db==="1-3") return 2;
   if(db==="4-6") return 5;
   if(db==="7-9") return 8;
@@ -2491,34 +2284,6 @@ function previewImport(){
     });
     if(warns.length) H2+='<div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">'+warns.map(w=>"? "+w).join("<br>")+'</div>';
     else H2+='<p class="foot" style="margin:2px 0">Looks consistent · no inversion or blank-tag flags.</p>';
-    /* Defense parse drop + opaque coverage tally (LAST_PARSE_STATS from last parseCSV) */
-    (function(){
-      const st=LAST_PARSE_STATS;
-      if(!st || (IMPORT_MODE!=="full" && IMPORT_MODE!=="defense")) return;
-      const dropped=(st.skippedNoDef||0)+(st.skippedOdk||0);
-      if(dropped>0){
-        H2+='<p style="font-size:13px;margin:6px 0 2px;color:var(--accent);font-weight:700">Dropped '+dropped+' of '+(st.dataRows||0)+' snaps'
-          +' (ODK filter '+(st.skippedOdk||0)+' · no def tag '+(st.skippedNoDef||0)+'). Kept '+st.kept
-          +(st.keep?(' · using ODK='+esc(st.keep)):'')+'.</p>';
-        const fmtCovMap=function(m,n){
-          return Object.keys(m||{}).sort(function(a,b){ return m[b]-m[a]; }).slice(0,n||12)
-            .map(function(k){ return esc(k)+' \u00d7'+m[k]; }).join(" · ");
-        };
-        if(st.odkDroppedCov && Object.keys(st.odkDroppedCov).length){
-          H2+='<p class="foot" style="margin:2px 0">Coverage on ODK-dropped snaps: '+fmtCovMap(st.odkDroppedCov,12)+'</p>';
-        }
-        if(st.droppedCovRaw && Object.keys(st.droppedCovRaw).length){
-          H2+='<p class="foot" style="margin:2px 0">Coverage on no-def-tag snaps: '+fmtCovMap(st.droppedCovRaw,8)+'</p>';
-        }
-      }else if(st.dataRows){
-        H2+='<p class="foot" style="margin:6px 0 2px">Defense parse kept all '+st.kept+' tagged snaps (no ODK / no-def drops).</p>';
-      }
-      if(st.opaqueCov && Object.keys(st.opaqueCov).length){
-        const ob=Object.keys(st.opaqueCov).sort(function(a,b){ return st.opaqueCov[b]-st.opaqueCov[a]; }).slice(0,12)
-          .map(function(k){ return esc(k)+' \u00d7'+st.opaqueCov[k]; });
-        H2+='<p class="foot" style="margin:2px 0">Non-canonical coverage kept as-is: '+ob.join(" · ")+'</p>';
-      }
-    })();
     H+=H2;
   })();
   const cl=rawCleanup(txt);
@@ -2528,79 +2293,19 @@ function previewImport(){
   document.getElementById("commitBtn").style.display="";
   document.getElementById("importMsg").textContent="Review the mapping & auto-cleanup above, then Commit to season.";
 }
-async function commitPending(){
-  if(!PENDING) return;
-  const msgEl=document.getElementById("importMsg");
-  const btn=document.getElementById("commitBtn");
+function commitPending(){
+  if(!PENDING) return; const parts=[];
   const sideLbl={off:"offense",def:"defense",ours:"your-plays"};
-  const parts=[]; const errors=[];
   let hasOff=false, hasDef=false;
-  const C=mgrCloud(); const teamId=mgrTeamId();
-  const week=PENDING.week;
-  const games=(PENDING.games||[]).filter(function(g){ return g&&g.rows&&g.rows.length; });
-  if(!games.length){
-    if(msgEl) msgEl.textContent="Nothing to commit — no parsed snaps.";
-    return;
-  }
-  if(btn){ btn.disabled=true; btn.textContent="Committing…"; }
-  if(msgEl) msgEl.textContent="Committing to season…";
-
-  /* Deliberate import: clear tombstones for these keys so Delete→re-import works.
-     Tombstones only block passive pull/mergeGames resurrection. */
-  if(C&&teamId&&typeof C.clearGameTombstone==="function"){
-    for(let i=0;i<games.length;i++){
-      const g=games[i];
-      try{
-        await C.clearGameTombstone(teamId, { opponent:g.opp, week:week, side:g.side });
-      }catch(e){
-        errors.push((g.opp||"?")+" · "+week+" · "+(sideLbl[g.side]||g.side)+": could not clear prior delete — "+((e&&e.message)||e));
-      }
-    }
-    try{ if(window.OFFGRD_LOAD_TOMBSTONES) await window.OFFGRD_LOAD_TOMBSTONES(teamId); }catch(eT){}
-  }
-
-  if(errors.length){
-    if(msgEl) msgEl.textContent="Commit blocked: "+errors.join(" | ");
-    if(btn){ btn.disabled=false; btn.textContent="Commit to season"; }
-    return;
-  }
-
-  /* upsert by opponent|week|side — same label replaces (not append). Defer sync until cloud write. */
-  games.forEach(function(g){
-    const existed=upsertGame(g.opp,week,g.side,"import",g.rows,{sync:false});
-    parts.push((existed?"Replaced ":"Added ")+g.rows.length+" "+g.opp+" "+sideLbl[g.side]);
-    if(g.side==="off")hasOff=true; if(g.side==="def")hasDef=true;
-  });
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(GAMES)); }catch(eLS){}
-
-  let syncNote="";
-  if(typeof window.OFFGRD_PUSH==="function" && teamId){
-    if(msgEl) msgEl.textContent="Saving to cloud…";
-    const pushRes=await window.OFFGRD_PUSH(true);
-    if(!pushRes||!pushRes.ok){
-      const detail=(pushRes&&pushRes.error)||"Cloud save failed.";
-      if(msgEl) msgEl.textContent="Saved in this browser, but cloud sync failed: "+detail+" Re-try Commit or Sync after fixing access.";
-      if(btn){ btn.disabled=false; btn.textContent="Commit to season"; }
-      return;
-    }
-    syncNote=" Cloud synced.";
-  }else if(!teamId){
-    syncNote=" Saved locally only — sign in as a coach to sync to the program.";
-  }else{
-    try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(eSy){}
-    syncNote=" Sync scheduled.";
-  }
-
+  PENDING.games.forEach(g=>{ if(!g.rows||!g.rows.length) return; upsertGame(g.opp,PENDING.week,g.side,"import",g.rows); parts.push(g.rows.length+" "+g.opp+" "+sideLbl[g.side]); if(g.side==="off")hasOff=true; if(g.side==="def")hasDef=true; });
   SCOUT_MODE = hasOff ? "offense" : (hasDef ? "defense" : SCOUT_MODE);
   document.querySelectorAll("#seg-scoutmode button").forEach(x=>{ if(x.dataset.sm===SCOUT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
-  const primary=(games[0]||{}).opp||sit.opp;
+  const primary=(PENDING.games[0]||{}).opp||sit.opp;
   sit.opp=primary; sit.pers="ANY"; sit.form="ANY";
   buildControls(); setView("scout");
-  if(msgEl) msgEl.textContent="Committed "+week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games."+syncNote;
-  document.getElementById("importPreview").innerHTML="";
-  if(btn){ btn.disabled=false; btn.textContent="Commit to season"; btn.style.display="none"; }
-  PENDING=null;
-  setTimeout(function(){ const m=document.getElementById("modal"); if(m) m.classList.remove("show"); }, 2800);
+  document.getElementById("importMsg").textContent="Committed "+PENDING.week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games.";
+  document.getElementById("importPreview").innerHTML=""; document.getElementById("commitBtn").style.display="none"; PENDING=null;
+  setTimeout(()=>document.getElementById("modal").classList.remove("show"),2600);
 }
 
 /* ----- LIVE CALLER ----- */
@@ -2653,39 +2358,13 @@ function callerPlayType(pl){
   try{ if(typeof OFFPLAYS!=="undefined" && OFFPLAYS[pl] && typeof PASSPLAYS!=="undefined" && PASSPLAYS.indexOf(pl)<0) return "Run"; }catch(e){}
   return playKind(pl);
 }
-function callerSitApi(){ return window.OFFGRD_CALLER_SIT||null; }
-/** Never-blank expect: shared ladder (hash→field→distance→down→playbook). */
 function callerExpectSample(){
   const def=oppRows("def"), cs=callerSit;
-  const dbF=callerDbFilter(cs.db, cs.estYards);
-  const liveM=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
-  const pool=def.concat(liveM);
-  const Sit=callerSitApi();
-  let resolved=null;
-  if(Sit&&Sit.resolveSituation){
-    resolved=Sit.resolveSituation(pool, {
-      dn: cs.dn, db: cs.db, hash: cs.hash, zone: cs.zone
-    }, { filterDb: dbF });
-  }
-  const g=resolved&&!resolved.terminal?resolved.rows:(()=>{
-    /* Legacy exact match if sit module missing */
-    return pool.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===dbF&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
-  })();
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
+  const g=def.filter(r=>r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||r.hash===cs.hash)).concat(liveM);
   const gc=g.filter(r=>r.coverage&&r.coverage!=="?");
-  const cov=gc.length&&typeof shrunkDist==="function"?shrunkDist(g,"coverage",def,5).arr[0]:null;
-  return {
-    g: g,
-    cov: cov,
-    target: cov?cov.k:null,
-    def: def,
-    resolved: resolved,
-    terminal: !!(resolved&&resolved.terminal),
-    widened: !!(resolved&&resolved.widened),
-    badge: resolved?resolved.badge:null,
-    widenLabel: resolved?resolved.widenLabel:null,
-    conf: resolved?resolved.conf:null,
-    rung: resolved?resolved.rung:0
-  };
+  const cov=gc.length?shrunkDist(g,"coverage",def,5).arr[0]:null;
+  return {g:g, cov:cov, target:cov?cov.k:null, def:def};
 }
 /** Caller stores blitz type on entry.pressure (playbook id). Scout algo wants pressure 0/1 + blitz string. */
 function callerPressureLabel(pressureId){
@@ -2831,44 +2510,29 @@ function callerSetSticky(field, value){
   callerSaveLocal();
   renderCaller();
 }
-/** Tag front/pressure on a specific playIndex (This play or older pending). */
-function callerSetObsAt(playIndex, field, value){
+/** Tag the live / last play (This play card). Also updates sticky so the next call can carry. */
+function callerSetObs(field, value){
   if(field!=="front"&&field!=="pressure") return;
-  if(playIndex==null) return;
-  const entry=CALLER_LOG.find(l=>l.playIndex===playIndex);
-  const cur=entry?entry[field]:null;
-  const next=(cur===value)?null:value;
-  const payload={};
-  if(field==="front"){ payload.front=next; payload.frontCarried=false; }
-  if(field==="pressure"){ payload.pressure=next; payload.pressureCarried=false; }
-  callerAppend("observation", playIndex, payload);
-  /* Keep sticky in sync when tagging the live on-call snap. */
-  const on=callerOnCall();
-  if(on&&on.playIndex===playIndex){
-    callerSit[field]=next;
+  const cur=callerSit[field];
+  if(cur===value){
+    callerSit[field]=null;
     callerSit[field+"JustSet"]=false;
+  } else {
+    callerSit[field]=value;
+  }
+  const on=callerOnCall();
+  const pi=on&&on.playIndex!=null?on.playIndex:(CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null);
+  if(pi!=null){
+    const payload={};
+    if(field==="front"){ payload.front=callerSit.front; payload.frontCarried=false; }
+    if(field==="pressure"){ payload.pressure=callerSit.pressure; payload.pressureCarried=false; }
+    callerAppend("observation", pi, payload);
+    callerSit[field+"JustSet"]=false;
+  } else {
+    callerSit[field+"JustSet"]=callerSit[field]!=null;
   }
   callerSaveLocal();
   renderCaller();
-}
-/** Tag the live / last play (This play card). Also updates sticky so the next call can carry. */
-function callerSetObs(field, value){
-  const on=callerOnCall();
-  const pi=on&&on.playIndex!=null?on.playIndex:(CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null);
-  if(pi==null){
-    if(field!=="front"&&field!=="pressure") return;
-    if(callerSit[field]===value){
-      callerSit[field]=null;
-      callerSit[field+"JustSet"]=false;
-    } else {
-      callerSit[field]=value;
-      callerSit[field+"JustSet"]=true;
-    }
-    callerSaveLocal();
-    renderCaller();
-    return;
-  }
-  callerSetObsAt(pi, field, value);
 }
 function callerAttachStickyObs(playIndex){
   const front=callerSit.front;
@@ -2910,89 +2574,16 @@ function callerPushFeed(ev){
   if(!ev||!ev.line) return;
   const id=ev.id||(ev.kind+"-"+Date.now());
   if(CALLER_EVENT_FEED.some(x=>x.id===id)) return;
-  const row={
-    id:id,
-    kind:ev.kind||"note",
-    line:String(ev.line),
-    llmLine:null,
-    at:Date.now(),
-    playIndex:ev.playIndex!=null?ev.playIndex:null,
-    inferred:!!ev.inferred,
-    auto:!!ev.auto,
-    driveKind:ev.driveKind||null
-  };
+  const row={ id:id, kind:ev.kind||"note", line:String(ev.line), llmLine:null, at:Date.now(), playIndex:ev.playIndex!=null?ev.playIndex:null };
   CALLER_EVENT_FEED.unshift(row);
   if(CALLER_EVENT_FEED.length>40) CALLER_EVENT_FEED.length=40;
   const L=window.OFFGRD_CALLER_SUMMARY_LLM;
-  if(L&&L.requestEventLine && !row.inferred){
+  if(L&&L.requestEventLine){
     L.requestEventLine(row.line, { eventId:row.id, session:callerEnsureSession() }, function(text){
       const hit=CALLER_EVENT_FEED.find(x=>x.id===row.id);
       if(!hit||!text) return;
       hit.llmLine=text;
       renderCaller();
-    });
-  }
-}
-/** Infer drive-end feed line from a graded snap. Dedupes by playIndex+kind. */
-function callerMaybeInferDriveEnd(entry){
-  const A=callerAnalysis();
-  if(!A||!A.inferDriveEndFromSnap||!entry) return;
-  const inf=A.inferDriveEndFromSnap(entry);
-  if(!inf) return;
-  const pi=inf.playIndex!=null?inf.playIndex:entry.playIndex;
-  const id="drive-auto-"+inf.kind+"-"+(pi!=null?pi:"x");
-  callerPushFeed({
-    kind:"drive",
-    id:id,
-    line:inf.label+" · drive over (auto)",
-    playIndex:pi,
-    inferred:true,
-    auto:true,
-    driveKind:inf.kind
-  });
-}
-/** Explicit drive-over button merges/overrides a recent inferred line. */
-function callerMergeDriveOverFeed(kind){
-  const map={ punt:"punt", downs:"downs", takeaway:"takeaway", score:"score" };
-  const dk=map[kind]||kind;
-  const lastPi=CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1].playIndex:null;
-  /* Find inferred drive within last ~2 snaps */
-  const recent=CALLER_LOG.slice(-3).map(l=>l.playIndex);
-  let hit=null;
-  for(let i=0;i<CALLER_EVENT_FEED.length;i++){
-    const ev=CALLER_EVENT_FEED[i];
-    if(!ev||ev.kind!=="drive"||!ev.inferred) continue;
-    if(ev.driveKind&&ev.driveKind!==dk && !(dk==="score"&&ev.driveKind==="score")) {
-      /* allow kind remap only when same tip window */
-    }
-    if(ev.playIndex!=null && recent.indexOf(ev.playIndex)<0 && ev.playIndex!==lastPi) continue;
-    hit=ev;
-    break;
-  }
-  const line=
-    (kind==="score"?"Score":kind==="takeaway"?"Takeaway":kind==="downs"?"Downs":"Punt")+
-    " · drive over";
-  if(hit){
-    hit.line=line;
-    hit.inferred=false;
-    hit.auto=false;
-    hit.llmLine=null;
-    hit.driveKind=dk;
-    hit.id="drive-"+dk+"-"+(hit.playIndex!=null?hit.playIndex:Date.now());
-    /* Drop duplicate auto ids for same tip */
-    CALLER_EVENT_FEED=CALLER_EVENT_FEED.filter(function(ev,idx,arr){
-      if(ev===hit) return true;
-      if(ev.kind!=="drive"||!ev.inferred) return true;
-      if(hit.playIndex!=null&&ev.playIndex===hit.playIndex) return false;
-      return true;
-    });
-  }else{
-    callerPushFeed({
-      kind:"drive",
-      id:"drive-"+dk+"-"+(lastPi!=null?lastPi:Date.now()),
-      line:line,
-      playIndex:lastPi,
-      driveKind:dk
     });
   }
 }
@@ -3002,37 +2593,16 @@ function callerDefenseLog(){
 }
 function callerLiveOpts(){
   let shifts=[], shift=null;
-  let seasonCovDist=null;
-  let plays=[];
-  let scoutRows=[];
   try{
     if(window.OFFGRD_DCALLER&&typeof OFFGRD_DCALLER.collectActiveShifts==="function") shifts=OFFGRD_DCALLER.collectActiveShifts()||[];
     if(shifts.length) shift=shifts[0].shift;
     else if(window.OFFGRD_DCALLER&&typeof OFFGRD_DCALLER.tendencyShiftSample==="function") shift=OFFGRD_DCALLER.tendencyShiftSample();
   }catch(e){}
-  try{
-    const ex=(typeof callerExpectSample==="function")?callerExpectSample():{};
-    const def=ex.def||((typeof oppRows==="function")?oppRows("def"):[]);
-    const g=ex.g||[];
-    if(typeof shrunkDist==="function" && (g.length||def.length)){
-      seasonCovDist=shrunkDist(g.length?g:def,"coverage",def,5);
-    }
-    scoutRows=(typeof gamesRows==="function")?gamesRows("ours"):[];
-    const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
-    const byName={};
-    book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
-    const names=uniq(book.map(p=>p&&p.name).concat((scoutRows||[]).map(r=>r&&r.play)));
-    plays=names.map(nm=> byName[nm] || { name:nm });
-  }catch(e2){}
   return {
-    side: "offense",
     offenseLog: CALLER_LOG,
     defenseLog: callerDefenseLog(),
     shifts: shifts,
     shift: shift,
-    seasonCovDist: seasonCovDist,
-    plays: plays,
-    scoutRows: scoutRows,
     breaks: CALLER_BREAKS,
     session: callerEnsureSession()
   };
@@ -3085,53 +2655,6 @@ function callerTickLiveEvents(){
       }catch(e2){}
     }
   }
-  /* O look-tag coverage shift (tonight vs season) */
-  try{
-    const A=callerAnalysis();
-    if(A&&A.lookCoverageShift){
-      const opts=callerLiveOpts();
-      const sh=A.lookCoverageShift(CALLER_LOG, opts.seasonCovDist);
-      if(sh&&sh.line){
-        const lsig=sh.fam+"|"+Math.round(sh.livePct*100)+"|"+sh.liveN;
-        if(lsig!==CALLER_LAST_LOOK_SHIFT_SIG){
-          const prevL=CALLER_LAST_LOOK_SHIFT_SIG;
-          CALLER_LAST_LOOK_SHIFT_SIG=lsig;
-          if(prevL){
-            callerPushFeed({
-              kind:"shift",
-              id:"look-shift-"+lsig,
-              line:"Look shift: "+sh.line
-            });
-          }
-        }
-      }
-    }
-  }catch(eLook){}
-  /* Streak line — 1 per drive max */
-  try{
-    const A2=callerAnalysis();
-    if(A2&&A2.deriveDrives&&CALLER_LOG.length>=3){
-      const drives=A2.deriveDrives(CALLER_LOG,{ breaks:CALLER_BREAKS });
-      const open=drives.filter(d=>d.open&&!d.truncated).slice(-1)[0];
-      if(open&&open.snaps&&open.snaps.length>=3){
-        const tip=open.snaps[open.snaps.length-1];
-        const tipPi=tip&&tip.playIndex;
-        if(tipPi!=null&&CALLER_STREAK_FEED_DRIVE!==tipPi){
-          const last3=open.snaps.slice(-3);
-          const plays=last3.map(s=>s.play).filter(Boolean);
-          if(plays.length===3&&plays[0]===plays[1]&&plays[1]===plays[2]){
-            CALLER_STREAK_FEED_DRIVE=tipPi;
-            callerPushFeed({
-              kind:"streak",
-              id:"streak-"+tipPi,
-              line:"Streak: "+plays[0]+" ×3 this drive",
-              playIndex:tipPi
-            });
-          }
-        }
-      }
-    }
-  }catch(eSt){}
 }
 /** Quarter/Half = bookmarks. Final = end-of-game review + Monday payload. */
 function callerMarkBreak(kind){
@@ -3341,82 +2864,28 @@ function callerBoothFinalFacts(){
   }catch(e){}
   return null;
 }
-function callerBoothChatOpts(surface){
-  const isFinal=surface==="final";
-  const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
-  const payload=callerBoothAskPayload(isFinal?"final":"live");
-  return {
-    side:"offense",
-    payload:payload,
-    session:sess,
-    sit:typeof callerSit!=="undefined"?callerSit:null,
-    gameId:sess&&sess.gameId,
-    breaks:typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[]
-  };
-}
-function callerBoothThreadHtml(){
-  const Chat=window.OFFGRD_BOOTH_CHAT;
-  if(!Chat||typeof Chat.getThread!=="function") return "";
-  const snap=(CALLER_LOG||[]).length+((typeof callerDefenseLog==="function"?callerDefenseLog():[])||[]).length;
-  try{ Chat.markStale(snap); }catch(e){}
-  const th=Chat.getThread()||[];
-  if(!th.length) return "";
-  let h=`<div class="rd-booth-thread" id="rd-booth-thread">`;
-  th.forEach(m=>{
-    const role=m.role==="user"?"user":"assistant";
-    const stale=m.stale?" is-stale":"";
-    h+=`<div class="rd-booth-msg rd-booth-msg-${role}${stale}" data-id="${esc(m.id||"")}">`;
-    if(role==="user") h+=`<p class="rd-booth-msg-q">${esc(m.text||"")}</p>`;
-    else{
-      const lines=(m.lines&&m.lines.length)?m.lines:String(m.text||"").split(/\n+/).filter(Boolean);
-      if(m.status==="pending"||m.status==="streaming"){
-        h+=`<p class="foot rd-booth-ask-status" data-booth-stream="1">${esc(m.status==="streaming"?(m.text||"…"):(m.notice||"Asking Booth…"))}</p>`;
-      }
-      lines.forEach(ln=>{ h+=`<p class="rd-booth-line">${esc(ln)}</p>`; });
-      if(m.snapAt!=null) h+=`<p class="foot rd-booth-fresh">as of snap ${esc(String(m.snapAt))}</p>`;
-      if(m.notice) h+=`<p class="foot rd-booth-notice">${esc(m.notice)}</p>`;
-      if(m.stale) h+=`<button type="button" class="rd-booth-reask" onclick="callerBoothReask('${esc(m.id||"")}')">Re-ask</button>`;
-    }
-    h+=`</div>`;
-  });
-  h+=`</div>`;
-  return h;
-}
-function callerBoothPatchStream(){
-  const el=document.querySelector("#rd-booth-thread [data-booth-stream]");
-  const Chat=window.OFFGRD_BOOTH_CHAT;
-  if(!el||!Chat) return;
-  const th=Chat.getThread()||[];
-  const last=th[th.length-1];
-  if(last&&last.role==="assistant") el.textContent=last.text||"Asking Booth…";
-}
-function callerBoothReask(id){
-  const Chat=window.OFFGRD_BOOTH_CHAT;
-  if(!Chat||typeof Chat.reask!=="function") return;
-  CALLER_BOOTH_CHIP=null;
-  Chat.reask(id, callerBoothChatOpts("live"), function(st){
-    if(!st) return;
-    if(st.status==="streaming"){ callerBoothPatchStream(); return; }
-    CALLER_BOOTH_ASK={ status:st.status, message:st.message||st.notice||null, question:"", lines:st.lines||[], thin:[] };
-    renderCaller();
-  });
-}
 function callerBoothAskSubmit(surface){
   const isFinal=surface==="final";
-  const Chat=window.OFFGRD_BOOTH_CHAT;
+  const B=window.OFFGRD_BOOTH_ASK;
   const inp=document.getElementById(isFinal?"rd-booth-ask-q-final":"rd-booth-ask-q");
   const q=inp?inp.value:"";
-  /* B1: typed text → booth-chat free-form. Chips stay on closed-intent. */
-  if(!Chat||typeof Chat.askFreeform!=="function"){
-    CALLER_BOOTH_ASK={ status:"error", message:"Booth chat not loaded.", lines:[], thin:[] };
+  if(!B||typeof B.ask!=="function"){
+    CALLER_BOOTH_ASK={ status:"error", message:"Booth ask not loaded.", lines:[], thin:[] };
     renderCaller();
     return;
   }
   CALLER_BOOTH_CHIP=null;
-  if(inp) inp.value="";
-  Chat.askFreeform(q, callerBoothChatOpts(isFinal?"final":"live"), function(st){
+  const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
+  B.ask(q,{
+    payload:callerBoothAskPayload(isFinal?"final":"live"),
+    tier:isFinal?"final":"live",
+    gameId:sess&&sess.gameId,
+    snapCount:(CALLER_LOG||[]).length,
+    session:sess
+  },function(st){
     if(!st) return;
-    if(st.status==="streaming"){ callerBoothPatchStream(); return; }
+    /* Ignore late template settle after a newer ask started. */
+    if(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.token&&st.token&&CALLER_BOOTH_ASK.token!==st.token) return;
     if(st.status==="offline"){
       CALLER_BOOTH_ASK={ status:"offline", message:st.message||"Free questions need a connection — chips work anywhere.", lines:[], thin:[] };
       renderCaller();
@@ -3428,18 +2897,20 @@ function callerBoothAskSubmit(surface){
       return;
     }
     if(st.status==="pending"){
-      CALLER_BOOTH_ASK={ status:"pending", question:q, message:st.message||"Asking Booth…", lines:[], thin:[] };
+      CALLER_BOOTH_ASK={ status:"pending", question:st.question, message:st.message||"Asking Booth…", lines:[], thin:[] };
       renderCaller();
       return;
     }
-    if(st.status==="done"){
+    if(st.status==="template"||st.status==="done"){
       CALLER_BOOTH_ASK={
-        status:"done",
-        question:q,
+        status:st.status,
+        question:st.question,
+        intent:st.intent,
         lines:st.lines||[],
-        thin:[],
-        source:"chat",
-        message:st.notice||null
+        thin:st.thin||[],
+        source:st.source||"template",
+        refused:!!st.refused,
+        message:st.refused?null:(st.source==="llm"?null:"Booth says")
       };
       renderCaller();
     }
@@ -3469,11 +2940,8 @@ function callerBoothChipsHtml(opts){
   const askId=isFinal?"rd-booth-ask-q-final":"rd-booth-ask-q";
   const askFn=isFinal?"callerBoothAskSubmit('final')":"callerBoothAskSubmit()";
   let h=`<section class="rd-booth${isFinal?" rd-booth-final":""} no-print" aria-label="Ask Booth">`;
-  h+=`<header class="rd-booth-head">`;
-  h+=`<p class="rd-booth-kicker">Knowledge center</p>`;
-  h+=`<h3 class="rd-booth-title">Ask Booth${isFinal?" · Final":""}</h3>`;
-  h+=`<p class="rd-booth-sub">${isFinal?"Full-game facts · same numbers as above · free text online.":"Tonight's numbers · chips offline · free text when connected."}</p>`;
-  h+=`</header>`;
+  h+=`<h3 class="${isFinal?"rd-gd-halftime-h":"rd-live-h"}">Ask Booth${isFinal?" · Final":""}</h3>`;
+  if(isFinal) h+=`<p class="foot rd-booth-final-note">Full game · same numbers as the sections above · free text online.</p>`;
   h+=`<div class="rd-booth-chips">`;
   defs.forEach(c=>{
     const on=CALLER_BOOTH_CHIP===c.id?" is-on":"";
@@ -3483,17 +2951,22 @@ function callerBoothChipsHtml(opts){
   if(online){
     const qKeep=(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.question)||"";
     h+=`<form class="rd-booth-ask" onsubmit="${askFn};return false;">`;
-    h+=`<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="240" autocomplete="off" placeholder="${isFinal?"Ask Booth about tonight's game…":"Ask Booth a question…"}" value="${esc(qKeep)}">`;
+    h+=`<input id="${askId}" class="rd-booth-ask-input" type="text" maxlength="160" autocomplete="off" placeholder="${isFinal?"Ask Booth about tonight's game…":"Ask Booth a question…"}" value="${esc(qKeep)}">`;
     h+=`<button type="submit" class="rd-booth-ask-btn">Ask</button>`;
     h+=`</form>`;
   }else{
     h+=`<p class="foot rd-booth-offline">Free questions need a connection — chips work anywhere.</p>`;
   }
-  h+=callerBoothThreadHtml();
-  if(CALLER_BOOTH_ASK&&(CALLER_BOOTH_ASK.status==="pending"||CALLER_BOOTH_ASK.message)&&!(CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length)&&!(window.OFFGRD_BOOTH_CHAT&&OFFGRD_BOOTH_CHAT.getThread&&OFFGRD_BOOTH_CHAT.getThread().length)){
+  if(CALLER_BOOTH_ASK&&(CALLER_BOOTH_ASK.status==="pending"||CALLER_BOOTH_ASK.message)&&!(CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length)){
     h+=`<p class="foot rd-booth-ask-status">${esc(CALLER_BOOTH_ASK.message||"Asking Booth…")}</p>`;
   }
-  if(CALLER_BOOTH_CHIP){
+  if(CALLER_BOOTH_ASK&&CALLER_BOOTH_ASK.lines&&CALLER_BOOTH_ASK.lines.length){
+    h+=`<div class="rd-booth-answer">`;
+    (CALLER_BOOTH_ASK.lines||[]).forEach((ln,i)=>{
+      h+=`<p class="rd-booth-line${CALLER_BOOTH_ASK.thin&&CALLER_BOOTH_ASK.thin[i]?" is-thin":""}">${esc(ln)}</p>`;
+    });
+    h+=`</div>`;
+  }else if(CALLER_BOOTH_CHIP){
     const ans=A.boothChipAnswer(CALLER_BOOTH_CHIP,payload);
     h+=`<div class="rd-booth-answer">`;
     (ans.lines||[]).forEach((ln,i)=>{
@@ -3507,11 +2980,7 @@ function callerBoothChipsHtml(opts){
 function callerLivePanelHtml(){
   const view=callerBuildLiveView();
   let h=`<div id="rd-live-panel" class="rd-live-panel no-print${CALLER_LIVE_EXPANDED?" is-expanded":""}" role="region" aria-label="In-game AI">`;
-  h+=`<div class="rd-live-panel-bar">`;
-  h+=`<div class="rd-live-panel-head">`;
-  h+=`<span class="rd-live-panel-kicker">Live analysis</span>`;
-  h+=`<span class="rd-live-panel-title">In-game AI</span>`;
-  h+=`</div>`;
+  h+=`<div class="rd-live-panel-bar"><span class="rd-live-panel-title">In-game AI</span>`;
   h+=`<span class="foot rd-live-panel-meta">Live · ${CALLER_LOG.length} snap${CALLER_LOG.length===1?"":"s"}</span>`;
   h+=CALLER_LIVE_EXPANDED
     ?`<button type="button" class="ghost rd-live-panel-toggle" onclick="callerSetLiveExpanded(false)">Collapse</button>`
@@ -3530,42 +2999,23 @@ function callerLivePanelHtml(){
     const n=max!=null?Math.min(lines.length,max):lines.length;
     if(!n) return;
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">${esc(sec.title)}</h3>`;
-    for(let i=0;i<n;i++){
-      const ln=lines[i];
-      const text=typeof ln==="string"?ln:(ln&&ln.text!=null?ln.text:"");
-      const low=!!(ln&&typeof ln==="object"&&(ln.low||ln.badge==="LOW"));
-      const badge=ln&&typeof ln==="object"&&ln.badge?ln.badge:"";
-      h+=`<p class="rd-live-line${low?" is-low":""}">${esc(text)}`;
-      if(badge) h+=` <span class="rd-live-badge">${esc(badge)}</span>`;
-      h+=`</p>`;
-    }
+    for(let i=0;i<n;i++) h+=`<p class="rd-live-line">${esc(lines[i])}</p>`;
     h+=`</section>`;
   }
-  const side=view.side||(view.facts&&view.facts.side)||"offense";
   if(CALLER_LIVE_EXPANDED){
-    if(side==="offense"){
-      writeSec(byId.what_showing); writeSec(byId.working); writeSec(byId.call_ideas); writeSec(byId.tags);
-    }else{
-      writeSec(byId.what_they); writeSec(byId.working); writeSec(byId.suggested); writeSec(byId.tags);
-    }
+    writeSec(byId.what_they); writeSec(byId.working); writeSec(byId.suggested); writeSec(byId.tags);
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">Event feed</h3>`;
     if(!CALLER_EVENT_FEED.length) h+=`<p class="rd-live-line foot">Drive ends, shifts, and marks land here.</p>`;
     else CALLER_EVENT_FEED.slice(0,20).forEach(ev=>{
-      const auto=ev.inferred||ev.auto?` <span class="rd-live-feed-auto">auto</span>`:"";
-      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}${auto}</p>`;
+      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}</p>`;
     });
     h+=`</section>`;
   } else {
-    if(side==="offense"){
-      writeSec(byId.what_showing,4); writeSec(byId.working,4); writeSec(byId.call_ideas,3);
-    }else{
-      writeSec(byId.what_they,4); writeSec(byId.working,3); writeSec(byId.suggested,2);
-    }
+    writeSec(byId.what_they,4); writeSec(byId.working,3); writeSec(byId.suggested,2);
     h+=`<section class="rd-live-sec"><h3 class="rd-live-h">Feed</h3>`;
     if(!CALLER_EVENT_FEED.length) h+=`<p class="rd-live-line foot">Waiting on drive / shift / mark…</p>`;
     else CALLER_EVENT_FEED.slice(0,4).forEach(ev=>{
-      const auto=ev.inferred||ev.auto?` <span class="rd-live-feed-auto">auto</span>`:"";
-      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}${auto}</p>`;
+      h+=`<p class="rd-live-feed-line"><span class="rd-live-feed-kind">${esc(ev.kind||"")}</span> ${esc(ev.llmLine||ev.line||"")}</p>`;
     });
     h+=`</section>`;
   }
@@ -3653,7 +3103,6 @@ function callerRefold(opts){
   CALLER_LOG=folded.log||[];
   CALLER_COLLISIONS=folded.collisions||[];
   CALLER_ACTIVITY=folded.activity||[];
-  try{ if(window.OFFGRD_BOOTHPACK&&OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate(); }catch(e){}
   callerSyncToGames(opts);
 }
 /** Write folded (non-superseded) calls into GAMES ours · one dataset for bestCallsFor. */
@@ -3840,7 +3289,7 @@ function loadCallerSession(){
   if(E&&E.loadStore) loaded=E.loadStore();
   if(loaded&&Array.isArray(loaded.events)){
     CALLER_SESSION=loaded.session||null;
-    if(loaded.sit) callerSit=callerNormalizeSit(loaded.sit);
+    if(loaded.sit) callerSit=Object.assign(callerSitDefaults(), loaded.sit);
     if(Array.isArray(loaded.breaks)) CALLER_BREAKS=loaded.breaks.slice();
     if(Array.isArray(loaded.eventFeed)) CALLER_EVENT_FEED=loaded.eventFeed.slice(0,40);
     if(loaded.liveExpanded!=null) CALLER_LIVE_EXPANDED=!!loaded.liveExpanded;
@@ -3855,7 +3304,7 @@ function loadCallerSession(){
     if(!x) return;
     const o=JSON.parse(x);
     if(o.session&&o.session.opp) CALLER_SESSION=o.session;
-    if(o.sit) callerSit=callerNormalizeSit(o.sit);
+    if(o.sit) callerSit=Object.assign(callerSitDefaults(), o.sit);
     if(Array.isArray(o.log)&&o.log.length&&E&&E.migrateV1Log){
       const actor=callerActor();
       const mig=E.migrateV1Log(o.log, CALLER_SESSION, callerDeviceId(), actor.id);
@@ -3971,51 +3420,6 @@ function callerConfirmSit(){
   callerSaveLocal();
   renderCaller();
 }
-/** One-tap conversion / series reset — writes exact estYards (10 or GOAL clamp). */
-function callerResetFirstDown(){
-  const O=callerOut();
-  if(!O||!O.firstDownSituation) return;
-  const next=O.firstDownSituation(callerSit, { reason:"manual_reset" });
-  callerApplyInfer(next);
-  callerSit.inferred=true;
-  callerSit.needsInput=false;
-  callerSaveLocal();
-  renderCaller();
-}
-/** Drive-over exit ramp — punt / downs / takeaway / score. */
-function callerDriveOver(kind){
-  const O=callerOut();
-  if(!O||!O.driveOverSituation) return;
-  const next=O.driveOverSituation(kind, callerSit);
-  if(!next||next.skip) return;
-  try{ callerMergeDriveOverFeed(kind); }catch(eFeed){}
-  callerApplyInfer(next);
-  callerSaveLocal();
-  renderCaller();
-  try{ callerJumpTop(true); }catch(e){}
-}
-/** Result-entry conversion chip — overrides estYards to 1st & 10 / GOAL. */
-function callerMovedChains(i){
-  const O=callerOut();
-  if(!O||!O.movedChainsSituation) return;
-  const entry=CALLER_LOG[i];
-  const from=entry
-    ? { dn:entry.dn, db:entry.db, estYards:entry.estYards!=null?entry.estYards:callerSit.estYards, hash:entry.hash, zone:entry.zone }
-    : callerSit;
-  const next=O.movedChainsSituation(from);
-  if(entry&&entry.result){
-    callerAppend("outcome", entry.playIndex, {
-      result: entry.result,
-      flag: entry.flag||null,
-      conceptOverride: entry.conceptOverride||null,
-      movedChains: true
-    });
-  }
-  callerApplyInfer(next);
-  callerSaveLocal();
-  renderCaller();
-  try{ callerJumpTop(true); }catch(e){}
-}
 function callerSitNeedMsg(){
   if(callerSit.pendingTry) return "Touchdown — Kick XP, go for 2, or skip to next series (1st & 10)";
   if(callerSit.forTwo) return "2-pt — call a play below · Converted/Failed feeds the algo";
@@ -4023,26 +3427,15 @@ function callerSitNeedMsg(){
   if(r==="turnover") return "Change of possession — confirm 1st & 10 when you're back on O";
   if(r==="turnover_on_downs") return "Turnover on downs — confirm 1st & 10 when you're back on O";
   if(r==="change_of_possession") return "Change of possession — confirm 1st & 10 when you're back on O";
-  if(r==="penalty") return "Penalty — set the next situation · tap chips to override";
-  if(r==="moved_chains"||r==="manual_reset") return "First down — confirm or tap chips to override";
-  if(callerSit.needsInput) return "Possession / penalty — confirm the next situation · tap chips to override";
-  return "Auto from last result — tap chips to override";
+  if(r==="penalty") return "Penalty — set the next situation";
+  if(callerSit.needsInput) return "Possession / penalty — confirm the next situation";
+  return "Auto from last result — confirm or change chips";
 }
 /** Apply inferNextSituation defaults onto callerSit (TD try, TO reset, advance). */
 function callerApplyInfer(next){
   if(!next) return;
   if(next.dn!=null) callerSit.dn=next.dn;
   if(next.db!=null) callerSit.db=next.db;
-  if(next.estYards!=null&&!isNaN(+next.estYards)){
-    callerSit.estYards=callerSit.db==="GOAL"
-      ? (callerOut()&&callerOut().clampGoalYards?callerOut().clampGoalYards(next.estYards):Math.min(10,Math.max(1,Math.round(+next.estYards))))
-      : Math.max(1,Math.round(+next.estYards));
-  }else if(next.db!=null){
-    const wb=callerOut()&&callerOut().writebackEstYards
-      ? callerOut().writebackEstYards(callerSit, { db:next.db, dn:next.dn, zone:next.zone })
-      : null;
-    callerSit.estYards=wb?wb.estYards:callerEstYardsForBucket(next.db);
-  }
   if(next.hash!=null) callerSit.hash=next.hash;
   if(next.zone!=null) callerSit.zone=next.zone;
   callerSit.needReason=next.reason||null;
@@ -4070,8 +3463,8 @@ function callerMaybeAdvanceAfterGrade(entry){
   const O=callerOut();
   if(!O||!O.inferNextSituation||!entry||!entry.result) return;
   const next=O.inferNextSituation(
-    { dn:entry.dn, db:entry.db, estYards:entry.estYards!=null?entry.estYards:callerSit.estYards, hash:entry.hash, zone:entry.zone },
-    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated, movedChains:!!entry.movedChains },
+    { dn:entry.dn, db:entry.db, hash:entry.hash, zone:entry.zone },
+    { result:entry.result, gain:entry.gain, flag:entry.flag, negated:entry.negated },
     entry.playType
   );
   if(next.skip&&!next.needsInput&&!next.needsTry&&!next.inferred) return;
@@ -4128,16 +3521,11 @@ function callerSubmitEdit(playIndex, then){
   const front=frontEl? (frontEl.value||null) : (entry.front||null);
   const pressure=pressEl? (pressEl.value||null) : (entry.pressure||null);
   const coverage=covEl? (covEl.value||null) : (entry.coverage||null);
-  const sitTxt=ordinal(dn)+" & "+(db==="GOAL"?"GOAL":db)+(hash&&hash!=="ANY"?" "+hash:"");
-  const Oedit=callerOut();
-  const wbEdit=Oedit&&Oedit.writebackEstYards
-    ? Oedit.writebackEstYards(entry, { dn:dn, db:db, zone:zone })
-    : { estYards: callerEstYardsForBucket(db) };
+  const sitTxt=ordinal(dn)+" & "+db+(hash&&hash!=="ANY"?" "+hash:"");
   callerAppend("correction", playIndex, {
     play: play,
     dn: dn,
     db: db,
-    estYards: wbEdit.estYards,
     hash: hash,
     zone: zone,
     sitTxt: sitTxt,
@@ -4187,7 +3575,7 @@ function callerEditPanelHtml(){
   h+=`<div class="grid" style="gap:8px">`;
   h+=`<div><div class="lbl">Play</div><input id="callerEditPlay" type="text" value="${esc(entry.play||"")}" style="width:100%;min-height:44px;padding:8px 10px;font-size:16px;font-weight:700"/></div>`;
   h+=`<div><div class="lbl">Down</div><select id="callerEditDn" style="width:100%;min-height:44px">`+[1,2,3,4].map(d=>`<option value="${d}"${+entry.dn===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
-  h+=`<div><div class="lbl">Distance</div><select id="callerEditDb" style="width:100%;min-height:44px">`+["1-3","4-6","7-9","10+","GOAL"].map(d=>`<option value="${d}"${entry.db===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
+  h+=`<div><div class="lbl">Distance</div><select id="callerEditDb" style="width:100%;min-height:44px">`+["1-3","4-6","7-9","10+"].map(d=>`<option value="${d}"${entry.db===d?" selected":""}>${d}</option>`).join("")+`</select></div>`;
   h+=`<div><div class="lbl">Hash</div><select id="callerEditHash" style="width:100%;min-height:44px">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([v,l])=>`<option value="${v}"${entry.hash===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   h+=`<div><div class="lbl">Field</div><select id="callerEditZone" style="width:100%;min-height:44px">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([v,l])=>`<option value="${v}"${entry.zone===v?" selected":""}>${l}</option>`).join("")+`</select></div>`;
   if(!isST){
@@ -4227,28 +3615,14 @@ function callerGuidedFlowHtml(){
     return (i?`<span class="rd-gd-flow-sep" aria-hidden="true">\u2192</span>`:"")+`<span class="${cls}"><i>${s.n}</i>${s.l}</span>`;
   }).join("")+`</div>`;
 }
-/** Accent numbered section header — Play call / What they showed / Result. */
-function callerSectionKickerHtml(num, title, sub){
-  return (
-    '<div class="rd-gd-section-kicker">' +
-    '<span class="rd-gd-section-num">' +
-    esc(String(num)) +
-    "</span>" +
-    '<span class="rd-gd-section-title">' +
-    esc(title) +
-    "</span>" +
-    (sub
-      ? '<span class="rd-gd-section-sub">' + esc(sub) + "</span>"
-      : "") +
-    "</div>"
-  );
-}
 function callerThisPlayCardHtml(){
   const on=callerOnCall();
   if(!on||!on.play) return "";
   const idx=CALLER_LOG.findIndex(l=>l.playIndex===on.playIndex);
   if(idx<0) return "";
   const mode=callerGetMode();
+  const book=callerDefPlaybook();
+  const covs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man"];
   const hasLook=!!(on.coverage||on.front||on.pressure);
   const graded=!!on.result;
   const isST=callerIsST(on);
@@ -4259,20 +3633,15 @@ function callerThisPlayCardHtml(){
     const resLbl=O&&O.resultLabel?O.resultLabel(on.result):(on.result||"");
     let h=`<div class="rd-gd-lastplay rd-gd-lastplay-flags no-print" id="caller-thisplay-anchor">`;
     h+=`<div class="rd-gd-lastplay-row">`;
-    h+=`<span class="rd-gd-lastplay-kicker">Last play</span>`;
-    h+=`<b class="rd-gd-lastplay-name">${esc(on.play)}</b>`;
-    h+=`<span class="foot rd-gd-lastplay-meta">${esc(on.sitTxt||"")} \u00b7 ${esc(resLbl)}</span>`;
+    h+=`<span class="foot">Last play</span> <b>${esc(on.play)}</b>`;
+    h+=`<span class="foot"> \u00b7 ${esc(on.sitTxt||"")} \u00b7 ${esc(resLbl)}</span>`;
     h+=callerTagInfoBtnHtml();
-    h+=`<button type="button" class="ghost rd-gd-lastplay-edit" onclick="callerOpenEdit(${on.playIndex})">Edit</button>`;
+    h+=`<button type="button" class="ghost" style="margin-left:auto;padding:6px 10px;font-weight:700" onclick="callerOpenEdit(${on.playIndex})">Edit</button>`;
     h+=`</div>`;
     if(!isST){
-      h+=`<div class="rd-gd-lastplay-block rd-gd-lastplay-flag-block">`;
-      h+=`<div class="rd-gd-lastplay-block-lbl">Flag <span class="foot">optional</span></div>`;
+      h+=`<div class="lbl" style="margin-top:8px">Flag <span class="foot">optional</span></div>`;
       h+=callerFlagChipsHtml(on, idx);
-      h+=`</div>`;
-      h+=`<div class="rd-gd-lastplay-block rd-gd-lastplay-call-block">`;
       h+=callerConceptChipsHtml(on, idx);
-      h+=`</div>`;
     }
     h+=`</div>`;
     return h;
@@ -4281,48 +3650,49 @@ function callerThisPlayCardHtml(){
   h+=`<div class="rd-gd-thisplay-head"><span class="rd-gd-thisplay-kicker">This play \u00b7 ${esc(on.play)}</span>`;
   h+=`<span class="foot">${esc(on.sitTxt||"")}${isST?" \u00b7 grade try":isTwo?" \u00b7 2-pt":" \u00b7 steps 3\u20134"}</span></div>`;
   if(!isST){
-    h+=`<div class="rd-gd-section rd-gd-section-look">`;
-    h+=callerSectionKickerHtml(3,"What did they show?",hasLook?"Front · Coverage · Blitz/Stunt":"Front · Coverage · Blitz/Stunt · optional");
-    h+=callerLookChipsHtml(on, on.playIndex);
-    h+=`</div>`;
+    h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">3</div><div class="rd-gd-step-body">`;
+    h+=`<div class="lbl">What did they show? <span class="foot">Front / Coverage / Blitz/Stunt${hasLook?"":" \u00b7 optional"}</span></div>`;
+    h+=`<div class="lbl rd-look-lbl" style="margin-top:2px">Front</div>`;
+    h+=`<div class="seg covlog rd-gd-look-seg">`+(book.fronts||[]).slice(0,8).map(f=>{
+      const id=f.id||f.name;
+      const onF=on.front===id;
+      return `<button type="button"${onF?' class="on"':""} onclick="callerSetObs('front','${String(id).replace(/'/g,"")}')">${esc(f.name||id)}</button>`;
+    }).join("")+`</div>`;
+    h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div>`;
+    h+=`<div class="seg covlog rd-gd-look-seg">`+covs.map(cv=>{
+      const onC=on.coverage===cv;
+      return `<button type="button"${onC?' class="on"':""} onclick="callerLogShowed('${cv}')">${cv}</button>`;
+    }).join("")+`</div>`;
+    h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div>`;
+    h+=`<div class="seg covlog rd-gd-look-seg">`+(book.pressures||[]).slice(0,8).map(p=>{
+      const id=p.id||p.name;
+      const onP=on.pressure===id;
+      const lab=(p.name||id);
+      const show=/^none$/i.test(String(id))||/^none$/i.test(String(lab))?"No blitz":lab;
+      return `<button type="button"${onP?' class="on"':""} onclick="callerSetObs('pressure','${String(id).replace(/'/g,"")}')">${esc(show)}</button>`;
+    }).join("")+`</div>`;
+    h+=`</div></div>`;
   }
-  h+=`<div class="rd-gd-section rd-gd-section-result">`;
-  h+=callerSectionKickerHtml(
-    isST||isTwo?3:4,
-    isST?"Result of the try":isTwo?"2-pt result":"Result of the play",
-    "tap one"
-  );
-  h+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">${callerTagInfoBtnHtml()}</div>`;
+  h+=`<div class="rd-gd-step"><div class="rd-gd-step-n">${isST||isTwo?"3":"4"}</div><div class="rd-gd-step-body">`;
+  h+=`<div class="lbl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${isST?"Result of the try \u2014 tap one":isTwo?"2-pt result \u2014 tap one":"Result of the play \u2014 tap one"} ${callerTagInfoBtnHtml()}</div>`;
   h+=callerResultChipsHtml(on, idx, {});
   h+=`<p class="foot" style="margin:8px 0 0">${isST||isTwo?"Then next series is 1st &amp; 10.":"Grading jumps you back to the top for the next call. Flags stay optional on Last play."}</p>`;
-  h+=`</div></div>`;
+  h+=`</div></div></div>`;
   return h;
 }
 function callerExpectStripHtml(expect, fr, pr, liveM){
   const g=expect&&expect.g||[];
   const cov=expect&&expect.cov;
-  const terminal=!!(expect&&expect.terminal);
-  const badge=expect&&expect.badge;
-  const conf=expect&&expect.conf;
-  let body=terminal
-    ? esc(badge||"No reps logged — from your call sheet, not their tendencies.")
-    : "No sample for this sit \u2014 open the playbook.";
+  let body="No sample for this sit \u2014 widen hash/field or log looks.";
   if(g.length){
     body=(cov?esc(cov.k)+" "+fmtPct(cov.pct):"?")
       +(fr?" \u00b7 "+esc(fr.k)+" front":"")
       +" \u00b7 "+fmtPct(pr)+" pressure \u00b7 "+g.length+" snaps"
       +(liveM&&liveM.length?" \u00b7 "+liveM.length+" live":"");
   }
-  let meta="";
-  if(badge&&(g.length||terminal)){
-    meta=`<span class="rd-gd-widen-badge">${esc(badge)}</span>`;
-  }
-  if(conf&&g.length&&conf.level){
-    meta+=`<span class="pill ${esc(conf.tone||"")} rd-gd-sit-conf">${esc(conf.level)}</span>`;
-  }
   const alert=callerBlitzThreat(pr, g);
-  const cls="rd-gd-expect-strip no-print"+(alert?(" is-blitz-"+alert.level):"")+(expect&&expect.widened?" is-widened":"")+(terminal?" is-terminal":"");
-  return `<div class="${cls}"><span class="lbl">Expect</span><span class="body">${body}</span>${meta?`<span class="rd-gd-expect-meta">${meta}</span>`:""}</div>`;
+  const cls="rd-gd-expect-strip no-print"+(alert?(" is-blitz-"+alert.level):"");
+  return `<div class="${cls}"><span class="lbl">Expect</span><span class="body">${body}</span></div>`;
 }
 /** Elevated blitz for this sit — same bands as scout grid (30% / 45%). Needs a few snaps. */
 function callerBlitzThreat(pr, g){
@@ -4353,56 +3723,17 @@ function callerBlitzAlertHtml(pr, g){
     +`<span class="rd-gd-blitz-alert-hint">Protect · hot · check</span>`
     +`</div>`;
 }
-function callerLogShowedAt(playIndex, cov){
-  if(!cov||playIndex==null) return;
-  const entry=CALLER_LOG.find(l=>l.playIndex===playIndex);
-  const next=(entry&&entry.coverage===cov)?null:cov;
-  callerAppend("correction", playIndex, { coverage: next });
-  renderCaller();
-}
 function callerLogShowed(cov){
   if(!cov) return;
+  /* Keep live blend for Expect, and bind coverage to the ON CALL play when one exists. */
+  const cs=callerSit;
+  LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"});
+  try{ saveLive(); }catch(e){}
   const on=callerOnCall();
-  const entry=on&&on.playIndex!=null?CALLER_LOG.find(l=>l.playIndex===on.playIndex):null;
-  const clearing=!!(entry&&entry.coverage===cov);
-  /* Keep live blend for Expect only when setting (not clearing) a coverage. */
-  if(!clearing){
-    const cs=callerSit;
-    LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"});
-    try{ saveLive(); }catch(e){}
-  }
   if(on&&on.playIndex!=null){
-    callerLogShowedAt(on.playIndex, cov);
-    return;
+    callerAppend("correction", on.playIndex, { coverage: cov });
   }
   renderCaller();
-}
-/** Compact Front / Coverage / Blitz chips for This-play + older pending rows. */
-function callerLookChipsHtml(entry, playIndex){
-  if(!entry||playIndex==null) return "";
-  const book=callerDefPlaybook();
-  const covs=["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man"];
-  const escId=function(id){ return String(id==null?"":id).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); };
-  let h=`<div class="lbl rd-look-lbl" style="margin-top:6px">Front</div>`;
-  h+=`<div class="seg covlog rd-gd-look-seg">`+(book.fronts||[]).slice(0,8).map(f=>{
-    const id=f.id||f.name;
-    const onF=entry.front===id;
-    return `<button type="button"${onF?' class="on"':""} onclick="callerSetObsAt(${playIndex},'front','${escId(id)}')">${esc(f.name||id)}</button>`;
-  }).join("")+`</div>`;
-  h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div>`;
-  h+=`<div class="seg covlog rd-gd-look-seg">`+covs.map(cv=>{
-    const onC=entry.coverage===cv;
-    return `<button type="button"${onC?' class="on"':""} onclick="callerLogShowedAt(${playIndex},'${escId(cv)}')">${cv}</button>`;
-  }).join("")+`</div>`;
-  h+=`<div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div>`;
-  h+=`<div class="seg covlog rd-gd-look-seg">`+(book.pressures||[]).slice(0,8).map(p=>{
-    const id=p.id||p.name;
-    const onP=entry.pressure===id;
-    const lab=(p.name||id);
-    const show=/^none$/i.test(String(id))||/^none$/i.test(String(lab))?"No blitz":lab;
-    return `<button type="button"${onP?' class="on"':""} onclick="callerSetObsAt(${playIndex},'pressure','${escId(id)}')">${esc(show)}</button>`;
-  }).join("")+`</div>`;
-  return h;
 }
 function callerOut(){ return window.OFFGRD_CALLER_OUTCOME||null; }
 /** One-tap result (required). Same tap clears. Never blocks new calls. */
@@ -4418,7 +3749,6 @@ function callerGrade(i, resultId){
   if(next){
     const graded=CALLER_LOG.find(l=>l.playIndex===pi);
     if(graded) callerMaybeAdvanceAfterGrade(graded);
-    try{ callerMaybeInferDriveEnd(graded||entry); }catch(eInf){}
   }
   if(next){
     callerRefreshDriveToast();
@@ -4483,31 +3813,10 @@ function callerResultChipsHtml(l, i, opts){
   const forTwo=callerIsTwoPoint(l);
   const stKind=forTwo?"twopt":(O.isSpecialType&&O.isSpecialType(l.playType)?l.playType:(O.stResultInfo&&O.stResultInfo(l.result)&&O.stResultInfo(l.result).kind!=="twopt"?O.stResultInfo(l.result).kind:null));
   const buckets=stKind&&O.stSetFor?O.stSetFor(stKind):O.RESULT_BUCKETS;
-  let h=`<div class="caller-out-results">`+buckets.map(b=>{
+  return `<div class="caller-out-results">`+buckets.map(b=>{
     const on=l.result===b.id;
     return `<button type="button" class="caller-out-btn${on?" on":""}" onclick="callerGrade(${i},'${b.id}')">${b.label}</button>`;
-  }).join("");
-  /* Conversion exit ramp — auto-suggest when estYards ≤ gain-band midpoint. */
-  if(!stKind&&!forTwo&&O.movedChainsSituation){
-    const sitAt={ dn:l.dn, db:l.db, estYards:l.estYards!=null?l.estYards:callerSit.estYards, zone:l.zone, hash:l.hash };
-    const suggest=l.result&&O.shouldSuggestMovedChains?O.shouldSuggestMovedChains(sitAt, { gain:l.gain }):false;
-    h+=`<button type="button" class="caller-out-btn caller-out-convert${suggest?" suggest":""}${l.movedChains?" on":""}" onclick="callerMovedChains(${i})">Moved the chains</button>`;
-  }
-  h+=`</div>`;
-  return h;
-}
-function callerDriveOverHtml(){
-  if(callerSit.pendingTry||callerSit.forTwo) return "";
-  return `<div class="rd-gd-drive-over no-print" role="group" aria-label="Drive over">`
-    +`<div class="rd-gd-drive-over-head"><span class="rd-gd-drive-over-kicker">Possession</span>`
-    +`<span class="rd-gd-drive-over-title">Drive over</span>`
-    +`<span class="foot rd-gd-drive-over-sub">Tap when the series ends</span></div>`
-    +`<div class="rd-gd-drive-over-btns">`
-    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('punt')">Punt</button>`
-    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('downs')">Downs</button>`
-    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('takeaway')">Takeaway</button>`
-    +`<button type="button" class="rd-gd-drive-over-btn" onclick="callerDriveOver('score')">Score</button>`
-    +`</div></div>`;
+  }).join("")+`</div>`;
 }
 function callerFlagChipsHtml(l, i){
   const O=callerOut(); if(!O||!l.result) return "";
@@ -4524,12 +3833,10 @@ function callerConceptChipsHtml(l, i){
   const cur=l.conceptOverride||l.concept||"";
   /* Labels = call quality (not yards). Drop/Protection/etc. auto "Call right" so we don't bury a good concept. */
   const opts=[["worked","Call right"],["didnt_work","Bad call"],["worked_untested","Untested"]];
-  let h=`<div class="caller-out-concept">`;
-  h+=`<div class="rd-gd-lastplay-block-lbl caller-out-concept-lbl">Call quality ${callerTagInfoBtnHtml()}</div>`;
-  h+=`<div class="caller-out-concept-chips">`+opts.map(([id,lab])=>{
+  let h=`<div class="caller-out-concept"><span class="foot" style="margin-right:6px">Call</span>${callerTagInfoBtnHtml()}`+opts.map(([id,lab])=>{
     const on=cur===id;
     return `<button type="button" class="caller-out-flag${on?" on":""}" onclick="callerSetConcept(${i},'${id}')">${lab}</button>`;
-  }).join("")+`</div></div>`;
+  }).join("")+`</div>`;
   return h;
 }
 function callerPendingQueueHtml(opts){
@@ -4551,18 +3858,8 @@ function callerPendingQueueHtml(opts){
     h+=`<div class="caller-pending-row" data-play-index="${l.playIndex}">`;
     h+=`<div class="caller-pending-head"><b>${esc(l.play)}</b><span class="foot">${esc(l.sitTxt||"")}</span>`;
     h+=`<button type="button" class="ghost" style="margin-left:auto;padding:4px 10px;font-weight:700" onclick="callerOpenEdit(${l.playIndex})">Edit</button></div>`;
-    h+=`<div class="lbl" style="margin:4px 0 0">What did they show? <span class="foot">optional</span></div>`;
-    h+=callerLookChipsHtml(l, l.playIndex);
-    h+=`<div class="lbl" style="margin:8px 0 0">Result</div>`;
     h+=callerResultChipsHtml(l,i,{});
-    if(l.result){
-      h+=`<div class="rd-gd-lastplay-block"><div class="rd-gd-lastplay-block-lbl">Flag <span class="foot">optional</span></div>`;
-      h+=callerFlagChipsHtml(l,i);
-      h+=`</div>`;
-      h+=`<div class="rd-gd-lastplay-block">`;
-      h+=callerConceptChipsHtml(l,i);
-      h+=`</div>`;
-    }
+    if(l.result){ h+=callerFlagChipsHtml(l,i); h+=callerConceptChipsHtml(l,i); }
     h+=`</div>`;
   });
   h+=`</div>`;
@@ -4749,97 +4046,22 @@ function callerUndoLast(){
 
 function callerSelect(){ return window.OFFGRD_CALLER_SELECT||null; }
 /* SINGLE RANKING SEAM · the only place the caller reads play ranking.
-   P2: EV = Σ P(look)×blend(empirical, structural). Keeps return shape
-   {target, cov, list:[{play,sr,n,kind,basis,basisLabel}]} for sheet consumers.
-   bestCallsFor() remains for legacy strips. */
+   Suggester v2 (football priors + scouted + observed drift) swaps in HERE
+   without touching any selection UI. Returns {target, cov, list:[{play,sr,n,kind}]}
+   ranked best-first. Math is unchanged: it wraps bestCallsFor()/rankCalls(). */
 function callerRankedCalls(){
   const ex=(typeof callerExpectSample==="function")?callerExpectSample():{target:null,cov:null};
   const cs=callerSit, target=ex.target;
-  const baseMeta={
-    terminal:!!ex.terminal, badge:ex.badge||null, conf:ex.conf||null, rung:ex.rung,
-    widened:!!(ex.resolved&&ex.resolved.widened)||!!ex.widened
-  };
-  if(!target){
-    return Object.assign({ target:null, cov:ex.cov||null, list:[] }, baseMeta);
-  }
-  const M=window.OFFGRD_MATCHUP;
-  if(!M || typeof M.rankPlaysByEv!=="function"){
-    /* Fallback to legacy H2H ranking if matchup module missing */
-    const dbF=callerDbFilter(cs.db, cs.estYards);
-    const runs=bestCallsFor(target,+cs.dn,dbF,"Run").map(r=>Object.assign({kind:"Run"},r));
-    const pass=bestCallsFor(target,+cs.dn,dbF,"Pass").map(r=>Object.assign({kind:"Pass"},r));
-    const list=runs.concat(pass).sort((a,b)=>b.sr-a.sr||b.n-a.n);
-    return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
-  }
-  const def=ex.def||((typeof oppRows==="function")?oppRows("def"):[]);
-  const g=ex.g||[];
-  const covDist=(typeof shrunkDist==="function" && g.length)
-    ? shrunkDist(g,"coverage",def,5)
-    : {arr: ex.cov ? [ex.cov] : []};
-  const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
-  const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
-  const byName={};
-  book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
-  const names=uniq(book.map(p=>p&&p.name).concat(ours.map(r=>r&&r.play)));
-  const candidates=names.map(nm=> byName[nm] || { name:nm });
-  const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
-  const gi=(typeof gameOrderIndex==="function")?gameOrderIndex():null;
-  const dbF=callerDbFilter(cs.db, cs.estYards);
-  const opts={
-    limit:40,
-    down:+cs.dn,
-    distBucket:dbF,
-    db:cs.db,
-    zone:cs.zone,
-    distBucketOf: typeof distBucket==="function" ? distBucket : null,
-    getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null,
-    weightFn: function(row){
-      if(!useRec || !gi || typeof weightOf!=="function") return 1;
-      return weightOf(row, true, gi);
-    }
-  };
-  let ranked=[];
-  try{ ranked=M.rankPlaysByEv(candidates, covDist, ours, opts); }catch(e){ ranked=[]; }
-  const list=ranked.map(r=>{
-    const nm=r.name||(r.play&&r.play.name)||"?";
-    const kind=(typeof playKind==="function")?playKind(nm):"Pass";
-    return {
-      play:nm,
-      sr: r.ev,
-      n: r.n||0,
-      kind:kind,
-      basis: r.basis||"on_paper",
-      basisLabel: r.basisLabel||"SCHEME MATCH",
-      basisTip: r.basisTip||null,
-      why: r.why||[]
-    };
-  }).sort((a,b)=>{
-    const d=(b.sr||0)-(a.sr||0);
-    if(Math.abs(d)>0.03) return d;
-    const aOk=(a.n||0)>=3, bOk=(b.n||0)>=3;
-    if(aOk!==bOk) return aOk?-1:1;
-    return (b.n||0)-(a.n||0)||String(a.play).localeCompare(String(b.play));
-  });
-  return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
+  if(!target) return { target:null, cov:ex.cov||null, list:[] };
+  const runs=bestCallsFor(target,+cs.dn,cs.db,"Run").map(r=>Object.assign({kind:"Run"},r));
+  const pass=bestCallsFor(target,+cs.dn,cs.db,"Pass").map(r=>Object.assign({kind:"Pass"},r));
+  const list=runs.concat(pass).sort((a,b)=>b.sr-a.sr||b.n-a.n);
+  return { target:target, cov:ex.cov||null, list:list };
 }
-/** Soft-headline: SCHEME MATCH (structural) or SUCCESS n% · snaps (graded). */
-function callerCallReason(entry, cov, conf){
+function callerCallReason(entry, cov){
   if(!entry) return "";
-  const pct=Math.round((entry.sr||0)*100)+"%";
-  if(entry.basis==="on_paper" || entry.basisLabel==="SCHEME MATCH"){
-    return `EV ${pct} · SCHEME MATCH`;
-  }
-  if(entry.basisLabel){
-    return `EV ${pct} · ${entry.basisLabel}`;
-  }
-  const n=+entry.n||0;
-  const level=conf&&conf.level?String(conf.level).toUpperCase():"";
-  const soft=level==="LOW"||level==="THIN"||n<8;
-  if(soft){
-    if(cov) return `lean vs ${cov.k} · ${pct} on ${n} (small sample)`;
-    return `${pct} on ${n} (small sample)`;
-  }
-  return cov ? `EV vs ${cov.k} · ${pct} on ${n}` : `${pct} on ${n}`;
+  const pct=Math.round((entry.sr||0)*100)+"% on "+(entry.n||0);
+  return cov ? `beats their ${cov.k} · ${pct}` : `${pct}`;
 }
 /* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
    in his order, with the suggester woven in as marks · not a competing screen.
@@ -4849,7 +4071,7 @@ function callerCallSheetHtml(){
   const cs=callerSit;
   const buckets=(typeof planBuckets==="function")?planBuckets():[];
   const ranked=callerRankedCalls();
-  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel,basisTip:r.basisTip}; });
+  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i}; });
   const sigMap=callerSignalMap();
   const live=callerLiveCall();
   const top=ranked.list[0]||null;
@@ -4858,22 +4080,13 @@ function callerCallSheetHtml(){
   const escN=s=>esc(s).replace(/'/g,"");
   const sigTag=nm=>sigMap[nm]!=null?`<span class="sig">${esc(String(sigMap[nm]))}</span>`:`<span class="sig sig-empty"></span>`;
   const topInBucket= !!(top && bucket && S && S.playInBucket(bucket, top.play));
-  const tipScheme=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SCHEME)||"ranked by how this play's design fits the predicted look — no graded reps yet";
-  const tipSuccess=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SUCCESS)||"your graded results vs this look, blended with scheme fit.";
-  const markFor=r=>{
-    if(!r) return `<span class="mark mark-none"></span>`;
-    const tip=esc(r.basisTip||(r.basis==="empirical"?tipSuccess:tipScheme));
-    const evPct=Math.round((r.sr||0)*100);
-    const basis=r.basisLabel||(r.basis==="on_paper"?"SCHEME MATCH":("SUCCESS "+evPct+"% · "+(r.n||0)+" SNAP"+((r.n||0)===1?"":"S")));
-    return `<span class="mark-stack" title="${tip}"><span class="mark ev">${evPct}%</span><span class="mark basis">${esc(basis)}</span></span>`;
-  };
   let h="";
   /* Tier 2 · "Best now" strip only when the suggester's pick isn't on the matched sheet. */
   if(top && !topInBucket){
     const on=live&&live.play===top.play;
-    h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now${ranked.badge?` <span class="rd-gd-widen-badge">${esc(ranked.badge)}</span>`:""}</div>`;
+    h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now</div>`;
     h+=`<button type="button" class="rd-gd-bestnow-row${on?" oncall":""}" onclick="callerLog('${escN(top.play)}')">${sigTag(top.play)}<span class="nm">${esc(top.play)}</span><span class="cta">${on?"On call":"Call it"}</span></button>`;
-    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p></div>`;
+    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov))}</p></div>`;
   }
   /* Tier 1 · the call sheet (matched bucket) or the best-options fallback. */
   h+=`<div class="rd-gd-sheet">`;
@@ -4887,26 +4100,23 @@ function callerCallSheetHtml(){
       const best= top && nm===top.play;
       h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>`;
       if(best) h+=`<span class="mark best">Best</span>`;
-      if(r) h+=markFor(r);
-      else if(!best) h+=`<span class="mark mark-none"></span>`;
+      else if(r) h+=`<span class="mark">${Math.round(r.sr*100)}%</span>`;
+      else h+=`<span class="mark mark-none"></span>`;
       h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
-    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
+    if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov))}</p>`;
   } else if(ranked.list.length){
     /* No authored bucket for this down/distance · surface the suggester's ranked list as the sheet. */
     h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} · best from your reps:</p>`;
     h+=`<div class="rd-gd-sheet-list">`;
     ranked.list.slice(0,6).forEach((r)=>{
       const nm=r.play; const on=live&&live.play===nm;
-      h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>${markFor(r)}<span class="cta">${on?"On call":"Call"}</span></button>`;
+      h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span><span class="mark">${Math.round(r.sr*100)}%</span><span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
   } else {
-    const termMsg=ranked.terminal
-      ? (ranked.badge||"No reps logged — from your call sheet, not their tendencies.")
-      : (ranked.target?"No reps for this look yet · open the playbook.":"Tap the playbook to call any play.");
-    h+=`<p class="rd-gd-sheet-sub">${esc(termMsg)}</p>`;
+    h+=`<p class="rd-gd-sheet-sub">${ranked.target?"No reps for this look yet · widen hash/field, or open the playbook.":"Tap the playbook to call any play."}</p>`;
   }
   h+=`</div>`;
   return h;
@@ -4989,11 +4199,9 @@ function renderCaller(){
   const g=expect.g, cov=expect.cov, target=expect.target, def=expect.def;
   const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
   const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
-  const dbF=callerDbFilter(cs.db, cs.estYards);
-  const cRuns=target?bestCallsFor(target,+cs.dn,dbF,"Run").slice(0,2):[];
-  const cPass=target?bestCallsFor(target,+cs.dn,dbF,"Pass").slice(0,2):[];
-  /* Live count for the expect strip — snaps in the *resolved* (possibly widened) set. */
-  const liveM=g.filter(r=>r.date==="live"||r.source==="live");
+  const cRuns=target?bestCallsFor(target,+cs.dn,cs.db,"Run").slice(0,2):[];
+  const cPass=target?bestCallsFor(target,+cs.dn,cs.db,"Pass").slice(0,2):[];
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&r.down===+cs.dn&&distBucket(r.distance)===cs.db&&(cs.zone==="ANY"||!r.fieldZone||r.fieldZone===cs.zone)&&(cs.hash==="ANY"||!r.hash||r.hash===cs.hash));
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
 
   if(rd){
@@ -5006,7 +4214,7 @@ function renderCaller(){
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
     let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     const mode=callerGetMode();
-    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span>${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     h+=callerUiChrome();
     h+=callerGuidedFlowHtml();
     h+=callerStickyBarHtml(sitTxt, pr, g);
@@ -5020,33 +4228,26 @@ function renderCaller(){
     const sitTry=!!cs.pendingTry;
     const sitTwo=!!cs.forTwo;
     h+=`<div id="caller-sit-anchor" class="rd-gd-sit${sitInf?" rd-gd-sit-inferred":""}${sitNeed||sitTry||sitTwo?" rd-gd-sit-needs":""}">`;
-    h+=`<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker"><span class="rd-gd-section-num">1</span><span class="rd-gd-section-title">Down &amp; distance</span></span> ${esc(sitTwo?"2-pt":sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">confirm</span>':""}${sitTry?' <span class="rd-gd-sit-need">try</span>':""}${sitTwo?' <span class="rd-gd-sit-need">2-pt</span>':""}</div>`;
+    h+=`<div class="rd-gd-sit-txt"><span class="rd-gd-sit-kicker">1 \u00b7 Down &amp; distance</span> ${esc(sitTwo?"2-pt":sitTxt)}${sitInf?' <span class="rd-gd-sit-est">est.</span>':""}${sitNeed?' <span class="rd-gd-sit-need">confirm</span>':""}${sitTry?' <span class="rd-gd-sit-need">try</span>':""}${sitTwo?' <span class="rd-gd-sit-need">2-pt</span>':""}</div>`;
     if(sitInf||sitNeed||sitTry||sitTwo){
       h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(callerSitNeedMsg())}</span>`;
-      if(!sitTry&&!sitTwo){
-        h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm ${esc(callerSitLabel(cs))}</button>`;
-        h+=`<button type="button" class="rd-gd-sit-reset" onclick="callerResetFirstDown()">${esc(callerResetFirstDownLabel(cs))}</button>`;
-      }
+      if(!sitTry&&!sitTwo) h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm</button>`;
       h+=`</div>`;
     }
     h+=`<div class="rd-gd-sit-grid">`;
     h+=`<div><div class="lbl">Down</div><div class="seg">`+[1,2,3,4].map((o,i)=>`<button type="button"${+cs.dn===o?' class="on"':''} onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`).join("")+`</div></div>`;
-    h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+","GOAL"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
+    h+=`<div><div class="lbl">Distance</div><div class="seg">`+["1-3","4-6","7-9","10+"].map(o=>`<button type="button"${cs.db===o?' class="on"':''} onclick="callerSet('db','${o}')">${o}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Hash</div><div class="seg">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(([o,l])=>`<button type="button"${cs.hash===o?' class="on"':''} onclick="callerSet('hash','${o}')">${l}</button>`).join("")+`</div></div>`;
     h+=`<div><div class="lbl">Field</div><div class="seg">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(([o,l])=>`<button type="button"${cs.zone===o?' class="on"':''} onclick="callerSet('zone','${o}')">${l}</button>`).join("")+`</div></div>`;
-    h+=`</div>`;
-    h+=callerDriveOverHtml();
-    h+=`</div>`;
+    h+=`</div></div>`;
     h+=callerTryBarHtml();
     h+=callerExpectStripHtml(expect, fr, pr, liveM);
     h+=callerBlitzAlertHtml(pr, g);
     h+=`<div id="caller-call-anchor">`;
     if(!sitTry||sitTwo){
-      h+=`<div class="rd-gd-section rd-gd-section-call">`;
-      h+=callerSectionKickerHtml(2, sitTwo?"2-pt play call":"Play call");
+      h+=`<div class="rd-gd-section-kicker">2 \u00b7 ${sitTwo?"2-pt play call":"Play call"}</div>`;
       h+=callerCallSheetHtml();
       if(!sitTwo) h+=callerStRowHtml();
-      h+=`</div>`;
     }
     h+=`</div>`;
     h+=callerThisPlayCardHtml();
@@ -5087,14 +4288,11 @@ function renderCaller(){
   function sg(label,key,opts,labels){ return `<div style="margin-bottom:8px"><div class="lbl">${label}</div><div class="seg">`+opts.map((o,i)=>`<button${String(cs[key])===String(o)?' class="on"':''} onclick="callerSet('${key}','${o}')">${labels?labels[i]:o}</button>`).join("")+`</div></div>`; }
   let h=`<div class="panel no-print" data-acc-skip><div class="persp" style="border:none;padding:0;margin-bottom:8px">${crest(opp!=="ANY"?opp:"",30)}<span class="pl"><b>${esc(opp!=="ANY"?opp:"opponent")}</b> &mdash; live caller</span></div>`;
   h+=callerUiChrome();
-  h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+","GOAL"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
+  h+=`<div class="grid"><div>${sg("Down","dn",[1,2,3,4],["1ST","2ND","3RD","4TH"])}</div><div>${sg("Distance","db",["1-3","4-6","7-9","10+"])}</div><div>${sg("Hash","hash",["ANY","L","M","R"])}</div><div>${sg("Field","zone",["ANY","OWN","PLUS","REDZONE"],["ANY","OWN","PLUS","RZ"])}</div></div></div>`;
   h+=callerObsChipHtml();
   h+=`<div class="panel" data-acc-skip><div class="lbl">${ordinal(+cs.dn)} & ${cs.db}${cs.zone!=="ANY"?" &middot; "+(cs.zone==="REDZONE"?"RZ":cs.zone):""}${cs.hash!=="ANY"?" &middot; "+cs.hash+" hash":""} &mdash; they show</div>`;
-  if(g.length){
-    h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div>`;
-    h+=`<p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`;
-    if(expect.badge) h+=`<p class="foot widen">${esc(expect.badge)}${expect.conf&&expect.conf.level?` · ${esc(expect.conf.level)}`:""}</p>`;
-  } else h+=`<p class="foot">${esc(expect.badge||"No reps logged — from your call sheet, not their tendencies.")}</p>`;
+  if(g.length){ h+=`<div class="callbig">${cov?esc(cov.k)+" "+fmtPct(cov.pct):"?"}</div><p style="font-size:14px;margin:4px 0">${fr?esc(fr.k)+" front &middot; ":""}${fmtPct(pr)} pressure &middot; ${g.length} snaps${liveM.length?` &middot; <span style="color:var(--good)">incl. ${liveM.length} live</span>`:""}</p>`; }
+  else h+=`<p class="foot">No reps for this exact look (try widening hash/field).</p>`;
   const liveClassic=callerLiveCall();
   const cline=c=>{
     const on=liveClassic&&liveClassic.play===c.play;
@@ -5121,17 +4319,6 @@ function renderCaller(){
 }
 function callerSet(k,v){
   callerSit[k]=v;
-  /* Every manual chip correction writes back to estYards (exact / band midpoint). */
-  if(k==="dn"||k==="db"||k==="zone"){
-    const O=callerOut();
-    if(O&&O.writebackEstYards){
-      const wb=O.writebackEstYards(callerSit, { dn:callerSit.dn, db:callerSit.db, zone:callerSit.zone });
-      callerSit.estYards=wb.estYards;
-      if(k==="db") callerSit.db=wb.db;
-    }else if(k==="db"){
-      callerSit.estYards=callerEstYardsForBucket(v);
-    }
-  }
   /* Any situation chip confirms inferred / clears needs-input / dismisses try chooser */
   if(k==="dn"||k==="db"||k==="hash"||k==="zone"){
     callerSit.inferred=false;
@@ -5170,7 +4357,6 @@ function callerLog(play){
     play: play,
     dn: +cs.dn,
     db: cs.db,
-    estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),
     hash: cs.hash,
     zone: cs.zone,
     situationInferred: wasInferred,
@@ -5220,7 +4406,6 @@ function callerLogST(kind){
     play: play,
     dn: +cs.dn,
     db: cs.db,
-    estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),
     hash: cs.hash,
     zone: cs.zone,
     situationInferred: !!cs.inferred,
@@ -5340,7 +4525,7 @@ function callerClear(){
   GAMES=GAMES.filter(g=>g.key!==k);
   CALLER_LOG=[]; CALLER_EVENTS=[]; CALLER_COLLISIONS=[]; CALLER_ACTIVITY=[]; CALLER_SEQ=0;
   CALLER_BREAKS=[]; CALLER_DRIVE_TOAST=null; CALLER_HALFTIME=null; CALLER_MONDAY_FOCUS=null;
-  CALLER_EVENT_FEED=[]; CALLER_LIVE_EXPANDED=false; CALLER_LAST_SHIFT_SIG=""; CALLER_LAST_LOOK_SHIFT_SIG=""; CALLER_LAST_DRIVE_FEED_PI=null; CALLER_STREAK_FEED_DRIVE=null;
+  CALLER_EVENT_FEED=[]; CALLER_LIVE_EXPANDED=false; CALLER_LAST_SHIFT_SIG=""; CALLER_LAST_DRIVE_FEED_PI=null;
   callerSit=callerSitDefaults();
   CALLER_SESSION=null;
   callerPresenceStop();
@@ -5424,27 +4609,12 @@ const ALIASES={
   result:["result","play result","outcome","def result"],
   gnls:["gn/ls","gain","gnls","yds","yards","net","gn ls"],
   direction:["play dir","play direction","dir","direction","run dir"],
-  motion:["motion dir","motion","with motion","motion?","mot"],
-  playnum:["play #","play#","play no","play number","play num","hudl play #"]
+  motion:["motion dir","motion","with motion","motion?","mot"]
 };
 let LAST_MAPPING="";
-let LAST_PARSE_STATS=null;
-function isCanonicalCoverage(v){
-  const s=String(v||"").trim();
-  if(!s) return false;
-  if(/^Cover\s*[0-6]$/i.test(s)) return true;
-  if(/^2-man$/i.test(s)) return true;
-  if(/^(Man|Zone)$/i.test(s)) return true;
-  return false;
-}
 function normCoverage(v){
   if(!v) return "";
   const s=String(v).trim(); const l=s.toLowerCase();
-  /* Exact Hudl vocab tokens (before generic man/zone / digit rules) */
-  if(/^\s*press\s*$/i.test(s)) return "Cover 4";
-  if(/^\s*sky\s*$/i.test(s)) return "Cover 3";
-  if(/^\s*cloud\s*$/i.test(s)) return "Cover 3";
-  if(/^\s*soft\s*0\s*$/i.test(s) || /^\s*soft\s*zero\s*$/i.test(s)) return "Cover 0";
   if(/(^|[^0-9])2[\s\-]?man/.test(l) || l==="2m") return "2-man";
   if(/\bman[\s\-]?free\b/.test(l)) return "Cover 1";
   if(/\bzero\b/.test(l)) return "Cover 0";
@@ -5470,7 +4640,7 @@ function zoneFromYardLine(raw){
 }
 function parseCSV(text,forceKeep){
   const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.trim().length);
-  if(!lines.length){ LAST_MAPPING=""; LAST_PARSE_STATS=null; return []; }
+  if(!lines.length){ LAST_MAPPING=""; return []; }
   const head=splitCSVLine(lines[0]).map(h=>h.trim());
   const lc=head.map(h=>h.toLowerCase());
   const col={}; const mapped=[];
@@ -5482,38 +4652,21 @@ function parseCSV(text,forceKeep){
       mapped.push(field+'\u2192"'+head[idx]+'"');
   }
   const at=(cells,field)=>{ const i=col[field]; return (i>=0 && cells[i]!=null)? String(cells[i]).trim() : ""; };
-  // pass 1: rows with a coverage/front/blitz tag; tally silent drops + opaque coverage
+  // pass 1: rows with a coverage value (required); record ODK
   const cand=[];
-  let skippedNoDef=0, dataRows=0;
-  const droppedCovRaw={}; /* coverage values on rows skipped for no-def (rare) */
-  const opaqueCov={}; /* kept but non-canonical after norm (Robber, Palms, …) */
   for(let li=1;li<lines.length;li++){
     const c=splitCSVLine(lines[li]); if(!c.length || c.join("").trim()==="") continue;
-    dataRows++;
-    const covRaw=at(c,"coverage");
-    const cov=normCoverage(covRaw);
+    const cov=normCoverage(at(c,"coverage"));
     const hasDef = cov || at(c,"front") || at(c,"blitz");
-    if(!hasDef){
-      skippedNoDef++;
-      if(covRaw) droppedCovRaw[covRaw]=(droppedCovRaw[covRaw]||0)+1;
-      continue;
-    }
-    if(covRaw && cov && !isCanonicalCoverage(cov)) opaqueCov[covRaw+" \u2192 "+cov]=(opaqueCov[covRaw+" \u2192 "+cov]||0)+1;
-    cand.push({c:c, cov:cov, odk:at(c,"odk").toUpperCase().slice(0,1), covRaw:covRaw});
+    if(!hasDef) continue;
+    cand.push({c:c, cov:cov, odk:at(c,"odk").toUpperCase().slice(0,1)});
   }
   // opponent DEFENSE is seen on OUR offensive snaps -> prefer ODK=O
   let keep=null;
   if(col.odk>=0){ if(forceKeep){ keep=forceKeep; } else { const nO=cand.filter(x=>x.odk==="O").length, nD=cand.filter(x=>x.odk==="D").length; keep = nO>0?"O":(nD>0?"D":null); } }
   const out=[];
-  let skippedOdk=0;
-  const odkDroppedCov={};
   cand.forEach(x=>{
-    if(keep && x.odk!==keep){
-      skippedOdk++;
-      const label=x.covRaw||x.cov||"(no coverage)";
-      odkDroppedCov[label]=(odkDroppedCov[label]||0)+1;
-      return;
-    }
+    if(keep && x.odk!==keep) return;
     const c=x.c;
     const bRaw=at(c,"blitz"); const bl=bRaw.toLowerCase().trim();
     const pRaw=at(c,"pressure").toLowerCase();
@@ -5527,8 +4680,6 @@ function parseCSV(text,forceKeep){
     if(!fz) fz=zoneFromYardLine(at(c,"yardline"));
     if(!fz) fz="OWN";
     const dn=at(c,"down").replace(/[^0-9]/g,"");
-    const playNumRaw=at(c,"playnum");
-    const playNum=playNumRaw!=="" && !isNaN(+String(playNumRaw).replace(/[^0-9.\-]/g,""))?(+String(playNumRaw).replace(/[^0-9.\-]/g,"")):null;
     out.push({
       date:at(c,"date"), opponent:at(c,"opponent"),
       qtr:at(c,"qtr").replace(/[^0-9]/g,"")||"",
@@ -5539,23 +4690,12 @@ function parseCSV(text,forceKeep){
       personnel:at(c,"personnel"), formation:at(c,"formation"),
       front:normalizeDefFront(at(c,"front")).toUpperCase().replace(/\s+/g," ").trim(), coverage:x.cov, pressure:pressure,
       blitz:(pressure && bRaw && !/^(no|none|0|-|n)$/.test(bl))?bRaw.toUpperCase().replace(/\s+/g," ").trim():"",
-      result:at(c,"result"),
-      playNum:playNum
+      result:at(c,"result")
     });
   });
   LAST_MAPPING=(mapped.length?"Mapped columns: "+mapped.join(", ")+". ":"")+
     (keep?"Using ODK="+keep+" rows ("+(keep==="O"?"your offense vs their defense":"their defense")+"). ":"")+
     (col.coverage<0&&col.front<0&&col.blitz<0?"\u26a0 No coverage / front / blitz column found \u2014 need at least one." : "");
-  LAST_PARSE_STATS={
-    dataRows:dataRows,
-    kept:out.length,
-    skippedNoDef:skippedNoDef,
-    skippedOdk:skippedOdk,
-    keep:keep,
-    opaqueCov:opaqueCov,
-    odkDroppedCov:odkDroppedCov,
-    droppedCovRaw:droppedCovRaw
-  };
   return out;
 }
 function loadData(rows,source){
@@ -5645,7 +4785,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=278", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=228", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5936,10 +5076,16 @@ buildControls();
 render();
 { let _ob=null; try{ _ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
   if(!GAMES.length && !_ob) showGetStarted(); }   /* onboarded users get the setup checklist instead */
-/* deep links from onboarding / setup checklist */
-if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
-else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
-else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
+/* deep links from onboarding / setup checklist — also on hashchange (same-page chip clicks) */
+function applyOffgrdDeepLink(){
+  try{
+    if(location.hash==="#import") openImport("full");
+    else if(location.hash==="#brand") openBranding();
+    else if(location.hash==="#schedule") openSchedule();
+  }catch(e){}
+}
+applyOffgrdDeepLink();
+window.addEventListener("hashchange", applyOffgrdDeepLink);
 /* Redesign sub-app · main handoff: ?view= or sessionStorage.offgrd_rd_view or persisted offgrd_view.
    MUST include dcaller/caller — omitting them dumps a sideline coach onto empty Scout after
    an iPad kill / airplane reload (device-session P0). */
@@ -5968,9 +5114,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=278"></script>
-<script src="OFFGRD-role-gate.js?v=278"></script>
-<script src="OFFGRD-mobile.js?v=278"></script>
+<script type="module" src="OFFGRD-account.js?v=231"></script>
+<script src="OFFGRD-role-gate.js?v=228"></script>
+<script src="OFFGRD-mobile.js?v=228"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
