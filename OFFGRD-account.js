@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=229";
-import { openAuthModal, openAccountModal } from "./OFFGRD-auth.js?v=230";
+import { Cloud } from "./OFFGRD-cloud.js?v=279";
+import { openAuthModal } from "./OFFGRD-auth.js?v=279";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -178,7 +178,6 @@ async function doSignOut(){
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
 
 function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
-try{ window.openOffgrdAccountModal = openAccountModal; }catch(e){}
 
 /* ---------- school link (orphan team recovery) ---------- */
 async function refreshCreateEligibility(){
@@ -258,22 +257,30 @@ function publishCallerBridge(){
     };
   }catch(e){}
 }
+let _programReadyFp = "";
 function publishProgramRole(){
   publishCallerBridge();
+  const ready = !!(TEAM && ROLE);
+  const teamId = TEAM && TEAM.id;
+  const fp = [teamId || "", ROLE || "", ready ? "1" : "0", shellRole(), isRoleResolved() ? "1" : "0"].join("|");
+  const changed = fp !== _programReadyFp;
+  _programReadyFp = fp;
   window.OFFGRD_PROGRAM = {
-    ready: !!(TEAM && ROLE),
+    ready: ready,
     role: ROLE,
     roleResolved: isRoleResolved(),
     shellRole: shellRole(),
-    teamId: TEAM && TEAM.id,
+    teamId: teamId,
     isPlayer: () => ROLE === "player" || assumePlayerChrome(),
     isCoach: () => !!ROLE && ROLE !== "player",
     canCreateTeam: () => CAN_CREATE_TEAM,
   };
+  /* Same team/role fingerprint — skip log + event (boot often publishes 2–3×). */
+  if(!changed) return;
   try{
     console.log("[program-ready]", {
-      ready: !!(TEAM && ROLE),
-      teamId: TEAM && TEAM.id,
+      ready: ready,
+      teamId: teamId,
       role: ROLE,
       playerChrome: assumePlayerChrome(),
       roleResolved: isRoleResolved(),
@@ -455,6 +462,7 @@ async function resolveWeekPlan(){
 }
 window.OFFGRD_LOAD_WEEK_PLAN = resolveWeekPlan;
 window.OFFGRD_LOAD_PLAYER_WEEK = resolveWeekPlan;
+try{ document.dispatchEvent(new CustomEvent("offgrd-week-bridge-ready")); }catch(eBridge){}
 window.OFFGRD_RESOLVE_WEEK_TEAM_ID = resolveWeekTeamId;
 window.OFFGRD_READ_WEEK_CACHE = readPlayerWeekCache;
 window.OFFGRD_WEEK_CACHE_AGE = formatWeekCacheAge;
@@ -800,8 +808,8 @@ async function finishProgramHydrate(u){
   }catch(e){}
   try{ if(typeof window.OFFGRD_RESOLVE_WEEK === "function") window.OFFGRD_RESOLVE_WEEK(); }catch(e){}
   bar(u);
+  /* pull() already refreshes scout snaps for scout pages — do not double-hydrate. */
   if(TEAM) await pull(true);
-  try{ if(TEAM && A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap0){}
   clearInterval(_autoT); if(TEAM && SYNCABLE) _autoT=setInterval(maybePull, 45000);
   if(TEAM && canEdit()){ try{ setupState().then(renderChecklist); }catch(e){} }
   try{ if(A.onUser) A.onUser(u.email); }catch(e){}
@@ -872,18 +880,38 @@ function libSig(arr){
 function gameNaturalKey(opp, week, side){
   return String(opp||"?").trim().toLowerCase()+"|"+String(week||"?").trim().toLowerCase()+"|"+String(side||"");
 }
-/** Per-snap identity inside a game blob — live prefers callId; scout uses composite. */
+/**
+ * Per-snap identity inside a game blob — live prefers callId; scout uses composite.
+ * Defense imports often leave play/gain empty and share 1st&10 / same coverage /
+ * OWN zone — the short key used to collapse distinct snaps on hydrate (St Mary's
+ * 61→44). Include front/formation/qtr/result/playNum so mergeGames stays idempotent
+ * without dropping real snaps.
+ */
+function seasonRowPlayNum(r){
+  if(!r) return "";
+  if(r.playNum!=null&&r.playNum!=="") return r.playNum;
+  if(r["PLAY #"]!=null&&r["PLAY #"]!=="") return r["PLAY #"];
+  return "";
+}
 function seasonRowIdentity(r){
   if(!r) return "∅";
   if(r.callId) return "c:"+String(r.callId);
   if(r.source==="live_call" && r.id) return "c:"+String(r.id);
-  return ["s", r.date||"", r.down||"", r.distance||"", r.play||"", r.hash||"", (r.gain!=null?r.gain:""), r.source||"", r.coverage||"", r.fieldZone||""].join("|");
+  const playNum=seasonRowPlayNum(r);
+  return ["s", r.date||"", r.down||"", r.distance||"", r.play||"", r.hash||"", (r.gain!=null?r.gain:""), r.source||"", r.coverage||"", r.fieldZone||"", r.front||"", r.formation||"", r.qtr||"", r.result||"", playNum].join("|");
 }
+/**
+ * Merge by identity, then drop legacy no-playNum survivors when any playNum-keyed
+ * row is present (St Mary's over-merge: collapsed 44 + restored 61 → 105).
+ */
 function mergeSeasonRows(a, b){
   const map=new Map();
   (a||[]).forEach(function(r){ map.set(seasonRowIdentity(r), r); });
   (b||[]).forEach(function(r){ map.set(seasonRowIdentity(r), r); });
-  return Array.from(map.values());
+  const out=Array.from(map.values());
+  const hasPlayNum=out.some(function(r){ return seasonRowPlayNum(r)!==""; });
+  if(!hasPlayNum) return out;
+  return out.filter(function(r){ return seasonRowPlayNum(r)!==""; });
 }
 function gameSig(g){
   if(!g) return "";
@@ -925,6 +953,12 @@ function mergeGames(cloudRows, local){
       /* Keep canonical display fields from the survivor that already has a key slot. */
       if(!prev.opponent && g.opponent) prev.opponent=g.opponent;
       if(!prev.week && g.week) prev.week=g.week;
+      /* Prefer the newer cloud timestamp when merging (durability / CAS base). */
+      if(g.updatedAt){
+        const prevT=Date.parse(prev.updatedAt||"");
+        const nextT=Date.parse(g.updatedAt||"");
+        if(!Number.isFinite(prevT) || (Number.isFinite(nextT) && nextT>=prevT)) prev.updatedAt=g.updatedAt;
+      }
       prev.key=key;
       byKey.set(key, prev);
       return;
@@ -936,7 +970,8 @@ function mergeGames(cloudRows, local){
       side:g.side,
       source:g.source||"import",
       rows:rows.slice(),
-      cid:cid
+      cid:cid,
+      updatedAt:g.updatedAt||null
     };
     byKey.set(key, next);
     if(cid) byCid.set(cid, next);
@@ -949,7 +984,8 @@ function mergeGames(cloudRows, local){
       side:r.side,
       source:r.source,
       rows:r.rows,
-      cid:r.id||r.cid||null
+      cid:r.id||r.cid||null,
+      updatedAt:r.updated_at||r.updatedAt||null
     });
   });
   (local||[]).forEach(function(g){
@@ -959,7 +995,8 @@ function mergeGames(cloudRows, local){
       side:g.side,
       source:g.source,
       rows:g.rows,
-      cid:g.cid||g.id||null
+      cid:g.cid||g.id||null,
+      updatedAt:g.updatedAt||g.updated_at||null
     });
   });
   return Array.from(byKey.values());
@@ -1021,6 +1058,7 @@ try{
   window.OFFGRD_GAME_NATURAL_KEY=gameNaturalKey;
   window.OFFGRD_SEASON_ROW_ID=seasonRowIdentity;
   window.OFFGRD_PURGE_TOMBSTONED_GAMES=purgeTombstonedGames;
+  window.OFFGRD_LOAD_TOMBSTONES=loadTombstones;
 }catch(e){}
 
 /** Indexed localâ†”cloud reconcile — O(n) Maps, no nested scans, no full JSON.stringify. */
@@ -1101,8 +1139,17 @@ async function pull(silent){
   finally{ _busy=false; }
 }
 async function push(silent){
-  if(!TEAM){ if(!silent) alert("Sign in first."); return; }
-  if(!canEdit()){ if(!silent) alert("Your role is view-only, so you can’t save to the program."); return; }
+  if(!TEAM){
+    const err=new Error("Sign in first.");
+    if(!silent) alert(err.message);
+    throw err;
+  }
+  if(!canEdit()){
+    const err=new Error("Your role is view-only, so you can’t save to the program.");
+    if(!silent) alert(err.message);
+    throw err;
+  }
+  const rejected=[];
   try{
     const items = A.get();
     if(A.kind==="playbook"){
@@ -1117,24 +1164,54 @@ async function push(silent){
     }
     else {
       const tombs = await loadTombstones(TEAM.id);
-      const rejected=[];
       for(const g of items){
-        if(isGameTombstonedLocal(g, tombs)){ rejected.push(g); continue; }
+        if(isGameTombstonedLocal(g, tombs)){ rejected.push(Object.assign({reason:"TOMBSTONED"}, g)); continue; }
         try{
-          const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {id:g.cid}));
+          const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {
+            id:g.cid,
+            baseUpdatedAt:g.updatedAt||g.updated_at||null
+          }));
           g.cid = row.id;
           g.key = gameNaturalKey(g.opponent, g.week, g.side);
+          if(row.updated_at) g.updatedAt = row.updated_at;
         }catch(eSave){
           /* Fire-and-forget: tombstone = skip this game, continue batch. No retry. */
           if(eSave && (eSave.code==="TOMBSTONED" || (Cloud._isTombstoneError && Cloud._isTombstoneError(eSave)))){
-            rejected.push(g);
+            rejected.push(Object.assign({reason:"TOMBSTONED"}, g));
             try{ console.warn("[push] tombstoned skip", gameNaturalKey(g.opponent,g.week,g.side)); }catch(eW){}
             continue;
+          }
+          /* Stale client vs newer server blob — pull that game, merge, retry once. */
+          if(eSave && eSave.code==="STALE_WRITE"){
+            try{
+              const cloudAll = await Cloud.listGames(TEAM.id);
+              const key = gameNaturalKey(g.opponent, g.week, g.side);
+              const server = (cloudAll||[]).find(function(r){
+                return gameNaturalKey(r.opponent, r.week, r.side)===key;
+              });
+              if(!server){ throw eSave; }
+              const mergedOne = mergeGames([server], [g])[0] || g;
+              const row2 = await Cloud.saveGame(TEAM.id, Object.assign({}, mergedOne, {
+                id:server.id||mergedOne.cid||g.cid,
+                baseUpdatedAt:server.updated_at||server.updatedAt||null
+              }));
+              g.cid = row2.id;
+              g.rows = mergedOne.rows;
+              g.key = key;
+              if(row2.updated_at) g.updatedAt = row2.updated_at;
+              try{ console.warn("[push] stale write recovered", key, "→", (g.rows&&g.rows.length)||0, "rows"); }catch(eW2){}
+              continue;
+            }catch(eRec){
+              rejected.push(Object.assign({reason:"STALE_WRITE"}, g));
+              try{ console.warn("[push] stale write skip", gameNaturalKey(g.opponent,g.week,g.side), eRec&&eRec.message); }catch(eW3){}
+              continue;
+            }
           }
           throw eSave;
         }
       }
-      /* Drop tombstoned (+ trigger-rejected) from local so the next Sync ↑ is quiet. */
+      /* Drop tombstoned (+ trigger-rejected) from local so the next Sync ↑ is quiet.
+         Explicit Commit clears tombstones first — rejected here means clear failed. */
       let cleaned = purgeTombstonedGames(items, tombs);
       if(rejected.length){
         const rejKeys=new Set(rejected.map(function(g){ return gameNaturalKey(g.opponent,g.week,g.side); }));
@@ -1149,11 +1226,27 @@ async function push(silent){
     syncStamp();
     /* Classic import → scouting_games → sync trigger → scout_snaps; re-fetch for Predict. */
     try{ if(A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap){}
+    if(rejected.length){
+      const labels=rejected.map(function(g){
+        return (g.opponent||"?")+" · "+(g.week||"?")+" · "+(g.side||"?")+" ("+(g.reason||"blocked")+")";
+      });
+      const err=new Error("Could not sync "+rejected.length+" game(s): "+labels.slice(0,6).join("; "));
+      err.code="PUSH_REJECTED";
+      err.rejected=rejected;
+      if(!silent) throw err;
+      return { ok:false, rejected:rejected, error:err.message, code:"PUSH_REJECTED" };
+    }
     if(!silent) alert("Synced "+items.length+" item"+(items.length===1?"":"s")+" to "+TEAM.name+" \u2713");
+    return { ok:true, rejected:rejected };
   }catch(e){
     /* Silent auto-push: swallow — never schedule a retry (Daily Check storm lesson). */
-    if(!silent) alert(e.message||"Sync failed");
+    if(!silent){
+      if(e && e.code==="PUSH_REJECTED") throw e;
+      alert(e.message||"Sync failed");
+      throw e;
+    }
     else try{ console.warn("[push] silent fail (no retry)", e && e.message); }catch(e2){}
+    return { ok:false, rejected:rejected, error:(e && e.message) || String(e) };
   }
 }
 
@@ -1228,7 +1321,7 @@ async function renderTeam(){
   const copy=el('<button class="ogm-b">Copy</button>'); copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} }; codeRow.appendChild(copy);
   if(isAdmin()){ const rot=el('<button class="ogm-b">New code</button>'); rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ alert(e.message);} }; codeRow.appendChild(rot); }
   codeSec.appendChild(codeRow);
-  codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches \u2014 they sign up, then enter it under \u201CJoin a program\u201D. New members join as Player; change roles below.</p>'));
+  codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches — they sign up, then enter it under â€œJoin a programâ€. New members join as Player; change roles below.</p>'));
   body.appendChild(codeSec);
 
   // admin: invite + pending + roster ; non-admin: roster read-only
@@ -1294,11 +1387,11 @@ function obChoose(){
   b.innerHTML='<p class="ogm-note" style="font-size:14px">Let’s get you set up in about a minute. Which are you?</p>';
   const row=el('<div class="ogm-row" style="margin-top:12px"></div>');
   if(CAN_CREATE_TEAM){
-    const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">\uD83C\uDFC8 I\u2019m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
+    const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">Ã°Å¸ÂË† I’m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
     c.onclick=obCoach;
     row.appendChild(c);
   }
-  const p=el('<button class="ogm-b'+(CAN_CREATE_TEAM?'':' go')+'" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">\uD83C\uDF93 I\u2019m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
+  const p=el('<button class="ogm-b'+(CAN_CREATE_TEAM?'':' go')+'" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">Ã°Å¸Å½â€œ I’m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
   p.onclick=obPlayer;
   row.appendChild(p); b.appendChild(row);
 }
@@ -1329,7 +1422,7 @@ function obCoachDone(){
    +linkNote
    +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
-   +'<p class="ogm-note">They sign up, tap \u201CI\u2019m a player\u201D, enter this code, and pick their position. Coaches join the same way \u2014 promote them under <b>Team</b>.</p></div>'
+   +'<p class="ogm-note">They sign up, tap â€œI’m a playerâ€, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours — logo &amp; colors</div>'
    +'<div class="ogm-row" style="align-items:center;margin-top:6px">'
    +'<span id="obCrest" style="display:inline-flex;width:42px;height:42px;border-radius:9px;align-items:center;justify-content:center;font-weight:900;font-size:13px;overflow:hidden;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span>'
@@ -1397,6 +1490,7 @@ function pushBrand(name, brand){
   }catch(e){}
 }
 window.OFFGRD_PUSH_BRAND=pushBrand;   /* Scout's Team & logos editor calls this on save */
+let _brandHydrateFp = "";
 function applyCloudBrand(){
   try{
     const b=TEAM && TEAM.brand;
@@ -1423,6 +1517,8 @@ function applyCloudBrand(){
       bg: b.bg || "#13294B",
       logo: b.logo || "",
     };
+    const brandFp = [brandName, brand.abbr, brand.fg, brand.bg, brand.logo ? String(brand.logo).length : "0"].join("|");
+    if(brandFp === _brandHydrateFp) return;
     const persist = window.OFFGRD_persistBrand;
     if(!persist){
       try{ console.warn("[brand] OFFGRD_persistBrand missing — load OFFGRD-brand-persist.js before account"); }catch(e){}
@@ -1430,6 +1526,7 @@ function applyCloudBrand(){
     }
     const entry = persist(brandName, brand);
     if(!entry) return;
+    _brandHydrateFp = brandFp;
     try{ console.log("[brand] hydrated", brandName, entry.bg, "abbr=", entry.abbr); }catch(e){}
     /* CSS-only hook on QB (redesign wrapper); Scout hook also updates in-page crest */
     if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, entry); }
@@ -1612,32 +1709,15 @@ async function setupState(){
   }catch(e){}
   return s;
 }
-function runSetupStep(step){
-  if(!step) return;
-  try{
-    if(typeof step.act === "function"){ step.act(); return; }
-    if(step.href){ location.href = step.href; }
-  }catch(e){
-    try{ console.warn("[ogSetup]", e && e.message); }catch(e2){}
-  }
-}
 function renderChecklist(s){
   let hidden=null; try{ hidden=localStorage.getItem("offgrd_setup_done"); }catch(e){}
   let host=document.getElementById("ogSetup");
-  /* All steps are buttons with direct handlers — hash hrefs only fire once on cold load
-     (already on #import/#brand → click looked dead / needed several tries). */
   const items=[
     {t:"Invite staff & players", done:s.roster>=2, act:openTeam},
-    {t:"Load your playbook", done:s.plays>=1, act:function(){ location.href="OFFGRD-Playbook.html"; }},
-    {t:"Set colors & logo", done:s.identity, act:function(){
-      if(typeof window.openBranding === "function") window.openBranding();
-      else location.href="OFFGRD.html#brand";
-    }},
+    {t:"Load your playbook", done:s.plays>=1, href:"OFFGRD-Playbook.html"},
+    {t:"Set colors & logo", done:s.identity, href:"OFFGRD.html#brand"},
     {t:"Add your schedule", done:s.schedule>=1, act:openScheduleFromSetup},
-    {t:"Import a breakdown", done:s.games>=1, act:function(){
-      if(typeof window.openImport === "function") window.openImport("full");
-      else location.href="OFFGRD.html#import";
-    }}
+    {t:"Import a breakdown", done:s.games>=1, href:"OFFGRD.html#import"}
   ];
   const doneN=items.filter(i=>i.done).length;
   /* v36: re-show if schedule step incomplete (new step after coaches hid at 4/4) */
@@ -1646,32 +1726,58 @@ function renderChecklist(s){
     if(doneN===items.length){ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} }
     if(host) host.remove(); return;
   }
-  const sig = doneN + "|" + items.map(function(i){ return (i.done?"1":"0")+i.t; }).join(";");
   if(!host){
     host=document.createElement("div"); host.id="ogSetup"; host.className="no-print";
-    host.style.cssText="position:relative;z-index:35;";
     const tb=document.querySelector(".topbar");
     if(tb&&tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling); else document.body.prepend(host);
   }
-  /* Skip full rebuild when status unchanged — re-render was wiping mid-click handlers. */
-  if(host.dataset.sig === sig && host.querySelector("[data-ix]")) return;
-  host.dataset.sig = sig;
-  host.innerHTML='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:12px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
-   +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup \u00b7 '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button type="button" id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px;min-height:44px;padding:8px 10px">Hide</button></div>'
-   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
-   +items.map((i,ix)=>'<button type="button" data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:12px 16px;min-height:44px;font-weight:700;font-size:13px;color:'+(i.done?'#1d7a45':'#13294B')+';-webkit-tap-highlight-color:transparent;touch-action:manipulation">'+(i.done?'\u2713':'\u25CB')+' '+i.t+'</button>').join("")
+  host.innerHTML='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
+   +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup · '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px">Hide</button></div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+   +items.map((i,ix)=>'<'+(i.href?'a href="'+i.href+'"':'button type="button"')+' data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'\u2713':'\u25CB')+' '+i.t+'</'+(i.href?'a':'button')+'>').join("")
    +'</div></div>';
   host.querySelector("#ogSetupHide").onclick=()=>{ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} host.remove(); };
-  [].forEach.call(host.querySelectorAll("button[data-ix]"), function(bt){
-    const i=items[+bt.dataset.ix];
-    bt.onclick=function(ev){ if(ev){ ev.preventDefault(); ev.stopPropagation(); } runSetupStep(i); };
-  });
+  [].forEach.call(host.querySelectorAll("button[data-ix]"),bt=>{ const i=items[+bt.dataset.ix]; if(i&&i.act) bt.onclick=i.act; });
 }
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 let _syncT=null;
 window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; push(true); }, 1500); };
+/** Awaitable push for Commit-to-season — returns {ok, rejected, error} (never silent on failure). */
+window.OFFGRD_PUSH=async function(silent){
+  try{
+    const r = await push(!!silent);
+    return r && typeof r === "object" ? r : { ok:true, rejected:[] };
+  }catch(e){
+    return {
+      ok:false,
+      error:(e && e.message) || String(e),
+      rejected:(e && e.rejected) || [],
+      code:e && e.code
+    };
+  }
+};
+
+/** Cheap fingerprint of scout_snaps RPC rows — length + max updatedAt + id mix. */
+function scoutCorpusFp(raw){
+  const a = raw || [];
+  let maxU = "";
+  let mix = a.length * 2654435761;
+  for(let i = 0; i < a.length; i++){
+    const r = a[i];
+    if(!r) continue;
+    const id = String(r.id || "");
+    const u = String(r.updated_at || r.updatedAt || r.reviewed_at || "");
+    if(u > maxU) maxU = u;
+    mix = (mix + id.length * (i + 1) + (r.coverage || "").length * 17 + (r.front || "").length * 31) | 0;
+    for(let j = 0; j < id.length; j++) mix = (mix + id.charCodeAt(j) * (j + 1)) | 0;
+  }
+  return a.length + "@" + maxU + "#" + (mix >>> 0);
+}
+let _lastScoutCorpusFp = "";
+let _lastScoutCorpusTeam = "";
+let _scoutCorpusHydrated = false;
 
 /** Pull review-gated scout_snaps → SNAP_CORPUS for Predict/Tendencies cutover. */
 async function refreshScoutSnaps(){
@@ -1679,6 +1785,15 @@ async function refreshScoutSnaps(){
   if(isOffline()) return;
   try{
     const raw = await Cloud.listScoutSnaps(TEAM.id);
+    const fp = scoutCorpusFp(raw);
+    const sameTeam = _lastScoutCorpusTeam === (TEAM.id || "");
+    if(sameTeam && _scoutCorpusHydrated && fp === _lastScoutCorpusFp){
+      /* Sync poll / duplicate boot — corpus unchanged; skip full report rebuild. */
+      return;
+    }
+    _lastScoutCorpusFp = fp;
+    _lastScoutCorpusTeam = TEAM.id || "";
+    _scoutCorpusHydrated = true;
     const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
     if(typeof window.OFFGRD_SET_SNAP_CORPUS === "function"){
       window.OFFGRD_SET_SNAP_CORPUS(mapped);
