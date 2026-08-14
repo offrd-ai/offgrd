@@ -403,6 +403,7 @@ footer{
       <button class="btn btn-primary" id="ctaStart">Start free — no card <span class="arw">→</span></button>
       <a class="btn btn-ghost" href="#suite">See the suite</a>
     </div>
+    <div style="margin-top:14px;color:var(--muted);font-size:13.5px"><b style="color:var(--ink)">14-day full trial</b> — every feature, no card. Your scouting stays visible after.</div>
     <div class="subnote">One program library <span class="sep">·</span> <b>Coaches plan, players train, everyone syncs</b> <span class="sep">·</span> Hudl &amp; QwikCut imports <span class="sep">·</span> No internet needed at game time</div>
   </div>
   <div class="hero-shot hero-live reveal">
@@ -564,7 +565,7 @@ footer{
       <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:8px">Final review — proposed focus</div><div class="rankrow"><span class="rk">1</span><span style="flex:1"><b style="color:var(--text)">Cover 3 bust</b><br><span style="color:var(--muted-2);font-size:12px">3rd &amp; long · 3 tags tonight</span></span><span class="callbtn">Confirm</span></div><div class="rankrow"><span class="rk">2</span><span style="flex:1"><b style="color:var(--text)">Missed fit — perimeter run</b><br><span style="color:var(--muted-2);font-size:12px">1st &amp; 10 · 2 tags</span></span><span class="callbtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--stroke-2)">Confirm</span></div><p style="color:var(--muted);font-size:13px;margin:12px 0 0">Confirmed → next week's Coverage-ID tests <b style="color:var(--text)">up-weight Cover 3 / 3rd &amp; long</b> for the DBs.</p></div></div>
     </div>
     <div class="feature">
-      <div class="fdesc reveal"><div class="kicker">Auto-Scout <span class="chip-soon">Early access</span></div><h3>Point a camera at the film. Get a draft breakdown.</h3><p>Auto-Scout reads still frames of each snap and <b>drafts the defensive picture for you</b> — coverage shell, front family, rotation — so tagging a game starts from a draft instead of a blank row.</p><p>Every AI tag carries an honest <b>confidence score</b> and lands in a coach review queue. <b>Nothing unreviewed ever touches your tendencies</b> — you stay the tagger of record; the machine just does the first pass. Rolling out to founding programs first.</p></div>
+      <div class="fdesc reveal"><div class="kicker">Auto-Scout <span class="chip-soon">Early access</span></div><h3>Point a camera at the film. Get a draft breakdown.</h3><p>Auto-Scout reads still frames of each snap and <b>drafts the defensive picture for you</b> — coverage shell, front family, rotation — so tagging a game starts from a draft instead of a blank row.</p><p>Every AI tag carries an honest <b>confidence score</b> and lands in a coach review queue. <b>Nothing unreviewed ever touches your tendencies</b> — you stay the tagger of record; the machine just does the first pass. Early access — rolling out program by program.</p></div>
       <div class="fvis reveal"><div class="mock"><div class="tag" style="margin-bottom:8px">Auto-Scout — review queue</div><div class="row"><span>Snap 14 · <b>2-high shell</b></span><span class="chip-conf">0.86</span></div><div class="row"><span>Snap 14 · <b>4-down front</b></span><span class="chip-conf">0.81</span></div><div class="row"><span>Snap 15 · <b>1-high → Cover 3</b> (post-snap)</span><span class="chip-conf">0.74</span></div><div class="row"><span>Snap 16 · shell unclear — <b>flagged</b></span><span class="conf-lo">Needs review</span></div><p style="color:var(--muted);font-size:13px;margin:12px 0 0">Low-confidence rows wait for a coach — <b style="color:var(--text)">unreviewed tags never feed predictions</b>.</p></div></div>
     </div>
     <div class="feature rev">
@@ -596,29 +597,38 @@ footer{
   </div>
 </section>
 <section class="section" id="pricing" style="background:linear-gradient(180deg,transparent,rgba(59,208,242,.05),transparent)">
+  <style>
+    .price-grid2{max-width:980px;margin:44px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media(max-width:860px){.price-grid2{grid-template-columns:1fr}}
+    .price-grid2 .price-card{margin:0}
+  </style>
   <div class="wrap" style="text-align:center">
     <div class="section-tag" style="justify-content:center">Pricing</div>
-    <h2 class="big-line reveal" style="max-width:760px;margin:0 auto">One program. Whole staff. <span class="grad-text">Every player.</span></h2>
+    <h2 class="big-line reveal" style="max-width:760px;margin:0 auto">One program price. Whole staff. <span class="grad-text">Every player.</span></h2>
+    <p style="color:var(--muted);max-width:640px;margin:16px auto 0">No per-seat contracts. Works with the Hudl tags you already make — keep your Hudl exactly as it is.</p>
   </div>
-  <div class="wrap price-wrap">
+  <div class="wrap price-grid2">
     <div class="price-card reveal">
-      <div class="price-head"><div class="price-title">Free <span class="grad-text">while in beta</span></div><span class="price-badge">● Founding program</span></div>
-      <p style="color:var(--muted);margin:0">Founding programs keep beta perks when paid plans arrive. No card required.</p>
+      <div class="price-head"><div class="price-title">Free trial <span class="grad-text">14 days</span></div><span class="price-badge">No card</span></div>
+      <p style="color:var(--muted);margin:0">Every feature, both sides of the ball, two Fridays of live calling. On day 15 your scouting stays; game-day tools pause until you're in.</p>
       <ul class="plist">
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout &amp; Predict</b> — coverage / front / blitz by situation, live in-game blending</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Playbook</b> — draw, animate, tag; 12-play starter book included</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout Cards</b> — auto-generated card stacks from real diagrams, batch PDF for the scout team</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Coaches Hub</b> — roster, depth chart, calendar, daily check &amp; team messaging</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>OFFRD Recruiting</b> — promote players to 10,000+ college coaches with tracking analytics, custom team page &amp; player profiles</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Reps Lab</b> — reads, coverage-ID &amp; route tests with points, streaks &amp; position leaderboards</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>O &amp; D Callers</b> — call both sides offline, three taps or fewer per snap</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live in-game AI analysis</b> — drive summaries, tendency shifts, ask-the-booth questions &amp; one-tap quarter/half reviews</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Game-to-practice flywheel</b> — game tags become ranked, coach-confirmed practice focuses</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Auto-Scout</b> <span class="chip-soon" style="margin-left:6px">Early access</span> — AI-drafted breakdowns with coach review</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Unlimited coaches &amp; players</b> with roles and positions</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Offline-first</b> — everything works with zero bars</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Full product</b> — nothing held back during the trial</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout &amp; Predict</b> — coverage / front / blitz by situation</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Playbook + Reps Lab</b> — draw, animate, test the roster</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live caller</b> — offline on the sideline, zero bars</span></li>
       </ul>
-      <button class="btn btn-primary" id="ctaStart2" style="width:100%;justify-content:center">Create your program — free <span class="arw">→</span></button>
+      <button class="btn btn-primary" id="ctaStart2" style="width:100%;justify-content:center">Start free — no card <span class="arw">→</span></button>
+    </div>
+    <div class="price-card reveal" style="border-color:rgba(59,208,242,.5)">
+      <div class="price-head"><div class="price-title">$1,497 <span class="grad-text">/ season</span></div><span class="price-badge">Program Season</span></div>
+      <p style="color:var(--muted);margin:0"><b style="color:var(--ink)">or 3 payments of $537</b> — $1,611 total. Season access either way.</p>
+      <ul class="plist">
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Every coach on staff, every player</b> — one program price</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Unlimited film</b> — offense and defense</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live O/D game-day caller</b> + in-game AI analysis</span></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>No contracts</b> — cancel before renewal if you're out</span></li>
+      </ul>
+      <a class="btn btn-primary" style="width:100%;justify-content:center;display:flex" href="https://getoffrd.com/login/high-school-coach?redirect=%2Foffgrd%2Fbilling">Get your program in <span class="arw">→</span></a>
     </div>
   </div>
 </section>
