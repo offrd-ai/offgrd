@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0a1220" />
-<title>OFFGRD — Never off guard. Scout, predict, teach & call both sides.</title>
+<title>OFFGRD — Never off guard. Scout, teach, predict & call both sides.</title>
 <meta name="description" content="OFFGRD is the offline-first football program suite: predict opponent calls from real breakdown data, call both sides of the ball with live in-game AI analysis, build and animate your playbook, test your roster, and turn Friday's tags into Monday's practice — with zero bars." />
 <meta property="og:title" content="OFFGRD — Never off guard." />
 <meta property="og:description" content="Predict their next call, call both sides with live in-game AI, and turn game tags into practice reps — all offline on the sideline." />
@@ -189,17 +189,20 @@ footer{
 .ob .card h3{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:20px}
 .ob .card p{color:var(--muted);font-size:14.5px;margin-top:8px}
 .ob .step{font-family:Anton,sans-serif;color:rgba(255,255,255,.12);font-size:40px;line-height:1}
-.price-wrap{max-width:720px;margin:44px auto 0}
-.price-card{background:linear-gradient(180deg,rgba(47,107,255,.09),rgba(255,255,255,.02));border:1px solid var(--stroke-2);border-radius:24px;padding:40px;position:relative;overflow:hidden}
-.price-card::before{content:"";position:absolute;top:-1px;left:24px;right:24px;height:2px;background:var(--grad);border-radius:2px}
-.price-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
-.price-badge{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:700;color:var(--cyan);border:1px solid rgba(59,208,242,.4);background:rgba(59,208,242,.08);padding:5px 12px;border-radius:100px}
-.price-title{font-family:Anton,sans-serif;text-transform:uppercase;font-size:34px}
-.plist{list-style:none;margin:22px 0 30px;padding:0;display:grid;gap:13px}
-.plist li{display:flex;gap:12px;align-items:flex-start;font-size:15.5px;color:var(--muted)}
-.plist b{color:var(--text)}
-.plist .ck{flex:none;width:22px;height:22px;border-radius:50%;background:var(--grad-soft);border:1px solid rgba(59,208,242,.4);display:grid;place-items:center;margin-top:1px}
-.plist .ck svg{width:12px;height:12px;color:var(--cyan)}
+.odk-pricing-grid{display:grid;gap:1.25rem;margin-top:44px;text-align:left}
+@media(min-width:768px){.odk-pricing-grid{grid-template-columns:1fr 1fr}}
+.odk-price-card{background:var(--panel);border:1px solid var(--stroke-2);border-radius:var(--radius);padding:1.5rem}
+.odk-price-card h3{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:22px}
+.odk-price-card-season{border-color:var(--blue);background:linear-gradient(180deg,rgba(47,107,255,.09),rgba(255,255,255,.02))}
+.odk-price-line{font-size:1.75rem;font-weight:800;letter-spacing:-.02em;margin:.5rem 0;color:var(--text)}
+.odk-price-sub{margin:0 0 1rem;color:var(--muted);opacity:.85}
+.odk-price-card p{color:var(--muted);font-size:15.5px;margin:0}
+.odk-price-card ul{margin:1rem 0 0;padding-left:1.15rem;color:var(--muted);display:grid;gap:10px}
+.odk-price-card .btn{margin-top:1rem}
+.odk-pricing-faq{max-width:820px;margin:40px auto 0;text-align:left}
+.odk-pricing-faq dt{font-weight:700;font-size:17px;margin:18px 0 6px;color:var(--text)}
+.odk-pricing-faq dt:first-child{margin-top:0}
+.odk-pricing-faq dd{margin:0;color:var(--muted);font-size:15.5px}
 .faq{max-width:820px;margin:40px auto 0}
 .faq details{border:1px solid var(--stroke);border-radius:14px;padding:4px 20px;margin-bottom:12px;background:var(--panel);transition:.2s}
 .faq details[open]{background:var(--panel-2);border-color:var(--stroke-2)}
@@ -360,7 +363,7 @@ footer{
 <body>
 <header id="hdr">
   <div class="wrap nav">
-    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" /><span class="sub">SCOUT · TEACH · WIN</span></a>
+    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" /><span class="sub">SCOUT · TEACH · PREDICT · WIN</span></a>
     <div class="nav-right">
       <nav class="nav-links" aria-label="Primary">
         <a href="#journey">How it works</a>
@@ -400,7 +403,7 @@ footer{
     <h1 class="display">Know their <span class="grad-text">next call.</span><br><span class="line2">While your team knows theirs.</span></h1>
     <p class="lede">OFFGRD turns your Hudl breakdown into situation-by-situation predictions, your playbook into a program-wide teaching system, and your Friday night into a series of answered questions — offense <b style="color:var(--text)">and</b> defense, with live AI analysis on every snap. Offline on the sideline. Synced to your whole staff.</p>
     <div class="cta-row">
-      <button class="btn btn-primary" id="ctaStart">Start free — no card <span class="arw">→</span></button>
+      <button class="btn btn-primary" id="ctaStart">Start your free trial — no card <span class="arw">→</span></button>
       <a class="btn btn-ghost" href="#suite">See the suite</a>
     </div>
     <div style="margin-top:14px;color:var(--muted);font-size:13.5px"><b style="color:var(--ink)">14-day full trial</b> — every feature, no card. Your scouting stays visible after.</div>
@@ -597,39 +600,51 @@ footer{
   </div>
 </section>
 <section class="section" id="pricing" style="background:linear-gradient(180deg,transparent,rgba(59,208,242,.05),transparent)">
-  <style>
-    .price-grid2{max-width:980px;margin:44px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    @media(max-width:860px){.price-grid2{grid-template-columns:1fr}}
-    .price-grid2 .price-card{margin:0}
-  </style>
   <div class="wrap" style="text-align:center">
     <div class="section-tag" style="justify-content:center">Pricing</div>
-    <h2 class="big-line reveal" style="max-width:760px;margin:0 auto">One program price. Whole staff. <span class="grad-text">Every player.</span></h2>
-    <p style="color:var(--muted);max-width:640px;margin:16px auto 0">No per-seat contracts. Works with the Hudl tags you already make — keep your Hudl exactly as it is.</p>
+    <h2 class="big-line reveal" style="max-width:760px;margin:0 auto">One program price. Whole staff. No per-seat contracts.</h2>
   </div>
-  <div class="wrap price-grid2">
-    <div class="price-card reveal">
-      <div class="price-head"><div class="price-title">Free trial <span class="grad-text">14 days</span></div><span class="price-badge">No card</span></div>
-      <p style="color:var(--muted);margin:0">Every feature, both sides of the ball, two Fridays of live calling. On day 15 your scouting stays; game-day tools pause until you're in.</p>
-      <ul class="plist">
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Full product</b> — nothing held back during the trial</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Scout &amp; Predict</b> — coverage / front / blitz by situation</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Playbook + Reps Lab</b> — draw, animate, test the roster</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live caller</b> — offline on the sideline, zero bars</span></li>
-      </ul>
-      <button class="btn btn-primary" id="ctaStart2" style="width:100%;justify-content:center">Start free — no card <span class="arw">→</span></button>
+  <div class="wrap">
+    <div class="odk-pricing-grid">
+      <article class="odk-price-card reveal">
+        <h3>Free trial</h3>
+        <p class="odk-price-line">14 days. Full product. No card.</p>
+        <p>
+          Every feature, both sides of the ball, two Fridays of live calling.
+          On day 15 your scouting stays; game-day tools pause until you're in.
+        </p>
+        <button class="btn btn-primary" id="ctaStart2">Start your free trial — no card <span class="arw">→</span></button>
+      </article>
+      <article class="odk-price-card odk-price-card-season reveal">
+        <h3>Program Season</h3>
+        <p class="odk-price-line">$1,497 / season</p>
+        <p class="odk-price-sub">or 3 payments of $537 — $1,611 total</p>
+        <ul>
+          <li>Every coach on staff. Unlimited film. Offense and defense.</li>
+          <li>
+            Scouting intelligence, Auto-Scout tagging, pre-snap read sheets,
+            situational cheat cards, and the live O/D game-day caller.
+          </li>
+          <li>No contracts. Works with the Hudl tags you already make. Keep your Hudl exactly as it is.</li>
+        </ul>
+        <a
+          class="btn btn-primary"
+          href="https://getoffrd.com/login/high-school-coach?redirect=%2Foffgrd%2Fbilling"
+        >Get your program in <span class="arw">→</span></a>
+      </article>
     </div>
-    <div class="price-card reveal" style="border-color:rgba(59,208,242,.5)">
-      <div class="price-head"><div class="price-title">$1,497 <span class="grad-text">/ season</span></div><span class="price-badge">Program Season</span></div>
-      <p style="color:var(--muted);margin:0"><b style="color:var(--ink)">or 3 payments of $537</b> — $1,611 total. Season access either way.</p>
-      <ul class="plist">
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Every coach on staff, every player</b> — one program price</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Unlimited film</b> — offense and defense</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Live O/D game-day caller</b> + in-game AI analysis</span></li>
-        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>No contracts</b> — cancel before renewal if you're out</span></li>
-      </ul>
-      <a class="btn btn-primary" style="width:100%;justify-content:center;display:flex" href="https://getoffrd.com/login/high-school-coach?redirect=%2Foffgrd%2Fbilling">Get your program in <span class="arw">→</span></a>
-    </div>
+    <dl class="odk-pricing-faq">
+      <dt>Is the 3-pay a subscription?</dt>
+      <dd>3 payments, then done. Season access either way.</dd>
+      <dt>Per-seat?</dt>
+      <dd>No. One price covers the whole staff.</dd>
+      <dt>Do we need to leave Hudl?</dt>
+      <dd>No — OFFGRD reads your existing Hudl breakdown.</dd>
+      <dt>What happens after the season?</dt>
+      <dd>Renews at season price; cancel before renewal if you're out.</dd>
+      <dt>What happens when the trial ends?</dt>
+      <dd>Your scouting and film stay visible. Imports and game-day tools pause until you're in.</dd>
+    </dl>
   </div>
 </section>
 <section class="section" id="faq">
@@ -651,13 +666,13 @@ footer{
   <div class="wrap">
     <h2 class="display reveal">Never <span class="grad-text">off guard.</span></h2>
     <p class="reveal" style="color:var(--muted);font-size:18px;max-width:620px;margin:20px auto 0">Set up your program, invite your staff, and call both sides of Friday night with an AI coordinator on your hip — no bars required.</p>
-    <div style="margin-top:32px"><button class="btn btn-primary" id="ctaStart3">Start free — no card <span class="arw">→</span></button></div>
+    <div style="margin-top:32px"><button class="btn btn-primary" id="ctaStart3">Start your free trial — no card <span class="arw">→</span></button></div>
   </div>
 </section>
 <footer>
   <div class="wrap">
     <div class="foot"><a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="OFFGRD" style="height:30px" /></a><div class="foot-links"><a href="#journey">How it works</a><a href="#suite">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div></div>
-    <div class="copy">OFFGRD — Scout, predict, teach &amp; call both sides. Never off guard. &nbsp;·&nbsp; © 2026 OFFGRD</div>
+    <div class="copy">OFFGRD — Scout, teach, predict &amp; call both sides. Never off guard. &nbsp;·&nbsp; © 2026 OFFGRD</div>
   </div>
 </footer>
 <script>
@@ -670,7 +685,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 <script type="module">
   import { Cloud } from "./OFFGRD-cloud.js?v=279";
-  import { openAuthModal } from "./OFFGRD-auth.js?v=279";
+  import { openAuthModal } from "./OFFGRD-auth.js?v=280";
   const APP_ORIGIN = "https://getoffrd.com/gameday/OFFGRD.html";
   const DASH_ORIGIN = "https://getoffrd.com/high-school-coach/dashboard";
   const navAuth = document.getElementById("navAuth");
@@ -745,12 +760,12 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     } else {
       navAuth.innerHTML =
         '<button type="button" class="nav-btn ghost" id="siBtn">Sign in</button>'+
-        '<button type="button" class="nav-btn" id="suBtn">Start free — no card</button>';
+        '<button type="button" class="nav-btn" id="suBtn">Start your free trial — no card</button>';
       wire("siBtn", ()=>openAuthModal(null,"signin"));
       wire("suBtn", ()=>openAuthModal(null,"signup"));
       if(drawerAuth){
         drawerAuth.innerHTML =
-          '<button type="button" class="drawer-btn primary" id="dStart">Start free — no card</button>'+
+          '<button type="button" class="drawer-btn primary" id="dStart">Start your free trial — no card</button>'+
           '<button type="button" class="drawer-btn" id="dSignIn">Sign in</button>';
         wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(null,"signup"); });
         wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(null,"signin"); });

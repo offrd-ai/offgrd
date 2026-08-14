@@ -11,7 +11,7 @@ function injectStyles(){
   .oga-ov.show{display:flex}
   .oga-card{background:#fff;color:#16181d;width:100%;max-width:420px;border-radius:18px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.4);font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
   .oga-top{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-  .oga-logo{width:36px;height:36px;border-radius:9px;background:#7BAFD4;color:#13294B;display:grid;place-items:center;font-weight:900;font-size:15px;letter-spacing:-1px}
+  .oga-logo{width:36px;height:36px;border-radius:9px;background:#0a1220;object-fit:cover;display:block}
   .oga-brand{font-weight:900;letter-spacing:2px;color:#13294B;font-size:13px}
   .oga-h{font-size:21px;font-weight:900;color:#13294B;margin:14px 0 2px}
   .oga-sub{color:#5b626e;font-size:13px;margin:0 0 16px}
@@ -34,7 +34,7 @@ function ensure(){
   injectStyles();
   root = document.createElement("div"); root.className="oga-ov"; root.id="ogaModal";
   root.innerHTML = `<div class="oga-card">
-    <div class="oga-top"><div class="oga-logo">OG</div><div class="oga-brand">OFFGRD</div><button class="oga-x" id="ogaX" type="button" aria-label="Close">\u00d7</button></div>
+    <div class="oga-top"><img class="oga-logo" src="logo-mark.png" alt="OFFGRD" /><div class="oga-brand">OFFGRD</div><button class="oga-x" id="ogaX" type="button" aria-label="Close">\u00d7</button></div>
     <div class="oga-h" id="ogaTitle">Sign in</div>
     <p class="oga-sub" id="ogaSub">Welcome back \u2014 sign in to your program.</p>
     <label class="oga-f" for="ogaEmail" id="ogaEmailLbl">Email</label>
