@@ -324,6 +324,9 @@ footer{
 .jmod{font-family:"Barlow Condensed",sans-serif;letter-spacing:.12em;text-transform:uppercase;font-size:11px;font-weight:700;color:var(--muted-2);border:1px solid var(--stroke-2);padding:3px 10px;border-radius:100px}
 .jstep p{color:var(--muted);font-size:15px;margin:8px 0 0;max-width:620px}
 .jstep p b{color:var(--text)}
+.walkthrough{margin:4px 0 40px 150px;max-width:1000px}
+.walkthrough h3{font-size:clamp(22px,2.8vw,28px);font-weight:800;letter-spacing:-.02em;margin:0 0 16px}
+.walkthrough iframe{width:100%;max-width:1000px;aspect-ratio:10/8;border:0;border-radius:16px;display:block;background:var(--panel)}
 .jclose{margin:10px 0 0 150px;background:linear-gradient(180deg,rgba(47,107,255,.10),rgba(255,255,255,.02));border:1px solid var(--stroke-2);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
 .jclose::before{content:"";position:absolute;top:-1px;left:20px;right:20px;height:2px;background:var(--grad)}
 .jclose .big{font-family:Anton,sans-serif;text-transform:uppercase;font-size:clamp(20px,2.6vw,28px);line-height:1.15}
@@ -333,6 +336,7 @@ footer{
   .jstep::before{left:7px;top:34px}
   .jstep::after{left:3px;top:32px}
   .jday{position:static;display:inline-block;width:auto;padding:5px 12px;margin-bottom:10px}
+  .walkthrough{margin-left:26px;margin-bottom:32px}
   .jclose{margin-left:26px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -463,6 +467,16 @@ footer{
     <p class="reveal" style="color:var(--muted);font-size:17px;max-width:700px;margin-top:16px">One system takes your program through the week — manage the team, decode the opponent, plan the practice, test the roster, and call the game. Every step feeds the next.</p>
     <div class="journey">
       <div class="jstep reveal"><span class="jday">Saturday</span><h3>Film lands. Upload it as-is. <span class="jmod">Scout</span></h3><p>Export the Hudl or QwikCut breakdown and drop it in — no conversion, no re-tagging. Within minutes you know their <b>coverage, front, and blitz tendencies</b> by down, distance, and field zone.</p></div>
+      <div class="walkthrough reveal">
+        <h3>From Hudl to game plan in 80 seconds.</h3>
+        <iframe
+          src="/walkthroughs/hudl-export.html"
+          title="Get your Hudl breakdown into OFFGRD"
+          style="width:100%;max-width:1000px;aspect-ratio:10/8;border:0;border-radius:16px"
+          loading="lazy"
+          allow="autoplay"
+        ></iframe>
+      </div>
       <div class="jstep reveal"><span class="jday">Sunday</span><h3>Build the gameplan Sunday night — and assign the tests with it. <span class="jmod">Playbook · Reps Lab</span></h3><p>Attack plans against each of their most likely looks. Pull plays from your book or draw new ones — <b>animated, tagged, and instantly teachable</b> — and <b>every play in the plan is testable the moment you save it</b>. Assign the week's tests and the roster is studying the plan <b>before Monday's practice</b>.</p></div>
       <div class="jstep reveal"><span class="jday">Monday</span><h3>Set the week from the Coaches Hub. <span class="jmod">Coaches Hub · Flywheel</span></h3><p>Roster, depth chart, schedule, and daily check-ins in one place — Friday's bust and missed-fit tags arrive <b>already ranked</b>, and Sunday's first test scores show <b>who's already studied</b>. Confirm the practice focus and the whole week aims itself.</p></div>
       <div class="jstep reveal"><span class="jday">Tue – Wed</span><h3>Practice with purpose. Dial the plan daily. <span class="jmod">Reps Lab · Scout cards</span></h3><p>Each morning's scores show what the roster <b>actually absorbed</b>. Drill what the tests expose, trim what they've mastered, and adjust the gameplan <b>while there's still time to fix it</b>. The scout team shows the opponent's <b>actual plays</b> off auto-printed scout cards — nobody hand-drew a thing.</p></div>
