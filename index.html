@@ -691,6 +691,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   import { openAuthModal } from "./OFFGRD-auth.js?v=279";
   const APP_ORIGIN = "https://getoffrd.com/gameday/OFFGRD.html";
   const DASH_ORIGIN = "https://getoffrd.com/high-school-coach/dashboard";
+  const PROGRAM_SETUP = "https://getoffrd.com/onboarding/coach-program";
   const navAuth = document.getElementById("navAuth");
   /* Canonical auth project (must match gameday + HS dashboard). Purge pre-cutover leftovers. */
   try{ if(Cloud.purgeForeignAuthTokens) Cloud.purgeForeignAuthTokens(); }catch(e){}
@@ -749,14 +750,14 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     /* One primary CTA in the header. Dashboard / Sign out / Sign in live in the menu. */
     if(u){
       navAuth.innerHTML = '<button type="button" class="nav-btn" id="openAppBtn">Open app</button>';
-      wire("openAppBtn", ()=>openAppWithSession(APP_ORIGIN));
+      wire("openAppBtn", ()=>openAfterSignIn());
       if(drawerAuth){
         drawerAuth.innerHTML =
           '<div class="drawer-meta">'+(u.email||"Signed in")+'</div>'+
           '<button type="button" class="drawer-btn primary" id="dOpenApp">Open app</button>'+
           '<button type="button" class="drawer-btn" id="dOpenDash">Dashboard</button>'+
           '<button type="button" class="drawer-btn" id="dSignOut">Sign out</button>';
-        wire("dOpenApp", ()=>{ setMenuOpen(false); openAppWithSession(APP_ORIGIN); });
+        wire("dOpenApp", ()=>{ setMenuOpen(false); openAfterSignIn(); });
         wire("dOpenDash", ()=>{ setMenuOpen(false); openAppWithSession(DASH_ORIGIN); });
         wire("dSignOut", ()=>{ setMenuOpen(false); doSignOut(); });
       }
@@ -764,14 +765,14 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
       navAuth.innerHTML =
         '<button type="button" class="nav-btn ghost" id="siBtn">Sign in</button>'+
         '<button type="button" class="nav-btn" id="suBtn">Start your free trial — no card</button>';
-      wire("siBtn", ()=>openAuthModal(null,"signin"));
-      wire("suBtn", ()=>openAuthModal(null,"signup"));
+      wire("siBtn", ()=>openAuthModal(()=>openAfterSignIn(),"signin"));
+      wire("suBtn", ()=>openAuthModal(()=>openAfterSignup(),"signup"));
       if(drawerAuth){
         drawerAuth.innerHTML =
           '<button type="button" class="drawer-btn primary" id="dStart">Start your free trial — no card</button>'+
           '<button type="button" class="drawer-btn" id="dSignIn">Sign in</button>';
-        wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(null,"signup"); });
-        wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(null,"signin"); });
+        wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterSignup(),"signup"); });
+        wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterSignIn(),"signin"); });
       }
     }
   }
@@ -779,8 +780,20 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     Cloud.onAuth(u=>render(u));
     (async()=>{ try{ render(await Cloud.session()); }catch(e){ render(null); } })();
   } else { render(null); }
-  const COACH_START="https://getoffrd.com/start?intent=coach";
-  const start=()=>{ location.href=COACH_START; };
+  async function stampCoach(){
+    try{ if(Cloud.stampHsCoach) await Cloud.stampHsCoach(); }catch(e){}
+  }
+  async function openAfterSignup(){
+    await stampCoach();
+    openAppWithSession(PROGRAM_SETUP);
+  }
+  async function openAfterSignIn(){
+    let teams=[];
+    try{ teams=await Cloud.myTeams(); }catch(e){}
+    if(teams && teams.length) openAppWithSession(APP_ORIGIN);
+    else openAppWithSession(PROGRAM_SETUP);
+  }
+  const start=()=>openAuthModal(()=>openAfterSignup(),"signup");
   const a=document.getElementById("ctaStart"); if(a) a.onclick=start;
   const b=document.getElementById("ctaStart2"); if(b) b.onclick=start;
   const c=document.getElementById("ctaStart3"); if(c) c.onclick=start;

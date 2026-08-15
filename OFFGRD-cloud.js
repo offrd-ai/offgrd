@@ -136,7 +136,23 @@ export const Cloud = {
     return !ref || ref === EXPECTED_REF;
   },
   async signUp(email, password, fullName) {
-    return sb.auth.signUp({ email, password, options: { data: { full_name: fullName || "" } } });
+    /* odkops.com is the coach door — never create a bare / player-tagged user here. */
+    return sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || "",
+          role: "high_school_coach",
+          user_type: "high_school_coach",
+        },
+      },
+    });
+  },
+  async stampHsCoach() {
+    return sb.auth.updateUser({
+      data: { role: "high_school_coach", user_type: "high_school_coach" },
+    });
   },
   async signIn(email, password) { return sb.auth.signInWithPassword({ email, password }); },
   async signOut() {

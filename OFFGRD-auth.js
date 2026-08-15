@@ -93,8 +93,8 @@ function paint(){
     forgotRow.style.display="";
     alt.innerHTML='New to OFFGRD? <button type="button" class="oga-link" id="ogaSwap">Create an account</button>';
   } else if(mode==="signup"){
-    t.textContent="Create your account";
-    sub.textContent="Set up your login. A head coach can start a program next.";
+    t.textContent="Create your coach account";
+    sub.textContent="odkops is for coaches. Next you\u2019ll name your program and start the 14-day trial.";
     go.textContent="Create account";
     pw.autocomplete="new-password";
     pwLbl.textContent="Password";
