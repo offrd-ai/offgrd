@@ -691,7 +691,6 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   import { openAuthModal } from "./OFFGRD-auth.js?v=279";
   const APP_ORIGIN = "https://getoffrd.com/gameday/OFFGRD.html";
   const DASH_ORIGIN = "https://getoffrd.com/high-school-coach/dashboard";
-  const PROGRAM_SETUP = "https://getoffrd.com/onboarding/coach-program";
   const navAuth = document.getElementById("navAuth");
   /* Canonical auth project (must match gameday + HS dashboard). Purge pre-cutover leftovers. */
   try{ if(Cloud.purgeForeignAuthTokens) Cloud.purgeForeignAuthTokens(); }catch(e){}
@@ -765,14 +764,14 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
       navAuth.innerHTML =
         '<button type="button" class="nav-btn ghost" id="siBtn">Sign in</button>'+
         '<button type="button" class="nav-btn" id="suBtn">Start your free trial — no card</button>';
-      wire("siBtn", ()=>openAuthModal(()=>openAfterSignIn(),"signin"));
-      wire("suBtn", ()=>openAuthModal(()=>openAfterSignup(),"signup"));
+      wire("siBtn", ()=>openAuthModal(()=>openAfterAuth(),"signin"));
+      wire("suBtn", ()=>openAuthModal(()=>openAfterAuth(),"signup"));
       if(drawerAuth){
         drawerAuth.innerHTML =
           '<button type="button" class="drawer-btn primary" id="dStart">Start your free trial — no card</button>'+
           '<button type="button" class="drawer-btn" id="dSignIn">Sign in</button>';
-        wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterSignup(),"signup"); });
-        wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterSignIn(),"signin"); });
+        wire("dStart", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterAuth(),"signup"); });
+        wire("dSignIn", ()=>{ setMenuOpen(false); openAuthModal(()=>openAfterAuth(),"signin"); });
       }
     }
   }
@@ -780,20 +779,16 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     Cloud.onAuth(u=>render(u));
     (async()=>{ try{ render(await Cloud.session()); }catch(e){ render(null); } })();
   } else { render(null); }
-  async function stampCoach(){
-    try{ if(Cloud.stampHsCoach) await Cloud.stampHsCoach(); }catch(e){}
-  }
-  async function openAfterSignup(){
-    await stampCoach();
-    openAppWithSession(PROGRAM_SETUP);
+  async function openAfterAuth(){
+    openAppWithSession(APP_ORIGIN);
   }
   async function openAfterSignIn(){
     let teams=[];
     try{ teams=await Cloud.myTeams(); }catch(e){}
-    if(teams && teams.length) openAppWithSession(APP_ORIGIN);
-    else openAppWithSession(PROGRAM_SETUP);
+    if(teams && teams.length){ openAppWithSession(APP_ORIGIN); return; }
+    openAuthModal(()=>openAppWithSession(APP_ORIGIN),"program");
   }
-  const start=()=>openAuthModal(()=>openAfterSignup(),"signup");
+  const start=()=>openAuthModal(()=>openAfterAuth(),"signup");
   const a=document.getElementById("ctaStart"); if(a) a.onclick=start;
   const b=document.getElementById("ctaStart2"); if(b) b.onclick=start;
   const c=document.getElementById("ctaStart3"); if(c) c.onclick=start;

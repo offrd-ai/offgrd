@@ -50,6 +50,12 @@ function ensure(){
       <label class="oga-f" for="ogaPw2">Confirm new password</label>
       <input class="oga-in" id="ogaPw2" type="password" autocomplete="new-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022">
     </div>
+    <div id="ogaProgramBlock" style="display:none">
+      <label class="oga-f" for="ogaCoachName">Your name</label>
+      <input class="oga-in" id="ogaCoachName" type="text" autocomplete="name" placeholder="Coach Smith">
+      <label class="oga-f" for="ogaSchool">School / program name</label>
+      <input class="oga-in" id="ogaSchool" type="text" autocomplete="organization" placeholder="Parkway West">
+    </div>
     <div class="oga-err" id="ogaErr"></div>
     <button class="oga-go" id="ogaGo" type="button">Sign in</button>
     <div class="oga-alt" id="ogaAlt"></div>
@@ -73,12 +79,17 @@ function paint(){
   const t=root.querySelector("#ogaTitle"), sub=root.querySelector("#ogaSub"), go=root.querySelector("#ogaGo"),
         alt=root.querySelector("#ogaAlt"), pw=root.querySelector("#ogaPw"),
         pwBlock=root.querySelector("#ogaPwBlock"), pw2Block=root.querySelector("#ogaPw2Block"),
+        progBlock=root.querySelector("#ogaProgramBlock"),
         forgotRow=root.querySelector("#ogaForgotRow"), emailEl=root.querySelector("#ogaEmail"),
+        emailLbl=root.querySelector("#ogaEmailLbl"),
         pwLbl=root.querySelector("#ogaPwLbl");
   setErr("");
   emailEl.disabled = false;
+  emailEl.style.display = "";
+  if(emailLbl) emailLbl.style.display = "";
   pw2Block.style.display = "none";
   pwBlock.style.display = "";
+  if(progBlock) progBlock.style.display = "none";
   forgotRow.style.display = "none";
 
   const forgotBtn=root.querySelector("#ogaForgot");
@@ -105,6 +116,15 @@ function paint(){
     go.textContent="Send reset link";
     pwBlock.style.display="none";
     alt.innerHTML='<button type="button" class="oga-link" id="ogaSwap">Back to sign in</button>';
+  } else if(mode==="program"){
+    t.textContent="Name your program";
+    sub.textContent="This starts your 14-day trial. Invite staff after you\u2019re in.";
+    go.textContent="Create program & open app";
+    emailEl.style.display = "none";
+    if(emailLbl) emailLbl.style.display = "none";
+    pwBlock.style.display = "none";
+    if(progBlock) progBlock.style.display = "";
+    alt.innerHTML="";
   } else if(mode==="account"){
     t.textContent="Account";
     sub.textContent="Change your password, or email yourself a reset link.";
@@ -151,13 +171,44 @@ async function sendResetFromAccount(){
   go.disabled=false;
 }
 
+async function finishAuth(){
+  const go=root.querySelector("#ogaGo");
+  let teams=[];
+  try{ teams=await Cloud.myTeams(); }catch(e){}
+  if(teams && teams.length){
+    close(); go.disabled=false;
+    if(typeof onOk==="function") onOk();
+    return;
+  }
+  mode="program";
+  paint();
+  go.disabled=false;
+  setTimeout(()=>{ const el=root.querySelector("#ogaSchool"); if(el) el.focus(); },30);
+}
+
 async function submit(){
   const email=root.querySelector("#ogaEmail").value.trim();
   const pw=root.querySelector("#ogaPw").value;
   const pw2=root.querySelector("#ogaPw2").value;
   const go=root.querySelector("#ogaGo");
-  if(!email){ setErr("Enter your email."); return; }
   if(!Cloud || !Cloud.ready){ setErr("Cloud isn\u2019t loaded \u2014 reload the page. If it persists, the supabase.js file hasn\u2019t deployed yet."); return; }
+
+  if(mode==="program"){
+    const coachName=(root.querySelector("#ogaCoachName").value||"").trim();
+    const schoolName=(root.querySelector("#ogaSchool").value||"").trim();
+    if(!schoolName){ setErr("Enter your school or program name."); return; }
+    go.disabled=true; setErr("");
+    try{
+      try{ if(Cloud.stampHsCoach) await Cloud.stampHsCoach(); }catch(e){}
+      await Cloud.createOwnedProgram({ schoolName, coachName, roleTitle:"Head Coach" });
+      try{ await Cloud.createTeam(schoolName); }catch(e){}
+      close(); go.disabled=false;
+      if(typeof onOk==="function") onOk();
+    }catch(e){ setErr(e.message||"Could not create the program."); go.disabled=false; }
+    return;
+  }
+
+  if(!email){ setErr("Enter your email."); return; }
 
   go.disabled=true; setErr("");
   try{
@@ -199,8 +250,7 @@ async function submit(){
         return;
       }
     }
-    close(); go.disabled=false;
-    if(typeof onOk==="function") onOk();
+    await finishAuth();
   }catch(e){ setErr(e.message||"Something went wrong."); go.disabled=false; }
 }
 
@@ -210,18 +260,23 @@ function bindSubmit(){
   root.querySelector("#ogaEmail").onkeydown=submitOnEnter;
   root.querySelector("#ogaPw").onkeydown=submitOnEnter;
   root.querySelector("#ogaPw2").onkeydown=submitOnEnter;
+  const cn=root.querySelector("#ogaCoachName"), sc=root.querySelector("#ogaSchool");
+  if(cn) cn.onkeydown=submitOnEnter;
+  if(sc) sc.onkeydown=submitOnEnter;
 }
 
 export function openAuthModal(onSuccess, startMode){
   ensure(); onOk=onSuccess||null;
-  mode = startMode==="signup" ? "signup" : (startMode==="forgot" ? "forgot" : "signin");
+  mode = startMode==="signup" ? "signup" : (startMode==="forgot" ? "forgot" : (startMode==="program" ? "program" : "signin"));
   paint();
   bindSubmit();
   root.classList.add("show");
   setTimeout(()=>{
-    const el = mode==="forgot" || mode==="signin" || mode==="signup"
-      ? root.querySelector("#ogaEmail")
-      : root.querySelector("#ogaPw");
+    const el = mode==="program"
+      ? root.querySelector("#ogaSchool")
+      : (mode==="forgot" || mode==="signin" || mode==="signup"
+        ? root.querySelector("#ogaEmail")
+        : root.querySelector("#ogaPw"));
     if(el && el.focus) el.focus();
   },30);
 }

@@ -272,6 +272,19 @@ export const Cloud = {
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
     if (error) throw error; return data; // team id
   },
+  /** HS school + coach row (same RPC as getoffrd /onboarding/coach-program). */
+  async createOwnedProgram({ schoolName, schoolCity, schoolState, coachName, roleTitle }) {
+    const { data, error } = await sb.rpc("create_owned_program", {
+      p_school_name: String(schoolName || "").trim(),
+      p_city: String(schoolCity || "").trim(),
+      p_state: String(schoolState || "").trim(),
+      p_coach_name: String(coachName || "").trim(),
+      p_role_title: String(roleTitle || "Head Coach").trim(),
+    });
+    if (error) throw error;
+    _invalidateMyTeamsCache();
+    return data;
+  },
   /** School-link status from public.offgrd_my_team() — orphan CTA + backfill eligibility. */
   async myTeamStatus() {
     const { data, error } = await sb.rpc("offgrd_my_team");
