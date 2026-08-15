@@ -1994,7 +1994,8 @@
         syncPhaseUI();
         break;
       case "import":
-        clickExisting("importBtn");
+        if (typeof root.openImport === "function") root.openImport("full");
+        else clickExisting("importBtn");
         break;
       case "brand":
         clickExisting("brandBtn");

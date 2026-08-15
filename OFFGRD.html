@@ -272,7 +272,7 @@
   .gamepick{display:flex;align-items:center;gap:9px}
   .gamepick #topOppCrest{display:inline-flex;flex:none}
   .gamepick select{font-size:15px;font-weight:800;padding:11px 12px;flex:1}
-  .modalwrap{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modalwrap{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10050}
   .modalwrap.show{display:flex}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:18px;box-shadow:var(--shadow)}
   .modal h3{font-size:17px;margin-bottom:8px}
@@ -1212,8 +1212,10 @@ function callSheetHTML(cov, useRec){
 function openImport(mode){
   IMPORT_MODE=mode||"defense";
   try{ window.IMPORT_MODE=IMPORT_MODE; }catch(e){}
-  document.getElementById("modal").classList.add("show");
-  updateImportPerspUI();
+  const wrap=document.getElementById("modal");
+  if(!wrap){ console.warn("openImport: #modal missing"); return; }
+  wrap.classList.add("show");
+  try{ updateImportPerspUI(); }catch(e){}
   document.querySelectorAll("#seg-importmode button").forEach(x=>{ if(x.dataset.mode===IMPORT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
   const note=document.getElementById("importModeNote");
   if(note) note.textContent = IMPORT_MODE==="full"
@@ -5936,10 +5938,16 @@ buildControls();
 render();
 { let _ob=null; try{ _ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
   if(!GAMES.length && !_ob) showGetStarted(); }   /* onboarded users get the setup checklist instead */
-/* deep links from onboarding / setup checklist */
-if(location.hash==="#import"){ try{ openImport("full"); }catch(e){} }
-else if(location.hash==="#brand"){ try{ openBranding(); }catch(e){} }
-else if(location.hash==="#schedule"){ try{ openSchedule(); }catch(e){} }
+/* deep links from onboarding / setup checklist — also on hashchange (same-page clicks) */
+function applyDeepLink(){
+  const h=location.hash||"";
+  if(h==="#import"){ try{ openImport("full"); }catch(e){} }
+  else if(h==="#brand"){ try{ openBranding(); }catch(e){} }
+  else if(h==="#schedule"){ try{ openSchedule(); }catch(e){} }
+}
+applyDeepLink();
+window.addEventListener("hashchange", applyDeepLink);
+try{ window.openImport=openImport; window.openBranding=openBranding; window.openSchedule=openSchedule; }catch(e){}
 /* Redesign sub-app · main handoff: ?view= or sessionStorage.offgrd_rd_view or persisted offgrd_view.
    MUST include dcaller/caller — omitting them dumps a sideline coach onto empty Scout after
    an iPad kill / airplane reload (device-session P0). */

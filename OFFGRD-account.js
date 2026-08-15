@@ -1448,7 +1448,7 @@ function obCoachDone(){
    +'<input type="file" id="obLogoFile" accept="image/*" style="display:none">'
    +'</div><p class="ogm-note" id="obBrandMsg">Your crest and colors show across the whole suite and on printed reports.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">3 · Load your plays</div><p class="ogm-note">Open the <a href="OFFGRD-Playbook.html" style="font-weight:800">Playbook</a> — take the 12-play starter book and rename it to your terminology, or draw your own. Plays sync to the whole program and power player testing.</p></div>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">4 · Scout your first opponent</div><p class="ogm-note"><a href="OFFGRD.html#import" style="font-weight:800">Import a breakdown</a> — upload your Hudl/QwikCut export as-is. Predictions appear instantly.</p></div>'
+   +'<div class="ogm-sec"><div class="ogm-lbl">4 · Scout your first opponent</div><p class="ogm-note"><button type="button" class="ogm-b go" id="obImport" style="margin-top:6px">Import a breakdown</button> — upload your Hudl/QwikCut export as-is. Predictions appear instantly.</p></div>'
    +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><button class="ogm-b go" id="obDone">Let’s go</button></div>';
   const nmIn=b.querySelector("#obTeamNm"), c1=b.querySelector("#obC1"), c2=b.querySelector("#obC2");
   nmIn.value=(TEAM&&TEAM.name)||"";
@@ -1465,6 +1465,8 @@ function obCoachDone(){
     b.querySelector("#obBrandMsg").innerHTML='<b style="color:#1d7a45">Saved \u2713</b> — the suite now wears '+esc(nm)+'’s colors. You can fine-tune any time under <b>Team &amp; logos</b>.';
   };
   b.querySelector("#obCopy").onclick=()=>{ try{ navigator.clipboard.writeText((TEAM&&TEAM.join_code)||""); b.querySelector("#obCopy").textContent="Copied \u2713"; }catch(e){} };
+  const obImp=b.querySelector("#obImport");
+  if(obImp) obImp.onclick=()=>{ obEl.classList.remove("show"); runSetupAct("import"); };
   b.querySelector("#obDone").onclick=()=>{ obEl.classList.remove("show"); try{ setupState().then(renderChecklist); }catch(e){} };
 }
 function obAbbr(name){ return ((name||"").split(/\s+/).map(w=>w[0]||"").join("").slice(0,3).toUpperCase())||"TM"; }
@@ -1707,10 +1709,26 @@ function obPlayerDone(ps, gy){
 }
 
 /* ---------- setup checklist: lives at the top of every page for coaches until the program is game-ready ---------- */
-function openScheduleFromSetup(){
-  if(typeof window.openSchedule === "function"){ window.openSchedule(); return; }
-  location.href = "OFFGRD.html#schedule";
+function runSetupAct(act){
+  if(act==="import"){
+    if(typeof window.openImport==="function"){ window.openImport("full"); return; }
+    location.hash="#import";
+    return;
+  }
+  if(act==="brand"){
+    if(typeof window.openBranding==="function"){ window.openBranding(); return; }
+    location.hash="#brand";
+    return;
+  }
+  if(act==="schedule"){
+    if(typeof window.openSchedule==="function"){ window.openSchedule(); return; }
+    location.hash="#schedule";
+    return;
+  }
+  if(act==="team"){ openTeam(); return; }
+  if(act==="playbook"){ location.href="OFFGRD-Playbook.html"; return; }
 }
+function openScheduleFromSetup(){ runSetupAct("schedule"); }
 async function setupState(){
   const s={roster:0,plays:0,games:0,schedule:0,identity:false};
   try{ s.identity=!!localStorage.getItem("offgrd_identity"); }catch(e){}
@@ -1724,35 +1742,45 @@ async function setupState(){
   }catch(e){}
   return s;
 }
+let _setupSig="";
 function renderChecklist(s){
   let hidden=null; try{ hidden=localStorage.getItem("offgrd_setup_done"); }catch(e){}
   let host=document.getElementById("ogSetup");
   const items=[
-    {t:"Invite staff & players", done:s.roster>=2, act:openTeam},
-    {t:"Load your playbook", done:s.plays>=1, href:"OFFGRD-Playbook.html"},
-    {t:"Set colors & logo", done:s.identity, href:"OFFGRD.html#brand"},
-    {t:"Add your schedule", done:s.schedule>=1, act:openScheduleFromSetup},
-    {t:"Import a breakdown", done:s.games>=1, href:"OFFGRD.html#import"}
+    {t:"Invite staff & players", done:s.roster>=2, act:"team"},
+    {t:"Load your playbook", done:s.plays>=1, act:"playbook"},
+    {t:"Set colors & logo", done:s.identity, act:"brand"},
+    {t:"Add your schedule", done:s.schedule>=1, act:"schedule"},
+    {t:"Import a breakdown", done:s.games>=1, act:"import"}
   ];
   const doneN=items.filter(i=>i.done).length;
+  const sig=items.map(i=>(i.done?"1":"0")).join("")+"|"+doneN+"|"+(hidden?"h":"");
   /* v36: re-show if schedule step incomplete (new step after coaches hid at 4/4) */
   if(hidden && s.schedule < 1){ try{ localStorage.removeItem("offgrd_setup_done"); }catch(e){} hidden=null; }
   if(hidden || doneN===items.length){
     if(doneN===items.length){ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} }
-    if(host) host.remove(); return;
+    if(host) host.remove(); _setupSig=""; return;
   }
   if(!host){
     host=document.createElement("div"); host.id="ogSetup"; host.className="no-print";
     const tb=document.querySelector(".topbar");
     if(tb&&tb.parentNode) tb.parentNode.insertBefore(host, tb.nextSibling); else document.body.prepend(host);
+    host.addEventListener("click",function(e){
+      const hide=e.target.closest("#ogSetupHide");
+      if(hide){ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(err){} host.remove(); return; }
+      const btn=e.target.closest("[data-setup-act]");
+      if(!btn) return;
+      e.preventDefault();
+      runSetupAct(btn.getAttribute("data-setup-act"));
+    });
   }
+  if(sig===_setupSig && host.querySelector("[data-setup-act]")) return;
+  _setupSig=sig;
   host.innerHTML='<div style="background:#eef5fc;border:1px solid #cfe0f3;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
-   +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup · '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px">Hide</button></div>'
+   +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#13294B">Program setup · '+doneN+'/'+items.length+'</b><span style="flex:1"></span><button type="button" id="ogSetupHide" style="border:0;background:none;color:#5b626e;font-weight:800;cursor:pointer;font-size:12px">Hide</button></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
-   +items.map((i,ix)=>'<'+(i.href?'a href="'+i.href+'"':'button type="button"')+' data-ix="'+ix+'" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'\u2713':'\u25CB')+' '+i.t+'</'+(i.href?'a':'button')+'>').join("")
+   +items.map(i=>'<button type="button" data-setup-act="'+i.act+'" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid '+(i.done?'#b7e0c6':'#cfe0f3')+';background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:12.5px;color:'+(i.done?'#1d7a45':'#13294B')+'">'+(i.done?'\u2713':'\u25CB')+' '+i.t+'</button>').join("")
    +'</div></div>';
-  host.querySelector("#ogSetupHide").onclick=()=>{ try{ localStorage.setItem("offgrd_setup_done","1"); }catch(e){} host.remove(); };
-  [].forEach.call(host.querySelectorAll("button[data-ix]"),bt=>{ const i=items[+bt.dataset.ix]; if(i&&i.act) bt.onclick=i.act; });
 }
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
