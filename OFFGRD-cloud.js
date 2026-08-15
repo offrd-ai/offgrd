@@ -270,7 +270,9 @@ export const Cloud = {
   async createTeam(name) {
     _invalidateMyTeamsCache();
     const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
-    if (error) throw error; return data; // team id
+    if (error) throw error;
+    try { await this.linkTeamToSchool(data); } catch (e) {}
+    return data; // team id
   },
   /** HS school + coach row (same RPC as getoffrd /onboarding/coach-program). */
   async createOwnedProgram({ schoolName, schoolCity, schoolState, coachName, roleTitle }) {
