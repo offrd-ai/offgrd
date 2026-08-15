@@ -779,7 +779,8 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     Cloud.onAuth(u=>render(u));
     (async()=>{ try{ render(await Cloud.session()); }catch(e){ render(null); } })();
   } else { render(null); }
-  const start=()=>openAuthModal(null,"signup");
+  const HS_LOGIN="https://getoffrd.com/login/high-school-coach";
+  const start=()=>{ location.href=HS_LOGIN; };
   const a=document.getElementById("ctaStart"); if(a) a.onclick=start;
   const b=document.getElementById("ctaStart2"); if(b) b.onclick=start;
   const c=document.getElementById("ctaStart3"); if(c) c.onclick=start;

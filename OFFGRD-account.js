@@ -1381,17 +1381,15 @@ function ensureOB(){
   return obEl;
 }
 function markOB(){ try{ localStorage.setItem("offgrd_onboarded","1"); }catch(e){} }
-function openOnboard(){ ensureOB().classList.add("show"); if(CAN_CREATE_TEAM) obChoose(); else obPlayer(); }
+function openOnboard(){ ensureOB().classList.add("show"); obChoose(); }
 function obChoose(){
   const b=ensureOB().querySelector("#obBody");
   b.innerHTML='<p class="ogm-note" style="font-size:14px">Let’s get you set up in about a minute. Which are you?</p>';
   const row=el('<div class="ogm-row" style="margin-top:12px"></div>');
-  if(CAN_CREATE_TEAM){
-    const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">Ã°Å¸ÂË† I’m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
-    c.onclick=obCoach;
-    row.appendChild(c);
-  }
-  const p=el('<button class="ogm-b'+(CAN_CREATE_TEAM?'':' go')+'" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">Ã°Å¸Å½â€œ I’m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
+  const c=el('<button class="ogm-b go" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">I\u2019m a coach<br><span style="font-weight:600;font-size:12px">Create our program</span></button>');
+  c.onclick=CAN_CREATE_TEAM ? obCoach : function(){ location.href="https://getoffrd.com/login/high-school-coach"; };
+  row.appendChild(c);
+  const p=el('<button class="ogm-b" style="flex:1;min-height:64px;font-size:15px;line-height:1.3">I\u2019m a player<br><span style="font-weight:600;font-size:12px">Join my team with a code</span></button>');
   p.onclick=obPlayer;
   row.appendChild(p); b.appendChild(row);
 }
@@ -1636,6 +1634,7 @@ function obPlayer(){
     }catch(e){ stat.textContent=e.message||"Couldn’t join — double-check the code."; go.disabled=false; } };
   r2.appendChild(code); r2.appendChild(go);
   b.appendChild(r1); b.appendChild(r2); b.appendChild(stat);
+  b.appendChild(el('<p class="ogm-note" style="margin-top:14px">Starting a program? <a href="https://getoffrd.com/login/high-school-coach" style="font-weight:800;color:#2c6fb3">I\u2019m a coach \u2014 set up on getOFFRD</a></p>'));
   nm.focus();
 }
 function obPosition(){
