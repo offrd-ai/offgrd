@@ -2502,42 +2502,78 @@
         "No opponent-offense data for this sit yet · import their offense (or a full game), then log live.";
       return (
         `<div class="rd-dc-expect is-empty${sample.terminal ? " is-terminal" : ""} no-print">` +
-        `<span class="lbl">Expect</span>` +
-        `<span class="body">${esc(emptyMsg)}</span>` +
+        `<div class="rd-dc-expect-empty-kicker">No read yet</div>` +
+        `<div class="rd-dc-expect-empty-body">${esc(emptyMsg)}</div>` +
         `</div>`
       );
     }
     var pass = passShare(all);
-    var big =
-      pass == null
-        ? "?"
-        : pass >= 0.5
-          ? "PASS " + fmt(pass)
-          : "RUN " + fmt(1 - pass);
+    var isPass = pass != null && pass >= 0.5;
+    var lean = pass == null ? "?" : isPass ? "PASS" : "RUN";
+    var leanPct = pass == null ? null : isPass ? pass : 1 - pass;
+    var runPct = pass == null ? 0.5 : 1 - pass;
+    var passPct = pass == null ? 0.5 : pass;
+    var runW = Math.max(4, Math.round(runPct * 100));
+    var passW = Math.max(4, 100 - runW);
     var forms = topForms(all);
-    var formBits = forms
-      .map(function (f) {
-        var lean = dirLean(all, f.k);
-        var extra = lean
-          ? " · runs " +
-            (lean.k === "L" ? "left" : lean.k === "R" ? "right" : "mid") +
-            " from " +
-            f.k
-          : "";
-        return esc(f.k) + " " + fmt(f.pct) + extra;
-      })
-      .join(" · ");
     var mot = motionRate(all);
-    var motBit = mot != null ? " · motion " + fmt(mot) : "";
+    var confLevel = (conf && conf.level) || (thin ? "THIN" : "");
+    var confTone = (conf && conf.tone) || (thin ? "bad" : "good");
     var h =
-      `<div class="rd-dc-expect${thin ? " is-thin" : ""}${sample.widened ? " is-widened" : ""} no-print">` +
-      `<div class="rd-dc-expect-big">${esc(big)}</div>` +
-      `<div class="rd-dc-expect-sub">${formBits || "<span class='foot'>No formation data — run/pass only</span>"}${motBit}</div>` +
-      `<div class="foot">based on ${all.length} snap${all.length === 1 ? "" : "s"}` +
-      (sample.live.length ? ` · ${sample.live.length} live tonight` : "") +
-      (thin ? " · thin sample" : "") +
-      (conf && conf.level ? ` · ${esc(conf.level)}` : "") +
-      `</div>`;
+      `<div class="rd-dc-expect${thin ? " is-thin" : ""}${sample.widened ? " is-widened" : ""}${pass == null ? "" : isPass ? " is-pass" : " is-run"} no-print">`;
+    h += `<div class="rd-dc-expect-hero">`;
+    h += `<div class="rd-dc-expect-hero-copy">`;
+    h += `<div class="rd-dc-expect-kicker">${lean === "PASS" ? "They'll pass" : lean === "RUN" ? "They'll run" : "Tendency"}</div>`;
+    h += `<div class="rd-dc-expect-big">`;
+    h += `<span class="rd-dc-expect-lean">${esc(lean)}</span>`;
+    if (leanPct != null) h += `<span class="rd-dc-expect-pct">${esc(fmt(leanPct))}</span>`;
+    h += `</div></div>`;
+    if (confLevel) {
+      h += `<span class="rd-dc-expect-conf tone-${esc(confTone)}">${esc(confLevel)}</span>`;
+    }
+    h += `</div>`;
+    if (pass != null) {
+      h += `<div class="rd-dc-expect-split" aria-hidden="true">`;
+      h += `<span class="rd-dc-expect-split-run" style="width:${runW}%"></span>`;
+      h += `<span class="rd-dc-expect-split-pass" style="width:${passW}%"></span>`;
+      h += `</div>`;
+      h += `<div class="rd-dc-expect-split-lbl">`;
+      h += `<span>Run ${esc(fmt(runPct))}</span>`;
+      h += `<span>Pass ${esc(fmt(passPct))}</span>`;
+      h += `</div>`;
+    }
+    h += `<div class="rd-dc-expect-chips">`;
+    if (forms.length) {
+      forms.forEach(function (f) {
+        var dir = dirLean(all, f.k);
+        var dirTxt = dir
+          ? dir.k === "L"
+            ? "runs left"
+            : dir.k === "R"
+              ? "runs right"
+              : "runs mid"
+          : "";
+        h += `<div class="rd-dc-expect-chip">`;
+        h += `<span class="rd-dc-expect-chip-k">${esc(f.k)}</span>`;
+        h += `<span class="rd-dc-expect-chip-v">${esc(fmt(f.pct))}</span>`;
+        if (dirTxt) h += `<span class="rd-dc-expect-chip-d">${esc(dirTxt)}</span>`;
+        h += `</div>`;
+      });
+    } else {
+      h += `<div class="rd-dc-expect-chip is-muted"><span class="rd-dc-expect-chip-k">Formation</span><span class="rd-dc-expect-chip-v">—</span><span class="rd-dc-expect-chip-d">run/pass only</span></div>`;
+    }
+    if (mot != null) {
+      h += `<div class="rd-dc-expect-chip">`;
+      h += `<span class="rd-dc-expect-chip-k">Motion</span>`;
+      h += `<span class="rd-dc-expect-chip-v">${esc(fmt(mot))}</span>`;
+      h += `</div>`;
+    }
+    h += `</div>`;
+    h += `<div class="rd-dc-expect-meta">`;
+    h += `<span>${all.length} snap${all.length === 1 ? "" : "s"}</span>`;
+    if (sample.live && sample.live.length) h += `<span>${sample.live.length} live tonight</span>`;
+    if (thin) h += `<span>thin sample</span>`;
+    h += `</div>`;
     if (sample.badge) {
       h += `<div class="rd-gd-widen-badge">${esc(sample.badge)}</div>`;
     }
@@ -2547,7 +2583,7 @@
       h +=
         `<div class="rd-dc-shift no-print" role="status">` +
         `<span class="rd-dc-shift-kicker">Breaking tendency</span>` +
-        `<span>${esc(shift.tonightLean)} ${shift.liveN}/${shift.liveN} tonight` +
+        `<span class="rd-dc-shift-body">${esc(shift.tonightLean)} ${shift.liveN}/${shift.liveN} tonight` +
         ` · season ${esc(shift.seasonLean)} ${fmt(shift.seasonLean === "pass" ? shift.seasonPass : 1 - shift.seasonPass)}` +
         ` (${shift.seasonN} snaps)</span></div>`;
     }
@@ -2593,6 +2629,63 @@
       })
       .join("");
     h += `</div></div>`;
+    return h;
+  }
+
+  function yardToneClass(id) {
+    if (id === "loss" || id === "no_gain") return " is-stop";
+    if (id === "short" || id === "solid") return " is-short";
+    if (id === "chunk" || id === "explosive") return " is-chunk";
+    if (id === "td") return " is-td";
+    if (id === "turnover") return " is-to";
+    return "";
+  }
+
+  function yardsPadHtml(buckets, live, isTwo, Out) {
+    var grouped = [
+      { key: "stop", label: "Stop", ids: { loss: 1, no_gain: 1 } },
+      { key: "gain", label: "Yards", ids: { short: 1, solid: 1, chunk: 1, explosive: 1 } },
+      { key: "game", label: "Score / TO", ids: { td: 1, turnover: 1 } },
+    ];
+    var used = {};
+    var canGroup = !isTwo && buckets.some(function (b) {
+      return b.id === "loss" || b.id === "short" || b.id === "td";
+    });
+    var h = `<div class="caller-out-results rd-dc-yards${canGroup ? " is-pad" : ""}">`;
+    if (canGroup) {
+      grouped.forEach(function (g) {
+        var items = buckets.filter(function (b) {
+          return g.ids[b.id];
+        });
+        if (!items.length) return;
+        items.forEach(function (b) {
+          used[b.id] = 1;
+        });
+        h += `<div class="rd-dc-yards-group rd-dc-yards-${g.key}">`;
+        h += `<div class="rd-dc-yards-gl">${g.label}</div>`;
+        h += `<div class="rd-dc-yards-row">`;
+        items.forEach(function (b) {
+          var on = live.result === b.id;
+          h += `<button type="button" class="caller-out-btn rd-dc-yard${yardToneClass(b.id)}${on ? " on" : ""}" onclick="OFFGRD_DCALLER.grade(${live.playIndex},'${b.id}')">${b.label}</button>`;
+        });
+        h += `</div></div>`;
+      });
+    }
+    var leftover = buckets.filter(function (b) {
+      return !used[b.id];
+    });
+    if (leftover.length) {
+      h += `<div class="rd-dc-yards-row rd-dc-yards-flat">`;
+      leftover.forEach(function (b) {
+        var on = live.result === b.id;
+        h += `<button type="button" class="caller-out-btn rd-dc-yard${yardToneClass(b.id)}${on ? " on" : ""}" onclick="OFFGRD_DCALLER.grade(${live.playIndex},'${b.id}')">${b.label}</button>`;
+      });
+      h += `</div>`;
+    }
+    if (!isTwo && Out && Out.movedChainsSituation) {
+      h += `<button type="button" class="caller-out-btn caller-out-convert rd-dc-yard-convert${live.movedChains ? " on" : ""}" onclick="OFFGRD_DCALLER.movedChains(${live.playIndex})">Moved the chains</button>`;
+    }
+    h += `</div>`;
     return h;
   }
 
@@ -2664,18 +2757,7 @@
       h += `<div class="rd-dc-grade-card${live.result ? "" : " is-pending"}">`;
       h += `<div class="rd-dc-grade-title">${isTwo ? "2-pt result" : "Yards allowed"}</div>`;
       h += `<div class="rd-dc-grade-sub">${esc(live.play)}${live.result ? "" : " · tap one"}</div>`;
-      h += `<div class="caller-out-results rd-dc-yards">`;
-      h += buckets
-        .map(function (b) {
-          var on = live.result === b.id;
-          return `<button type="button" class="caller-out-btn${on ? " on" : ""}" onclick="OFFGRD_DCALLER.grade(${live.playIndex},'${b.id}')">${b.label}</button>`;
-        })
-        .join("");
-      /* Conversion exit ramp — D always shows (covers automatic first downs; ungated). */
-      if (!isTwo && Out && Out.movedChainsSituation) {
-        h += `<button type="button" class="caller-out-btn caller-out-convert${live.movedChains ? " on" : ""}" onclick="OFFGRD_DCALLER.movedChains(${live.playIndex})">Moved the chains</button>`;
-      }
-      h += `</div>`;
+      h += yardsPadHtml(buckets, live, isTwo, Out);
       if (live.result && !isTwo) {
         h += `<div class="rd-gd-lastplay-block rd-dc-tag-block">`;
         h += `<div class="rd-gd-lastplay-block-lbl">Tag <span class="foot">optional · multi</span></div>`;
