@@ -504,7 +504,8 @@ pause(); fill.style.width='0';
   var o=document.createElement('div');
   o.id='ovl';
   o.style.cssText='position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:rgba(6,10,18,.58);cursor:pointer;backdrop-filter:blur(2px)';
-  o.innerHTML='<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;font-size:22px;color:#0A1220;padding-left:5px">\u25B6</div>'+
+  o.innerHTML='<img src="https://www.offops.app/logo.png" style="height:44px;border-radius:9px" onerror="this.style.display=\'none\'">'+
+    '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;font-size:22px;color:#0A1220;padding-left:5px">\u25B6</div>'+
     '<div style="font-size:13px;font-weight:650">Watch: '+Math.round(TOTAL)+' sec'+'</div>';
   o.onclick=function(){o.remove(); elapsed=0; playing=true; playBtn.textContent='\u275A\u275A Pause'; go(0);};
   document.getElementById('stage').appendChild(o);
