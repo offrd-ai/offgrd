@@ -34,6 +34,33 @@ check("5-0 template exists", !!(R.DFRONTS && R.DFRONTS["5-0"] && R.DFRONTS["5-0"
 check("42 OVER-G aliases to 4-3", S.resolveDefFront("42 OVER-G").front === "4-3" && !S.resolveDefFront("42 OVER-G").unresolved);
 check("unknown front falls back 4-3 + flag", S.resolveDefFront("Weird Stack").front === "4-3" && S.resolveDefFront("Weird Stack").unresolved);
 
+function defLabs(front) {
+  const st = { players: [], defs: [] };
+  R.placeDefenseOn(st, front, "Cover 3");
+  return st.defs.map((d) => d.lab).join(",");
+}
+check("4-4 EAGLE labels untouched", defLabs("4-4 EAGLE") === "DE,DT,DT,DE,O,I,I,O,CB,CB,FS");
+check("4-3 labels", defLabs("4-3") === "DE,DT,DT,DE,W,M,S,CB,CB,FS,SS");
+const over43 = S.resolveDefFront("4-3 OVER");
+check("4-3 OVER own entry not base 4-3", over43.front === "4-3 OVER" && over43.unresolved === false);
+check("4-3 OVER labels 4-3 personnel", defLabs("4-3 OVER") === "DE,DT,DT,DE,W,M,S,CB,CB,FS,SS");
+check("4-3 OVER line shifted to strength", R.DFRONTS["4-3 OVER"][0].x > R.DFRONTS["4-3"][0].x);
+const eagle43 = S.resolveDefFront("4-3 EAGLE");
+check("4-3 EAGLE own entry", eagle43.front === "4-3 EAGLE" && eagle43.unresolved === false);
+check("4-3 EAGLE labels 4-3 personnel", defLabs("4-3 EAGLE") === "DE,DT,DT,DE,W,M,S,CB,CB,FS,SS");
+const eagleSam = R.DFRONTS["4-3 EAGLE"].find((d) => d.pos === "SLB");
+const eagleDeR = R.DFRONTS["4-3 EAGLE"].filter((d) => d.pos === "DE").pop();
+check("4-3 EAGLE Sam on LOS outside DE", !!(eagleSam && eagleDeR && eagleSam.y === eagleDeR.y && eagleSam.x > eagleDeR.x));
+check("4-4 EAGLE still 3 DB", R.DFRONTS["4-4 EAGLE"].filter((d) => d.group === "DB").length === 3);
+["Weird Stack", "4-3 STACK", "NOT A FRONT", "6-2"].forEach((raw) => {
+  const r = S.resolveDefFront(raw);
+  check(raw + " DFRONTS-miss sets unresolved", !R.DFRONTS[String(raw).trim()] && r.unresolved === true);
+});
+Object.keys(R.DFRONTS).forEach((k) => {
+  const r = S.resolveDefFront(k);
+  check("exact DFRONTS " + k, r.front === k && r.unresolved === false);
+});
+
 const c3 = S.buildDefShell({ front: "4-3", coverage: "Cover 3", n: 8, shellKey: "def:4-3|cover 3" });
 const c3svg = R.renderMarkup(c3, { showZones: true, showHandles: false });
 check("Cover 3 has 3 deep thirds", (c3svg.match(/DEEP ⅓/g) || []).length === 3, (c3svg.match(/DEEP ⅓/g) || []).length);

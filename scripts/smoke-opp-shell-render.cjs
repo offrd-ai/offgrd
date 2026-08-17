@@ -98,6 +98,13 @@ DEMO.forEach(function (d) {
   );
 });
 
+const over43 = S.resolveDefFront("4-3 OVER");
+check("4-3 OVER own DFRONTS entry", over43.front === "4-3 OVER" && over43.unresolved === false);
+["Weird Stack", "4-3 STACK", "NOT A FRONT", "6-2"].forEach(function (raw) {
+  const r = S.resolveDefFront(raw);
+  check(raw + " DFRONTS-miss sets unresolved", !R.DFRONTS[String(raw).trim()] && r.unresolved === true);
+});
+
 const pack = S.cardsForOpponent({ opponent: OPP, snaps: snaps, drawn: [], rowDiagrams: [] });
 check("pack has 6 shells", pack.shells.length === 6, "n=" + pack.shells.length);
 check("no empty-note path", pack.cards.length === 6);
