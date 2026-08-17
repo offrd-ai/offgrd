@@ -397,6 +397,7 @@
 <script src="OFFGRD-formations-data.js?v=281"></script>
 <script src="OFFGRD-formation-canon.js?v=281"></script>
 <script src="OFFGRD-assist-import.js?v=281"></script>
+<script src="OFFGRD-opp-shells.js?v=281"></script>
 <script src="OFFGRD-cv-review.js?v=281"></script>
 <script src="OFFGRD-frame-capture.js?v=281"></script>
 <script src="OFFGRD-caller-log.js?v=281"></script>
@@ -1391,6 +1392,7 @@ function snapRows(side){
 function setSnapCorpus(rows){
   SNAP_CORPUS=Array.isArray(rows)?rows:[];
   SNAP_CORPUS_READY=true;
+  try{ if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.clearCache) OFFGRD_OPP_SHELLS.clearCache(); }catch(e){}
   rebuildActive();
 }
 function rebuildActive(){
@@ -5771,7 +5773,9 @@ document.getElementById("manageBtn").onclick=openManager;
     OFFGRD_SCOUTCARDS.openModal({
       installLib:Array.isArray(lib)?lib:[],
       games:GAMES||[],
+      snaps:typeof SNAP_CORPUS!=="undefined"?SNAP_CORPUS:[],
       opponent:(sit&&sit.opp&&sit.opp!=="ANY")?sit.opp:null,
+      teamId:(typeof TEAM!=="undefined"&&TEAM&&TEAM.id)?TEAM.id:"",
       format:"opponent",
       onMsg:function(t){ try{ document.getElementById("importMsg").textContent=t; }catch(e){} },
       onClose:function(){

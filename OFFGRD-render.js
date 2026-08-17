@@ -467,7 +467,8 @@
   function routePath(p) {
     const d = routeD(p); if (!d) return "";
     const col = p.color || "#bfe3ff";
-    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="3.5" marker-end="url(#arr)"/>`;
+    const dash = p.dashed ? " stroke-dasharray=\"10 7\"" : "";
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="3.5"${dash} marker-end="url(#arr)"/>`;
   }
   function motionPath(p) {
     if (!p.motion || !p.motion.length) return "";
@@ -533,7 +534,8 @@
     return `<text x="${t.x}" y="${t.y}" font-size="${t.size}" font-weight="800" fill="${t.color}" stroke="rgba(255,255,255,.5)" stroke-width="0.6" paint-order="stroke" text-anchor="middle">${esc(t.text)}</text>`;
   }
   function drawNode(d) {
-    return `<polyline points="${d.pts.map(p => p.x + "," + p.y).join(" ")}" fill="none" stroke="${d.color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const dash = d.dashed ? " stroke-dasharray=\"10 7\"" : "";
+    return `<polyline points="${d.pts.map(p => p.x + "," + p.y).join(" ")}" fill="none" stroke="${d.color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"${dash}/>`;
   }
   function segMid(prev, a) {
     return a.cx != null ? { x: a.cx, y: a.cy } : { x: (prev.x + a.x) / 2, y: (prev.y + a.y) / 2 };

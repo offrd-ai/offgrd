@@ -1838,6 +1838,11 @@ async function refreshScoutSnaps(){
     _lastScoutCorpusTeam = TEAM.id || "";
     _scoutCorpusHydrated = true;
     const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
+    try{
+      if(window.OFFGRD_OPP_SHELLS && typeof window.OFFGRD_OPP_SHELLS.clearCache === "function"){
+        window.OFFGRD_OPP_SHELLS.clearCache();
+      }
+    }catch(eC){}
     if(typeof window.OFFGRD_SET_SNAP_CORPUS === "function"){
       window.OFFGRD_SET_SNAP_CORPUS(mapped);
     } else if(window.OFFGRD_APP && typeof window.OFFGRD_APP.setSnapCorpus === "function"){

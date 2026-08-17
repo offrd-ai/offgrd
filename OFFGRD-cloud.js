@@ -446,6 +446,45 @@ export const Cloud = {
     if (error) throw error; return data;
   },
   async deletePlay(id) { const { error } = await OG.from("plays").delete().eq("id", id); if (error) throw error; },
+
+  /* ---------- opponent scout cards (drawn only; shells are derived) ---------- */
+  async listOppCards(teamId, opponent) {
+    if (!OG || !teamId) return [];
+    let q = OG.from("offgrd_opp_cards").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
+    if (opponent) q = q.eq("opponent", opponent);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  async upsertOppCard(teamId, card) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const row = {
+      team_id: teamId,
+      opponent: card.opponent || "",
+      shell_key: card.shell_key || card.shellKey || "",
+      card_status: card.card_status || card.cardStatus || "drawn",
+      play_state: card.play_state || card.playState || card.data || {},
+      play_name: card.play_name != null ? card.play_name : (card.playName || card.play || null),
+      formation: card.formation || null,
+      backfield: card.backfield != null ? card.backfield : (card.offBackfield || null),
+      off_str: card.off_str != null ? card.off_str : (card.offStrength || null),
+      play_type: card.play_type != null ? card.play_type : (card.playType || null),
+      direction: card.direction || null,
+      gap: card.gap || null,
+      pass_zone: card.pass_zone != null ? card.pass_zone : (card.passZone || null),
+      updated_at: new Date().toISOString(),
+    };
+    if (card.id) row.id = card.id;
+    const { data, error } = await OG.from("offgrd_opp_cards").upsert(row, {
+      onConflict: "team_id,opponent,shell_key",
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deleteOppCard(id) {
+    const { error } = await OG.from("offgrd_opp_cards").delete().eq("id", id);
+    if (error) throw error;
+  },
   async updatePlayReads(id, qb_reads) {
     const { data, error } = await OG.from("plays").update({ qb_reads }).eq("id", id).select().single();
     if (error) throw error; return data;
@@ -1462,7 +1501,8 @@ export const Cloud = {
     if (s.success === true || s.success === 1 || s.success === "1") success = 1;
     else if (s.success === false || s.success === 0 || s.success === "0") success = 0;
 
-    /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw. */
+    /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw.
+       Opponent-card grouping also needs off_strength / backfield / pass_zone. */
     const rawPick = this._rawPickAssist(s.raw, {
       direction: ["play dir", "play direction", "dir", "direction", "play_dir"],
       gap: ["gap", "hole"],
@@ -1475,6 +1515,20 @@ export const Cloud = {
         "pers",
         "off_personnel",
       ],
+      off_strength: [
+        "off str",
+        "off strength",
+        "offensive strength",
+        "strength",
+        "str",
+      ],
+      off_backfield: [
+        "backfield",
+        "off backfield",
+        "offensive backfield",
+        "bf",
+      ],
+      pass_zone: ["pass zone", "pass zon", "passzone"],
     });
     const direction = this._normPlayDir(rawPick.direction);
     const gap = rawPick.gap || "";
@@ -1488,6 +1542,31 @@ export const Cloud = {
       (s.off_personnel && String(s.off_personnel).trim()) ||
       rawPick.personnel ||
       "";
+    const offStrength = this._normOffStrength(
+      s.off_strength || rawPick.off_strength
+    );
+    let rawObj = s.raw;
+    if (typeof rawObj === "string") {
+      try {
+        rawObj = JSON.parse(rawObj);
+      } catch (e) {
+        rawObj = null;
+      }
+    }
+    const offBackfield =
+      (rawObj && typeof rawObj === "object" && rawObj._off_backfield
+        ? String(rawObj._off_backfield).trim()
+        : "") ||
+      rawPick.off_backfield ||
+      "";
+    let offBackCount = null;
+    if (s.off_back_count != null && String(s.off_back_count).trim() !== "") {
+      const bn = parseInt(s.off_back_count, 10);
+      if (!isNaN(bn) && bn >= 0 && bn <= 2) offBackCount = bn;
+    }
+    if (offBackCount == null) offBackCount = this._backCountFromBackfield(offBackfield);
+    const passZone = (s.pass_zone || rawPick.pass_zone || "").trim() || null;
+    const offStructure = (s.off_structure || "").trim() || null;
 
     return {
       id: s.id,
@@ -1508,6 +1587,11 @@ export const Cloud = {
       formation: s.formation || "",
       formation_family: s.formation_family || "",
       personnel: personnel,
+      offStrength: offStrength,
+      offBackfield: offBackfield || null,
+      offBackCount: offBackCount,
+      offStructure: offStructure,
+      passZone: passZone,
       motion: motion,
       motion_type: mot || "",
       gain: s.gain,
@@ -1579,6 +1663,30 @@ export const Cloud = {
     if (/^(M|MID|MIDDLE|CTR|CENTER)\b/.test(s) || s === "M") return "M";
     const ch = s.charAt(0);
     if (ch === "L" || ch === "R" || ch === "M") return ch;
+    return null;
+  },
+
+  _normOffStrength(raw) {
+    if (raw == null || String(raw).trim() === "") return null;
+    const v = String(raw).trim().toLowerCase();
+    if (v === "field") return "field";
+    if (v === "boundary") return "boundary";
+    if (v === "left" || v === "l" || v === "lt") return "left";
+    if (v === "right" || v === "r" || v === "rt") return "right";
+    if (v === "balanced" || v === "bal" || v === "b") return "balanced";
+    return v;
+  },
+
+  /** Assist backfield → 0/1/2 only when clean. Unknown → null (never guess). */
+  _backCountFromBackfield(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim().toLowerCase();
+    if (!s) return null;
+    if (/^empty$|^0\b|no\s*back/.test(s)) return 0;
+    if (/^1\b|single|one\s*back|pistol\s*1|gun\s*1/.test(s)) return 1;
+    if (/^2\b|two\s*back|i[\s\-]?form|split\s*backs/.test(s)) return 2;
+    const m = s.match(/\b([012])\s*back/);
+    if (m) return Number(m[1]);
     return null;
   },
 };

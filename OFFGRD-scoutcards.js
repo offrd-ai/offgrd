@@ -60,7 +60,7 @@
     const st = playState(play) || play || {};
     const src = play || {};
     return {
-      name: src.name || st.name || src.play || src.playType || "Play",
+      name: src.rollupLabel || src.name || st.name || src.play || src.playType || "Play",
       formation: src.formation || st.formation || "",
       personnel: src.personnel || st.personnel || "",
       protection: src.protection || st.protection || "",
@@ -92,6 +92,12 @@
       if (dd) bits.push('<span class="sc-dd">' + esc(dd) + "</span>");
       if (m.hash) bits.push('<span class="sc-hash">' + esc(m.hash) + " hash</span>");
       if (m.result) bits.push('<span class="sc-res">' + esc(m.result) + "</span>");
+      if (play.cardStatus === "shell") {
+        bits.push('<span class="sc-shell">AUTO-SHELL · n=' + esc(play.n != null ? play.n : "?") + "</span>");
+        if (play.unresolvedFormation) bits.push('<span class="sc-unres">unresolved formation</span>');
+      } else if (play.n != null) {
+        bits.push('<span class="sc-n">n=' + esc(play.n) + "</span>");
+      }
     }
     const call = '<div class="sc-call"><b>' + esc(m.name) + "</b></div>";
     const sub = [m.formation, m.personnel, format === "install" ? m.protection : ""].filter(Boolean).map(esc).join(" · ");
@@ -137,6 +143,8 @@
       + ".sc-sub{font-size:11px;color:#5a6575;margin-bottom:4px}"
       + ".sc-meta{font-size:11px;font-weight:700;color:#13294B;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}"
       + ".sc-sep{color:#9aa4b2;font-weight:600}"
+      + ".sc-shell{color:#0b5cab}"
+      + ".sc-unres{color:#9a3412}"
       + ".sc-diagram svg{width:100%;height:auto;display:block;background:#0b2e17;border-radius:6px}"
       + ".sc-diagram.sc-empty{min-height:80px;display:flex;align-items:center;justify-content:center;background:#eef2f6;border-radius:6px;color:#7a8494;font-size:12px}"
       + ".sc-size-large .sc-call{font-size:16px}"
@@ -193,6 +201,25 @@
   /* ---------- sources ---------- */
   function installPlays(lib) {
     return (lib || []).filter(hasDiagram);
+  }
+
+  function opponentPack(opts) {
+    opts = opts || {};
+    const S = root.OFFGRD_OPP_SHELLS;
+    const oppDiag = opponentPlaysFromGames(opts.games || []);
+    if (!S || typeof S.cardsForOpponent !== "function") {
+      return { cards: oppDiag, drawn: [], rowDiagrams: oppDiag, shells: [], empty: !oppDiag.length };
+    }
+    const teamId = opts.teamId || (root.TEAM && root.TEAM.id) || "";
+    const drawn = opts.drawn || (S.loadDrawnCache ? S.loadDrawnCache(teamId) : []);
+    const pack = S.cardsForOpponent({
+      opponent: opts.opponent || "",
+      snaps: opts.snaps || root.SNAP_CORPUS || [],
+      drawn: drawn,
+      rowDiagrams: oppDiag,
+    });
+    pack.empty = !pack.cards.length;
+    return pack;
   }
 
   function opponentPlaysFromGames(games) {
@@ -308,11 +335,14 @@
       return null;
     }
     const install = installPlays(opts.installLib || []);
-    const oppDiag = opponentPlaysFromGames(opts.games || []);
+    let pack = opponentPack(opts);
     let format = opts.format || "install";
     let perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
     let selected = new Set((opts.selectedIds || []).map(String));
-    if (!selected.size && format === "install") install.slice(0, Math.min(6, install.length)).forEach(p => selected.add(String(p.id || p.name)));
+    if (!selected.size) {
+      const seed = format === "opponent" ? (pack.cards || []) : install;
+      seed.slice(0, Math.min(6, seed.length)).forEach(p => selected.add(String(p.id || p.name)));
+    }
 
     const viewOnly = !!opts.viewOnly;
     let ov = document.getElementById("scModal");
@@ -357,9 +387,9 @@
 
     function sourceList() {
       if (format === "opponent") {
-        if (oppDiag.length) return oppDiag;
-        /* Fallback: install plays enriched with scout charting (diagram from playbook) */
-        return enrichFromScout(install, opts.games || [], opts.opponent || null);
+        if (pack.cards && pack.cards.length) return pack.cards;
+        /* Note only when drawn, row diagrams, and shells are all empty. */
+        return [];
       }
       return install;
     }
@@ -367,8 +397,8 @@
     function paintPick() {
       const list = sourceList();
       const host = ov.querySelector("#scPick");
-      const note = format === "opponent" && !oppDiag.length
-        ? '<p class="hint" style="margin:0 0 8px">No scouting rows with a drawn diagram yet. Showing playbook diagrams; D&amp;D/hash/result fill in when a scout row matches formation. <i>Follow-on: auto-draw from charted tags.</i></p>'
+      const note = format === "opponent" && pack.empty
+        ? '<p class="hint" style="margin:0 0 8px">No drawn diagram, charted row diagram, or shell yet for this opponent.</p>'
         : "";
       host.innerHTML = note + list.map(p => {
         const id = String(p.id || p.name);
@@ -443,6 +473,6 @@
     FORMATS, PER_PAGE,
     isScoutcards, hasDiagram, metaOf, cardHtml, buildSheetHtml,
     printSheet, previewInto, downloadCardPng,
-    installPlays, opponentPlaysFromGames, enrichFromScout, openModal
+    installPlays, opponentPlaysFromGames, opponentPack, enrichFromScout, openModal
   };
 })(typeof window !== "undefined" ? window : globalThis);
