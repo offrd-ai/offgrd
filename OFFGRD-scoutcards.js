@@ -336,19 +336,49 @@
     return true;
   }
 
-  /* ---------- modal UI factory (Playbook / OFFGRD) ---------- */
-  function openModal(opts) {
-    opts = opts || {};
-    if (!isScoutcards()) {
-      if (opts.onBlocked) opts.onBlocked();
-      return null;
+  var UI_KEY = "offgrd_scout_cards_ui";
+
+  function readUiState() {
+    try {
+      var raw = sessionStorage.getItem(UI_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
     }
+  }
+
+  function writeUiState(partial) {
+    var cur = Object.assign({}, readUiState(), partial || {});
+    try { sessionStorage.setItem(UI_KEY, JSON.stringify(cur)); } catch (e) {}
+    return cur;
+  }
+
+  function injectFp(opts) {
+    opts = opts || {};
+    return [
+      opts.opponent || "",
+      opts.format || "",
+      (opts.snaps && opts.snaps.length) || 0,
+      opts.teamId || "",
+      opts.embedded ? "view" : "modal",
+    ].join("|");
+  }
+
+  /* Shared queue UI — pane (injectInto) or Playbook popover (openModal). */
+  function mountCardsUI(rootEl, opts) {
+    opts = opts || {};
+    if (!rootEl) return null;
     const install = installPlays(opts.installLib || []);
     let pack = opponentPack(opts);
-    let format = opts.format || "install";
+    const saved = readUiState();
+    let format = opts.format || saved.format || "install";
+    if (!FORMATS[format]) format = "install";
     let perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
-    let selected = new Set((opts.selectedIds || []).map(String));
+    let selected = new Set((opts.selectedIds && opts.selectedIds.length ? opts.selectedIds : (saved.selectedIds || [])).map(String));
     const openedAt = Date.now();
+    const embedded = !!opts.embedded;
+    const viewOnly = !!opts.viewOnly;
+    if (viewOnly) format = "install";
     if (!selected.size) {
       const seed = format === "opponent" ? (pack.cards || []) : install;
       const take = format === "opponent" ? 12 : 6;
@@ -364,25 +394,17 @@
       });
     }
 
-    const viewOnly = !!opts.viewOnly;
-    let ov = document.getElementById("scModal");
-    if (ov) ov.remove();
-    ov = document.createElement("div");
-    ov.id = "scModal";
-    ov.className = "ov show";
-    ov.style.zIndex = 9990;
     const rdOn = !!(root.OFFGRD_REDESIGN && OFFGRD_REDESIGN.isRedesign && OFFGRD_REDESIGN.isRedesign());
-    const titleColor = rdOn ? "var(--rd-text)" : "var(--navy,#13294B)";
     const pickBorder = rdOn ? "var(--rd-border)" : "var(--line,#d8dee6)";
-    const prevBg = rdOn ? "var(--rd-surface-2)" : "#f7f9fb";
     const inkSafe = "color:#111827";
-    ov.innerHTML = '<div class="ovbox" style="max-width:920px;background:#fff;' + inkSafe + '">'
+    rootEl.innerHTML =
+      (embedded ? '<div class="panel sc-view-body" style="background:#fff;' + inkSafe + '">' : "")
       + '<div class="row" style="justify-content:space-between;align-items:center;gap:8px">'
       + '<b style="font-size:18px;color:#13294B">Scout cards' + (viewOnly ? ' <span style="font-size:12px;font-weight:700;color:#5C6673">(view)</span>' : "") + '</b>'
       + '<div class="row sc-no-print" style="gap:6px">'
       + (viewOnly ? "" : '<button type="button" class="btn" id="scPng">PNG (first selected)</button>')
       + '<button type="button" class="btn" id="scPrint">Print / PDF</button>'
-      + '<button type="button" class="btn" id="scClose">Close</button>'
+      + (embedded ? "" : '<button type="button" class="btn" id="scClose">Close</button>')
       + "</div></div>"
       + '<p class="hint" style="margin:6px 0 8px;color:#374151">' + (viewOnly
         ? "View your program's install diagrams. Print is ok — creating/editing plays stays with coaches."
@@ -398,12 +420,22 @@
       + '<span id="scCount" class="tag" style="color:#5C6673"></span>'
       + "</div>"
       + '<div class="row" style="align-items:stretch;gap:12px;flex-wrap:wrap">'
-      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:420px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#fff;color:#111827"></div>'
-      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:520px;overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#f7f9fb;color:#111827"></div>'
-      + "</div></div>";
-    document.body.appendChild(ov);
+      + '<div id="scPick" class="sc-no-print" style="flex:1;min-width:220px;max-height:' + (embedded ? "640px" : "420px") + ';overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#fff;color:#111827"></div>'
+      + '<div id="scPreview" style="flex:2;min-width:280px;max-height:' + (embedded ? "720px" : "520px") + ';overflow:auto;border:1px solid ' + pickBorder + ';border-radius:10px;padding:8px;background:#f7f9fb;color:#111827"></div>'
+      + "</div>"
+      + (embedded ? "</div>" : "");
 
-    if (viewOnly) format = "install";
+    function persistUi() {
+      const pick = rootEl.querySelector("#scPick");
+      const prev = rootEl.querySelector("#scPreview");
+      writeUiState({
+        format: format,
+        selectedIds: Array.from(selected),
+        opponent: opts.opponent || "",
+        pickScroll: pick ? pick.scrollTop : 0,
+        previewScroll: prev ? prev.scrollTop : 0,
+      });
+    }
 
     function sourceList() {
       if (format === "opponent") {
@@ -416,7 +448,7 @@
 
     function paintPick() {
       const list = sourceList();
-      const host = ov.querySelector("#scPick");
+      const host = rootEl.querySelector("#scPick");
       const note = format === "opponent" && pack.empty
         ? '<p class="hint" style="margin:0 0 8px">No drawn diagram, charted row diagram, or shell yet for this opponent.</p>'
         : "";
@@ -437,6 +469,7 @@
         inp.onchange = () => {
           if (inp.checked) selected.add(inp.dataset.id);
           else selected.delete(inp.dataset.id);
+          persistUi();
           paintPreview();
         };
       });
@@ -444,6 +477,7 @@
         btn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
+          persistUi();
           const play = list.find(x => String(x.id || x.name) === btn.dataset.edit);
           if (play && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.promoteToEditor) {
             OFFGRD_OPP_SHELLS.promoteToEditor(play);
@@ -479,28 +513,38 @@
       const title = format === "opponent"
         ? ("Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : ""))
         : "Install cards";
-      previewInto(ov.querySelector("#scPreview"), plays, Object.assign({ format, perPage, title }, sheetExtras(plays)));
-      const c = ov.querySelector("#scCount");
+      previewInto(rootEl.querySelector("#scPreview"), plays, Object.assign({ format, perPage, title }, sheetExtras(plays)));
+      const c = rootEl.querySelector("#scCount");
       if (c) c.textContent = plays.length + " selected";
-      ov.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === format));
-      const sel = ov.querySelector("#scPerPage");
+      rootEl.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === format));
+      const sel = rootEl.querySelector("#scPerPage");
       if (sel) sel.value = String(perPage);
+      const pick = rootEl.querySelector("#scPick");
+      const prev = rootEl.querySelector("#scPreview");
+      if (pick && saved.pickScroll) pick.scrollTop = saved.pickScroll;
+      if (prev && saved.previewScroll) prev.scrollTop = saved.previewScroll;
     }
 
-    ov.querySelectorAll("[data-fmt]").forEach(b => {
+    rootEl.querySelectorAll("[data-fmt]").forEach(b => {
       b.onclick = () => {
         format = b.dataset.fmt;
         perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
         selected = new Set();
         sourceList().slice(0, Math.min(format === "opponent" ? 12 : 6, sourceList().length)).forEach(p => selected.add(String(p.id || p.name)));
+        persistUi();
         paintPick();
       };
     });
-    ov.querySelector("#scPerPage").onchange = e => { perPage = +e.target.value; paintPreview(); };
-    ov.querySelector("#scAll").onclick = () => { sourceList().forEach(p => selected.add(String(p.id || p.name))); paintPick(); };
-    ov.querySelector("#scNone").onclick = () => { selected.clear(); paintPick(); };
-    ov.querySelector("#scClose").onclick = () => ov.remove();
-    ov.querySelector("#scPrint").onclick = () => {
+    rootEl.querySelector("#scPerPage").onchange = e => { perPage = +e.target.value; persistUi(); paintPreview(); };
+    rootEl.querySelector("#scAll").onclick = () => { sourceList().forEach(p => selected.add(String(p.id || p.name))); persistUi(); paintPick(); };
+    rootEl.querySelector("#scNone").onclick = () => { selected.clear(); persistUi(); paintPick(); };
+    const closeBtn = rootEl.querySelector("#scClose");
+    if (closeBtn) closeBtn.onclick = () => {
+      const ov = document.getElementById("scModal");
+      if (ov) ov.remove();
+      if (opts.onClose) opts.onClose();
+    };
+    rootEl.querySelector("#scPrint").onclick = () => {
       const plays = selectedPlays();
       const extras = sheetExtras(plays);
       const r = printSheet(plays, Object.assign({
@@ -521,7 +565,7 @@
       }
       if (!r.ok && opts.onMsg) opts.onMsg(r.error);
     };
-    const pngBtn = ov.querySelector("#scPng");
+    const pngBtn = rootEl.querySelector("#scPng");
     if (pngBtn) pngBtn.onclick = () => {
       const plays = selectedPlays();
       if (!plays.length) { if (opts.onMsg) opts.onMsg("Select a play first."); return; }
@@ -529,6 +573,40 @@
     };
 
     paintPick();
+    persistUi();
+    return rootEl;
+  }
+
+  function injectInto(host, opts) {
+    opts = opts || {};
+    if (!host) return null;
+    if (!isScoutcards()) {
+      if (opts.onBlocked) opts.onBlocked();
+      return null;
+    }
+    const next = Object.assign({}, opts, { embedded: true });
+    const fp = injectFp(next);
+    if (host.getAttribute("data-sc-fp") === fp && host.querySelector("#scPick")) return host;
+    host.setAttribute("data-sc-fp", fp);
+    return mountCardsUI(host, next);
+  }
+
+  function openModal(opts) {
+    opts = opts || {};
+    if (!isScoutcards()) {
+      if (opts.onBlocked) opts.onBlocked();
+      return null;
+    }
+    let ov = document.getElementById("scModal");
+    if (ov) ov.remove();
+    ov = document.createElement("div");
+    ov.id = "scModal";
+    ov.className = "ov show";
+    ov.style.zIndex = 9990;
+    const inkSafe = "color:#111827";
+    ov.innerHTML = '<div class="ovbox" style="max-width:920px;background:#fff;' + inkSafe + '"></div>';
+    document.body.appendChild(ov);
+    mountCardsUI(ov.querySelector(".ovbox"), Object.assign({}, opts, { embedded: false }));
     return ov;
   }
 
@@ -536,6 +614,7 @@
     FORMATS, PER_PAGE,
     isScoutcards, hasDiagram, metaOf, cardHtml, buildSheetHtml,
     printSheet, previewInto, downloadCardPng,
-    installPlays, opponentPlaysFromGames, opponentPack, enrichFromScout, openModal
+    installPlays, opponentPlaysFromGames, opponentPack, enrichFromScout,
+    injectInto, openModal, readUiState, writeUiState
   };
 })(typeof window !== "undefined" ? window : globalThis);

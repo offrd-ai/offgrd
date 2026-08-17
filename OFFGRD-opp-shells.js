@@ -817,8 +817,9 @@
     } catch (e) {}
   }
 
-  function queueReturnUrl(opponent) {
-    return "OFFGRD.html?openScoutCards=1&opp=" + encodeURIComponent(opponent || "");
+  function queueReturnUrl(opponent, format) {
+    var fmt = format || "opponent";
+    return "OFFGRD.html?view=cards&opp=" + encodeURIComponent(opponent || "") + "&fmt=" + encodeURIComponent(fmt);
   }
 
   function promoteToEditor(shell) {
@@ -826,6 +827,7 @@
     var draft = JSON.parse(JSON.stringify(shell));
     tagOppCard(draft, shell.opponent, shell.shellKey);
     draft.cardStatus = "shell";
+    draft.cardFormat = draft.cardFormat || (draft.side === "def" ? "opponent-d" : "opponent");
     writeEditDraft(draft);
     telePush("shell_edit", { opponent: draft.opponent || "", shellKey: draft.shellKey || "" });
     location.href = "OFFGRD-Playbook.html?from=opp-card";

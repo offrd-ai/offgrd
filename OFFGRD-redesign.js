@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, practice: 1, thisweek: 1, recruiting: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, cards: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -130,12 +130,12 @@
     {
       id: "scout",
       label: "Scout",
-      views: ["scout", "report"],
+      views: ["scout", "report", "cards"],
       tools: [
         { id: "predict", label: "Predict", view: "scout", tool: "predict" },
         { id: "tendency", label: "Tendencies", view: "report", tool: "tendency" },
         { id: "report", label: "Report", view: "report", tool: "report" },
-        { id: "cards", label: "Scout cards", view: "scout", tool: "cards", action: "scoutcards" }
+        { id: "cards", label: "Scout cards", view: "cards", tool: "cards" }
       ]
     },
     {
@@ -265,6 +265,7 @@
     } catch (e) {}
     const view = currentView();
     if (view === "report") return "tendency";
+    if (view === "cards") return "cards";
     return "predict";
   }
 
@@ -501,7 +502,7 @@
     try {
       if (typeof root.CURRENT_VIEW === "string" && root.CURRENT_VIEW) return root.CURRENT_VIEW;
     } catch (e) {}
-    const ids = ["scout", "plan", "package", "caller", "report", "practice"];
+    const ids = ["scout", "plan", "package", "caller", "dcaller", "report", "cards", "practice"];
     for (let i = 0; i < ids.length; i++) {
       const el = document.getElementById("view-" + ids[i]);
       if (el && el.style.display !== "none") return ids[i];
@@ -1155,6 +1156,24 @@
       '}',
       'html.rd-on #scModal #scPreview .sc-call,html.rd-on #scModal #scPreview .sc-meta{color:var(--rd-text)!important;}',
       'html.rd-on #scModal #scPreview .sc-sub,html.rd-on #scModal #scPreview .sc-sep{color:var(--rd-muted)!important;}',
+      'html.rd-on #view-cards{display:block;}',
+      'html.rd-on #view-cards .sc-view-body{',
+      'background:var(--rd-surface)!important;color:var(--rd-text)!important;',
+      'border:1px solid var(--rd-border)!important;',
+      '}',
+      'html.rd-on #view-cards .hint,html.rd-on #view-cards .lbl,html.rd-on #view-cards .tag{color:var(--rd-muted)!important;}',
+      'html.rd-on #view-cards .btn,html.rd-on #view-cards select.btn{',
+      'background:var(--rd-surface-2)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;min-height:40px;',
+      '}',
+      'html.rd-on #view-cards .btn.on{',
+      'background:var(--rd-accent)!important;color:var(--rd-accent-text)!important;border-color:var(--rd-accent)!important;',
+      '}',
+      'html.rd-on #view-cards #scPick,html.rd-on #view-cards #scPreview{',
+      'background:var(--rd-surface-2)!important;border-color:var(--rd-border)!important;color:var(--rd-text)!important;',
+      '}',
+      'html.rd-on #view-cards #scPick b,html.rd-on #view-cards .sc-sheet-title,html.rd-on #view-cards .sc-call,html.rd-on #view-cards .sc-meta{color:var(--rd-text)!important;}',
+      'html.rd-on #view-cards .sc-sub,html.rd-on #view-cards .sc-sep{color:var(--rd-muted)!important;}',
       /* ---- Phase 5: Gameday stripped sideline (Caller + Booth) ---- */
       'html.rd-on.rd-gameday #rdNavBody{flex-direction:column;}',
       'html.rd-on.rd-gameday #rdPhases{',
@@ -2134,16 +2153,8 @@
           break;
         }
         setScoutTool("cards");
-        if (typeof root.setView === "function") root.setView("scout");
-        clickExisting("scoutCardsBtn");
-        try {
-          setTimeout(function () {
-            const modal = document.getElementById("scModal");
-            if (modal && modal.scrollIntoView) modal.scrollIntoView({ block: "nearest", behavior: "smooth" });
-            const box = modal && modal.querySelector(".ovbox");
-            if (box && box.focus) { try { box.setAttribute("tabindex", "-1"); box.focus(); } catch (e) {} }
-          }, 60);
-        } catch (e) {}
+        if (typeof root.setView === "function") root.setView("cards");
+        else clickExisting("scoutCardsBtn");
         break;
       case "telestrate":
         if (root.OFFGRD_TELESTRATE && root.OFFGRD_TELESTRATE.openModal) root.OFFGRD_TELESTRATE.openModal({});
@@ -2314,7 +2325,8 @@
     if (phase === "scout") {
       let t = getScoutTool();
       if (view === "report" && t !== "tendency" && t !== "report") setScoutTool("tendency");
-      else if (view === "scout" && (t === "tendency" || t === "report")) setScoutTool("predict");
+      else if (view === "cards") setScoutTool("cards");
+      else if (view === "scout" && (t === "tendency" || t === "report" || t === "cards")) setScoutTool("predict");
     }
     const scoutTool = phase === "scout" ? getScoutTool() : null;
     [].forEach.call(document.querySelectorAll("#rdPhases .rd-phase"), function (b) {

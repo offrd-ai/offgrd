@@ -518,6 +518,7 @@
   <div id="view-caller" style="display:none"></div>
   <div id="view-dcaller" style="display:none"></div>
   <div id="view-report" style="display:none"></div>
+  <div id="view-cards" style="display:none"></div>
   <div id="view-practice" style="display:none"></div>
 
   <!-- IMPORT MODAL -->
@@ -1893,6 +1894,7 @@ function refreshView(){
   else if(CURRENT_VIEW==="caller")renderCaller();
   else if(CURRENT_VIEW==="dcaller"){ try{ if(window.OFFGRD_DCALLER){ OFFGRD_DCALLER.init(); OFFGRD_DCALLER.render(); } }catch(e){ console.warn("dcaller",e); } }
   else if(CURRENT_VIEW==="report")renderReport();
+  else if(CURRENT_VIEW==="cards")renderScoutCards();
   else if(CURRENT_VIEW==="practice")renderPractice();
   else render();
 }
@@ -1904,7 +1906,7 @@ function setView(v){
   try{
     if(v==="dcaller"||v==="caller") localStorage.setItem("offgrd_shell_role","coach");
   }catch(e){}
-  ["scout","plan","package","caller","dcaller","report","practice","thisweek","recruiting"].forEach(id=>{
+  ["scout","plan","package","caller","dcaller","report","cards","practice","thisweek","recruiting"].forEach(id=>{
     const el=document.getElementById("view-"+id);
     if(!el) return;
     const on=id===v;
@@ -2173,6 +2175,41 @@ function mineTells(off,def){
   [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=off.filter(r=>r.down===dn&&distBucket(r.distance)===db); if(g.length>=5){ const run=runShare(g); if(run>=0.72)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round(run*100)+"% run",n:g.length,w:run+0.3}); else if(run<=0.28)T.push({txt:ordinal(dn)+" & "+db+" · "+Math.round((1-run)*100)+"% pass",n:g.length,w:(1-run)+0.3}); } }));
   [1,2,3].forEach(dn=>["1-3","4-6","7-9","10+"].forEach(db=>{ const g=def.filter(r=>r.down===dn&&distBucket(r.distance)===db&&r.coverage&&r.coverage!=="?"); if(g.length>=4){ const d=weightedDist(g,"coverage",false).arr[0]; if(d&&d.pct>=0.6)T.push({txt:"DEF "+ordinal(dn)+" & "+db+" · "+d.k+" "+Math.round(d.pct*100)+"%",n:g.length,w:d.pct+0.2}); } }));
   T.sort((a,b)=>b.w-a.w); const seen={}, out=[]; T.forEach(t=>{ if(!seen[t.txt]){seen[t.txt]=1;out.push(t);} }); return out.slice(0,8);
+}
+function scoutCardsOpts(format){
+  let lib=[]; try{ lib=JSON.parse(localStorage.getItem("offgrd_playbook_v1")||"[]"); }catch(e){}
+  if((!lib||!lib.length)&&PBOOK&&PBOOK.length) lib=PBOOK;
+  if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.ownPlaybookList) lib=OFFGRD_OPP_SHELLS.ownPlaybookList(lib);
+  let fmt=format||"";
+  try{
+    const q=location.search||"";
+    const m=q.match(/[?&]fmt=([^&]*)/);
+    if(!fmt&&m&&m[1]) fmt=decodeURIComponent(m[1]);
+  }catch(eFmt){}
+  try{
+    if(!fmt&&window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.readUiState){
+      const saved=OFFGRD_SCOUTCARDS.readUiState();
+      if(saved&&saved.format) fmt=saved.format;
+    }
+  }catch(eSaved){}
+  return {
+    installLib:Array.isArray(lib)?lib:[],
+    games:GAMES||[],
+    snaps:typeof SNAP_CORPUS!=="undefined"?SNAP_CORPUS:[],
+    opponent:(sit&&sit.opp&&sit.opp!=="ANY")?sit.opp:null,
+    teamId:(typeof TEAM!=="undefined"&&TEAM&&TEAM.id)?TEAM.id:"",
+    format:fmt||"opponent",
+    embedded:true
+  };
+}
+function renderScoutCards(){
+  const host=document.getElementById("view-cards"); if(!host) return;
+  try{ const ov=document.getElementById("scModal"); if(ov) ov.remove(); }catch(eOv){}
+  if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.injectInto)){
+    host.innerHTML='<div class="panel"><p class="hint">Scout cards are off.</p></div>';
+    return;
+  }
+  OFFGRD_SCOUTCARDS.injectInto(host, scoutCardsOpts());
 }
 function renderReport(){
   const host=document.getElementById("view-report"); if(!host)return;
@@ -5765,38 +5802,26 @@ document.getElementById("manageBtn").onclick=openManager;
 (function(){
   const b=document.getElementById("scoutCardsBtn"); if(!b) return;
   const show=!(window.OFFGRD_SCOUTCARDS)||OFFGRD_SCOUTCARDS.isScoutcards();
-  b.style.display=show?"":"none";
+  const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
+  b.style.display=(show&&!rd)?"":"none";
   b.onclick=()=>{
     if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())) return;
-    let lib=[]; try{ lib=JSON.parse(localStorage.getItem("offgrd_playbook_v1")||"[]"); }catch(e){}
-    if((!lib||!lib.length)&&PBOOK&&PBOOK.length) lib=PBOOK;
-    if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.ownPlaybookList) lib=OFFGRD_OPP_SHELLS.ownPlaybookList(lib);
-    OFFGRD_SCOUTCARDS.openModal({
-      installLib:Array.isArray(lib)?lib:[],
-      games:GAMES||[],
-      snaps:typeof SNAP_CORPUS!=="undefined"?SNAP_CORPUS:[],
-      opponent:(sit&&sit.opp&&sit.opp!=="ANY")?sit.opp:null,
-      teamId:(typeof TEAM!=="undefined"&&TEAM&&TEAM.id)?TEAM.id:"",
-      format:"opponent",
-      onMsg:function(t){ try{ document.getElementById("importMsg").textContent=t; }catch(e){} },
-      onClose:function(){
-        try{
-          if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.setScoutTool){
-            OFFGRD_REDESIGN.setScoutTool("predict");
-            if(OFFGRD_REDESIGN.syncPhaseUI) OFFGRD_REDESIGN.syncPhaseUI();
-          }
-        }catch(e){}
-      }
-    });
+    if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.setScoutTool) OFFGRD_REDESIGN.setScoutTool("cards");
+    if(typeof setView==="function") setView("cards");
   };
   try{
     const q=location.search||"";
-    if(/[?&]openScoutCards=1(?:&|$)/.test(q)){
-      const m=q.match(/[?&]opp=([^&]*)/);
-      if(m&&m[1]&&typeof setOpponent==="function"){
-        try{ setOpponent(decodeURIComponent(m[1])); }catch(eOpp){}
-      }
-      setTimeout(function(){ try{ b.click(); }catch(eOpen){} }, 80);
+    const mOpp=q.match(/[?&]opp=([^&]*)/);
+    if(mOpp&&mOpp[1]&&typeof setOpponent==="function"){
+      try{ setOpponent(decodeURIComponent(mOpp[1])); }catch(eOpp){}
+    }
+    const mFmt=q.match(/[?&]fmt=([^&]*)/);
+    if(mFmt&&mFmt[1]&&window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.writeUiState){
+      try{ OFFGRD_SCOUTCARDS.writeUiState({ format: decodeURIComponent(mFmt[1]) }); }catch(eFmt){}
+    }
+    if(/[?&]openScoutCards=1(?:&|$)/.test(q) && typeof setView==="function"){
+      if(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.setScoutTool) OFFGRD_REDESIGN.setScoutTool("cards");
+      setTimeout(function(){ try{ setView("cards"); }catch(eOpen){} }, 80);
     }
   }catch(eQ){}
 })();
@@ -6009,7 +6034,7 @@ try{
   let want=m?m[1]:"";
   if(!want){ want=sessionStorage.getItem("offgrd_rd_view")||""; sessionStorage.removeItem("offgrd_rd_view"); }
   if(!want){ try{ want=localStorage.getItem("offgrd_view")||""; }catch(e2){} }
-  const VIEW_BOOT=["scout","plan","package","caller","dcaller","report","practice","thisweek","recruiting"];
+  const VIEW_BOOT=["scout","plan","package","caller","dcaller","report","cards","practice","thisweek","recruiting"];
   if(want && typeof setView==="function" && VIEW_BOOT.indexOf(want)>=0) setView(want);
   else if(want){
     /* Persisted view we don't recognize — say so; never silent Scout dump for sideline. */
