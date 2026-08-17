@@ -241,8 +241,9 @@
     return String((a && (a.shellKey || a.name)) || "").localeCompare(String((b && (b.shellKey || b.name)) || ""));
   }
 
-  function coverageOf(cards, total, topN) {
-    topN = topN == null ? 12 : topN;
+  function coverageOf(cards, total, topN, side) {
+    var def = normSide(side) === "def";
+    topN = topN == null ? (def ? 6 : 12) : topN;
     var list = cards || [];
     var take = Math.min(topN, list.length);
     var snaps = 0;
@@ -254,7 +255,9 @@
       snaps: snaps,
       total: tot,
       pct: pct,
-      header: "Top " + take + " plays = " + pct + "% of their snaps.",
+      header: def
+        ? ("Top " + take + " looks = " + pct + "% of their defensive snaps.")
+        : ("Top " + take + " plays = " + pct + "% of their snaps."),
     };
   }
 
@@ -263,7 +266,8 @@
     var drawn = +opts.drawnCount || 0;
     var shells = +opts.shellCount || 0;
     var pct = opts.pct != null ? opts.pct : 0;
-    var line = drawn + " drawn · " + shells + " shells · " + pct + "% of snaps";
+    var snapWord = normSide(opts.side) === "def" ? "D snaps" : "snaps";
+    var line = drawn + " drawn · " + shells + " shells · " + pct + "% of " + snapWord;
     if (opts.opponent) line += " · " + opts.opponent;
     return line;
   }
@@ -852,6 +856,8 @@
       formation: row.formation || st.formation || "",
       opponent: row.opponent || st.opponent || "",
       cardStatus: "drawn",
+      side: st.side || row.side || (String(row.shell_key || row.shellKey || "").indexOf("def:") === 0 ? "def" : "off"),
+      cardFormat: st.cardFormat || row.cardFormat || "",
       shellKey: row.shell_key || row.shellKey || "",
       players: st.players,
       thumbSvg: st.thumbSvg || row.thumbSvg || "",
@@ -866,7 +872,8 @@
   function cardsForOpponent(opts) {
     opts = opts || {};
     var opponent = opts.opponent || "";
-    var grouped = groupsFor(opts.snaps || [], opponent);
+    var side = normSide(opts.side);
+    var grouped = groupsFor(opts.snaps || [], opponent, side);
     var byKey = Object.create(null);
     grouped.groups.forEach(function (g) { byKey[g.shellKey] = g; });
     function attachMeta(card) {
@@ -885,27 +892,33 @@
       }
       return card;
     }
-    var drawn = (opts.drawn || []).map(drawnToPlay).filter(Boolean).map(attachMeta);
+    var drawn = (opts.drawn || []).map(drawnToPlay).filter(Boolean).filter(function (d) {
+      var ds = d.side || (d.shellKey && String(d.shellKey).indexOf("def:") === 0 ? "def" : "off");
+      return normSide(ds) === side;
+    }).map(attachMeta);
     var drawnKeys = Object.create(null);
     drawn.forEach(function (d) {
       if (d.shellKey) drawnKeys[d.shellKey] = true;
     });
-    var rowDiagrams = (opts.rowDiagrams || []).filter(function (p) {
+    var rowDiagrams = side === "def" ? [] : (opts.rowDiagrams || []).filter(function (p) {
       var k = p.shellKey || "";
       return !k || !drawnKeys[k];
     }).map(attachMeta);
     var shells = grouped.groups
       .map(function (g) {
         g.opponent = opponent;
-        return attachMeta(buildShell(g));
+        return attachMeta(side === "def" ? buildDefShell(g) : buildShell(g));
       })
       .filter(function (s) {
-        return s && s.players && s.players.length && !drawnKeys[s.shellKey];
+        if (!s || drawnKeys[s.shellKey]) return false;
+        if (side === "def") return !!(s.defs && s.defs.length);
+        return !!(s.players && s.players.length);
       });
     var cards = drawn.concat(rowDiagrams, shells).sort(queueCompare);
-    var cov = coverageOf(cards, grouped.total, 12);
+    var cov = coverageOf(cards, grouped.total, side === "def" ? 6 : 12, side);
     return {
       opponent: opponent,
+      side: side,
       total: grouped.total,
       rollups: grouped.rollups || [],
       drawn: drawn,
@@ -1030,6 +1043,7 @@
       opponent: state.opponent,
       shell_key: state.shellKey,
       shellKey: state.shellKey,
+      side: state.side || (String(state.shellKey || "").indexOf("def:") === 0 ? "def" : "off"),
       card_status: "drawn",
       cardStatus: "drawn",
       play_state: state,

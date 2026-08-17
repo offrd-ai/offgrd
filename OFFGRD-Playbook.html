@@ -830,7 +830,7 @@ function savePlay(){
   const teamId=(window.TEAM&&TEAM.id)||(function(){ try{ return localStorage.getItem("offgrd_team")||""; }catch(e){ return ""; } })();
   const goQueue=function(){
    if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.clearEditDraft) OFFGRD_OPP_SHELLS.clearEditDraft();
-   location.replace((window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.queueReturnUrl)?OFFGRD_OPP_SHELLS.queueReturnUrl(copy.opponent, copy.cardFormat||"opponent"):("OFFGRD.html?view=cards&opp="+encodeURIComponent(copy.opponent||"")+"&fmt=opponent"));
+   location.replace((window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.queueReturnUrl)?OFFGRD_OPP_SHELLS.queueReturnUrl(copy.opponent, copy.cardFormat||(copy.side==="def"?"opponent-d":"opponent")):("OFFGRD.html?view=cards&opp="+encodeURIComponent(copy.opponent||"")+"&fmt="+(copy.side==="def"?"opponent-d":"opponent")));
   };
   if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.persistDrawnFromEditor){
    msg("Saved "+STATE.name+" — back to the card queue.");

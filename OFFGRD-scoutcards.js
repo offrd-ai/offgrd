@@ -9,7 +9,8 @@
 
   const FORMATS = {
     install: { id: "install", label: "Offense install", size: "large", perPageDefault: 4 },
-    opponent: { id: "opponent", label: "Opponent scout", size: "small", perPageDefault: 6 }
+    opponent: { id: "opponent", label: "Opponent scout", size: "small", perPageDefault: 6 },
+    "opponent-d": { id: "opponent-d", label: "Opponent D", size: "small", perPageDefault: 6 }
   };
   /* 1-up / 2-up = slide layouts; 4/6/9 = sheet grids */
   const PER_PAGE = [1, 2, 4, 6, 9];
@@ -86,12 +87,17 @@
   function callStripHtml(play, format) {
     const m = metaOf(play);
     const bits = [];
-    if (format === "opponent") {
+    if (format === "opponent" || format === "opponent-d") {
       if (m.opponent) bits.push('<span class="sc-opp">' + esc(m.opponent) + (m.week ? (" · " + esc(m.week)) : "") + "</span>");
       const dd = ddLabel(m);
       if (dd) bits.push('<span class="sc-dd">' + esc(dd) + "</span>");
       if (m.hash) bits.push('<span class="sc-hash">' + esc(m.hash) + " hash</span>");
       if (m.result) bits.push('<span class="sc-res">' + esc(m.result) + "</span>");
+      if (format === "opponent-d" && play.n) {
+        const pr = Math.round((play.pressureRate || 0) * 100);
+        bits.push('<span class="sc-press">pressure ' + pr + "% (n=" + esc(play.pressureN || 0) + "/" + esc(play.n) + ")</span>");
+        if (play.blitz) bits.push('<span class="sc-blitz">' + esc(play.blitz) + "</span>");
+      }
       if (play.cardStatus === "shell") {
         bits.push('<span class="sc-shell">AUTO-SHELL · n=' + esc(play.n != null ? play.n : "?") + "</span>");
         if (play.unresolvedFormation) bits.push('<span class="sc-unres">unresolved formation</span>');
@@ -188,7 +194,7 @@
     /* Slide layouts use large diagrams so 1-up / 2-up are glanceable on the page. */
     let size = opts.size || (FORMATS[format] || FORMATS.install).size;
     if (perPage <= 2) size = "large";
-    const title = opts.title || (format === "opponent" ? "Opponent scout cards" : "Install scout cards");
+    const title = opts.title || (format === "opponent-d" ? "Opponent D cards" : (format === "opponent" ? "Opponent scout cards" : "Install scout cards"));
     const pages = chunk(plays.filter(hasDiagram), perPage);
     let html = sheetCss() + '<div class="sc-sheet">';
     pages.forEach((page, pi) => {
@@ -226,7 +232,8 @@
       opponent: opts.opponent || "",
       snaps: opts.snaps || root.SNAP_CORPUS || [],
       drawn: drawn,
-      rowDiagrams: oppDiag,
+      rowDiagrams: opts.side === "def" ? [] : oppDiag,
+      side: opts.side || "off",
     });
     pack.empty = !pack.cards.length;
     return pack;
@@ -370,10 +377,14 @@
     opts = opts || {};
     if (!rootEl) return null;
     const install = installPlays(opts.installLib || []);
-    let pack = opponentPack(opts);
     const saved = readUiState();
     let format = opts.format || saved.format || "install";
     if (!FORMATS[format]) format = "install";
+    function isOppFmt(f) { return f === "opponent" || f === "opponent-d"; }
+    function packFor(fmt) {
+      return opponentPack(Object.assign({}, opts, { side: fmt === "opponent-d" ? "def" : "off" }));
+    }
+    let pack = packFor(format);
     let perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
     let selected = new Set((opts.selectedIds && opts.selectedIds.length ? opts.selectedIds : (saved.selectedIds || [])).map(String));
     const openedAt = Date.now();
@@ -381,11 +392,11 @@
     const viewOnly = !!opts.viewOnly;
     if (viewOnly) format = "install";
     if (!selected.size) {
-      const seed = format === "opponent" ? (pack.cards || []) : install;
-      const take = format === "opponent" ? 12 : 6;
+      const seed = isOppFmt(format) ? (pack.cards || []) : install;
+      const take = format === "opponent-d" ? 6 : (format === "opponent" ? 12 : 6);
       seed.slice(0, Math.min(take, seed.length)).forEach(p => selected.add(String(p.id || p.name)));
     }
-    if (format === "opponent" && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
+    if (isOppFmt(format) && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
       OFFGRD_OPP_SHELLS.telePush("queue_open", {
         opponent: opts.opponent || "",
         cards: (pack.cards || []).length,
@@ -413,7 +424,7 @@
       + '<div class="row sc-no-print" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">'
       + '<span class="lbl" style="color:#5C6673">Format</span>'
       + '<button type="button" class="btn" data-fmt="install">Offense install</button>'
-      + (viewOnly ? "" : '<button type="button" class="btn" data-fmt="opponent">Opponent scout</button>')
+      + (viewOnly ? "" : '<button type="button" class="btn" data-fmt="opponent">Opponent scout</button><button type="button" class="btn" data-fmt="opponent-d">Opponent D</button>')
       + '<span class="lbl" style="margin-left:8px;color:#5C6673">Print layout</span>'
       + '<select id="scPerPage" class="btn" title="Cards per printed page">' + PER_PAGE.map(n => '<option value="' + n + '">' + esc(perPageLabel(n)) + "</option>").join("") + "</select>"
       + '<button type="button" class="btn" id="scAll">Select all</button>'
@@ -439,9 +450,8 @@
     }
 
     function sourceList() {
-      if (format === "opponent") {
+      if (isOppFmt(format)) {
         if (pack.cards && pack.cards.length) return pack.cards;
-        /* Note only when drawn, row diagrams, and shells are all empty. */
         return [];
       }
       return install;
@@ -450,7 +460,7 @@
     function paintPick() {
       const list = sourceList();
       const host = rootEl.querySelector("#scPick");
-      const note = format === "opponent" && pack.empty
+      const note = isOppFmt(format) && pack.empty
         ? '<p class="hint" style="margin:0 0 8px">No drawn diagram, charted row diagram, or shell yet for this opponent.</p>'
         : "";
       host.innerHTML = note + list.map(p => {
@@ -460,10 +470,10 @@
         return '<label class="sc-pick-row" style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid ' + (rdOn ? "var(--rd-border)" : "#e8edf3") + ';cursor:pointer">'
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
           + '<span style="flex:1"><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
-          + esc([m.formation, m.personnel, format === "opponent" ? (p.n != null ? "n=" + p.n : ddLabel(m)) : ""].filter(Boolean).join(" · "))
-          + (format === "opponent" && p.thin ? ' <span class="sc-thin">THIN</span>' : "")
+          + esc([m.formation || p.front, m.personnel, isOppFmt(format) ? (p.n != null ? "n=" + p.n : ddLabel(m)) : ""].filter(Boolean).join(" · "))
+          + (isOppFmt(format) && p.thin ? ' <span class="sc-thin">THIN</span>' : "")
           + "</span></span>"
-          + (format === "opponent" && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
+          + (isOppFmt(format) && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
           + "</label>";
       }).join("") || '<p class="hint">No diagrammed plays available.</p>';
       host.querySelectorAll("input[data-id]").forEach(inp => {
@@ -494,14 +504,16 @@
     }
 
     function sheetExtras(plays) {
-      if (format !== "opponent") return {};
+      if (!isOppFmt(format)) return {};
       const S = root.OFFGRD_OPP_SHELLS;
       const tot = pack.total || 0;
-      const cov = S && S.coverageOf ? S.coverageOf(plays, tot, plays.length || 12) : null;
+      const side = format === "opponent-d" ? "def" : "off";
+      const topN = format === "opponent-d" ? 6 : 12;
+      const cov = S && S.coverageOf ? S.coverageOf(plays, tot, plays.length || topN, side) : null;
       const drawnN = plays.filter(p => p.cardStatus === "drawn").length;
       const shellN = plays.filter(p => p.cardStatus === "shell").length;
       const footer = S && S.printFooterLine
-        ? S.printFooterLine({ drawnCount: drawnN, shellCount: shellN, pct: cov ? cov.pct : 0, opponent: opts.opponent || pack.opponent || "" })
+        ? S.printFooterLine({ drawnCount: drawnN, shellCount: shellN, pct: cov ? cov.pct : 0, opponent: opts.opponent || pack.opponent || "", side: side })
         : "";
       return {
         coverageHeader: (pack.coverage && pack.coverage.header) || (cov && cov.header) || "",
@@ -509,11 +521,15 @@
       };
     }
 
+    function formatTitle() {
+      if (format === "opponent-d") return "Opponent D" + (opts.opponent ? (" · " + opts.opponent) : "");
+      if (format === "opponent") return "Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : "");
+      return "Install cards";
+    }
+
     function paintPreview() {
       const plays = selectedPlays();
-      const title = format === "opponent"
-        ? ("Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : ""))
-        : "Install cards";
+      const title = formatTitle();
       previewInto(rootEl.querySelector("#scPreview"), plays, Object.assign({ format, perPage, title }, sheetExtras(plays)));
       const c = rootEl.querySelector("#scCount");
       if (c) c.textContent = plays.length + " selected";
@@ -529,6 +545,7 @@
     rootEl.querySelectorAll("[data-fmt]").forEach(b => {
       b.onclick = () => {
         format = b.dataset.fmt;
+        pack = packFor(format);
         perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
         selected = new Set();
         sourceList().slice(0, Math.min(format === "opponent" ? 12 : 6, sourceList().length)).forEach(p => selected.add(String(p.id || p.name)));
@@ -550,9 +567,9 @@
       const extras = sheetExtras(plays);
       const r = printSheet(plays, Object.assign({
         format, perPage,
-        title: format === "opponent" ? ("Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : "")) : "Install cards"
+        title: formatTitle()
       }, extras));
-      if (format === "opponent" && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
+      if (isOppFmt(format) && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
         const drawnN = plays.filter(p => p.cardStatus === "drawn").length;
         const shellN = plays.filter(p => p.cardStatus === "shell").length;
         const denom = drawnN + shellN;

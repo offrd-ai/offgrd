@@ -59,6 +59,18 @@ const blitz = S.buildDefShell({
 check("charted blitz draws one rusher path", blitz.defs.filter((d) => d.role === "rush" && d.route && d.route.length).length === 1);
 check("AUTO-SHELL fields present", c3.cardStatus === "shell" && c3.showZones === true && c3.n === 8);
 
+const OPP = "Parkway North";
+const defSnaps = [];
+for (let i = 0; i < 8; i++) defSnaps.push({ id: "d" + i, opponent: OPP, side: "def", front: "4-3", coverage: "Cover 3", pressure: i < 3 ? 1 : 0 });
+S.clearCache();
+const pack = S.cardsForOpponent({ opponent: OPP, snaps: defSnaps, drawn: [], rowDiagrams: [], side: "def" });
+check("def pack shells from namespaced keys", pack.side === "def" && pack.shells.length === 1 && pack.shells[0].shellKey.indexOf("def:") === 0);
+check("def coverage header names looks", /looks = .* defensive snaps/.test(pack.coverage.header), pack.coverage.header);
+const foot = S.printFooterLine({ drawnCount: 2, shellCount: 4, pct: 84, opponent: OPP, side: "def" });
+check("def print footer names D snaps", foot === "2 drawn · 4 shells · 84% of D snaps · " + OPP, foot);
+const offPack = S.cardsForOpponent({ opponent: OPP, snaps: defSnaps, side: "off" });
+check("off pack does not interleave def shells", offPack.shells.length === 0 && offPack.total === 0);
+
 if (fails) {
   console.error(fails + " failed");
   process.exit(1);
