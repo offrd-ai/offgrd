@@ -326,7 +326,18 @@ footer{
 .jstep p b{color:var(--text)}
 .walkthrough{margin:4px 0 28px 150px;max-width:1000px}
 .walkthrough h3{font-size:clamp(22px,2.8vw,28px);font-weight:800;letter-spacing:-.02em;margin:0 0 16px}
-.walkthrough iframe{width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px;display:block;background:var(--panel)}
+.wt-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.wt-tab{
+  font-family:"Barlow Condensed",sans-serif;letter-spacing:.12em;text-transform:uppercase;
+  font-size:12px;font-weight:700;padding:7px 16px;border-radius:100px;cursor:pointer;
+  border:1px solid var(--stroke-2);background:rgba(255,255,255,.04);color:var(--muted);
+}
+.wt-tab.on{background-color:#2f6bff;background-image:var(--grad);color:#04121f;border-color:transparent}
+.wt-frame,.wt-poster{
+  width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px;display:block;background:var(--panel)
+}
+.wt-poster{padding:0;cursor:pointer;overflow:hidden}
+.wt-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .walkthrough + .walkthrough{margin-top:8px}
 .walkthrough:last-of-type{margin-bottom:40px}
 .jclose{margin:10px 0 0 150px;background:linear-gradient(180deg,rgba(47,107,255,.10),rgba(255,255,255,.02));border:1px solid var(--stroke-2);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
@@ -348,7 +359,7 @@ footer{
   .jstep::before,.jstep::after{animation:none}
 }
 /* Solid base under every gradient chip/button — kills fractional-zoom edge seams */
-.nav-btn,.nav-drawer .drawer-btn.primary,.callbtn,.chip-new,.cp-side.o,.cp-chips span.on{background-color:#2f6bff}
+.nav-btn,.nav-drawer .drawer-btn.primary,.callbtn,.chip-new,.cp-side.o,.cp-chips span.on,.wt-tab.on{background-color:#2f6bff}
 .nav-btn.ghost{background-color:transparent;background:var(--panel)}
 @media(max-width:860px){
   .nav-links{display:none!important}
@@ -469,36 +480,24 @@ footer{
     <p class="reveal" style="color:var(--muted);font-size:17px;max-width:700px;margin-top:16px">One system takes your program through the week — manage the team, decode the opponent, plan the practice, test the roster, and call the game. Every step feeds the next.</p>
     <div class="journey">
       <div class="jstep reveal"><span class="jday">Saturday</span><h3>Film lands. Upload it as-is. <span class="jmod">Scout</span></h3><p>Export the Hudl or QwikCut breakdown and drop it in — no conversion, no re-tagging. Within minutes you know their <b>coverage, front, and blitz tendencies</b> by down, distance, and field zone.</p></div>
-      <div class="walkthrough reveal">
-        <h3>From Hudl to game plan in 80 seconds.</h3>
-        <iframe
-          src="/walkthroughs/hudl-export.html"
-          title="Get your Hudl breakdown into OFFGRD"
-          style="width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px"
-          loading="lazy"
-          allow="autoplay"
-        ></iframe>
-      </div>
-      <div class="walkthrough reveal">
-        <h3>From QwikCut to game plan in 80 seconds.</h3>
-        <iframe
-          src="/walkthroughs/qwikcut-export.html"
-          title="Get your QwikCut data into OFFGRD"
-          style="width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px"
-          loading="lazy"
-          allow="autoplay"
-        ></iframe>
+      <div class="walkthrough reveal" data-import-toggle>
+        <div class="wt-tabs" role="tablist" aria-label="Import platform">
+          <button type="button" class="wt-tab on" data-tab="hudl" aria-selected="true">I use Hudl</button>
+          <button type="button" class="wt-tab" data-tab="qwikcut" aria-selected="false">I use QwikCut</button>
+        </div>
+        <h3 data-wt-heading>From Hudl to game plan in 80 seconds.</h3>
+        <div data-wt-player>
+          <button type="button" class="wt-poster" data-file="hudl-export" data-title="Get your Hudl breakdown into OFFGRD" aria-label="Play: Get your Hudl breakdown into OFFGRD">
+            <img src="/walkthroughs/posters/hudl-export-poster.jpg" alt="Get your Hudl breakdown into OFFGRD" loading="lazy" />
+          </button>
+        </div>
       </div>
       <div class="jstep reveal"><span class="jday">Sunday</span><h3>Build the gameplan Sunday night — and assign the tests with it. <span class="jmod">Playbook · Reps Lab</span></h3><p>Attack plans against each of their most likely looks. Pull plays from your book or draw new ones — <b>animated, tagged, and instantly teachable</b> — and <b>every play in the plan is testable the moment you save it</b>. Assign the week's tests and the roster is studying the plan <b>before Monday's practice</b>.</p></div>
       <div class="walkthrough reveal">
         <h3>Read the scout. Build the plan. Same morning.</h3>
-        <iframe
-          src="/walkthroughs/scout-walkthrough.html"
-          title="Read your scout like a coordinator"
-          style="width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px"
-          loading="lazy"
-          allow="autoplay"
-        ></iframe>
+        <button type="button" class="wt-poster" data-file="scout-walkthrough" data-title="Read your scout like a coordinator" aria-label="Play: Read your scout like a coordinator">
+          <img src="/walkthroughs/posters/scout-walkthrough-poster.jpg" alt="Read your scout like a coordinator" loading="lazy" />
+        </button>
       </div>
       <div class="jstep reveal"><span class="jday">Monday</span><h3>Set the week from the Coaches Hub. <span class="jmod">Coaches Hub · Flywheel</span></h3><p>Roster, depth chart, schedule, and daily check-ins in one place — Friday's bust and missed-fit tags arrive <b>already ranked</b>, and Sunday's first test scores show <b>who's already studied</b>. Confirm the practice focus and the whole week aims itself.</p></div>
       <div class="jstep reveal"><span class="jday">Tue – Wed</span><h3>Practice with purpose. Dial the plan daily. <span class="jmod">Reps Lab · Scout cards</span></h3><p>Each morning's scores show what the roster <b>actually absorbed</b>. Drill what the tests expose, trim what they've mastered, and adjust the gameplan <b>while there's still time to fix it</b>. The scout team shows the opponent's <b>actual plays</b> off auto-printed scout cards — nobody hand-drew a thing.</p></div>
@@ -506,13 +505,9 @@ footer{
       <div class="jstep reveal"><span class="jday">Friday</span><h3>Call the game — both sides, AI on every snap. <span class="jmod">O + D Callers · In-game AI</span></h3><p>Predicted look, your best calls, live analysis recomputed every snap — <b>fully offline</b>. The system answers the questions so you can do what you do best: coach.</p></div>
       <div class="walkthrough reveal">
         <h3>Friday night. Zero bars. Every answer.</h3>
-        <iframe
-          src="/walkthroughs/gameday-walkthrough.html"
-          title="Call Friday night from the booth"
-          style="width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px"
-          loading="lazy"
-          allow="autoplay"
-        ></iframe>
+        <button type="button" class="wt-poster" data-file="gameday-walkthrough" data-title="Call Friday night from the booth" aria-label="Play: Call Friday night from the booth">
+          <img src="/walkthroughs/posters/gameday-walkthrough-poster.jpg" alt="Call Friday night from the booth" loading="lazy" />
+        </button>
       </div>
     </div>
     <div class="jclose reveal">
@@ -731,6 +726,56 @@ const L=document.getElementById('lights');
 if(L){for(let i=0;i<7;i++){const s=document.createElement('span');s.style.left=(i*15+4)+'%';s.style.opacity=(0.5+Math.random()*0.4).toFixed(2);L.appendChild(s);}}
 const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+(function(){
+  var BASE = "/walkthroughs/";
+  var IMPORTS = {
+    hudl: { file: "hudl-export", title: "Get your Hudl breakdown into OFFGRD", heading: "From Hudl to game plan in 80 seconds." },
+    qwikcut: { file: "qwikcut-export", title: "Get your QwikCut data into OFFGRD", heading: "From QwikCut to game plan in 70 seconds." }
+  };
+  function posterButton(file, title){
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "wt-poster";
+    btn.setAttribute("data-file", file);
+    btn.setAttribute("data-title", title);
+    btn.setAttribute("aria-label", "Play: " + title);
+    var img = document.createElement("img");
+    img.src = BASE + "posters/" + file + "-poster.jpg";
+    img.alt = title;
+    img.loading = "lazy";
+    btn.appendChild(img);
+    return btn;
+  }
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest(".wt-poster");
+    if(!btn || !btn.getAttribute("data-file")) return;
+    var iframe = document.createElement("iframe");
+    iframe.className = "wt-frame";
+    iframe.src = BASE + btn.getAttribute("data-file") + ".html?autoplay=1";
+    iframe.title = btn.getAttribute("data-title") || "";
+    iframe.allow = "autoplay";
+    btn.replaceWith(iframe);
+  });
+  var toggle = document.querySelector("[data-import-toggle]");
+  if(!toggle) return;
+  var heading = toggle.querySelector("[data-wt-heading]");
+  var player = toggle.querySelector("[data-wt-player]");
+  var tabs = toggle.querySelectorAll("[data-tab]");
+  function setTab(name){
+    var v = IMPORTS[name];
+    if(!v || !player) return;
+    tabs.forEach(function(t){
+      var on = t.getAttribute("data-tab") === name;
+      t.classList.toggle("on", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    if(heading) heading.textContent = v.heading;
+    player.replaceChildren(posterButton(v.file, v.title));
+  }
+  tabs.forEach(function(t){
+    t.addEventListener("click", function(){ setTab(t.getAttribute("data-tab")); });
+  });
+})();
 </script>
 <script type="module">
   import { Cloud } from "./OFFGRD-cloud.js?v=281";
