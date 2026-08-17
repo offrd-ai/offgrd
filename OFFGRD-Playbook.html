@@ -1030,8 +1030,29 @@ function loadOppCardDraftIfPresent(){
   if(OFFGRD_OPP_SHELLS.tagOppCard) OFFGRD_OPP_SHELLS.tagOppCard(STATE, STATE.opponent, STATE.shellKey);
   SEL=null; UNDO=[]; REDO=[]; syncUndo(); writeMeta(); renderAll();
   msg("Editing opponent card"+(STATE.opponent?(" · "+STATE.opponent):"")+". Save returns to the queue.");
+  syncFormSelToState();
   return true;
  }catch(e){ return false; }
+}
+function formSelValueFor(form){
+ const raw=String(form||"").trim();
+ if(!raw) return "";
+ if(FORMS[raw]) return raw;
+ const keys=Object.keys(FORMS);
+ const n=raw.toLowerCase().replace(/\s+/g," ");
+ const exact=keys.find(k=>k.toLowerCase()===n);
+ if(exact) return exact;
+ const strip=s=>s.toLowerCase().replace(/\s*\((gun|pistol)\)\s*$/,"").replace(/\s+/g," ").trim();
+ const loose=keys.find(k=>strip(k)===strip(raw));
+ if(loose) return loose;
+ const hit=keys.find(k=>strip(k).indexOf(strip(raw))>=0||strip(raw).indexOf(strip(k))>=0);
+ return hit||"";
+}
+function syncFormSelToState(){
+ const el=document.getElementById("formSel");
+ if(!el||!STATE) return;
+ const v=formSelValueFor(STATE.formation);
+ if(v) el.value=v;
 }
 function offerStarter(opts){
  opts=opts||{};
@@ -1127,7 +1148,11 @@ document.addEventListener("DOMContentLoaded",()=>{
  const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
  const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
  const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
- const loadFormation=()=>{newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);};document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
+ const loadFormation=()=>{
+  if(isOppCardEditSession()&&!confirm("Load "+fs.value+"? This replaces the opponent card on the field.")) return;
+  newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);
+ };
+ document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
  document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
  document.getElementById("addWR").onclick=()=>{snap();const id=Math.max(0,...STATE.players.map(p=>p.id))+1;STATE.players.push({id,lab:"A",x:500,y:545,type:"route",color:null,ol:0,blk:null,route:[],motion:[]});renderAll();};
  document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
