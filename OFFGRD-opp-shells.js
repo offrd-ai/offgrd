@@ -30,6 +30,24 @@
     return s === "off" || s === "offense" || s === "o";
   }
 
+  function isDefSide(side) {
+    var s = norm(side);
+    return s === "def" || s === "defense" || s === "d";
+  }
+
+  function normSide(side) {
+    if (isDefSide(side)) return "def";
+    return "off";
+  }
+
+  /** Specific charted stunt/blitz label — not bare pressure=yes. */
+  function chartedBlitz(row) {
+    var b = String((row && row.blitz) || "").trim();
+    if (!b) return "";
+    if (/^(yes|y|1|true|press|pressure)$/i.test(b)) return "";
+    return b;
+  }
+
   function sameOpponent(a, b) {
     return norm(a) === norm(b);
   }
@@ -104,7 +122,22 @@
    * Card unit = (play name if present, else signature) × formation.
    * Named plays do not collapse across formations — alignment is the card.
    */
-  function signatureOf(row) {
+  function signatureOf(row, side) {
+    if (normSide(side) === "def") {
+      var front = (row && row.front) || "";
+      var cov = (row && row.coverage) || "";
+      var blitz = chartedBlitz(row);
+      var key = "def:" + norm(front) + "|" + norm(cov) + (blitz ? "|" + norm(blitz) : "");
+      return {
+        kind: "def",
+        play: "",
+        rollupKey: "def:" + norm(front),
+        key: key,
+        front: front,
+        coverage: cov,
+        blitz: blitz,
+      };
+    }
     var named = playName(row);
     var form = formationKey(row);
     if (named) {
@@ -156,6 +189,13 @@
       avgGain: null,
       successRate: null,
       rowIds: [],
+      side: sig.kind === "def" ? "def" : "off",
+      front: sig.front || (sample && sample.front) || "",
+      coverage: sig.coverage || (sample && sample.coverage) || "",
+      blitz: sig.blitz || "",
+      pressureN: 0,
+      pressureRate: 0,
+      share: 0,
     };
   }
 
@@ -228,19 +268,26 @@
     return line;
   }
 
-  function filterOffRows(rows, opponent) {
+  function filterRows(rows, opponent, side) {
     var opp = String(opponent || "").trim();
     if (!opp) return [];
+    var want = normSide(side);
     return (rows || []).filter(function (r) {
-      return r && isOffSide(r.side) && sameOpponent(r.opponent, opp);
+      if (!r || !sameOpponent(r.opponent, opp)) return false;
+      return want === "def" ? isDefSide(r.side) : isOffSide(r.side);
     });
   }
 
-  function cacheKey(rows, opponent) {
+  function filterOffRows(rows, opponent) {
+    return filterRows(rows, opponent, "off");
+  }
+
+  function cacheKey(rows, opponent, side) {
     var list = rows || [];
     var first = list[0] || {};
     var last = list[list.length - 1] || {};
     return [
+      normSide(side),
       norm(opponent),
       list.length,
       first.id || first.play || "",
@@ -249,12 +296,13 @@
   }
 
   /**
-   * Group verified offensive SNAP_CORPUS rows for one opponent.
+   * Group verified SNAP_CORPUS rows for one opponent + side (off default).
    * Always recomputes (and refreshes the session cache).
    */
-  function groupRows(rows, opponent) {
+  function groupRows(rows, opponent, side) {
     var opp = String(opponent || "").trim();
-    var scoped = filterOffRows(rows, opp);
+    var want = normSide(side);
+    var scoped = filterRows(rows, opp, want);
     var by = Object.create(null);
     var order = [];
     var gainSum = Object.create(null);
@@ -263,7 +311,7 @@
     var successTot = Object.create(null);
 
     scoped.forEach(function (row) {
-      var sig = signatureOf(row);
+      var sig = signatureOf(row, want);
       var g = by[sig.key];
       if (!g) {
         g = emptyGroup(sig, row);
@@ -282,6 +330,7 @@
       }
       bump(g.fieldZoneDist, fieldZoneKey(row));
       bump(g.hashSplit, hashKey(row));
+      if (+row.pressure === 1 || row.pressure === true || row.pressure === "1") g.pressureN += 1;
       var gn = +row.gain;
       if (!isNaN(gn) && row.gain != null && row.gain !== "") {
         gainSum[sig.key] += gn;
@@ -324,41 +373,48 @@
 
     var sumN = 0;
     groups.forEach(function (g) { sumN += g.n; });
+    groups.forEach(function (g) {
+      g.share = sumN ? g.n / sumN : 0;
+      g.pressureRate = g.n ? g.pressureN / g.n : 0;
+    });
     var result = {
       opponent: opp,
+      side: want,
       total: scoped.length,
       sumN: sumN,
       groups: groups,
       rollups: rollups,
     };
-    if (opp) _cache[cacheKey(scoped, opp)] = result;
+    if (opp) _cache[cacheKey(scoped, opp, want)] = result;
     return result;
   }
 
-  /** Session-cached grouping. Same opponent + same scoped rows → same object. */
-  function groupsFor(rows, opponent) {
+  /** Session-cached grouping. Same opponent + side + same scoped rows → same object. */
+  function groupsFor(rows, opponent, side) {
     var opp = String(opponent || "").trim();
-    var scoped = filterOffRows(rows, opp);
-    var key = cacheKey(scoped, opp);
+    var want = normSide(side);
+    var scoped = filterRows(rows, opp, want);
+    var key = cacheKey(scoped, opp, want);
     if (_cache[key]) return _cache[key];
-    return groupRows(rows, opponent);
+    return groupRows(rows, opponent, want);
   }
 
   function clearCache() {
     _cache = Object.create(null);
   }
 
-  function shellKeyOf(row) {
-    return signatureOf(row).key;
+  function shellKeyOf(row, side) {
+    return signatureOf(row, side).key;
   }
 
   /**
-   * Every verified off row for this opponent must land in exactly one group.
+   * Every verified row for this opponent + side must land in exactly one group.
    * sum(group.n) === scoped row count. No drops, no double-counts.
    */
-  function reconcile(rows, opponent) {
-    var scoped = filterOffRows(rows, opponent);
-    var grouped = groupRows(rows, opponent);
+  function reconcile(rows, opponent, side) {
+    var want = normSide(side);
+    var scoped = filterRows(rows, opponent, want);
+    var grouped = groupRows(rows, opponent, want);
     var seenIds = Object.create(null);
     var dupIds = [];
     var missing = 0;
@@ -371,13 +427,15 @@
       });
     });
     scoped.forEach(function (row) {
-      var key = shellKeyOf(row);
+      var key = shellKeyOf(row, want);
       if (!byKey[key]) missing += 1;
     });
     var ok = grouped.sumN === scoped.length && !dupIds.length && missing === 0;
     return {
       opponent: String(opponent || "").trim(),
+      side: want,
       verifiedOffRows: scoped.length,
+      verifiedRows: scoped.length,
       groupCount: grouped.groups.length,
       sumN: grouped.sumN,
       missing: missing,
@@ -899,6 +957,8 @@
     shellKeyOf: shellKeyOf,
     reconcile: reconcile,
     filterOffRows: filterOffRows,
+    filterRows: filterRows,
+    chartedBlitz: chartedBlitz,
     isOppCardPlay: isOppCardPlay,
     tagOppCard: tagOppCard,
     ownPlaybookList: ownPlaybookList,
