@@ -84,6 +84,24 @@
     return (d + dist).trim();
   }
 
+  /* Red = canon rejected a charted tag. Muted = no formation charted. */
+  function formationHonesty(play) {
+    if (play && play.unchartedFormation) return "uncharted";
+    if (play && play.unresolvedFormation) return "rejected";
+    return "ok";
+  }
+
+  function honestyBadges(play) {
+    const n = play && play.n != null ? play.n : "?";
+    const kind = formationHonesty(play);
+    if (kind === "uncharted") {
+      return '<span class="sc-uncharted">no formation charted · n=' + esc(n) + "</span>";
+    }
+    const bits = ['<span class="sc-shell">AUTO-SHELL · n=' + esc(n) + "</span>"];
+    if (kind === "rejected") bits.push('<span class="sc-unres">unresolved formation</span>');
+    return bits.join('<span class="sc-sep">·</span>');
+  }
+
   function callStripHtml(play, format) {
     const m = metaOf(play);
     const bits = [];
@@ -99,18 +117,14 @@
         if (play.blitz) bits.push('<span class="sc-blitz">' + esc(play.blitz) + "</span>");
       }
       if (play.cardStatus === "shell") {
-        if (play.unchartedFormation) {
-          bits.push('<span class="sc-uncharted">no formation charted · n=' + esc(play.n != null ? play.n : "?") + "</span>");
-        } else {
-          bits.push('<span class="sc-shell">AUTO-SHELL · n=' + esc(play.n != null ? play.n : "?") + "</span>");
-          if (play.unresolvedFormation) bits.push('<span class="sc-unres">unresolved formation</span>');
-        }
+        bits.push(honestyBadges(play));
       } else if (play.n != null) {
         bits.push('<span class="sc-n">n=' + esc(play.n) + "</span>");
       }
     }
     const call = '<div class="sc-call"><b>' + esc(m.name) + "</b></div>";
-    const sub = [m.formation, m.personnel, format === "install" ? m.protection : ""].filter(Boolean).map(esc).join(" · ");
+    const showForm = formationHonesty(play) === "uncharted" ? "" : m.formation;
+    const sub = [showForm, m.personnel, format === "install" ? m.protection : ""].filter(Boolean).map(esc).join(" · ");
     const meta = bits.length ? ('<div class="sc-meta">' + bits.join('<span class="sc-sep">·</span>') + "</div>") : "";
     const subHtml = sub ? ('<div class="sc-sub">' + sub + "</div>") : "";
     return call + subHtml + meta;
@@ -480,8 +494,7 @@
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
           + '<span style="flex:1"><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
           + esc([m.formation || p.front, m.personnel, isOppFmt(format) ? (p.n != null ? "n=" + p.n : ddLabel(m)) : ""].filter(Boolean).join(" · "))
-          + (isOppFmt(format) && p.unchartedFormation ? ' <span class="sc-uncharted">no formation charted</span>' : "")
-          + (isOppFmt(format) && p.unresolvedFormation && !p.unchartedFormation ? ' <span class="sc-unres">unresolved</span>' : "")
+          + (isOppFmt(format) && p.cardStatus === "shell" ? " " + honestyBadges(p) : "")
           + (isOppFmt(format) && p.thin ? ' <span class="sc-thin">THIN</span>' : "")
           + "</span></span>"
           + (isOppFmt(format) && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
@@ -652,6 +665,7 @@
   root.OFFGRD_SCOUTCARDS = {
     FORMATS, PER_PAGE,
     isScoutcards, hasDiagram, metaOf, cardHtml, buildSheetHtml,
+    formationHonesty, honestyBadges,
     printSheet, previewInto, downloadCardPng,
     installPlays, opponentPlaysFromGames, opponentPack, enrichFromScout,
     injectInto, openModal, readUiState, writeUiState

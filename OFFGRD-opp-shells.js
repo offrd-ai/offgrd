@@ -59,6 +59,13 @@
     return p;
   }
 
+  /** No tag charted — not a value the canon refused. */
+  function isBlankChartTag(raw) {
+    var t = String(raw == null ? "" : raw).trim();
+    if (!t) return true;
+    return /^(n\/?a|none|unknown|unk|-|—|--|\?)$/i.test(t);
+  }
+
   function playTypeOf(row) {
     var t = norm(row && row.playType);
     if (/pass/.test(t)) return "pass";
@@ -576,7 +583,7 @@
     var fallback = FC && typeof FC.getById === "function" ? FC.getById("DOUBLES_2X2") : null;
     var trimmed = String(raw || "").trim();
     /* No OFF FORM tag is not an error — keep a placement fallback, do not reject. */
-    if (!trimmed) return { formation: fallback, unresolved: false, uncharted: true };
+    if (isBlankChartTag(trimmed)) return { formation: fallback, unresolved: false, uncharted: true };
     var tries = [
       trimmed,
       trimmed.replace(/\s*\([^)]*\)\s*$/, ""),
@@ -799,10 +806,13 @@
     var R = root.OFFGRD_RENDER;
     var fronts = (R && R.DFRONTS) || {};
     var trimmed = String(raw || "").trim();
-    if (trimmed && fronts[trimmed]) return { front: trimmed, unresolved: false };
+    if (isBlankChartTag(trimmed)) {
+      return { front: fronts["4-3"] ? "4-3" : Object.keys(fronts)[0] || "4-3", unresolved: false, uncharted: true };
+    }
+    if (trimmed && fronts[trimmed]) return { front: trimmed, unresolved: false, uncharted: false };
     var aliased = FRONT_ALIASES[norm(raw)] || "";
-    if (aliased && fronts[aliased]) return { front: aliased, unresolved: false };
-    return { front: fronts["4-3"] ? "4-3" : Object.keys(fronts)[0] || "4-3", unresolved: !!trimmed };
+    if (aliased && fronts[aliased]) return { front: aliased, unresolved: false, uncharted: false };
+    return { front: fronts["4-3"] ? "4-3" : Object.keys(fronts)[0] || "4-3", unresolved: true, uncharted: false };
   }
 
   function applyChartedStunt(defs, blitz) {
@@ -835,7 +845,8 @@
       n: g.n,
       thin: !!g.thin,
       sitWeight: g.sitWeight != null ? g.sitWeight : situationWeight(g),
-      unresolvedFormation: !!resolved.unresolved,
+      unchartedFormation: !!resolved.uncharted,
+      unresolvedFormation: !!resolved.unresolved && !resolved.uncharted,
       front: resolved.front,
       coverage: cov,
       blitz: g.blitz || "",

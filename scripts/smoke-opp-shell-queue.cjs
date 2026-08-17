@@ -91,8 +91,11 @@ check("selected header copy", cov.selectedHeader === "Selected 3 plays = 100% of
 
 const emptyForm = S.resolveFormation("");
 check("empty formation is uncharted not rejected", emptyForm.uncharted === true && emptyForm.unresolved === false);
+check("n/a formation is uncharted", S.resolveFormation("n/a").uncharted === true && S.resolveFormation("n/a").unresolved === false);
 const rejected = S.resolveFormation("NOT_A_REAL_FORM_XYZ");
 check("rejected tag stays unresolved", rejected.unresolved === true && !rejected.uncharted);
+const spread = S.resolveFormation("SPREAD");
+check("SPREAD family label stays rejected", spread.unresolved === true && !spread.uncharted);
 const unchartedShell = S.buildShell({ play: "Ghost", formation: "", n: 4, shellKey: "play:ghost|", sitWeight: 4 });
 const resolvedShell = S.buildShell({ play: "Inside Zone", formation: "2x2 Doubles Gun", n: 4, shellKey: "play:iz|", sitWeight: 4 });
 check("uncharted shell is not red-unresolved", unchartedShell.unchartedFormation === true && unchartedShell.unresolvedFormation === false);
@@ -107,6 +110,19 @@ S.telePush("print", { opponent: OPP, t_open_to_print_ms: 1200, shells: 2, drawn:
 const tele = S.teleRead();
 check("tele ring has named events", tele.length === 2 && tele[0].event === "queue_open" && tele[1].event === "print");
 check("print payload keeps t_open_to_print_ms", tele[1].t_open_to_print_ms === 1200);
+
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-scoutcards.js"), "utf8"), sandbox);
+const SC = sandbox.OFFGRD_SCOUTCARDS;
+if (!SC || !SC.buildSheetHtml) {
+  fails += 1;
+  console.error("FAIL load OFFGRD_SCOUTCARDS.buildSheetHtml");
+} else {
+  const unchartedCard = SC.cardHtml(Object.assign({}, unchartedShell, { cardStatus: "shell", players: [{ id: 0 }] }), "opponent");
+  check("sheet uses muted uncharted badge", /sc-uncharted/.test(unchartedCard) && !/sc-unres/.test(unchartedCard));
+  const rejectedShell = S.buildShell({ play: "Dart", formation: "SPREAD", n: 6, shellKey: "sig:spread|", sitWeight: 6 });
+  const rejectedCard = SC.cardHtml(Object.assign({}, rejectedShell, { cardStatus: "shell", players: [{ id: 0 }] }), "opponent");
+  check("sheet keeps red for canon-rejected tag", /sc-unres/.test(rejectedCard) && /unresolved formation/.test(rejectedCard));
+}
 
 if (fails) {
   console.error(fails + " failed");
