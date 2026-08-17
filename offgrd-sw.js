@@ -50,6 +50,7 @@ var PRECACHE = [
   "./OFFGRD-cv-review.js?v=" + ASSET_V,
   "./OFFGRD-frame-capture.js?v=" + ASSET_V,
   "./OFFGRD-assist-import.js?v=" + ASSET_V,
+  "./OFFGRD-opp-shells.js?v=" + ASSET_V,
   "./OFFGRD-qb-offline-queue.js?v=" + ASSET_V,
   "./OFFGRD-qb-cloud.js?v=" + ASSET_V,
   "./OFFGRD-role-gate.js?v=" + ASSET_V,
