@@ -234,6 +234,9 @@
     var at = a && a.thin ? 1 : 0;
     var bt = b && b.thin ? 1 : 0;
     if (at !== bt) return at - bt;
+    var au = a && a.unchartedFormation ? 1 : 0;
+    var bu = b && b.unchartedFormation ? 1 : 0;
+    if (au !== bu) return au - bu;
     var aw = a && a.sitWeight != null ? a.sitWeight : situationWeight(a);
     var bw = b && b.sitWeight != null ? b.sitWeight : situationWeight(b);
     if (bw !== aw) return bw - aw;
@@ -258,6 +261,12 @@
       header: def
         ? ("Top " + take + " looks = " + pct + "% of their defensive snaps.")
         : ("Top " + take + " plays = " + pct + "% of their snaps."),
+      selectedHeader: def
+        ? ("Selected " + take + " looks = " + pct + "% of their defensive snaps.")
+        : ("Selected " + take + " plays = " + pct + "% of their snaps."),
+      weightHint: def
+        ? ("Top " + take + " by weight = " + pct + "% of their defensive snaps.")
+        : ("Top " + take + " by weight = " + pct + "% of their snaps."),
     };
   }
 
@@ -446,7 +455,7 @@
       duplicateIds: dupIds,
       ok: ok,
       groups: grouped.groups.map(function (g) {
-        return { shellKey: g.shellKey, play: g.play, formation: g.formation, n: g.n };
+        return { shellKey: g.shellKey, play: g.play || "(unnamed)", formation: g.formation, n: g.n };
       }),
     };
   }
@@ -564,20 +573,23 @@
 
   function resolveFormation(raw) {
     var FC = root.OFFGRD_FORMATION_CANON;
+    var fallback = FC && typeof FC.getById === "function" ? FC.getById("DOUBLES_2X2") : null;
+    var trimmed = String(raw || "").trim();
+    /* No OFF FORM tag is not an error — keep a placement fallback, do not reject. */
+    if (!trimmed) return { formation: fallback, unresolved: false, uncharted: true };
     var tries = [
-      raw,
-      String(raw || "").replace(/\s*\([^)]*\)\s*$/, ""),
-      String(raw || "").replace(/\s+(gun|pistol|under)\s*$/i, ""),
+      trimmed,
+      trimmed.replace(/\s*\([^)]*\)\s*$/, ""),
+      trimmed.replace(/\s+(gun|pistol|under)\s*$/i, ""),
     ];
     var f = null;
     if (FC && typeof FC.resolve === "function") {
       for (var i = 0; i < tries.length; i++) {
         f = FC.resolve(tries[i]);
-        if (f) return { formation: f, unresolved: false };
+        if (f) return { formation: f, unresolved: false, uncharted: false };
       }
     }
-    var fallback = FC && typeof FC.getById === "function" ? FC.getById("DOUBLES_2X2") : null;
-    return { formation: fallback, unresolved: true };
+    return { formation: fallback, unresolved: true, uncharted: false };
   }
 
   function gapTarget(gap, sign) {
@@ -656,7 +668,7 @@
       try {
         players = clonePlayers(FC.playersFromFormation(resolved.formation));
       } catch (e) {
-        resolved = { formation: FC.getById && FC.getById("DOUBLES_2X2"), unresolved: true };
+        resolved = { formation: FC.getById && FC.getById("DOUBLES_2X2"), unresolved: !resolved.uncharted, uncharted: !!resolved.uncharted };
         try {
           players = clonePlayers(FC.playersFromFormation(resolved.formation));
         } catch (e2) {
@@ -711,21 +723,23 @@
       });
     }
 
-    var displayForm =
-      (resolved.formation && resolved.formation.display) || g.formation || "";
+    var displayForm = resolved.uncharted
+      ? ""
+      : ((resolved.formation && resolved.formation.display) || g.formation || "");
     var name = g.play || [g.playType, g.direction, g.gap || g.passZone].filter(Boolean).join(" ") || "Opp play";
     return {
       id: "shell-" + g.shellKey,
       name: name,
       formation: displayForm,
-      personnel: (resolved.formation && resolved.formation.personnel) || "",
+      personnel: resolved.uncharted ? "" : ((resolved.formation && resolved.formation.personnel) || ""),
       opponent: g.opponent || "",
       cardStatus: "shell",
       shellKey: g.shellKey,
       n: g.n,
       thin: !!g.thin,
       sitWeight: g.sitWeight != null ? g.sitWeight : situationWeight(g),
-      unresolvedFormation: !!resolved.unresolved,
+      unchartedFormation: !!resolved.uncharted,
+      unresolvedFormation: !!resolved.unresolved && !resolved.uncharted,
       rollupLabel: g.rollupLabel || "",
       play: g.play || "",
       playType: playType,
@@ -977,6 +991,17 @@
     } catch (e) {}
   }
 
+  function isEditSession() {
+    try {
+      if (typeof location === "undefined") return false;
+      if (!/[?&]from=opp-card(?:&|$)/.test(location.search || "")) return false;
+      var d = readEditDraft();
+      return !!(d && d.shellKey);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function readEditDraft() {
     try {
       var raw = sessionStorage.getItem(DRAFT_KEY);
@@ -1081,6 +1106,7 @@
     tagOppCard: tagOppCard,
     ownPlaybookList: ownPlaybookList,
     writeEditDraft: writeEditDraft,
+    isEditSession: isEditSession,
     readEditDraft: readEditDraft,
     clearEditDraft: clearEditDraft,
     queueReturnUrl: queueReturnUrl,

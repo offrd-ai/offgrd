@@ -99,8 +99,12 @@
         if (play.blitz) bits.push('<span class="sc-blitz">' + esc(play.blitz) + "</span>");
       }
       if (play.cardStatus === "shell") {
-        bits.push('<span class="sc-shell">AUTO-SHELL · n=' + esc(play.n != null ? play.n : "?") + "</span>");
-        if (play.unresolvedFormation) bits.push('<span class="sc-unres">unresolved formation</span>');
+        if (play.unchartedFormation) {
+          bits.push('<span class="sc-uncharted">no formation charted · n=' + esc(play.n != null ? play.n : "?") + "</span>");
+        } else {
+          bits.push('<span class="sc-shell">AUTO-SHELL · n=' + esc(play.n != null ? play.n : "?") + "</span>");
+          if (play.unresolvedFormation) bits.push('<span class="sc-unres">unresolved formation</span>');
+        }
       } else if (play.n != null) {
         bits.push('<span class="sc-n">n=' + esc(play.n) + "</span>");
       }
@@ -139,8 +143,10 @@
     return "<style id=\"sc-print-css\">"
       + ".sc-sheet{font-family:system-ui,Segoe UI,sans-serif;color:#13294B}"
       + ".sc-sheet-title{font-size:18px;font-weight:800;margin:0 0 10px;color:#13294B}"
-      + ".sc-coverage{font-size:13px;font-weight:800;color:#13294B;margin:0 0 8px}"
-      + ".sc-footer{font-size:11px;font-weight:700;color:#5a6575;margin:10px 0 0}"
+      + ".sc-coverage{font-size:13px;font-weight:800;color:#13294B;margin:0 0 4px}"
+      + ".sc-coverage-hint{font-size:11px;font-weight:700;color:#374151;margin:0 0 8px}"
+      + ".sc-footer{font-size:11px;font-weight:700;color:#374151;margin:10px 0 0}"
+      + ".sc-uncharted{color:#374151;font-weight:700}"
       + ".sc-thin{color:#9a3412;font-weight:800}"
       + ".sc-grid{display:grid;gap:10px}"
       + ".sc-grid.pp-1{grid-template-columns:1fr}"
@@ -177,6 +183,8 @@
       + ".sc-grid.pp-2 .sc-call{font-size:16px}"
       + ".sc-grid.pp-2 .sc-diagram{flex:1}"
       + ".sc-grid.pp-2 .sc-diagram svg{max-height:3.4in}"
+      + ".sc-coverage{color:#13294B!important}"
+      + ".sc-coverage-hint,.sc-footer,.sc-uncharted{color:#374151!important}"
       + "}"
       + "</style>";
   }
@@ -201,6 +209,7 @@
       if (pi) html += '<div class="sc-page-break"></div>';
       html += '<div class="sc-sheet-title">' + esc(title) + (pages.length > 1 ? (" · " + (pi + 1) + "/" + pages.length) : "") + "</div>";
       if (opts.coverageHeader) html += '<div class="sc-coverage">' + esc(opts.coverageHeader) + "</div>";
+      if (opts.coverageHint) html += '<div class="sc-coverage-hint">' + esc(opts.coverageHint) + "</div>";
       html += '<div class="sc-grid pp-' + perPage + '">';
       page.forEach(p => { html += cardHtml(p, format, size); });
       html += "</div>";
@@ -471,6 +480,8 @@
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
           + '<span style="flex:1"><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
           + esc([m.formation || p.front, m.personnel, isOppFmt(format) ? (p.n != null ? "n=" + p.n : ddLabel(m)) : ""].filter(Boolean).join(" · "))
+          + (isOppFmt(format) && p.unchartedFormation ? ' <span class="sc-uncharted">no formation charted</span>' : "")
+          + (isOppFmt(format) && p.unresolvedFormation && !p.unchartedFormation ? ' <span class="sc-unres">unresolved</span>' : "")
           + (isOppFmt(format) && p.thin ? ' <span class="sc-thin">THIN</span>' : "")
           + "</span></span>"
           + (isOppFmt(format) && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
@@ -515,8 +526,18 @@
       const footer = S && S.printFooterLine
         ? S.printFooterLine({ drawnCount: drawnN, shellCount: shellN, pct: cov ? cov.pct : 0, opponent: opts.opponent || pack.opponent || "", side: side })
         : "";
+      const header = (cov && cov.selectedHeader) || (cov && cov.header) || "";
+      const packHint = pack.coverage && pack.coverage.weightHint
+        ? pack.coverage.weightHint
+        : (pack.coverage
+          ? ("Top " + pack.coverage.topCount + " by weight = " + pack.coverage.pct + "% of their " + (side === "def" ? "defensive snaps." : "snaps."))
+          : "");
+      const hint = packHint && cov && (pack.coverage.topCount !== cov.topCount || pack.coverage.pct !== cov.pct)
+        ? packHint
+        : "";
       return {
-        coverageHeader: (pack.coverage && pack.coverage.header) || (cov && cov.header) || "",
+        coverageHeader: header,
+        coverageHint: hint,
         footer: footer,
       };
     }

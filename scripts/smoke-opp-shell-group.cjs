@@ -208,6 +208,16 @@ check(
   rec.ok && rec.sumN === rec.verifiedOffRows && rec.verifiedOffRows === 9,
   JSON.stringify({ sumN: rec.sumN, verifiedOffRows: rec.verifiedOffRows, missing: rec.missing, dups: rec.duplicateIds })
 );
+const anonRec = S.reconcile([
+  row({ id: "anon1", play: "", formation: "2x2 Doubles Gun" }),
+  row({ id: "anon2", play: "", formation: "2x2 Doubles Gun" }),
+  row({ id: "anon3", play: "n/a", formation: "2x2 Doubles Gun" }),
+], OPP);
+check(
+  "reconcile prints (unnamed)",
+  anonRec.groups.length >= 1 && anonRec.groups.every(function (g) { return g.play === "(unnamed)"; }),
+  JSON.stringify(anonRec.groups.map(function (g) { return g.play; }))
+);
 check("shellKeyOf named includes formation", S.shellKeyOf(rows[0]) === "play:inside zone|2x2 doubles gun");
 check("isOppCardPlay tagged", S.isOppCardPlay({ opponent: OPP, shellKey: "play:inside zone|2x2 doubles gun" }));
 check("ownPlaybookList drops opp cards", S.ownPlaybookList([{ name: "Our smash" }, { name: "IZ", opponent: OPP, shellKey: "x" }]).length === 1);

@@ -87,6 +87,17 @@ check("thin last even if 3rd+RZ", ranked[ranked.length - 1] && ranked[ranked.len
 const cov = S.coverageOf(ranked, grouped.total, 12);
 check("coverage uses all groups when <12", cov.topCount === 3 && cov.total === 10);
 check("coverage header copy", cov.header === "Top 3 plays = 100% of their snaps.", cov.header);
+check("selected header copy", cov.selectedHeader === "Selected 3 plays = 100% of their snaps.", cov.selectedHeader);
+
+const emptyForm = S.resolveFormation("");
+check("empty formation is uncharted not rejected", emptyForm.uncharted === true && emptyForm.unresolved === false);
+const rejected = S.resolveFormation("NOT_A_REAL_FORM_XYZ");
+check("rejected tag stays unresolved", rejected.unresolved === true && !rejected.uncharted);
+const unchartedShell = S.buildShell({ play: "Ghost", formation: "", n: 4, shellKey: "play:ghost|", sitWeight: 4 });
+const resolvedShell = S.buildShell({ play: "Inside Zone", formation: "2x2 Doubles Gun", n: 4, shellKey: "play:iz|", sitWeight: 4 });
+check("uncharted shell is not red-unresolved", unchartedShell.unchartedFormation === true && unchartedShell.unresolvedFormation === false);
+const formRank = [unchartedShell, resolvedShell].sort(S.queueCompare);
+check("uncharted below resolved groups", formRank[0] === resolvedShell && formRank[1] === unchartedShell);
 
 const footer = S.printFooterLine({ drawnCount: 1, shellCount: 2, pct: 91, opponent: OPP });
 check("print footer names opponent", footer === "1 drawn · 2 shells · 91% of snaps · " + OPP, footer);

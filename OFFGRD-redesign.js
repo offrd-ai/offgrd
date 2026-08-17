@@ -256,7 +256,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "282";
+  const ASSET_V = "283";
 
   function getScoutTool() {
     try {
@@ -1156,6 +1156,8 @@
       '}',
       'html.rd-on #scModal #scPreview .sc-call,html.rd-on #scModal #scPreview .sc-meta{color:var(--rd-text)!important;}',
       'html.rd-on #scModal #scPreview .sc-sub,html.rd-on #scModal #scPreview .sc-sep{color:var(--rd-muted)!important;}',
+      'html.rd-on #scModal #scPreview .sc-coverage{color:var(--rd-text)!important;}',
+      'html.rd-on #scModal #scPreview .sc-coverage-hint,html.rd-on #scModal #scPreview .sc-footer,html.rd-on #scModal #scPreview .sc-uncharted{color:var(--rd-muted)!important;}',
       'html.rd-on #view-cards{display:block;}',
       'html.rd-on #view-cards .sc-view-body{',
       'background:var(--rd-surface)!important;color:var(--rd-text)!important;',
@@ -1174,6 +1176,13 @@
       '}',
       'html.rd-on #view-cards #scPick b,html.rd-on #view-cards .sc-sheet-title,html.rd-on #view-cards .sc-call,html.rd-on #view-cards .sc-meta{color:var(--rd-text)!important;}',
       'html.rd-on #view-cards .sc-sub,html.rd-on #view-cards .sc-sep{color:var(--rd-muted)!important;}',
+      'html.rd-on #view-cards .sc-coverage{color:var(--rd-text)!important;}',
+      'html.rd-on #view-cards .sc-coverage-hint,html.rd-on #view-cards .sc-footer,html.rd-on #view-cards .sc-uncharted{color:var(--rd-muted)!important;}',
+      '@media print{',
+      'html.rd-on #view-cards .sc-coverage,html.rd-on #scModal #scPreview .sc-coverage{color:#13294B!important;}',
+      'html.rd-on #view-cards .sc-coverage-hint,html.rd-on #view-cards .sc-footer,html.rd-on #view-cards .sc-uncharted,',
+      'html.rd-on #scModal #scPreview .sc-coverage-hint,html.rd-on #scModal #scPreview .sc-footer,html.rd-on #scModal #scPreview .sc-uncharted{color:#374151!important;}',
+      '}',
       /* ---- Phase 5: Gameday stripped sideline (Caller + Booth) ---- */
       'html.rd-on.rd-gameday #rdNavBody{flex-direction:column;}',
       'html.rd-on.rd-gameday #rdPhases{',

@@ -1294,18 +1294,24 @@
     };
   }
 
+  function fromOppCard() {
+    try { return /[?&]from=opp-card(?:&|$)/.test(location.search || ""); } catch (e) { return false; }
+  }
+
   function init(host) {
     H = host || {};
     skill = defaultSkill();
-    document.body.classList.toggle("skill-guided", skill === "guided");
-    document.body.classList.toggle("skill-expert", skill === "expert");
+    /* Opp-card shell edit skips Guided "How do you want to start?" — land on the draft. */
+    const skipGuided = fromOppCard();
+    document.body.classList.toggle("skill-guided", skill === "guided" && !skipGuided);
+    document.body.classList.toggle("skill-expert", skill === "expert" || skipGuided);
 
     const g = document.getElementById("skillGuided");
     const e = document.getElementById("skillExpert");
     if (g) g.onclick = function () { setSkill("guided"); };
     if (e) e.onclick = function () { setSkill("expert"); };
-    if (g) g.classList.toggle("on", skill === "guided");
-    if (e) e.classList.toggle("on", skill === "expert");
+    if (g) g.classList.toggle("on", skill === "guided" && !skipGuided);
+    if (e) e.classList.toggle("on", skill === "expert" || skipGuided);
 
     const back = document.getElementById("wizDockBack");
     const next = document.getElementById("wizDockNext");
@@ -1319,7 +1325,7 @@
 
     const dock = document.getElementById("wizDock");
     if (dock) {
-      if (skill === "guided") {
+      if (skill === "guided" && !skipGuided) {
         dock.style.display = "block";
         open({ quiet: true });
       } else {
