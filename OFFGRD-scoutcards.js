@@ -41,8 +41,8 @@
     if (!play) return false;
     if (play.thumbSvg) return true;
     if (root.OFFGRD_RENDER && OFFGRD_RENDER.hasPlayData) return OFFGRD_RENDER.hasPlayData(play);
-    const st = play.players ? play : (play.data && play.data.players ? play.data : null);
-    return !!(st && st.players && st.players.length);
+    const st = play.players || play.defs ? play : (play.data && (play.data.players || play.data.defs) ? play.data : null);
+    return !!(st && ((st.players && st.players.length) || (st.defs && st.defs.length)));
   }
 
   function playState(play) {
@@ -112,7 +112,8 @@
       return '<div class="sc-diagram sc-thumb">' + play.thumbSvg + "</div>";
     }
     if (st && root.OFFGRD_RENDER && OFFGRD_RENDER.renderMarkup) {
-      const inner = OFFGRD_RENDER.renderMarkup(st, { showHandles: false, sel: null, anim: false });
+      const showZ = !!(play.showZones || play.side === "def" || play.cardFormat === "opponent-d");
+      const inner = OFFGRD_RENDER.renderMarkup(st, { showHandles: false, sel: null, anim: false, showZones: showZ });
       return '<div class="sc-diagram sc-full"><svg viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg">' + inner + "</svg></div>";
     }
     if (play.thumbSvg) return '<div class="sc-diagram sc-thumb">' + play.thumbSvg + "</div>";

@@ -738,6 +738,110 @@
     };
   }
 
+  var FRONT_ALIASES = {
+    "42 over-g": "4-3",
+    "42 over": "4-3",
+    "42 under": "4-3",
+    "4-3 over": "4-3",
+    "4-3 under": "4-3",
+    "33 stack": "3-3-5 (Tite)",
+    "3-3-5": "3-3-5 (Tite)",
+    "3-3-5 tite": "3-3-5 (Tite)",
+    tite: "3-3-5 (Tite)",
+    bear: "Bear (46)",
+    "46": "Bear (46)",
+    "bear (46)": "Bear (46)",
+    "30 odd": "3-4",
+    "3-4 odd": "3-4",
+    nickel: "Nickel",
+    "4-2-5": "4-2-5",
+    dime: "Dime (4-1-6)",
+    "dime (4-1-6)": "Dime (4-1-6)",
+    "4-4 eagle": "4-4 EAGLE",
+    "4-4 over": "4-4 OVER",
+    "5-0": "5-0",
+    "5-0 even": "5-0",
+  };
+
+  function coverageCanon(raw) {
+    var n = norm(raw).replace(/^c\s*/, "cover ");
+    if (n === "cover 0" || n === "cover0" || n === "c0") return "Cover 0";
+    if (n === "cover 1" || n === "cover1" || n === "c1" || n === "man") return "Cover 1";
+    if (n === "cover 2" || n === "cover2" || n === "c2") return "Cover 2";
+    if (n === "2-man" || n === "2 man" || n === "cover 2 man") return "2-Man";
+    if (n === "cover 3" || n === "cover3" || n === "c3") return "Cover 3";
+    if (n === "cover 4" || n === "cover4" || n === "c4" || n === "quarters") return "Cover 4";
+    if (n === "cover 6" || n === "cover6" || n === "c6") return "Cover 6";
+    if (n === "tampa 2" || n === "tampa2") return "Tampa 2";
+    var pretty = String(raw || "").trim();
+    return pretty || "";
+  }
+
+  function resolveDefFront(raw) {
+    var R = root.OFFGRD_RENDER;
+    var fronts = (R && R.DFRONTS) || {};
+    var trimmed = String(raw || "").trim();
+    if (trimmed && fronts[trimmed]) return { front: trimmed, unresolved: false };
+    var aliased = FRONT_ALIASES[norm(raw)] || "";
+    if (aliased && fronts[aliased]) return { front: aliased, unresolved: false };
+    return { front: fronts["4-3"] ? "4-3" : Object.keys(fronts)[0] || "4-3", unresolved: !!trimmed };
+  }
+
+  function applyChartedStunt(defs, blitz) {
+    if (!blitz || !defs || !defs.length) return;
+    var rusher = defs.filter(function (d) { return d.group === "LB"; })[0]
+      || defs.filter(function (d) { return d.group === "DL"; })[0]
+      || defs[0];
+    if (!rusher) return;
+    rusher.role = "rush";
+    rusher.route = [
+      { x: Math.round((rusher.x + BALL_X) / 2), y: Math.round(rusher.y + 18) },
+      { x: BALL_X, y: LOS_Y + 8 },
+    ];
+  }
+
+  function buildDefShell(group) {
+    var g = group || {};
+    var R = root.OFFGRD_RENDER;
+    var resolved = resolveDefFront(g.front);
+    var cov = coverageCanon(g.coverage);
+    var state = {
+      id: "shell-" + g.shellKey,
+      name: [g.front || resolved.front, cov].filter(Boolean).join(" · ") || "Opp D",
+      formation: g.formation || "",
+      opponent: g.opponent || "",
+      cardStatus: "shell",
+      shellKey: g.shellKey,
+      side: "def",
+      cardFormat: "opponent-d",
+      n: g.n,
+      thin: !!g.thin,
+      sitWeight: g.sitWeight != null ? g.sitWeight : situationWeight(g),
+      unresolvedFormation: !!resolved.unresolved,
+      front: resolved.front,
+      coverage: cov,
+      blitz: g.blitz || "",
+      pressureRate: g.pressureRate || 0,
+      pressureN: g.pressureN || 0,
+      share: g.share || 0,
+      showZones: true,
+      players: [],
+      defs: [],
+      texts: [],
+      draws: [],
+      field: "High School",
+    };
+    if (R && typeof R.placeDefenseOn === "function") {
+      R.placeDefenseOn(state, resolved.front, cov || "none");
+    }
+    (state.defs || []).forEach(function (d) {
+      d.route = [];
+      if (d.role === "rush") d.role = "zone";
+    });
+    if (g.blitz) applyChartedStunt(state.defs, g.blitz);
+    return state;
+  }
+
   function drawnToPlay(row) {
     if (!row) return null;
     var st = row.play_state || row.playState || row.data || row;
@@ -969,7 +1073,10 @@
     promoteToEditor: promoteToEditor,
     persistDrawnFromEditor: persistDrawnFromEditor,
     resolveFormation: resolveFormation,
+    resolveDefFront: resolveDefFront,
+    coverageCanon: coverageCanon,
     buildShell: buildShell,
+    buildDefShell: buildDefShell,
     cardsForOpponent: cardsForOpponent,
     loadDrawnCache: loadDrawnCache,
     saveDrawnCache: saveDrawnCache,

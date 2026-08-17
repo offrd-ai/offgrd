@@ -103,6 +103,17 @@
       .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "NB", x: 250, y: 330 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 200 }, { pos: "SS", x: 570, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
     "Dime (4-1-6)": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
       .concat([{ pos: "MLB", x: 500, y: 316 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
+      .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "NB", x: 250, y: 330 }, { pos: "NB", x: 750, y: 330 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 200 }, { pos: "SS", x: 570, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
+    "4-4": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
+      .concat([{ pos: "OLB", x: 330, y: 322 }, { pos: "ILB", x: 445, y: 314 }, { pos: "ILB", x: 555, y: 314 }, { pos: "OLB", x: 670, y: 322 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
+      .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 500, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
+    "4-4 EAGLE": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
+      .concat([{ pos: "OLB", x: 300, y: 328 }, { pos: "ILB", x: 420, y: 314 }, { pos: "ILB", x: 530, y: 314 }, { pos: "OLB", x: 650, y: 322 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
+      .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 500, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
+    "4-4 OVER": [{ pos: "DE", x: 380 }, { pos: "DT", x: 475 }, { pos: "DT", x: 565 }, { pos: "DE", x: 660 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
+      .concat([{ pos: "OLB", x: 350, y: 322 }, { pos: "ILB", x: 470, y: 314 }, { pos: "ILB", x: 580, y: 314 }, { pos: "OLB", x: 700, y: 322 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
+      .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 520, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
+    "5-0": [{ pos: "DE", x: 340 }, { pos: "DT", x: 430 }, { pos: "NT", x: 500 }, { pos: "DT", x: 570 }, { pos: "DE", x: 660 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
       .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "NB", x: 250, y: 330 }, { pos: "NB", x: 750, y: 330 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 200 }, { pos: "SS", x: 570, y: 200 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" })))
   };
 
@@ -763,7 +774,7 @@
   function hasPlayData(play) {
     if (!play) return false;
     const st = play.players ? play : (play.data && play.data.players ? play.data : play.data || play);
-    return !!(st && Array.isArray(st.players) && st.players.length);
+    return !!(st && ((Array.isArray(st.players) && st.players.length) || (Array.isArray(st.defs) && st.defs.length)));
   }
 
   function normalizePlayData(play) {
