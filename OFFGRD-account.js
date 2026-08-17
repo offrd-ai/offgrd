@@ -1621,7 +1621,11 @@ window.OFFGRD_WEEK_PLAYS=async function(){
   if(!TEAM) return [];
   try{ const rows=await Cloud.listPlays(TEAM.id);
     /* Keep diagram + Step-3 fields so Package Install can match calls and derive reads. */
-    return (rows||[]).map(r=>({
+    return (rows||[]).filter(function(r){
+      var p=Object.assign({}, r.data||{}, r);
+      if(window.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.isOppCardPlay) return !OFFGRD_OPP_SHELLS.isOppCardPlay(p);
+      return !(p.shellKey && p.opponent);
+    }).map(r=>({
       id:r.id, name:r.name||"Play", formation:r.formation||"", family:r.family||"",
       personnel:r.personnel||"", protection:r.protection||"",
       data:r.data||null, qb_reads:r.qb_reads||null, ol_keys:r.ol_keys||null,

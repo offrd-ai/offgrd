@@ -660,6 +660,7 @@
     }
     var lib = [];
     try{ lib = JSON.parse(localStorage.getItem("offgrd_playbook_v1") || "[]"); }catch(e){}
+    if(window.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.ownPlaybookList) lib = OFFGRD_OPP_SHELLS.ownPlaybookList(lib);
     if(lib && lib.length){ open(lib); return; }
     if(window.Cloud && Cloud.ready && Cloud.listPlays){
       Cloud.myTeams().then(function(teams){
@@ -667,7 +668,11 @@
         try{ tid = localStorage.getItem("offgrd_team"); }catch(e){}
         var team = (teams || []).find(function(t){ return t.id === tid; }) || (teams && teams[0]);
         if(!team){ open([]); return; }
-        return Cloud.listPlays(team.id).then(function(plays){ open(plays || []); });
+        return Cloud.listPlays(team.id).then(function(plays){
+          var list = plays || [];
+          if(window.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.ownPlaybookList) list = OFFGRD_OPP_SHELLS.ownPlaybookList(list);
+          open(list);
+        });
       }).catch(function(){ open([]); });
       return;
     }

@@ -200,7 +200,11 @@
 
   /* ---------- sources ---------- */
   function installPlays(lib) {
-    return (lib || []).filter(hasDiagram);
+    const S = root.OFFGRD_OPP_SHELLS;
+    return (lib || []).filter(function (p) {
+      if (S && S.isOppCardPlay && S.isOppCardPlay(p)) return false;
+      return hasDiagram(p);
+    });
   }
 
   function opponentPack(opts) {
@@ -406,15 +410,27 @@
         const m = metaOf(p);
         return '<label class="sc-pick-row" style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid ' + (rdOn ? "var(--rd-border)" : "#e8edf3") + ';cursor:pointer">'
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
-          + '<span><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
+          + '<span style="flex:1"><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
           + esc([m.formation, m.personnel, format === "opponent" ? ddLabel(m) : ""].filter(Boolean).join(" · "))
-          + "</span></span></label>";
+          + "</span></span>"
+          + (format === "opponent" && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
+          + "</label>";
       }).join("") || '<p class="hint">No diagrammed plays available.</p>';
       host.querySelectorAll("input[data-id]").forEach(inp => {
         inp.onchange = () => {
           if (inp.checked) selected.add(inp.dataset.id);
           else selected.delete(inp.dataset.id);
           paintPreview();
+        };
+      });
+      host.querySelectorAll("button[data-edit]").forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const play = list.find(x => String(x.id || x.name) === btn.dataset.edit);
+          if (play && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.promoteToEditor) {
+            OFFGRD_OPP_SHELLS.promoteToEditor(play);
+          }
         };
       });
       paintPreview();

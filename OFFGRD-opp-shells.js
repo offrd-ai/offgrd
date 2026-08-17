@@ -667,14 +667,124 @@
     };
   }
 
+  var OPP_CARD_TAG = "opp-card";
+  var DRAFT_KEY = "offgrd_opp_card_edit";
+
+  function isOppCardPlay(p) {
+    function flagsOn(obj) {
+      if (!obj || typeof obj !== "object") return false;
+      if (obj.excludeFromPlaybook) return true;
+      if (obj.shellKey && obj.opponent) return true;
+      if (obj.cardStatus === "shell" || obj.cardStatus === "drawn") return true;
+      var tags = obj.tags || [];
+      for (var i = 0; i < tags.length; i++) {
+        var t = String(tags[i] || "").toLowerCase();
+        if (t === OPP_CARD_TAG || t.indexOf("opponent:") === 0 || t.indexOf("shell:") === 0) return true;
+      }
+      return false;
+    }
+    if (!p) return false;
+    if (flagsOn(p)) return true;
+    if (p.data && p.data !== p && flagsOn(p.data)) return true;
+    return false;
+  }
+
+  function tagOppCard(state, opponent, shellKey) {
+    if (!state) return state;
+    state.opponent = opponent || state.opponent || "";
+    state.shellKey = shellKey || state.shellKey || "";
+    state.excludeFromPlaybook = true;
+    if (!Array.isArray(state.tags)) state.tags = [];
+    function add(tag) {
+      var low = state.tags.map(function (t) { return String(t).toLowerCase(); });
+      if (low.indexOf(String(tag).toLowerCase()) < 0) state.tags.push(tag);
+    }
+    add(OPP_CARD_TAG);
+    if (state.opponent) add("opponent:" + state.opponent);
+    if (state.shellKey) add("shell:" + state.shellKey);
+    return state;
+  }
+
+  function ownPlaybookList(list) {
+    return (list || []).filter(function (p) { return !isOppCardPlay(p); });
+  }
+
+  function writeEditDraft(play) {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(play));
+    } catch (e) {}
+  }
+
+  function readEditDraft() {
+    try {
+      var raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearEditDraft() {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch (e) {}
+  }
+
+  function queueReturnUrl(opponent) {
+    return "OFFGRD.html?openScoutCards=1&opp=" + encodeURIComponent(opponent || "");
+  }
+
+  function promoteToEditor(shell) {
+    if (!shell) return false;
+    var draft = JSON.parse(JSON.stringify(shell));
+    tagOppCard(draft, shell.opponent, shell.shellKey);
+    draft.cardStatus = "shell";
+    writeEditDraft(draft);
+    location.href = "OFFGRD-Playbook.html?from=opp-card";
+    return true;
+  }
+
+  function persistDrawnFromEditor(state, teamId) {
+    if (!state || !isOppCardPlay(state)) return Promise.resolve(null);
+    state.cardStatus = "drawn";
+    tagOppCard(state, state.opponent, state.shellKey);
+    var card = {
+      opponent: state.opponent,
+      shell_key: state.shellKey,
+      shellKey: state.shellKey,
+      card_status: "drawn",
+      cardStatus: "drawn",
+      play_state: state,
+      play_name: state.name || state.play || "",
+      formation: state.formation || "",
+      backfield: state.offBackfield || state.backfield || "",
+      off_str: state.offStrength || "",
+      play_type: state.playType || state.type || "",
+      direction: state.direction || "",
+      gap: state.gap || "",
+      pass_zone: state.passZone || "",
+    };
+    return pushDrawn(teamId, card);
+  }
+
   root.OFFGRD_OPP_SHELLS = {
     CARD_THIN_N: CARD_THIN_N,
+    OPP_CARD_TAG: OPP_CARD_TAG,
     groupRows: groupRows,
     groupsFor: groupsFor,
     clearCache: clearCache,
     shellKeyOf: shellKeyOf,
     reconcile: reconcile,
     filterOffRows: filterOffRows,
+    isOppCardPlay: isOppCardPlay,
+    tagOppCard: tagOppCard,
+    ownPlaybookList: ownPlaybookList,
+    writeEditDraft: writeEditDraft,
+    readEditDraft: readEditDraft,
+    clearEditDraft: clearEditDraft,
+    queueReturnUrl: queueReturnUrl,
+    promoteToEditor: promoteToEditor,
+    persistDrawnFromEditor: persistDrawnFromEditor,
     resolveFormation: resolveFormation,
     buildShell: buildShell,
     cardsForOpponent: cardsForOpponent,

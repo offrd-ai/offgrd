@@ -209,6 +209,8 @@ check(
   JSON.stringify({ sumN: rec.sumN, verifiedOffRows: rec.verifiedOffRows, missing: rec.missing, dups: rec.duplicateIds })
 );
 check("shellKeyOf named includes formation", S.shellKeyOf(rows[0]) === "play:inside zone|2x2 doubles gun");
+check("isOppCardPlay tagged", S.isOppCardPlay({ opponent: OPP, shellKey: "play:inside zone|2x2 doubles gun" }));
+check("ownPlaybookList drops opp cards", S.ownPlaybookList([{ name: "Our smash" }, { name: "IZ", opponent: OPP, shellKey: "x" }]).length === 1);
 
 const seedCsv = path.join(
   "D:",

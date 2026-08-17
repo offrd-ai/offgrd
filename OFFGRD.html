@@ -5770,6 +5770,7 @@ document.getElementById("manageBtn").onclick=openManager;
     if(!(window.OFFGRD_SCOUTCARDS&&OFFGRD_SCOUTCARDS.isScoutcards())) return;
     let lib=[]; try{ lib=JSON.parse(localStorage.getItem("offgrd_playbook_v1")||"[]"); }catch(e){}
     if((!lib||!lib.length)&&PBOOK&&PBOOK.length) lib=PBOOK;
+    if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.ownPlaybookList) lib=OFFGRD_OPP_SHELLS.ownPlaybookList(lib);
     OFFGRD_SCOUTCARDS.openModal({
       installLib:Array.isArray(lib)?lib:[],
       games:GAMES||[],
@@ -5788,6 +5789,16 @@ document.getElementById("manageBtn").onclick=openManager;
       }
     });
   };
+  try{
+    const q=location.search||"";
+    if(/[?&]openScoutCards=1(?:&|$)/.test(q)){
+      const m=q.match(/[?&]opp=([^&]*)/);
+      if(m&&m[1]&&typeof setOpponent==="function"){
+        try{ setOpponent(decodeURIComponent(m[1])); }catch(eOpp){}
+      }
+      setTimeout(function(){ try{ b.click(); }catch(eOpen){} }, 80);
+    }
+  }catch(eQ){}
 })();
 (function(){
   const b=document.getElementById("tendencyBtn"); if(!b) return;
