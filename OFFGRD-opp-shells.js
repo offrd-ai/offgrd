@@ -12,6 +12,9 @@
      (need more snaps). Shell cards ask "is this play real enough to print a card?"
      (a 2-snap play is still a play they ran). Do not unify these thresholds. */
   var CARD_THIN_N = 3;
+  /* Named export — do not inline 1.25. Strict majority of the group's
+     D&D / field-zone distribution (count * 2 > n), not "any 3rd/RZ snap." */
+  var OPP_CARD_SIT_WEIGHT = { THIRD_OR_REDZONE_MULT: 1.25 };
 
   var _cache = Object.create(null);
 
@@ -156,11 +159,73 @@
     };
   }
 
+  function distCount(map, pred) {
+    var n = 0;
+    Object.keys(map || {}).forEach(function (k) {
+      if (pred(k)) n += map[k] || 0;
+    });
+    return n;
+  }
+
+  function isRedZoneKey(k) {
+    var u = String(k || "").toUpperCase().replace(/\s+/g, "");
+    return u === "REDZONE" || u === "RZ" || u === "RED" || u === "GOALLINE" || u === "GL";
+  }
+
+  /** weight = n, ×1.25 if the group is strictly majority 3rd down or red zone. */
+  function situationWeight(group) {
+    var n = +((group && group.n) || 0);
+    if (!n) return 0;
+    var third = distCount(group.downDist, function (k) { return String(k) === "3"; });
+    var rz = distCount(group.fieldZoneDist, isRedZoneKey);
+    var boost = third * 2 > n || rz * 2 > n;
+    return n * (boost ? OPP_CARD_SIT_WEIGHT.THIRD_OR_REDZONE_MULT : 1);
+  }
+
   function finishGroup(g, gainSum, gainN, successN, successTot) {
     g.thin = g.n < CARD_THIN_N;
+    g.sitWeight = situationWeight(g);
     g.avgGain = gainN ? Math.round((gainSum / gainN) * 10) / 10 : null;
     g.successRate = successTot ? Math.round((successN / successTot) * 100) / 100 : null;
     return g;
+  }
+
+  function queueCompare(a, b) {
+    var at = a && a.thin ? 1 : 0;
+    var bt = b && b.thin ? 1 : 0;
+    if (at !== bt) return at - bt;
+    var aw = a && a.sitWeight != null ? a.sitWeight : situationWeight(a);
+    var bw = b && b.sitWeight != null ? b.sitWeight : situationWeight(b);
+    if (bw !== aw) return bw - aw;
+    if (((b && b.n) || 0) !== ((a && a.n) || 0)) return ((b && b.n) || 0) - ((a && a.n) || 0);
+    return String((a && (a.shellKey || a.name)) || "").localeCompare(String((b && (b.shellKey || b.name)) || ""));
+  }
+
+  function coverageOf(cards, total, topN) {
+    topN = topN == null ? 12 : topN;
+    var list = cards || [];
+    var take = Math.min(topN, list.length);
+    var snaps = 0;
+    for (var i = 0; i < take; i++) snaps += (list[i] && list[i].n) || 0;
+    var tot = +total || 0;
+    var pct = tot ? Math.round((snaps / tot) * 100) : 0;
+    return {
+      topCount: take,
+      snaps: snaps,
+      total: tot,
+      pct: pct,
+      header: "Top " + take + " plays = " + pct + "% of their snaps.",
+    };
+  }
+
+  function printFooterLine(opts) {
+    opts = opts || {};
+    var drawn = +opts.drawnCount || 0;
+    var shells = +opts.shellCount || 0;
+    var pct = opts.pct != null ? opts.pct : 0;
+    var line = drawn + " drawn · " + shells + " shells · " + pct + "% of snaps";
+    if (opts.opponent) line += " · " + opts.opponent;
+    return line;
   }
 
   function filterOffRows(rows, opponent) {
@@ -597,6 +662,7 @@
       shellKey: g.shellKey,
       n: g.n,
       thin: !!g.thin,
+      sitWeight: g.sitWeight != null ? g.sitWeight : situationWeight(g),
       unresolvedFormation: !!resolved.unresolved,
       rollupLabel: g.rollupLabel || "",
       play: g.play || "",
@@ -639,7 +705,25 @@
     opts = opts || {};
     var opponent = opts.opponent || "";
     var grouped = groupsFor(opts.snaps || [], opponent);
-    var drawn = (opts.drawn || []).map(drawnToPlay).filter(Boolean);
+    var byKey = Object.create(null);
+    grouped.groups.forEach(function (g) { byKey[g.shellKey] = g; });
+    function attachMeta(card) {
+      if (!card) return card;
+      var g = card.shellKey ? byKey[card.shellKey] : null;
+      if (g) {
+        card.n = g.n;
+        card.thin = !!g.thin;
+        card.sitWeight = g.sitWeight;
+        card.downDist = g.downDist;
+        card.fieldZoneDist = g.fieldZoneDist;
+      } else {
+        if (card.n == null) card.n = 0;
+        card.thin = !!card.thin || card.n < CARD_THIN_N;
+        card.sitWeight = situationWeight(card);
+      }
+      return card;
+    }
+    var drawn = (opts.drawn || []).map(drawnToPlay).filter(Boolean).map(attachMeta);
     var drawnKeys = Object.create(null);
     drawn.forEach(function (d) {
       if (d.shellKey) drawnKeys[d.shellKey] = true;
@@ -647,15 +731,17 @@
     var rowDiagrams = (opts.rowDiagrams || []).filter(function (p) {
       var k = p.shellKey || "";
       return !k || !drawnKeys[k];
-    });
+    }).map(attachMeta);
     var shells = grouped.groups
       .map(function (g) {
         g.opponent = opponent;
-        return buildShell(g);
+        return attachMeta(buildShell(g));
       })
       .filter(function (s) {
         return s && s.players && s.players.length && !drawnKeys[s.shellKey];
       });
+    var cards = drawn.concat(rowDiagrams, shells).sort(queueCompare);
+    var cov = coverageOf(cards, grouped.total, 12);
     return {
       opponent: opponent,
       total: grouped.total,
@@ -663,7 +749,8 @@
       drawn: drawn,
       rowDiagrams: rowDiagrams,
       shells: shells,
-      cards: drawn.concat(rowDiagrams, shells),
+      cards: cards,
+      coverage: cov,
     };
   }
 
@@ -740,8 +827,35 @@
     tagOppCard(draft, shell.opponent, shell.shellKey);
     draft.cardStatus = "shell";
     writeEditDraft(draft);
+    telePush("shell_edit", { opponent: draft.opponent || "", shellKey: draft.shellKey || "" });
     location.href = "OFFGRD-Playbook.html?from=opp-card";
     return true;
+  }
+
+  /* Event names are stable so a later POST to Supabase can reuse them. */
+  var TELE_KEY = "offgrd_opp_card_tele_v1";
+  var TELE_MAX = 50;
+
+  function teleRead() {
+    try {
+      if (typeof localStorage === "undefined") return [];
+      var raw = localStorage.getItem(TELE_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function telePush(event, payload) {
+    var row = Object.assign({ event: event, t: Date.now() }, payload || {});
+    var buf = teleRead();
+    buf.push(row);
+    if (buf.length > TELE_MAX) buf = buf.slice(buf.length - TELE_MAX);
+    try {
+      if (typeof localStorage !== "undefined") localStorage.setItem(TELE_KEY, JSON.stringify(buf));
+    } catch (e) {}
+    return row;
   }
 
   function persistDrawnFromEditor(state, teamId) {
@@ -769,7 +883,14 @@
 
   root.OFFGRD_OPP_SHELLS = {
     CARD_THIN_N: CARD_THIN_N,
+    OPP_CARD_SIT_WEIGHT: OPP_CARD_SIT_WEIGHT,
     OPP_CARD_TAG: OPP_CARD_TAG,
+    situationWeight: situationWeight,
+    queueCompare: queueCompare,
+    coverageOf: coverageOf,
+    printFooterLine: printFooterLine,
+    teleRead: teleRead,
+    telePush: telePush,
     groupRows: groupRows,
     groupsFor: groupsFor,
     clearCache: clearCache,

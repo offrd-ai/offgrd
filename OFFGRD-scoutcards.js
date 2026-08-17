@@ -132,6 +132,9 @@
     return "<style id=\"sc-print-css\">"
       + ".sc-sheet{font-family:system-ui,Segoe UI,sans-serif;color:#13294B}"
       + ".sc-sheet-title{font-size:18px;font-weight:800;margin:0 0 10px;color:#13294B}"
+      + ".sc-coverage{font-size:13px;font-weight:800;color:#13294B;margin:0 0 8px}"
+      + ".sc-footer{font-size:11px;font-weight:700;color:#5a6575;margin:10px 0 0}"
+      + ".sc-thin{color:#9a3412;font-weight:800}"
       + ".sc-grid{display:grid;gap:10px}"
       + ".sc-grid.pp-1{grid-template-columns:1fr}"
       + ".sc-grid.pp-2{grid-template-columns:repeat(2,1fr)}"
@@ -190,9 +193,11 @@
     pages.forEach((page, pi) => {
       if (pi) html += '<div class="sc-page-break"></div>';
       html += '<div class="sc-sheet-title">' + esc(title) + (pages.length > 1 ? (" · " + (pi + 1) + "/" + pages.length) : "") + "</div>";
+      if (opts.coverageHeader) html += '<div class="sc-coverage">' + esc(opts.coverageHeader) + "</div>";
       html += '<div class="sc-grid pp-' + perPage + '">';
       page.forEach(p => { html += cardHtml(p, format, size); });
       html += "</div>";
+      if (opts.footer) html += '<div class="sc-footer">' + esc(opts.footer) + "</div>";
     });
     html += "</div>";
     return { html, count: plays.filter(hasDiagram).length, perPage, format };
@@ -343,9 +348,20 @@
     let format = opts.format || "install";
     let perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
     let selected = new Set((opts.selectedIds || []).map(String));
+    const openedAt = Date.now();
     if (!selected.size) {
       const seed = format === "opponent" ? (pack.cards || []) : install;
-      seed.slice(0, Math.min(6, seed.length)).forEach(p => selected.add(String(p.id || p.name)));
+      const take = format === "opponent" ? 12 : 6;
+      seed.slice(0, Math.min(take, seed.length)).forEach(p => selected.add(String(p.id || p.name)));
+    }
+    if (format === "opponent" && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
+      OFFGRD_OPP_SHELLS.telePush("queue_open", {
+        opponent: opts.opponent || "",
+        cards: (pack.cards || []).length,
+        shells: (pack.shells || []).length,
+        drawn: (pack.drawn || []).length,
+        total: pack.total || 0,
+      });
     }
 
     const viewOnly = !!opts.viewOnly;
@@ -411,7 +427,8 @@
         return '<label class="sc-pick-row" style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid ' + (rdOn ? "var(--rd-border)" : "#e8edf3") + ';cursor:pointer">'
           + '<input type="checkbox" data-id="' + esc(id) + '"' + (on ? " checked" : "") + ">"
           + '<span style="flex:1"><b style="font-size:13px">' + esc(m.name) + "</b><br><span class=\"tag\">"
-          + esc([m.formation, m.personnel, format === "opponent" ? ddLabel(m) : ""].filter(Boolean).join(" · "))
+          + esc([m.formation, m.personnel, format === "opponent" ? (p.n != null ? "n=" + p.n : ddLabel(m)) : ""].filter(Boolean).join(" · "))
+          + (format === "opponent" && p.thin ? ' <span class="sc-thin">THIN</span>' : "")
           + "</span></span>"
           + (format === "opponent" && p.cardStatus === "shell" ? '<button type="button" class="btn" data-edit="' + esc(id) + '">Edit</button>' : "")
           + "</label>";
@@ -441,12 +458,28 @@
       return list.filter(p => selected.has(String(p.id || p.name)));
     }
 
+    function sheetExtras(plays) {
+      if (format !== "opponent") return {};
+      const S = root.OFFGRD_OPP_SHELLS;
+      const tot = pack.total || 0;
+      const cov = S && S.coverageOf ? S.coverageOf(plays, tot, plays.length || 12) : null;
+      const drawnN = plays.filter(p => p.cardStatus === "drawn").length;
+      const shellN = plays.filter(p => p.cardStatus === "shell").length;
+      const footer = S && S.printFooterLine
+        ? S.printFooterLine({ drawnCount: drawnN, shellCount: shellN, pct: cov ? cov.pct : 0, opponent: opts.opponent || pack.opponent || "" })
+        : "";
+      return {
+        coverageHeader: (pack.coverage && pack.coverage.header) || (cov && cov.header) || "",
+        footer: footer,
+      };
+    }
+
     function paintPreview() {
       const plays = selectedPlays();
       const title = format === "opponent"
         ? ("Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : ""))
         : "Install cards";
-      previewInto(ov.querySelector("#scPreview"), plays, { format, perPage, title });
+      previewInto(ov.querySelector("#scPreview"), plays, Object.assign({ format, perPage, title }, sheetExtras(plays)));
       const c = ov.querySelector("#scCount");
       if (c) c.textContent = plays.length + " selected";
       ov.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === format));
@@ -459,7 +492,7 @@
         format = b.dataset.fmt;
         perPage = (FORMATS[format] || FORMATS.install).perPageDefault;
         selected = new Set();
-        sourceList().slice(0, Math.min(6, sourceList().length)).forEach(p => selected.add(String(p.id || p.name)));
+        sourceList().slice(0, Math.min(format === "opponent" ? 12 : 6, sourceList().length)).forEach(p => selected.add(String(p.id || p.name)));
         paintPick();
       };
     });
@@ -468,10 +501,24 @@
     ov.querySelector("#scNone").onclick = () => { selected.clear(); paintPick(); };
     ov.querySelector("#scClose").onclick = () => ov.remove();
     ov.querySelector("#scPrint").onclick = () => {
-      const r = printSheet(selectedPlays(), {
+      const plays = selectedPlays();
+      const extras = sheetExtras(plays);
+      const r = printSheet(plays, Object.assign({
         format, perPage,
         title: format === "opponent" ? ("Opponent scout" + (opts.opponent ? (" · " + opts.opponent) : "")) : "Install cards"
-      });
+      }, extras));
+      if (format === "opponent" && root.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.telePush) {
+        const drawnN = plays.filter(p => p.cardStatus === "drawn").length;
+        const shellN = plays.filter(p => p.cardStatus === "shell").length;
+        const denom = drawnN + shellN;
+        OFFGRD_OPP_SHELLS.telePush("print", {
+          opponent: opts.opponent || "",
+          t_open_to_print_ms: Date.now() - openedAt,
+          shells: shellN,
+          drawn: drawnN,
+          pct_shells_edited: denom ? Math.round((drawnN / denom) * 100) : 0,
+        });
+      }
       if (!r.ok && opts.onMsg) opts.onMsg(r.error);
     };
     const pngBtn = ov.querySelector("#scPng");
