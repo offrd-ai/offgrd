@@ -340,6 +340,9 @@ footer{
 .wt-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .walkthrough + .walkthrough{margin-top:8px}
 .walkthrough:last-of-type{margin-bottom:40px}
+.wt-jump{color:var(--cyan);font-weight:700;font-size:13.5px;white-space:nowrap}
+.wt-jump:hover{color:var(--text)}
+#walkthrough-repslab{scroll-margin-top:96px}
 .jclose{margin:10px 0 0 150px;background:linear-gradient(180deg,rgba(47,107,255,.10),rgba(255,255,255,.02));border:1px solid var(--stroke-2);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
 .jclose::before{content:"";position:absolute;top:-1px;left:20px;right:20px;height:2px;background:var(--grad)}
 .jclose .big{font-family:Anton,sans-serif;text-transform:uppercase;font-size:clamp(20px,2.6vw,28px);line-height:1.15}
@@ -499,9 +502,15 @@ footer{
           <img src="/walkthroughs/posters/scout-walkthrough-poster.jpg" alt="Read your scout like a coordinator" loading="lazy" />
         </button>
       </div>
+      <div class="walkthrough reveal" id="walkthrough-repslab">
+        <h3>Assigned Sunday. Studied by Monday.</h3>
+        <button type="button" class="wt-poster" data-file="repslab-walkthrough" data-title="Your playbook, teaching itself" aria-label="Play: Your playbook, teaching itself">
+          <img src="/walkthroughs/posters/repslab-walkthrough-poster.jpg" alt="Your playbook, teaching itself" loading="lazy" />
+        </button>
+      </div>
       <div class="jstep reveal"><span class="jday">Monday</span><h3>Set the week from the Coaches Hub. <span class="jmod">Coaches Hub · Flywheel</span></h3><p>Roster, depth chart, schedule, and daily check-ins in one place — Friday's bust and missed-fit tags arrive <b>already ranked</b>, and Sunday's first test scores show <b>who's already studied</b>. Confirm the practice focus and the whole week aims itself.</p></div>
-      <div class="jstep reveal"><span class="jday">Tue – Wed</span><h3>Practice with purpose. Dial the plan daily. <span class="jmod">Reps Lab · Scout cards</span></h3><p>Each morning's scores show what the roster <b>actually absorbed</b>. Drill what the tests expose, trim what they've mastered, and adjust the gameplan <b>while there's still time to fix it</b>. The scout team shows the opponent's <b>actual plays</b> off auto-printed scout cards — nobody hand-drew a thing.</p></div>
-      <div class="jstep reveal"><span class="jday">Thursday</span><h3>Final check: who's ready, what to walk through. <span class="jmod">Reps Lab · Results</span></h3><p>By Thursday it isn't a guess — <b>a week of scores</b> by player and position says who's ready, and the Results board hands your staff <b>the exact looks to hit in the walkthrough</b>. Testing all week is how the gameplan gets dialed in, one day at a time.</p></div>
+      <div class="jstep reveal"><span class="jday">Tue – Wed</span><h3>Practice with purpose. Dial the plan daily. <span class="jmod">Reps Lab · Scout cards</span></h3><p>Each morning's scores show what the roster <b>actually absorbed</b>. Drill what the tests expose, trim what they've mastered, and adjust the gameplan <b>while there's still time to fix it</b>. The scout team shows the opponent's <b>actual plays</b> off auto-printed scout cards — nobody hand-drew a thing. <a class="wt-jump" href="#walkthrough-repslab">▶ watch how</a></p></div>
+      <div class="jstep reveal"><span class="jday">Thursday</span><h3>Final check: who's ready, what to walk through. <span class="jmod">Reps Lab · Results</span></h3><p>By Thursday it isn't a guess — <b>a week of scores</b> by player and position says who's ready, and the Results board hands your staff <b>the exact looks to hit in the walkthrough</b>. Testing all week is how the gameplan gets dialed in, one day at a time. <a class="wt-jump" href="#walkthrough-repslab">▶ watch how</a></p></div>
       <div class="jstep reveal"><span class="jday">Friday</span><h3>Call the game — both sides, AI on every snap. <span class="jmod">O + D Callers · In-game AI</span></h3><p>Predicted look, your best calls, live analysis recomputed every snap — <b>fully offline</b>. The system answers the questions so you can do what you do best: coach.</p></div>
       <div class="walkthrough reveal">
         <h3>Friday night. Zero bars. Every answer.</h3>
