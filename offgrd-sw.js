@@ -251,26 +251,47 @@ function isHtmlNav(req) {
   return false;
 }
 
+/** App-shell keys (OFFGRD.html / /gameday/ / scope root) may only be written
+ *  from a request whose URL is that shell — never "any HTML navigation". */
+function isAppShellRequest(url) {
+  try {
+    var path = new URL(url, self.registration.scope).pathname || "/";
+    if (/\/OFFGRD\.html$/i.test(path)) return true;
+    var scopePath = "/";
+    try { scopePath = new URL(self.registration.scope).pathname || "/"; } catch (e2) {}
+    function bare(p) { return String(p || "/").replace(/\/+$/, "") || "/"; }
+    if (bare(path) === bare(scopePath)) return true;
+    if (/\/gameday$/i.test(bare(path))) return true;
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+function putExactUrl(cache, req, res) {
+  var pathCopy = null;
+  var pathKey = null;
+  try {
+    var u = new URL(req.url);
+    if (u.search) {
+      pathKey = u.origin + u.pathname;
+      pathCopy = res.clone();
+    }
+  } catch (e) {}
+  return putUrl(cache, req.url, res).then(function () {
+    if (pathCopy && pathKey) return putUrl(cache, pathKey, pathCopy);
+  });
+}
+
 /** Cache a Response already reserved for SW use (do not pass the browser copy). */
 function putRuntime(req, res) {
   if (!res || !res.ok) return;
   caches.open(CACHE).then(function (cache) {
-    if (isHtmlNav(req)) {
+    if (isHtmlNav(req) && isAppShellRequest(req.url)) {
       putShell(cache, res);
       return;
     }
-    var pathCopy = null;
-    var pathKey = null;
-    try {
-      var u = new URL(req.url);
-      if (u.search) {
-        pathKey = u.origin + u.pathname;
-        pathCopy = res.clone();
-      }
-    } catch (e) {}
-    putUrl(cache, req.url, res).then(function () {
-      if (pathCopy && pathKey) putUrl(cache, pathKey, pathCopy);
-    });
+    putExactUrl(cache, req, res);
   });
 }
 
@@ -323,3 +344,11 @@ self.addEventListener("fetch", function (event) {
       })
   );
 });
+
+/* Test hooks — smoke-sw-shell-keys.cjs. Not used by the worker at runtime. */
+self.__OFFGRD_SW = {
+  isAppShellRequest: isAppShellRequest,
+  putRuntime: putRuntime,
+  matchShell: matchShell,
+  putShell: putShell,
+};
