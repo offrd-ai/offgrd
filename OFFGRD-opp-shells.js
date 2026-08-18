@@ -603,7 +603,8 @@
    *   2. program map hit on exact raw_tag_norm (ahead of builtin)
    *   3. built-in exact canon (2X2, BUNCH, …) — unchanged
    *   4. miss → unresolved + fallback shell
-   * Map / row-structure hits keep the RAW tag as the display name.
+   * Map / row-structure / miss keep the RAW tag as the display name.
+   * Fallback picture is for drawing only — never the group label.
    */
   function resolveFormation(raw, ctx) {
     ctx = ctx || {};
@@ -650,7 +651,7 @@
         if (f) return { formation: f, unresolved: false, uncharted: false, mapped: false, source: "canon" };
       }
     }
-    return { formation: fallback, unresolved: true, uncharted: false, mapped: false, source: "miss" };
+    return { formation: fallback, unresolved: true, uncharted: false, mapped: false, source: "miss", keepRawName: true };
   }
 
   function gapTarget(gap, sign) {

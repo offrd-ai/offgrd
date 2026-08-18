@@ -113,6 +113,12 @@ const spreadRes = S.resolveFormation("SPREAD");
 check("SPREAD stays unresolved with map active", spreadRes.unresolved === true && !spreadRes.uncharted);
 const spreadShell = S.buildShell({ play: "Dart", formation: "SPREAD", n: 10, shellKey: "sig:spread|" });
 check("SPREAD shell stays red", spreadShell.unresolvedFormation === true && !spreadShell.unchartedFormation);
+check("unresolved SPREAD display is raw", spreadShell.formation === "SPREAD", spreadShell.formation);
+M.setCache(TEAM, [mapRow("SPREAD", "2x2")]);
+const mappedSpread = S.buildShell({ play: "Dart", formation: "SPREAD", n: 10, shellKey: "sig:spread|" });
+check("mapped tag display is raw", mappedSpread.formation === "SPREAD" && mappedSpread.unresolvedFormation === false, mappedSpread.formation);
+check("mapped DART display is raw", dartShell.formation === "DART", dartShell.formation);
+M.setCache(TEAM, PARKWAY_MAP);
 
 const ghost = S.buildShell({ play: "Ghost", formation: "", n: 4, shellKey: "play:ghost|" });
 check("(blank) stays uncharted muted", ghost.unchartedFormation === true && ghost.unresolvedFormation === false);
