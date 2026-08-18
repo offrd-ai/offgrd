@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v287: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v288: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=287"></script>
-<script src="OFFGRD-brand-persist.js?v=287"></script>
-<script src="supabase.js?v=287"></script>
-<script src="OFFGRD-cache-gate.js?v=287"></script>
+<script src="OFFGRD-config.js?v=288"></script>
+<script src="OFFGRD-brand-persist.js?v=288"></script>
+<script src="supabase.js?v=288"></script>
+<script src="OFFGRD-cache-gate.js?v=288"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,35 +380,36 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=287"></script>
-<script src="OFFGRD-pos-glossary.js?v=287"></script>
-<script src="OFFGRD-autoderive.js?v=287"></script>
-<script src="OFFGRD-matchup.js?v=287"></script>
-<script src="OFFGRD-scoutcards.js?v=287"></script>
-<script src="OFFGRD-tendencies.js?v=287"></script>
-<script src="OFFGRD-scout-report.js?v=287"></script>
-<script src="OFFGRD-week-autotest.js?v=287"></script>
-<script src="OFFGRD-weeklypackage.js?v=287"></script>
-<script src="OFFGRD-telestrate.js?v=287"></script>
-<script src="OFFGRD-redesign.js?v=287"></script>
-<script src="OFFGRD-shell.js?v=287"></script>
-<script src="OFFGRD-caller-outcome.js?v=287"></script>
-<script src="OFFGRD-caller-sit.js?v=287"></script>
-<script src="OFFGRD-formations-data.js?v=287"></script>
-<script src="OFFGRD-formation-canon.js?v=287"></script>
-<script src="OFFGRD-assist-import.js?v=287"></script>
-<script src="OFFGRD-opp-shells.js?v=287"></script>
-<script src="OFFGRD-cv-review.js?v=287"></script>
-<script src="OFFGRD-frame-capture.js?v=287"></script>
-<script src="OFFGRD-caller-log.js?v=287"></script>
-<script src="OFFGRD-caller-sync.js?v=287"></script>
-<script src="OFFGRD-caller-analysis.js?v=287"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=287"></script>
-<script src="OFFGRD-booth-ask.js?v=287"></script>
-<script src="OFFGRD-boothpack.js?v=287"></script>
-<script src="OFFGRD-booth-chat.js?v=287"></script>
-<script src="OFFGRD-caller-select.js?v=287"></script>
-<script src="OFFGRD-dcaller.js?v=287"></script>
+<script src="OFFGRD-render.js?v=288"></script>
+<script src="OFFGRD-pos-glossary.js?v=288"></script>
+<script src="OFFGRD-autoderive.js?v=288"></script>
+<script src="OFFGRD-matchup.js?v=288"></script>
+<script src="OFFGRD-scoutcards.js?v=288"></script>
+<script src="OFFGRD-tendencies.js?v=288"></script>
+<script src="OFFGRD-scout-report.js?v=288"></script>
+<script src="OFFGRD-week-autotest.js?v=288"></script>
+<script src="OFFGRD-weeklypackage.js?v=288"></script>
+<script src="OFFGRD-telestrate.js?v=288"></script>
+<script src="OFFGRD-redesign.js?v=288"></script>
+<script src="OFFGRD-shell.js?v=288"></script>
+<script src="OFFGRD-caller-outcome.js?v=288"></script>
+<script src="OFFGRD-caller-sit.js?v=288"></script>
+<script src="OFFGRD-formations-data.js?v=288"></script>
+<script src="OFFGRD-formation-canon.js?v=288"></script>
+<script src="OFFGRD-assist-import.js?v=288"></script>
+<script src="OFFGRD-opp-shells.js?v=288"></script>
+<script src="OFFGRD-formation-map.js?v=288"></script>
+<script src="OFFGRD-cv-review.js?v=288"></script>
+<script src="OFFGRD-frame-capture.js?v=288"></script>
+<script src="OFFGRD-caller-log.js?v=288"></script>
+<script src="OFFGRD-caller-sync.js?v=288"></script>
+<script src="OFFGRD-caller-analysis.js?v=288"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=288"></script>
+<script src="OFFGRD-booth-ask.js?v=288"></script>
+<script src="OFFGRD-boothpack.js?v=288"></script>
+<script src="OFFGRD-booth-chat.js?v=288"></script>
+<script src="OFFGRD-caller-select.js?v=288"></script>
+<script src="OFFGRD-dcaller.js?v=288"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2610,6 +2611,14 @@ function previewImport(){
         return pair[1]+" "+(cols[pair[0]]?"present":"absent");
       }).join(" \u00b7 ");
       H2+='<p class="foot" style="margin:2px 0">Export columns: '+colLine+'</p>';
+      const M=window.OFFGRD_FORMATION_MAP;
+      if(M&&typeof M.inventoryTags==="function"){
+        const inv=M.inventoryTags(rows, []);
+        const need=inv.unmapped.length;
+        if(need>0){
+          H2+='<p style="margin:8px 0 2px"><button type="button" class="rd-scout-cta" id="impFormMapCta" onclick="openFormationMap({fromImport:true})" style="'+(window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign()?'':'background:#13294B;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer')+'">'+need+' formation'+(need===1?'':'s')+' need mapping \u2192</button></p>';
+        }
+      }
     })();
     H+=H2;
   })();
@@ -5779,7 +5788,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=287", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=288", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5947,11 +5956,162 @@ function brandingHTML(){
      +'<label class="lbl" style="display:flex;align-items:center;gap:6px">Text <input type="color" id="brFg" value="'+(me.fg||"#ffffff")+'"></label>'
      +'<button class="ghost" id="brLogoBtn">Upload logo</button><button class="ghost" id="brLogoClr">Use initials</button></div>'
    +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Position names</div><p class="foot" style="margin:4px 0 8px">What your staff calls each spot · shared with the whole program.</p><div id="brPosGlossary"></div></div>'
-   +'<div style="margin-top:14px"><button id="brSave" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Save team</button> <span id="brMsg" class="foot"></span></div>'
+   +'<div style="margin-top:14px"><button id="brSave" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:800;cursor:pointer">Save team</button> <button class="ghost" id="brFormations">Formations</button> <span id="brMsg" class="foot"></span></div>'
    +'<div style="margin-top:18px;border-top:1px solid #e2e5ea;padding-top:14px"><div class="lbl">Opponent logos</div>'+opphtml+'</div>'
    +'<input type="file" id="brFile" accept="image/*" style="display:none"><input type="file" id="brOppFile" accept="image/*" style="display:none">'
    +'</div>';
 }
+function oursFormationRows(){
+  const pending=((typeof PENDING!=="undefined"&&PENDING&&PENDING.games)||[]).filter(function(g){ return g.side==="ours"; });
+  if(pending.length){
+    const rows=[]; pending.forEach(function(g){ (g.rows||[]).forEach(function(r){ rows.push(r); }); });
+    if(rows.length) return rows;
+  }
+  return (typeof gamesRows==="function")?gamesRows("ours"):[];
+}
+let fmEl=null;
+function fmChip(val, selected, suggested, kind){
+  const on=selected===val;
+  return '<button type="button" class="fm-chip'+(on?" on":"")+(suggested===val?" sug":"")+'" data-kind="'+kind+'" data-val="'+esc(String(val))+'"'+(on?' aria-pressed="true"':'')+'>'+esc(String(val))+(suggested===val?' <i>suggested</i>':'')+'</button>';
+}
+function fmPreviewHtml(structure, backs){
+  const M=window.OFFGRD_FORMATION_MAP; const R=window.OFFGRD_RENDER;
+  if(!structure||!M||!R||!R.renderMarkup) return '<p class="foot">Pick a structure to preview the shell.</p>';
+  const st=M.previewShell(structure, backs);
+  const inner=R.renderMarkup(st,{ showHandles:false, sel:null, anim:false, showZones:false });
+  return '<svg viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:420px;background:#0b1017;border-radius:10px">'+inner+"</svg>";
+}
+function fmCardHtml(item, draft){
+  const M=window.OFFGRD_FORMATION_MAP;
+  draft=draft||{};
+  const struct=draft.off_structure!=null?draft.off_structure:(item.mapped&&item.mapped.off_structure)||item.suggested||"";
+  const backs=draft.off_back_count!=null?draft.off_back_count:(item.mapped&&item.mapped.off_back_count);
+  const pers=draft.off_personnel!=null?draft.off_personnel:(item.mapped&&item.mapped.off_personnel)||"";
+  const sug=item.suggested||"";
+  return '<div class="fm-card" data-raw="'+esc(item.raw)+'">'
+    +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>'+esc(item.raw)+'</b><span class="foot">'+item.n+' snap'+(item.n===1?"":"s")+(item.mapped?" · mapped":"")+'</span></div>'
+    +'<div class="lbl" style="margin-top:8px">Structure</div>'
+    +'<div class="fm-row">'+M.STRUCTURES.map(function(s){ return fmChip(s, struct, sug, "struct"); }).join("")+'</div>'
+    +'<div class="lbl" style="margin-top:8px">Backs <span class="foot" style="font-weight:400">(optional)</span></div>'
+    +'<div class="fm-row">'+[0,1,2].map(function(n){ return fmChip(n, backs, null, "backs"); }).join("")+'</div>'
+    +'<div class="lbl" style="margin-top:8px">Personnel <span class="foot" style="font-weight:400">(optional)</span></div>'
+    +'<div class="fm-row">'+M.PERSONNEL.map(function(p){ return fmChip(p, pers, null, "pers"); }).join("")
+    +'<input class="fm-pers-free" placeholder="other" value="'+esc(M.PERSONNEL.indexOf(String(pers))>=0?"":String(pers||""))+'" style="width:72px;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px;font-weight:700"></div>'
+    +'<div class="fm-preview" style="margin-top:10px">'+fmPreviewHtml(struct, backs)+'</div>'
+    +'<div style="margin-top:10px;display:flex;gap:10px;align-items:center">'
+    +'<button type="button" class="fm-save" style="background:#13294B;color:#fff;border:0;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer">Save</button>'
+    +(item.mapped?'<button type="button" class="fm-unmap ghost" style="border:0;background:none;color:#a8112b;font-weight:700;cursor:pointer">unmap</button>':'')
+    +'<span class="fm-msg foot"></span></div>'
+    +'</div>';
+}
+async function openFormationMap(){
+  const M=window.OFFGRD_FORMATION_MAP;
+  if(!M){ console.warn("openFormationMap: module missing"); return; }
+  if(!fmEl){
+    fmEl=document.createElement("div"); fmEl.id="fmWrap";
+    fmEl.style.cssText="position:fixed;inset:0;background:rgba(9,18,34,.6);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:10060;overflow:auto";
+    document.body.appendChild(fmEl);
+    fmEl.addEventListener("click",function(e){ if(e.target===fmEl) fmEl.style.display="none"; });
+  }
+  fmEl.innerHTML='<div style="background:#fff;max-width:640px;width:100%;border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.4);font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px;color:#13294B">Formations</b><button class="ghost" id="fmClose">Close</button></div>'
+    +'<p class="foot" id="fmStatus" style="margin:8px 0 0">Loading\u2026</p>'
+    +'<div id="fmBody"></div></div>';
+  fmEl.style.display="flex";
+  fmEl.querySelector("#fmClose").onclick=function(){ fmEl.style.display="none"; };
+  const status=fmEl.querySelector("#fmStatus");
+  const body=fmEl.querySelector("#fmBody");
+  const rows=oursFormationRows();
+  let maps=[];
+  const C=mgrCloud(); const teamId=mgrTeamId();
+  if(C&&teamId&&typeof C.listFormationMap==="function"){
+    try{ maps=await C.listFormationMap(teamId); }catch(e){ status.textContent=(e&&e.message)||"Could not load saved mappings."; }
+  } else {
+    status.textContent="Sign in to save mappings to your program.";
+  }
+  const inv=M.inventoryTags(rows, maps);
+  status.textContent=inv.unmapped.length
+    ? inv.unmapped.length+" formation"+(inv.unmapped.length===1?"":"s")+" need mapping."
+    : (inv.mapped.length||inv.auto.length ? "All charted tags are mapped or auto-recognized." : "No formation tags on your offense snaps yet. Import your team\u2019s offense first.");
+  let H="";
+  if(inv.unmapped.length){
+    H+='<div class="lbl" style="margin-top:14px">Needs mapping</div>';
+    inv.unmapped.forEach(function(item){ H+=fmCardHtml(item, null); });
+  }
+  if(inv.mapped.length){
+    H+='<div class="lbl" style="margin-top:18px">Mapped</div>';
+    inv.mapped.forEach(function(item){ H+=fmCardHtml(item, item.mapped); });
+  }
+  if(inv.auto.length){
+    H+='<details style="margin-top:18px"><summary class="lbl" style="cursor:pointer">Auto-recognized ('+inv.auto.length+')</summary>'
+      +'<p class="foot" style="margin:6px 0">These already normalize to a structure. Nothing is written for them.</p>'
+      +inv.auto.map(function(i){ return '<div style="padding:6px 0;border-bottom:1px solid #eef0f3"><b>'+esc(i.raw)+'</b> <span class="foot">\u00d7'+i.n+' \u00b7 '+esc(i.auto)+'</span></div>'; }).join("")
+      +'</details>';
+  }
+  H+='<style>.fm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px}.fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fm-chip{border:1px solid #d7dbe2;background:#fff;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}.fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}.fm-chip.sug:not(.on){border-color:#4B9CD3;color:#13294B}.fm-chip i{font-style:normal;font-size:10px;font-weight:700;opacity:.85}</style>';
+  body.innerHTML=H;
+  [].forEach.call(body.querySelectorAll(".fm-card"), function(card){
+    const raw=card.getAttribute("data-raw");
+    const draft={};
+    const msg=card.querySelector(".fm-msg");
+    function selected(kind){
+      const on=card.querySelector('.fm-chip[data-kind="'+kind+'"].on');
+      return on?on.getAttribute("data-val"):"";
+    }
+    function paintPreview(){
+      const box=card.querySelector(".fm-preview");
+      if(!box) return;
+      const s=draft.off_structure||selected("struct");
+      const b=draft.off_back_count!=null?draft.off_back_count:selected("backs");
+      box.innerHTML=fmPreviewHtml(s, b===""?null:b);
+    }
+    [].forEach.call(card.querySelectorAll(".fm-chip"), function(btn){
+      btn.onclick=function(){
+        const kind=btn.getAttribute("data-kind");
+        const val=btn.getAttribute("data-val");
+        [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="'+kind+'"]'), function(x){ x.classList.remove("on"); });
+        btn.classList.add("on");
+        if(kind==="struct") draft.off_structure=val;
+        if(kind==="backs") draft.off_back_count=parseInt(val,10);
+        if(kind==="pers"){ draft.off_personnel=val; const free=card.querySelector(".fm-pers-free"); if(free) free.value=""; }
+        if(kind==="struct"||kind==="backs") paintPreview();
+      };
+    });
+    const free=card.querySelector(".fm-pers-free");
+    if(free) free.addEventListener("input", function(){
+      draft.off_personnel=free.value;
+      [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="pers"]'), function(x){ x.classList.remove("on"); });
+    });
+    const save=card.querySelector(".fm-save");
+    if(save) save.onclick=async function(){
+      const struct=draft.off_structure||selected("struct");
+      let pers=draft.off_personnel;
+      if(pers==null) pers=selected("pers")||((free&&free.value)||"");
+      let backs=draft.off_back_count;
+      if(backs==null){ const b=selected("backs"); backs=b===""?null:b; }
+      if(!struct){ if(msg) msg.textContent="Pick a structure first."; return; }
+      if(!C||!teamId||typeof C.upsertFormationMap!=="function"){ if(msg) msg.textContent="Sign in to save."; return; }
+      try{
+        const u=typeof C.user==="function"?await C.user():null;
+        const payload=M.buildUpsertPayload({
+          team_id:teamId, raw_tag:raw, off_structure:struct,
+          off_back_count:backs, off_personnel:pers, created_by:u&&u.id
+        });
+        await C.upsertFormationMap(teamId, payload);
+        if(msg) msg.textContent="Saved.";
+        openFormationMap();
+      }catch(e){ if(msg) msg.textContent=(e&&e.message)||"Save failed."; }
+    };
+    const unmap=card.querySelector(".fm-unmap");
+    if(unmap) unmap.onclick=async function(){
+      if(!confirm("Unmap "+raw+"? It will go back to unmapped.")) return;
+      if(!C||!teamId||typeof C.deleteFormationMap!=="function"){ if(msg) msg.textContent="Sign in to unmap."; return; }
+      try{ await C.deleteFormationMap(teamId, M.normTag(raw)); openFormationMap(); }
+      catch(e){ if(msg) msg.textContent=(e&&e.message)||"Unmap failed."; }
+    };
+  });
+}
+try{ window.openFormationMap=openFormationMap; }catch(e){}
 function openBranding(){
   if(!brEl){ brEl=document.createElement("div"); brEl.id="brWrap";
     brEl.style.cssText="position:fixed;inset:0;background:rgba(9,18,34,.6);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:9998;overflow:auto";
@@ -5960,6 +6120,8 @@ function openBranding(){
 }
 function wireBranding(){
   brEl.querySelector("#brClose").onclick=()=>brEl.style.display="none";
+  const brForm=brEl.querySelector("#brFormations");
+  if(brForm) brForm.onclick=()=>{ brEl.style.display="none"; openFormationMap(); };
   const fileMy=brEl.querySelector("#brFile");
   brEl.querySelector("#brLogoBtn").onclick=()=>fileMy.click();
   fileMy.onchange=e=>{ const f=e.target.files[0]; if(!f)return; logoFromFile(f,"team",url=>{ if(!url) return; _pendingLogo=url; brEl.querySelector("#brSave").click(); }); };
@@ -6109,9 +6271,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=287"></script>
-<script src="OFFGRD-role-gate.js?v=287"></script>
-<script src="OFFGRD-mobile.js?v=287"></script>
+<script type="module" src="OFFGRD-account.js?v=288"></script>
+<script src="OFFGRD-role-gate.js?v=288"></script>
+<script src="OFFGRD-mobile.js?v=288"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

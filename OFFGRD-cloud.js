@@ -1689,6 +1689,40 @@ export const Cloud = {
     if (m) return Number(m[1]);
     return null;
   },
+
+  /* ---------- program formation map (Phase B write; Phase C reads) ---------- */
+  async listFormationMap(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("offgrd_formation_map")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  async upsertFormationMap(teamId, payload) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const row = Object.assign({}, payload, {
+      team_id: teamId,
+      side_scope: "both",
+      updated_at: new Date().toISOString(),
+    });
+    const { data, error } = await OG.from("offgrd_formation_map").upsert(row, {
+      onConflict: "team_id,raw_tag_norm,side_scope",
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deleteFormationMap(teamId, rawTagNorm) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const norm = String(rawTagNorm || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const { error } = await OG.from("offgrd_formation_map")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("raw_tag_norm", norm)
+      .eq("side_scope", "both");
+    if (error) throw error;
+  },
 };
 
 if (typeof window !== "undefined") window.Cloud = Cloud;
