@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v286: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v287: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=286"></script>
-<script src="OFFGRD-brand-persist.js?v=286"></script>
-<script src="supabase.js?v=286"></script>
-<script src="OFFGRD-cache-gate.js?v=286"></script>
+<script src="OFFGRD-config.js?v=287"></script>
+<script src="OFFGRD-brand-persist.js?v=287"></script>
+<script src="supabase.js?v=287"></script>
+<script src="OFFGRD-cache-gate.js?v=287"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,35 +380,35 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=286"></script>
-<script src="OFFGRD-pos-glossary.js?v=286"></script>
-<script src="OFFGRD-autoderive.js?v=286"></script>
-<script src="OFFGRD-matchup.js?v=286"></script>
-<script src="OFFGRD-scoutcards.js?v=286"></script>
-<script src="OFFGRD-tendencies.js?v=286"></script>
-<script src="OFFGRD-scout-report.js?v=286"></script>
-<script src="OFFGRD-week-autotest.js?v=286"></script>
-<script src="OFFGRD-weeklypackage.js?v=286"></script>
-<script src="OFFGRD-telestrate.js?v=286"></script>
-<script src="OFFGRD-redesign.js?v=286"></script>
-<script src="OFFGRD-shell.js?v=286"></script>
-<script src="OFFGRD-caller-outcome.js?v=286"></script>
-<script src="OFFGRD-caller-sit.js?v=286"></script>
-<script src="OFFGRD-formations-data.js?v=286"></script>
-<script src="OFFGRD-formation-canon.js?v=286"></script>
-<script src="OFFGRD-assist-import.js?v=286"></script>
-<script src="OFFGRD-opp-shells.js?v=286"></script>
-<script src="OFFGRD-cv-review.js?v=286"></script>
-<script src="OFFGRD-frame-capture.js?v=286"></script>
-<script src="OFFGRD-caller-log.js?v=286"></script>
-<script src="OFFGRD-caller-sync.js?v=286"></script>
-<script src="OFFGRD-caller-analysis.js?v=286"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=286"></script>
-<script src="OFFGRD-booth-ask.js?v=286"></script>
-<script src="OFFGRD-boothpack.js?v=286"></script>
-<script src="OFFGRD-booth-chat.js?v=286"></script>
-<script src="OFFGRD-caller-select.js?v=286"></script>
-<script src="OFFGRD-dcaller.js?v=286"></script>
+<script src="OFFGRD-render.js?v=287"></script>
+<script src="OFFGRD-pos-glossary.js?v=287"></script>
+<script src="OFFGRD-autoderive.js?v=287"></script>
+<script src="OFFGRD-matchup.js?v=287"></script>
+<script src="OFFGRD-scoutcards.js?v=287"></script>
+<script src="OFFGRD-tendencies.js?v=287"></script>
+<script src="OFFGRD-scout-report.js?v=287"></script>
+<script src="OFFGRD-week-autotest.js?v=287"></script>
+<script src="OFFGRD-weeklypackage.js?v=287"></script>
+<script src="OFFGRD-telestrate.js?v=287"></script>
+<script src="OFFGRD-redesign.js?v=287"></script>
+<script src="OFFGRD-shell.js?v=287"></script>
+<script src="OFFGRD-caller-outcome.js?v=287"></script>
+<script src="OFFGRD-caller-sit.js?v=287"></script>
+<script src="OFFGRD-formations-data.js?v=287"></script>
+<script src="OFFGRD-formation-canon.js?v=287"></script>
+<script src="OFFGRD-assist-import.js?v=287"></script>
+<script src="OFFGRD-opp-shells.js?v=287"></script>
+<script src="OFFGRD-cv-review.js?v=287"></script>
+<script src="OFFGRD-frame-capture.js?v=287"></script>
+<script src="OFFGRD-caller-log.js?v=287"></script>
+<script src="OFFGRD-caller-sync.js?v=287"></script>
+<script src="OFFGRD-caller-analysis.js?v=287"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=287"></script>
+<script src="OFFGRD-booth-ask.js?v=287"></script>
+<script src="OFFGRD-boothpack.js?v=287"></script>
+<script src="OFFGRD-booth-chat.js?v=287"></script>
+<script src="OFFGRD-caller-select.js?v=287"></script>
+<script src="OFFGRD-dcaller.js?v=287"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1126,12 +1126,17 @@ function parseOffense(text){
   const find=arr=>{ for(const a of arr){ const i=lc.indexOf(a); if(i>=0) return i; } return -1; };
   const ci={ play:find(PLAY), down:find(ALIASES.down), dist:find(ALIASES.distance), cov:find(ALIASES.coverage),
     gain:find(ALIASES.gnls), ptype:find(ALIASES.playtype), odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent) };
+  const cols=colResolve(head);
+  const colIdx=f=>(cols[f]&&cols[f].idx!=null)?cols[f].idx:-1;
+  const formI=colIdx("formation"), persI=colIdx("personnel"), hashI=colIdx("hash");
+  const structI=colIdx("offStructure"), bfI=colIdx("offBackfield"), bcI=colIdx("offBackCount"), strI=colIdx("offStrength");
   const at=(c,i)=> (i>=0&&c[i]!=null)?String(c[i]).trim():"";
   const out=[]; const mapped=[]; let skipped=0;
   if(ci.play>=0) mapped.push('play?"'+head[ci.play]+'"');
   if(ci.cov>=0)  mapped.push('coverage?"'+head[ci.cov]+'"');
   if(ci.gain>=0) mapped.push('gain?"'+head[ci.gain]+'"');
   if(ci.down>=0) mapped.push('down?"'+head[ci.down]+'"');
+  if(formI>=0) mapped.push('formation?"'+head[formI]+'"');
   for(let li=1;li<lines.length;li++){
     const c=splitCSVLine(lines[li]); if(!c.length || c.join("").trim()==="") continue;
     if(ci.odk>=0){ const ph=at(c,ci.odk).toUpperCase(); if(ph && !/^O|OFF/.test(ph)){ skipped++; continue; } }
@@ -1139,12 +1144,20 @@ function parseOffense(text){
     const down=(+at(c,ci.down).replace(/[^0-9]/g,""))||1;
     const distance=(+at(c,ci.dist).replace(/[^0-9]/g,""))||10;
     const gs=at(c,ci.gain).replace(/[^0-9\-]/g,""); const gain= gs===""? null : (+gs);
-    out.push({date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:"",coverage:normCoverage(at(c,ci.cov)),front:"",play:play,playType:at(c,ci.ptype),gain:gain,success:isSuccessVal(down,distance,gain)});
+    const row={date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:"",coverage:normCoverage(at(c,ci.cov)),front:"",play:play,playType:at(c,ci.ptype),gain:gain,success:isSuccessVal(down,distance,gain),formation:formI>=0?at(c,formI):""};
+    if(persI>=0) row.personnel=at(c,persI);
+    if(hashI>=0) row.hash=(at(c,hashI)||"").toUpperCase().slice(0,1);
+    if(structI>=0) row.offStructure=at(c,structI);
+    if(bfI>=0) row.offBackfield=at(c,bfI);
+    if(bcI>=0){ const n=parseInt(at(c,bcI).replace(/[^0-9]/g,""),10); row.offBackCount=isNaN(n)?null:n; }
+    if(strI>=0) row.offStrength=at(c,strI);
+    out.push(row);
   }
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+
     (skipped?"Skipped "+skipped+" non-offensive plays. ":"")+
     (ci.play<0?"• No play/concept column found · required. ":"")+
-    (ci.gain<0?"• No GN/LS yards column · success can't be scored. ":"");
+    (ci.gain<0?"• No GN/LS yards column · success can't be scored. ":"")+
+    (formI<0?"• No formation column found. ":"");
   return out;
 }
 function offPool(level,target){
@@ -2559,6 +2572,44 @@ function previewImport(){
           .map(function(k){ return esc(k)+' \u00d7'+st.opaqueCov[k]; });
         H2+='<p class="foot" style="margin:2px 0">Non-canonical coverage kept as-is: '+ob.join(" · ")+'</p>';
       }
+    })();
+    (function(){
+      const ours=(PENDING.games||[]).filter(function(g){ return g.side==="ours"; });
+      if(!ours.length) return;
+      const rows=[]; ours.forEach(function(g){ (g.rows||[]).forEach(function(r){ rows.push(r); }); });
+      const counts=Object.create(null);
+      rows.forEach(function(r){
+        const t=String(r.formation||"").trim();
+        const k=t||"(blank)";
+        counts[k]=(counts[k]||0)+1;
+      });
+      const tags=Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a] || a.localeCompare(b); });
+      const A=window.OFFGRD_ASSIST_IMPORT;
+      const knownOf=function(raw){
+        if(!raw || raw==="(blank)") return null;
+        return (A && typeof A.normalizeOffStructure==="function") ? A.normalizeOffStructure(raw) : null;
+      };
+      H2+='<p style="font-size:13px;margin:6px 0 2px"><b>Your formation tags</b> · '+rows.length+' snaps · stored raw</p>';
+      if(!tags.length){
+        H2+='<p class="foot" style="margin:2px 0">No formation values on side:ours rows.</p>';
+      } else {
+        H2+='<p style="font-size:13px;margin:2px 0">'+tags.map(function(t){
+          const n=knownOf(t);
+          return '<b>'+esc(t)+'</b> \u00d7'+counts[t]+(n?(' · known '+esc(n)):' · unmapped');
+        }).join(" &middot; ")+'</p>';
+      }
+      const colLine=[
+        ["formation","formation"],
+        ["personnel","personnel"],
+        ["offBackCount","back count"],
+        ["offStrength","strength"],
+        ["offStructure","structure"],
+        ["offBackfield","backfield"],
+        ["hash","hash"]
+      ].map(function(pair){
+        return pair[1]+" "+(cols[pair[0]]?"present":"absent");
+      }).join(" \u00b7 ");
+      H2+='<p class="foot" style="margin:2px 0">Export columns: '+colLine+'</p>';
     })();
     H+=H2;
   })();
@@ -5504,7 +5555,11 @@ const ALIASES={
   gnls:["gn/ls","gain","gnls","yds","yards","net","gn ls"],
   direction:["play dir","play direction","dir","direction","run dir"],
   motion:["motion dir","motion","with motion","motion?","mot"],
-  playnum:["play #","play#","play no","play number","play num","hudl play #"]
+  playnum:["play #","play#","play no","play number","play num","hudl play #"],
+  offStructure:["off structure","off. structure","offensive structure","structure"],
+  offBackfield:["off backfield","offensive backfield"],
+  offBackCount:["off back count","off backcount","back count","backs"],
+  offStrength:["off str","off strength","offensive strength"]
 };
 let LAST_MAPPING="";
 let LAST_PARSE_STATS=null;
@@ -5724,7 +5779,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=286", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=287", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6054,9 +6109,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=286"></script>
-<script src="OFFGRD-role-gate.js?v=286"></script>
-<script src="OFFGRD-mobile.js?v=286"></script>
+<script type="module" src="OFFGRD-account.js?v=287"></script>
+<script src="OFFGRD-role-gate.js?v=287"></script>
+<script src="OFFGRD-mobile.js?v=287"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

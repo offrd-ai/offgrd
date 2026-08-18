@@ -1115,6 +1115,8 @@
     reconcile: reconcile,
     filterOffRows: filterOffRows,
     filterRows: filterRows,
+    isOffSide: isOffSide,
+    isDefSide: isDefSide,
     chartedBlitz: chartedBlitz,
     isOppCardPlay: isOppCardPlay,
     tagOppCard: tagOppCard,
