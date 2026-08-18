@@ -275,7 +275,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "293";
+  const ASSET_V = "294";
 
   function getScoutTool() {
     try {
@@ -2200,15 +2200,40 @@
     n.classList.toggle("show", !!text);
   }
 
-  function toggleBoothLocal() {
-    const on = !document.documentElement.classList.contains("rd-booth");
+  /* Theme-pattern label so the Setup item is reversible from the menu. */
+  function boothLabelText(on) {
+    return on ? "Booth: On (tap\u2192Off)" : "Booth: Off (tap\u2192On)";
+  }
+
+  /* Display-in-place on Playbook/QB: set rd-on so existing html.rd-on.rd-booth
+     rules apply (less invasive than duplicating booth CSS). Write LS only after
+     the class lands. */
+  function applyBoothLocal(on) {
+    if (!document.documentElement || !document.documentElement.classList) return false;
+    if (!isRedesign()) return false;
+    try {
+      document.documentElement.classList.add("rd-on");
+      document.documentElement.classList.toggle("rd-booth", !!on);
+      if (!!on !== document.documentElement.classList.contains("rd-booth")) return false;
+    } catch (e) {
+      return false;
+    }
     try { localStorage.setItem("offgrd_booth", on ? "1" : "0"); } catch (e) {}
-    document.documentElement.classList.toggle("rd-booth", on);
     stripLegacyDarkClass();
     try {
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute("content", on ? "#0E1116" : "#13294B");
     } catch (e) {}
+    return true;
+  }
+
+  function toggleBoothLocal() {
+    const next = !document.documentElement.classList.contains("rd-booth");
+    if (!applyBoothLocal(next)) {
+      return { ok: false, reason: "Booth mode can't apply on this page." };
+    }
+    refreshBoothLabels();
+    return { ok: true, stay: true };
   }
 
   function runAction(action) {
@@ -2237,14 +2262,19 @@
           if (isRedesign()) root.setBooth(!document.documentElement.classList.contains("rd-booth"));
           else root.setBooth(!document.body.classList.contains("dark"));
           if (isRedesign()) stripLegacyDarkClass();
+          refreshBoothLabels();
+          syncPhaseUI();
+          return { ok: true };
         } else if (clickExisting("darkBtn")) {
           if (isRedesign()) stripLegacyDarkClass();
+          refreshBoothLabels();
+          syncPhaseUI();
+          return { ok: true };
         } else {
-          toggleBoothLocal();
+          const r = toggleBoothLocal();
+          if (r.ok) syncPhaseUI();
+          return r;
         }
-        refreshBoothLabels();
-        syncPhaseUI();
-        return { ok: true };
       case "import":
         if (typeof root.openImport === "function") { root.openImport("full"); return { ok: true }; }
         if (clickExisting("importBtn")) return { ok: true };
@@ -2312,8 +2342,9 @@
 
   function refreshBoothLabels() {
     const on = document.documentElement.classList.contains("rd-booth");
+    const label = boothLabelText(on);
     [].forEach.call(document.querySelectorAll('#rdTools .rd-pill[data-action="booth"], #rdSetupMenu [data-action="booth"]'), function (el) {
-      el.textContent = on ? "Booth mode ✓" : "Booth mode";
+      el.textContent = label;
       el.classList.toggle("on", on);
     });
     try {
@@ -2379,18 +2410,22 @@
 
   function syncGamedayChrome() {
     try {
-      const on = isRedesign() && phaseForView(currentView()) === "gameday";
-      document.documentElement.classList.toggle("rd-gameday", on);
-      if (!on) document.documentElement.classList.remove("rd-booth");
-      else {
-        /* Restore redesign booth flag without body.dark */
-        try {
-          if (localStorage.getItem("offgrd_booth") === "1") {
-            document.documentElement.classList.add("rd-booth");
-          }
-        } catch (e) {}
-        stripLegacyDarkClass();
+      const gameday = isRedesign() && phaseForView(currentView()) === "gameday";
+      document.documentElement.classList.toggle("rd-gameday", gameday);
+      const kind = appKind();
+      const secondary = kind === "qb" || kind === "playbook";
+      /* Booth is gameday-only on the main app. On Playbook/QB it stays a
+         display-in-place mode — do not strip the class those pages just applied. */
+      if (!gameday && !secondary) {
+        document.documentElement.classList.remove("rd-booth");
+        return;
       }
+      try {
+        const want = localStorage.getItem("offgrd_booth") === "1";
+        if (secondary && isRedesign() && want) document.documentElement.classList.add("rd-on");
+        document.documentElement.classList.toggle("rd-booth", want);
+      } catch (e) {}
+      stripLegacyDarkClass();
     } catch (e) {}
   }
 
@@ -2589,7 +2624,7 @@
         }
         if (result.ok) {
           setupMenuNote(menu, "");
-          if (menu) menu.classList.remove("open");
+          if (!result.stay && menu) menu.classList.remove("open");
           return;
         }
         setupMenuNote(menu, result.reason || "Can't open that here.");
@@ -2851,6 +2886,10 @@
     SETUP_DISPATCH: SETUP_DISPATCH,
     isPlayerRole: isPlayerRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
-    markPlayerLandingDone: markPlayerLandingDone
+    markPlayerLandingDone: markPlayerLandingDone,
+    applyBoothLocal: applyBoothLocal,
+    toggleBoothLocal: toggleBoothLocal,
+    boothLabelText: boothLabelText,
+    refreshBoothLabels: refreshBoothLabels
   };
 })(typeof window !== "undefined" ? window : globalThis);

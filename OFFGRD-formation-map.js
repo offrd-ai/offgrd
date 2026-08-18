@@ -167,6 +167,9 @@
     }
   }
 
+  var _hydrated = false;
+  var _hydrateListeners = [];
+
   function afterHydrate() {
     try {
       var S = root.OFFGRD_OPP_SHELLS;
@@ -181,11 +184,29 @@
       if (typeof rv !== "function" && root.window) rv = root.window.refreshView;
       if (typeof rv === "function") rv();
     } catch (e3) {}
+    var i;
+    for (i = 0; i < _hydrateListeners.length; i++) {
+      try { _hydrateListeners[i](); } catch (e4) {}
+    }
+  }
+
+  function onAfterHydrate(fn) {
+    if (typeof fn !== "function") return function () {};
+    _hydrateListeners.push(fn);
+    return function () {
+      var idx = _hydrateListeners.indexOf(fn);
+      if (idx >= 0) _hydrateListeners.splice(idx, 1);
+    };
+  }
+
+  function isHydrated() {
+    return _hydrated;
   }
 
   function setCache(teamId, rows) {
     _mapRows = rows || [];
     _mapTeamId = teamId || "";
+    _hydrated = true;
     try {
       var store = storage();
       if (store) {
@@ -203,8 +224,56 @@
     var rows = readStore(teamId);
     _mapRows = rows;
     _mapTeamId = teamId || "";
+    _hydrated = true;
     afterHydrate();
     return _mapRows;
+  }
+
+  /* Panel must never inventory against a leftover []. Prefer the module cache. */
+  function resolvePanelMaps(opts) {
+    opts = opts || {};
+    var fetched = opts.fetched;
+    if (_mapRows && _mapRows.length) {
+      return { rows: _mapRows, known: true, source: "cache" };
+    }
+    if (Array.isArray(fetched) && fetched.length) {
+      return { rows: fetched, known: true, source: "fetched" };
+    }
+    if (_hydrated) {
+      return { rows: _mapRows || [], known: true, source: "hydrated" };
+    }
+    return { rows: [], known: false, source: "unknown" };
+  }
+
+  function panelPaint(playRows, opts) {
+    opts = opts || {};
+    var cacheReady = (_mapRows && _mapRows.length) || _hydrated;
+    var fetchedReady = Array.isArray(opts.fetched) && opts.fetched.length;
+    if (opts.hydrating && !cacheReady && !fetchedReady) {
+      return {
+        state: "loading",
+        statusText: "Loading formation map\u2026",
+        inv: null
+      };
+    }
+    var resolved = resolvePanelMaps({ fetched: opts.fetched });
+    if (!resolved.known) {
+      return {
+        state: "unknown",
+        statusText: "Formation map isn't loaded yet.",
+        inv: null
+      };
+    }
+    var inv = inventoryTags(playRows, resolved.rows);
+    var statusText;
+    if (inv.unmapped.length) {
+      statusText = inv.unmapped.length + " formation" + (inv.unmapped.length === 1 ? "" : "s") + " need mapping.";
+    } else if (inv.mapped.length || inv.auto.length) {
+      statusText = "All charted tags are mapped or auto-recognized.";
+    } else {
+      statusText = "No formation tags on your offense snaps yet. Import your team\u2019s offense first.";
+    }
+    return { state: "ready", statusText: statusText, inv: inv, source: resolved.source };
   }
 
   function getCached() {
@@ -257,6 +326,9 @@
     }
     return Cloud.listFormationMap(teamId)
       .then(function (cloud) {
+        if ((!cloud || !cloud.length) && local && local.length) {
+          return _mapRows;
+        }
         setCache(teamId, cloud || []);
         return _mapRows;
       })
@@ -277,6 +349,8 @@
     suggestStructure: suggestStructure,
     isAutoRecognized: isAutoRecognized,
     inventoryTags: inventoryTags,
+    resolvePanelMaps: resolvePanelMaps,
+    panelPaint: panelPaint,
     buildUpsertPayload: buildUpsertPayload,
     previewShell: previewShell,
     setCache: setCache,
@@ -287,5 +361,7 @@
     formationForStructure: formationForStructure,
     pullMap: pullMap,
     afterHydrate: afterHydrate,
+    onAfterHydrate: onAfterHydrate,
+    isHydrated: isHydrated,
   };
 })(typeof window !== "undefined" ? window : globalThis);

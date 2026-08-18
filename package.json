@@ -3,7 +3,7 @@
   "private": true,
   "description": "OFFGRD coaching suite (static bundle)",
   "scripts": {
-    "check": "node scripts/check-parse.js && node scripts/check-accent.js && node scripts/check-mojibake-labels.cjs && node scripts/smoke-mojibake-chrome.cjs && node scripts/smoke-pb-dock.cjs && node scripts/smoke-setup-menu.cjs && node scripts/smoke-attempt-n-retry.cjs && node scripts/smoke-matchup-struct.cjs && node scripts/smoke-matchup-blend.cjs && node scripts/smoke-matchup-sit.cjs",
+    "check": "node scripts/check-parse.js && node scripts/check-accent.js && node scripts/check-mojibake-labels.cjs && node scripts/smoke-mojibake-chrome.cjs && node scripts/smoke-pb-dock.cjs && node scripts/smoke-setup-menu.cjs && node scripts/smoke-formation-map.cjs && node scripts/smoke-formation-map-hydrate.cjs && node scripts/smoke-formation-panel.cjs && node scripts/smoke-booth-toggle.cjs && node scripts/smoke-attempt-n-retry.cjs && node scripts/smoke-matchup-struct.cjs && node scripts/smoke-matchup-blend.cjs && node scripts/smoke-matchup-sit.cjs",
     "smoke:matchup": "node scripts/smoke-matchup-struct.cjs && node scripts/smoke-matchup-blend.cjs && node scripts/smoke-matchup-sit.cjs",
     "check:assets": "node scripts/check-deploy-assets.cjs",
     "pin": "node scripts/pin-assets.cjs",
