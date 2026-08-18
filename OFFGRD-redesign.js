@@ -184,6 +184,7 @@
     { id: "account", label: "Account / password", action: "account" },
     { id: "import", label: "Import data", action: "import" },
     { id: "brand", label: "Team & logos", action: "brand" },
+    { id: "formations", label: "Formations", action: "formations" },
     { id: "team", label: "Team / roster", action: "team" },
     { id: "sched", label: "Schedule", action: "sched" },
     { id: "manage", label: "Manage library", action: "manage" },
@@ -2188,6 +2189,9 @@
         break;
       case "brand":
         clickExisting("brandBtn");
+        break;
+      case "formations":
+        if (typeof root.openFormationMap === "function") root.openFormationMap();
         break;
       case "sched":
         clickExisting("schedBtn");
