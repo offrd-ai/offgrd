@@ -74,6 +74,8 @@
   }
 
   function backfieldKey(row) {
+    /* Row-level only. Program-map off_back_count is a resolve-time fill-in
+       and must not participate in the grouping signature. */
     if (row && row.offBackCount != null && row.offBackCount !== "") {
       var n = +row.offBackCount;
       if (!isNaN(n) && n >= 0 && n <= 2) return String(n);

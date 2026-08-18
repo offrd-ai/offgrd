@@ -167,6 +167,22 @@
     }
   }
 
+  function afterHydrate() {
+    try {
+      var S = root.OFFGRD_OPP_SHELLS;
+      if (S && typeof S.clearCache === "function") S.clearCache();
+    } catch (e) {}
+    try {
+      var SC = root.OFFGRD_SCOUTCARDS;
+      if (SC && typeof SC.refreshOpen === "function") SC.refreshOpen();
+    } catch (e2) {}
+    try {
+      var rv = root.refreshView;
+      if (typeof rv !== "function" && root.window) rv = root.window.refreshView;
+      if (typeof rv === "function") rv();
+    } catch (e3) {}
+  }
+
   function setCache(teamId, rows) {
     _mapRows = rows || [];
     _mapTeamId = teamId || "";
@@ -179,6 +195,7 @@
         );
       }
     } catch (e) {}
+    afterHydrate();
     return _mapRows;
   }
 
@@ -186,6 +203,7 @@
     var rows = readStore(teamId);
     _mapRows = rows;
     _mapTeamId = teamId || "";
+    afterHydrate();
     return _mapRows;
   }
 
@@ -268,5 +286,6 @@
     resolveMapped: resolveMapped,
     formationForStructure: formationForStructure,
     pullMap: pullMap,
+    afterHydrate: afterHydrate,
   };
 })(typeof window !== "undefined" ? window : globalThis);

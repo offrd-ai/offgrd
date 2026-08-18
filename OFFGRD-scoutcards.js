@@ -384,6 +384,16 @@
     return cur;
   }
 
+  function mapFp() {
+    var M = root.OFFGRD_FORMATION_MAP;
+    if (!M || typeof M.getCached !== "function") return "";
+    var rows = M.getCached() || [];
+    var parts = rows.map(function (r) {
+      return String((r && r.raw_tag_norm) || "") + ":" + String((r && r.off_structure) || "");
+    }).sort();
+    return String(rows.length) + "@" + parts.join(",");
+  }
+
   function injectFp(opts) {
     opts = opts || {};
     return [
@@ -392,7 +402,19 @@
       (opts.snaps && opts.snaps.length) || 0,
       opts.teamId || "",
       opts.embedded ? "view" : "modal",
+      mapFp(),
     ].join("|");
+  }
+
+  var _lastModalOpts = null;
+
+  function refreshOpen() {
+    try {
+      if (typeof document === "undefined") return;
+      var host = document.getElementById("view-cards");
+      if (host) host.removeAttribute("data-sc-fp");
+      if (document.getElementById("scModal") && _lastModalOpts) openModal(_lastModalOpts);
+    } catch (e) {}
   }
 
   /* Shared queue UI — pane (injectInto) or Playbook popover (openModal). */
@@ -645,6 +667,7 @@
 
   function openModal(opts) {
     opts = opts || {};
+    _lastModalOpts = opts;
     if (!isScoutcards()) {
       if (opts.onBlocked) opts.onBlocked();
       return null;
@@ -668,6 +691,6 @@
     formationHonesty, honestyBadges,
     printSheet, previewInto, downloadCardPng,
     installPlays, opponentPlaysFromGames, opponentPack, enrichFromScout,
-    injectInto, openModal, readUiState, writeUiState
+    injectInto, openModal, refreshOpen, readUiState, writeUiState
   };
 })(typeof window !== "undefined" ? window : globalThis);
