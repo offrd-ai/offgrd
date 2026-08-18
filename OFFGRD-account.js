@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=288";
-import { openAuthModal } from "./OFFGRD-auth.js?v=288";
+import { Cloud } from "./OFFGRD-cloud.js?v=289";
+import { openAuthModal } from "./OFFGRD-auth.js?v=289";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -63,6 +63,10 @@ function hydrateOfflineTeam(){
   } else if(ROLE === "player"){
     try{ localStorage.setItem("offgrd_shell_role", "player"); }catch(e){}
   }
+  try{
+    const M = window.OFFGRD_FORMATION_MAP;
+    if(M && TEAM && TEAM.id && typeof M.loadCache === "function") M.loadCache(TEAM.id);
+  }catch(eM){}
   return !!(TEAM && ROLE) || !!persistedShellPin() || isSidelinePinned();
 }
 /** Sync first paint from LS — before any await / RPC. Network may upgrade later. */
@@ -782,6 +786,7 @@ async function finishProgramHydrate(u){
     bar(u || SESSION_USER);
     showOfflineBanner();
     try{ if(A.onUser && u) A.onUser(u.email); }catch(e){}
+    try{ pullFormationMap(TEAM && TEAM.id); }catch(eM){}
     return;
   }
   await refreshCreateEligibility();
@@ -1134,7 +1139,7 @@ async function pull(silent){
     if(!silent && A.kind==="playbook"){
       try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded \u2713"; el.style.color="#1d7a45"; } }catch(e){}
     }
-    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); } }catch(e){}
+    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); await pullFormationMap(TEAM && TEAM.id); } }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
 }
@@ -1860,6 +1865,19 @@ async function refreshScoutSnaps(){
   }
 }
 window.OFFGRD_REFRESH_SCOUT_SNAPS = refreshScoutSnaps;
+
+/** Local-first, then Cloud.listFormationMap — mirrors drawn-card cache. */
+function pullFormationMap(teamId){
+  try{
+    const M = window.OFFGRD_FORMATION_MAP;
+    const tid = teamId || (TEAM && TEAM.id);
+    if(!M || !tid || typeof M.pullMap !== "function") return Promise.resolve([]);
+    return M.pullMap(tid).then(function(rows){
+      try{ if(window.OFFGRD_OPP_SHELLS && typeof window.OFFGRD_OPP_SHELLS.clearCache === "function") window.OFFGRD_OPP_SHELLS.clearCache(); }catch(eC){}
+      return rows;
+    }).catch(function(){ return []; });
+  }catch(e){ return Promise.resolve([]); }
+}
 
 /* ---------- auto-sync: pull fresh team data every 45s and on window focus ---------- */
 let _busy=false, _lastPull=0, _autoT=null;

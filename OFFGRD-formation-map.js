@@ -1,5 +1,9 @@
-/* OFFGRD formation mapping — Phase B write-only.
-   Upserts offgrd_formation_map and previews shells. Does not feed grouping. */
+/* OFFGRD formation mapping — Phase B write + Phase C resolution-time read.
+   The map is COACH-STATED. Resolver looks up exact raw_tag_norm only.
+   No contains-token, fuzzy, or suggestion auto-apply in the resolver.
+   Group identity stays the raw tag; the map changes structure/picture/badge.
+   Known edge (do not fix): a drawn card saved against a group whose tag is
+   later mapped/unmapped may orphan its shell_key. Zero such rows today. */
 (function (root) {
   "use strict";
 
@@ -134,13 +138,120 @@
       playType: "",
       offBackCount: backCount,
       shellKey: "form-preview:" + structure,
+      skipMap: true,
     });
+  }
+
+  /* ---------- Phase C: team-scoped cache + exact lookup (drawn-card pattern) ---------- */
+  var MAP_CACHE_KEY = "offgrd_formation_map_cache";
+  var _mapRows = [];
+  var _mapTeamId = "";
+
+  function storage() {
+    try {
+      if (root && root.localStorage) return root.localStorage;
+      if (typeof localStorage !== "undefined") return localStorage;
+    } catch (e) {}
+    return null;
+  }
+
+  function readStore(teamId) {
+    try {
+      var store = storage();
+      if (!store) return [];
+      var raw = JSON.parse(store.getItem(MAP_CACHE_KEY) || "{}");
+      if (!raw || (teamId && raw.teamId && raw.teamId !== teamId)) return [];
+      return Array.isArray(raw.rows) ? raw.rows : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setCache(teamId, rows) {
+    _mapRows = rows || [];
+    _mapTeamId = teamId || "";
+    try {
+      var store = storage();
+      if (store) {
+        store.setItem(
+          MAP_CACHE_KEY,
+          JSON.stringify({ teamId: teamId || "", rows: _mapRows, updatedAt: Date.now() })
+        );
+      }
+    } catch (e) {}
+    return _mapRows;
+  }
+
+  function loadCache(teamId) {
+    var rows = readStore(teamId);
+    _mapRows = rows;
+    _mapTeamId = teamId || "";
+    return _mapRows;
+  }
+
+  function getCached() {
+    return _mapRows;
+  }
+
+  function cachedTeamId() {
+    return _mapTeamId;
+  }
+
+  function scopeMatches(scope, side) {
+    var sc = String(scope == null ? "both" : scope).toLowerCase().trim();
+    if (!sc || sc === "both") return true;
+    var s = String(side == null ? "" : side).toLowerCase().trim();
+    if (!s) return true;
+    if (s === "ours" || s === "our") return sc === "ours" || sc === "off";
+    if (s === "off" || s === "offense" || s === "o") return sc === "off";
+    if (s === "def" || s === "defense" || s === "d") return sc === "def";
+    return sc === s;
+  }
+
+  function resolveMapped(raw, side) {
+    var n = normTag(raw);
+    if (!n) return null;
+    var i;
+    var row;
+    for (i = 0; i < _mapRows.length; i++) {
+      row = _mapRows[i];
+      if (!row) continue;
+      if (normTag(row.raw_tag_norm || row.raw_tag) !== n) continue;
+      if (!scopeMatches(row.side_scope, side)) continue;
+      if (!legalStructure(row.off_structure)) continue;
+      return row;
+    }
+    return null;
+  }
+
+  function formationForStructure(struct) {
+    var id = STRUCTURE_IDS[String(struct || "").toLowerCase()];
+    var FC = root.OFFGRD_FORMATION_CANON;
+    if (!id || !FC || typeof FC.getById !== "function") return null;
+    return FC.getById(id);
+  }
+
+  function pullMap(teamId) {
+    var local = loadCache(teamId);
+    var Cloud = root.Cloud;
+    if (!Cloud || typeof Cloud.listFormationMap !== "function" || !teamId) {
+      return Promise.resolve(local);
+    }
+    return Cloud.listFormationMap(teamId)
+      .then(function (cloud) {
+        setCache(teamId, cloud || []);
+        return _mapRows;
+      })
+      .catch(function () {
+        return local;
+      });
   }
 
   root.OFFGRD_FORMATION_MAP = {
     STRUCTURES: STRUCTURES,
     STRUCTURE_IDS: STRUCTURE_IDS,
     PERSONNEL: PERSONNEL,
+    MAP_CACHE_KEY: MAP_CACHE_KEY,
     normTag: normTag,
     isBlankTag: isBlankTag,
     legalStructure: legalStructure,
@@ -150,5 +261,12 @@
     inventoryTags: inventoryTags,
     buildUpsertPayload: buildUpsertPayload,
     previewShell: previewShell,
+    setCache: setCache,
+    loadCache: loadCache,
+    getCached: getCached,
+    cachedTeamId: cachedTeamId,
+    resolveMapped: resolveMapped,
+    formationForStructure: formationForStructure,
+    pullMap: pullMap,
   };
 })(typeof window !== "undefined" ? window : globalThis);

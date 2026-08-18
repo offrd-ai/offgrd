@@ -182,6 +182,8 @@
       formation: (sample && sample.formation) || "",
       backfield: (sample && sample.offBackfield) || "",
       backCount: sample && sample.offBackCount != null ? sample.offBackCount : null,
+      offStructure: (sample && (sample.offStructure || sample.off_structure)) || "",
+      personnel: (sample && (sample.personnel || sample.offPersonnel || sample.off_personnel)) || "",
       offStrength: (sample && sample.offStrength) || "",
       playType: playTypeOf(sample),
       direction: (sample && sample.direction) || "",
@@ -343,6 +345,12 @@
         successTot[sig.key] = 0;
       }
       g.n += 1;
+      if (!g.offStructure && (row.offStructure || row.off_structure)) {
+        g.offStructure = row.offStructure || row.off_structure;
+      }
+      if (!g.personnel && (row.personnel || row.offPersonnel || row.off_personnel)) {
+        g.personnel = row.personnel || row.offPersonnel || row.off_personnel;
+      }
       if (row.id) g.rowIds.push(row.id);
       bump(g.ddDist, ddKey(row));
       if (row.down != null && String(row.down).trim() !== "") {
@@ -578,12 +586,56 @@
     return 1;
   }
 
-  function resolveFormation(raw) {
+  function firstLegalStructure(raw) {
+    var M = root.OFFGRD_FORMATION_MAP;
+    if (!M || typeof M.legalStructure !== "function") return "";
+    var v = String(raw == null ? "" : raw).trim().toLowerCase();
+    if (M.legalStructure(v)) return v;
+    return "";
+  }
+
+  /**
+   * Resolution order (in-memory only — never writes scout_snaps / off_structure):
+   *   0. blank chart tag → uncharted
+   *   1. row-level offStructure fills the picture if already present (export wins)
+   *   2. program map hit on exact raw_tag_norm (ahead of builtin)
+   *   3. built-in exact canon (2X2, BUNCH, …) — unchanged
+   *   4. miss → unresolved + fallback shell
+   * Map / row-structure hits keep the RAW tag as the display name.
+   */
+  function resolveFormation(raw, ctx) {
+    ctx = ctx || {};
     var FC = root.OFFGRD_FORMATION_CANON;
+    var M = root.OFFGRD_FORMATION_MAP;
     var fallback = FC && typeof FC.getById === "function" ? FC.getById("DOUBLES_2X2") : null;
     var trimmed = String(raw || "").trim();
     /* No OFF FORM tag is not an error — keep a placement fallback, do not reject. */
-    if (isBlankChartTag(trimmed)) return { formation: fallback, unresolved: false, uncharted: true };
+    if (isBlankChartTag(trimmed)) {
+      return { formation: fallback, unresolved: false, uncharted: true, mapped: false, source: "blank" };
+    }
+
+    function fromStructure(struct, source, mapped) {
+      var f = M && typeof M.formationForStructure === "function" ? M.formationForStructure(struct) : null;
+      return {
+        formation: f || fallback,
+        unresolved: false,
+        uncharted: false,
+        mapped: !!mapped,
+        source: source,
+        map: mapped || null,
+        keepRawName: true,
+        structure: struct,
+      };
+    }
+
+    var rowStruct = firstLegalStructure(ctx.offStructure || ctx.off_structure);
+    if (rowStruct) return fromStructure(rowStruct, "row", null);
+
+    if (!ctx.skipMap && M && typeof M.resolveMapped === "function") {
+      var mapped = M.resolveMapped(trimmed, ctx.side);
+      if (mapped && mapped.off_structure) return fromStructure(mapped.off_structure, "map", mapped);
+    }
+
     var tries = [
       trimmed,
       trimmed.replace(/\s*\([^)]*\)\s*$/, ""),
@@ -593,10 +645,10 @@
     if (FC && typeof FC.resolve === "function") {
       for (var i = 0; i < tries.length; i++) {
         f = FC.resolve(tries[i]);
-        if (f) return { formation: f, unresolved: false, uncharted: false };
+        if (f) return { formation: f, unresolved: false, uncharted: false, mapped: false, source: "canon" };
       }
     }
-    return { formation: fallback, unresolved: true, uncharted: false };
+    return { formation: fallback, unresolved: true, uncharted: false, mapped: false, source: "miss" };
   }
 
   function gapTarget(gap, sign) {
@@ -668,7 +720,7 @@
 
   function buildShell(group) {
     var g = group || {};
-    var resolved = resolveFormation(g.formation);
+    var resolved = resolveFormation(g.formation, g);
     var players = [];
     var FC = root.OFFGRD_FORMATION_CANON;
     if (resolved.formation && FC && typeof FC.playersFromFormation === "function") {
@@ -732,13 +784,22 @@
 
     var displayForm = resolved.uncharted
       ? ""
-      : ((resolved.formation && resolved.formation.display) || g.formation || "");
+      : (resolved.keepRawName
+        ? (g.formation || "")
+        : ((resolved.formation && resolved.formation.display) || g.formation || ""));
+    var pers = "";
+    if (!resolved.uncharted) {
+      pers = String(g.personnel || g.offPersonnel || g.off_personnel || "").trim()
+        || (resolved.map && resolved.map.off_personnel)
+        || ((resolved.formation && resolved.formation.personnel) || "")
+        || "";
+    }
     var name = g.play || [g.playType, g.direction, g.gap || g.passZone].filter(Boolean).join(" ") || "Opp play";
     return {
       id: "shell-" + g.shellKey,
       name: name,
       formation: displayForm,
-      personnel: resolved.uncharted ? "" : ((resolved.formation && resolved.formation.personnel) || ""),
+      personnel: pers,
       opponent: g.opponent || "",
       cardStatus: "shell",
       shellKey: g.shellKey,
