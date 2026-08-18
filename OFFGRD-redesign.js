@@ -201,6 +201,24 @@
     { id: "signout", label: "Sign out", action: "signout" }
   ];
 
+  /* Every Setup item must resolve to a live local target OR a ?setup= deep-link.
+     nav values are handled on OFFGRD.html (OFFGRD_SETUP_PARAMS). Do not add an
+     item with only a main-app function — smoke-setup-menu.cjs will fail. */
+  const SETUP_DISPATCH = [
+    { action: "account", nav: "account" },
+    { action: "import", nav: "import" },
+    { action: "brand", nav: "team" },
+    { action: "formations", nav: "formations" },
+    { action: "team", nav: "roster" },
+    { action: "sched", nav: "schedule" },
+    { action: "manage", nav: "library" },
+    { action: "sync", local: "sync" },
+    { action: "load", local: "load" },
+    { action: "signout", local: "signout" },
+    { action: "booth", local: "booth" },
+    { action: "toggleBase", local: "theme" }
+  ];
+
   function isPlayerRole() {
     try {
       return !!(root.OFFGRD_PROGRAM && root.OFFGRD_PROGRAM.isPlayer && root.OFFGRD_PROGRAM.isPlayer());
@@ -257,7 +275,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "292";
+  const ASSET_V = "293";
 
   function getScoutTool() {
     try {
@@ -607,6 +625,8 @@
       'background:transparent;color:var(--rd-text);padding:10px 12px;border-radius:8px;',
       'font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}',
       '#rdSetupMenu button:hover,#rdSetupMenu a:hover{background:var(--rd-surface-2);}',
+      '#rdSetupMenu .rd-setup-note{display:none;padding:8px 12px;font-size:12px;font-weight:700;color:#a8112b;line-height:1.35;}',
+      '#rdSetupMenu .rd-setup-note.show{display:block;}',
       /* Match OFFGRD-mobile.js breakpoint (820) so pills stay clear on phones/tablets. */
       /* Phone chrome: OFFOPS bar (row 1) + one combined context/tools strip (row 2). */
       '@media (max-width:820px){',
@@ -2150,6 +2170,47 @@
     return false;
   }
 
+  function specFor(action) {
+    for (let i = 0; i < SETUP_DISPATCH.length; i++) {
+      if (SETUP_DISPATCH[i].action === action) return SETUP_DISPATCH[i];
+    }
+    return null;
+  }
+
+  function navOrFail(action, reason) {
+    const spec = specFor(action);
+    if (spec && spec.nav) return { ok: true, nav: spec.nav };
+    return { ok: false, reason: reason || "Can't open that here." };
+  }
+
+  function goSetup(nav) {
+    location.href = withV("OFFGRD.html?setup=" + encodeURIComponent(nav));
+  }
+
+  function setupMenuNote(menu, text) {
+    if (!menu) return;
+    let n = menu.querySelector(".rd-setup-note");
+    if (!n) {
+      n = document.createElement("div");
+      n.className = "rd-setup-note";
+      n.setAttribute("role", "status");
+      menu.appendChild(n);
+    }
+    n.textContent = text || "";
+    n.classList.toggle("show", !!text);
+  }
+
+  function toggleBoothLocal() {
+    const on = !document.documentElement.classList.contains("rd-booth");
+    try { localStorage.setItem("offgrd_booth", on ? "1" : "0"); } catch (e) {}
+    document.documentElement.classList.toggle("rd-booth", on);
+    stripLegacyDarkClass();
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", on ? "#0E1116" : "#13294B");
+    } catch (e) {}
+  }
+
   function runAction(action) {
     switch (action) {
       case "tendency":
@@ -2176,47 +2237,50 @@
           if (isRedesign()) root.setBooth(!document.documentElement.classList.contains("rd-booth"));
           else root.setBooth(!document.body.classList.contains("dark"));
           if (isRedesign()) stripLegacyDarkClass();
-        } else {
-          clickExisting("darkBtn");
+        } else if (clickExisting("darkBtn")) {
           if (isRedesign()) stripLegacyDarkClass();
+        } else {
+          toggleBoothLocal();
         }
         refreshBoothLabels();
         syncPhaseUI();
-        break;
+        return { ok: true };
       case "import":
-        if (typeof root.openImport === "function") root.openImport("full");
-        else clickExisting("importBtn");
-        break;
+        if (typeof root.openImport === "function") { root.openImport("full"); return { ok: true }; }
+        if (clickExisting("importBtn")) return { ok: true };
+        return navOrFail(action, "Import is not on this page.");
       case "brand":
-        clickExisting("brandBtn");
-        break;
+        if (clickExisting("brandBtn")) return { ok: true };
+        if (typeof root.openBranding === "function") { root.openBranding(); return { ok: true }; }
+        return navOrFail(action, "Team & logos is not on this page.");
       case "formations":
-        if (typeof root.openFormationMap === "function") root.openFormationMap();
-        break;
+        if (typeof root.openFormationMap === "function") { root.openFormationMap(); return { ok: true }; }
+        return navOrFail(action, "Formations is not on this page.");
       case "sched":
-        clickExisting("schedBtn");
-        break;
+        if (clickExisting("schedBtn")) return { ok: true };
+        if (typeof root.openSchedule === "function") { root.openSchedule(); return { ok: true }; }
+        return navOrFail(action, "Schedule is not on this page.");
       case "manage":
-        clickExisting("manageBtn");
-        break;
+        if (clickExisting("manageBtn")) return { ok: true };
+        if (typeof root.openManager === "function") { root.openManager(); return { ok: true }; }
+        return navOrFail(action, "Manage library is not on this page.");
       case "team":
-        if (!clickExisting("cteam") && !clickExisting("csetup")) clickExisting("brandBtn");
-        break;
+        if (clickExisting("cteam") || clickExisting("csetup") || clickExisting("brandBtn")) return { ok: true };
+        return navOrFail(action, "Team / roster is not on this page.");
       case "sync":
-        clickExisting("cs");
-        break;
+        if (clickExisting("cs")) return { ok: true };
+        return { ok: false, reason: "Sign in to a program to sync." };
       case "load":
-        clickExisting("cd");
-        break;
+        if (clickExisting("cd")) return { ok: true };
+        return { ok: false, reason: "Sign in to a program to load." };
       case "account":
         try {
-          if (typeof root.openOffgrdAccountModal === "function") root.openOffgrdAccountModal();
-          else if (root.OFFGRD_AUTH && typeof root.OFFGRD_AUTH.openAccountModal === "function") root.OFFGRD_AUTH.openAccountModal();
-          else alert("Account settings are still loading — try again in a moment.");
+          if (typeof root.openOffgrdAccountModal === "function") { root.openOffgrdAccountModal(); return { ok: true }; }
+          if (root.OFFGRD_AUTH && typeof root.OFFGRD_AUTH.openAccountModal === "function") { root.OFFGRD_AUTH.openAccountModal(); return { ok: true }; }
         } catch (e) {
-          try { alert((e && e.message) || "Could not open account settings."); } catch (e2) {}
+          return navOrFail(action, (e && e.message) || "Could not open account settings.");
         }
-        break;
+        return navOrFail(action, "Account settings are still loading.");
       case "signout":
         /* #co doesn't exist on the redesigned shell, so the old clickExisting was a no-op.
            Call the real sign-out and return to the signed-out landing. */
@@ -2231,13 +2295,13 @@
             }, 200);
           })();
         }
-        break;
+        return { ok: true };
       case "toggleBase":
         toggleBase();
         refreshSetupBaseLabel();
-        break;
+        return { ok: true };
       default:
-        break;
+        return { ok: false, reason: "Unknown setup action." };
     }
   }
 
@@ -2516,9 +2580,19 @@
       });
     }
     [].forEach.call(shell.querySelectorAll("#rdSetupMenu [data-action]"), function (btn) {
-      btn.onclick = function () {
-        runAction(btn.getAttribute("data-action"));
-        if (menu) menu.classList.remove("open");
+      btn.onclick = function (ev) {
+        ev.stopPropagation();
+        const result = runAction(btn.getAttribute("data-action")) || { ok: false, reason: "Can't open that here." };
+        if (result.nav) {
+          goSetup(result.nav);
+          return;
+        }
+        if (result.ok) {
+          setupMenuNote(menu, "");
+          if (menu) menu.classList.remove("open");
+          return;
+        }
+        setupMenuNote(menu, result.reason || "Can't open that here.");
       };
     });
     const scope = shell.querySelector("#rdScope");
@@ -2773,6 +2847,8 @@
     syncPhaseUI: syncPhaseUI,
     PHASES: PHASES,
     PHASES_PLAYER: PHASES_PLAYER,
+    SETUP_ITEMS: SETUP_ITEMS,
+    SETUP_DISPATCH: SETUP_DISPATCH,
     isPlayerRole: isPlayerRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
     markPlayerLandingDone: markPlayerLandingDone
