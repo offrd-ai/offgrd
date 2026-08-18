@@ -67,26 +67,47 @@
  body.skill-guided #wizDock{display:block}
  #wizDock .wizDockNav{display:flex;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
 
+ /* P1 dock: adjacent panel only — never overlay/float over the field (IP). */
+ #fieldDockWrap{display:flex;flex-direction:column;gap:10px}
+ #fieldCol{min-width:0;flex:1 1 auto}
+ #pbDock{display:none;position:relative;flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
+ #pbDock .row{margin-top:4px}
+ body.pb-dock-on #pbDock{display:block}
+ body.pb-dock-on #routePanel,
+ body.pb-dock-on #offenseToolsRow,
+ body.pb-dock-on #defenseToolsRow,
+ body.pb-dock-on #skillBar,
+ body.pb-dock-on #offenseMetaRow,
+ body.pb-dock-on #defenseLookRow,
+ body.pb-dock-on #ctxBar{display:none!important}
+ #pbMetaHold{display:none}
+ #pbAssignPin .row{margin-top:8px}
+ @media (min-width:900px){
+  body.pb-dock-on #fieldDockWrap{flex-direction:row;align-items:flex-start}
+  body.pb-dock-on #pbDock{flex:0 0 280px;width:280px;max-width:280px}
+ }
+
 </style>
-<script src="OFFGRD-config.js?v=290"></script>
-<script src="OFFGRD-brand-persist.js?v=290"></script>
-<script src="supabase.js?v=290"></script>
-<script src="OFFGRD-cache-gate.js?v=290"></script>
-<script src="OFFGRD-formations-data.js?v=290"></script>
-<script src="OFFGRD-formation-canon.js?v=290"></script>
-<script src="OFFGRD-render.js?v=290"></script>
-<script src="OFFGRD-pos-glossary.js?v=290"></script>
-<script src="OFFGRD-autoderive.js?v=290"></script>
-<script src="OFFGRD-week-autotest.js?v=290"></script>
-<script src="OFFGRD-play-wizard.js?v=290"></script>
-<script src="OFFGRD-opp-shells.js?v=290"></script>
-<script src="OFFGRD-scoutcards.js?v=290"></script>
-<script src="OFFGRD-telestrate.js?v=290"></script>
-<script src="OFFGRD-redesign.js?v=290"></script>
-<script src="OFFGRD-shell.js?v=290"></script>
+<script src="OFFGRD-config.js?v=291"></script>
+<script src="OFFGRD-brand-persist.js?v=291"></script>
+<script src="supabase.js?v=291"></script>
+<script src="OFFGRD-cache-gate.js?v=291"></script>
+<script src="OFFGRD-formations-data.js?v=291"></script>
+<script src="OFFGRD-formation-canon.js?v=291"></script>
+<script src="OFFGRD-render.js?v=291"></script>
+<script src="OFFGRD-pb-dock.js?v=291"></script>
+<script src="OFFGRD-pos-glossary.js?v=291"></script>
+<script src="OFFGRD-autoderive.js?v=291"></script>
+<script src="OFFGRD-week-autotest.js?v=291"></script>
+<script src="OFFGRD-play-wizard.js?v=291"></script>
+<script src="OFFGRD-opp-shells.js?v=291"></script>
+<script src="OFFGRD-scoutcards.js?v=291"></script>
+<script src="OFFGRD-telestrate.js?v=291"></script>
+<script src="OFFGRD-redesign.js?v=291"></script>
+<script src="OFFGRD-shell.js?v=291"></script>
 </head>
 <body>
- <div class="topbar"><a href="OFFGRD.html" title="OFFGRD ? back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>? Playbook ? draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">? OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
+ <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
 
   <div class="panel" id="posGlossaryPanel" data-sec="Position names">
  <div class="row" style="justify-content:space-between;align-items:center">
@@ -119,13 +140,13 @@
 
  <!-- OFFENSE -->
  <div class="panel expert-only" data-sec="Offense">
- <div class="row">
+ <div class="row" id="offenseMetaRow">
  <span class="lbl">Formation</span><select id="formSel"></select><button class="btn" id="loadForm">Load</button><button class="btn" id="flipForm" title="Mirror the play left/right">&#8644; Flip</button>
  <span class="lbl" style="margin-left:6px">Personnel</span><select id="persSel"><option value="">&mdash; pers &mdash;</option><option>00</option><option>10</option><option>11</option><option>12</option><option>13</option><option>20</option><option>21</option><option>22</option></select>
  <button class="btn" id="addWR">+ Player</button>
  <span class="lbl" style="margin-left:6px">Protection</span><select id="protSel"><option value="none">&mdash; none &mdash;</option><option>BOB</option><option>Slide R</option><option>Slide L</option><option>Half-Slide R</option><option>Half-Slide L</option><option>6-Man (RB)</option></select>
  </div>
- <div class="row modebar" style="margin-top:8px">
+ <div class="row modebar" id="offenseToolsRow" style="margin-top:8px">
  <span class="lbl">Offense tools</span>
  <button class="btn on" data-mode="route">Route</button>
  <button class="btn" data-mode="move">Move</button>
@@ -137,25 +158,25 @@
  </div>
 
  <div class="panel expert-only" id="routePanel">
- <div class="lbl" style="margin-bottom:6px">Quick routes ? tap a player, then a route</div>
+ <div class="lbl" style="margin-bottom:6px">Quick routes &middot; tap a player, then a route</div>
  <div class="row" id="routeBar"></div>
- <div class="lbl" style="margin:10px 0 6px">Concepts ? apply to all receivers at once</div>
+ <div class="lbl" style="margin:10px 0 6px">Concepts &middot; apply to all receivers at once</div>
  <div class="row" id="conceptBar"></div>
- <div class="lbl" style="margin:10px 0 6px">Run blocks ? tap a lineman, then a block</div>
+ <div class="lbl" style="margin:10px 0 6px">Run blocks &middot; tap a lineman, then a block</div>
  <div class="row" id="blockBar"></div>
- <div class="lbl" style="margin:10px 0 6px">Assignments ? routes ? type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
- <div class="row"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
+ <div class="lbl" style="margin:10px 0 6px">Assignments &middot; routes &middot; type/paste (e.g. "X hitch, Y corner, Z go, F pass pro")</div>
+ <div class="row" id="assignRow"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
  </div>
 
  <!-- DEFENSE -->
  <div class="panel expert-only" data-sec="Defense">
- <div class="row">
+ <div class="row" id="defenseLookRow">
  <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
  <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
  <button class="btn" id="placeDef">Place defense</button>
- <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show coverage</label>
+ <label id="showZonesLab" style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show coverage</label>
  </div>
- <div class="row modebar" style="margin-top:8px">
+ <div class="row modebar" id="defenseToolsRow" style="margin-top:8px">
  <span class="lbl">Defense tools</span>
  <button class="btn" data-mode="def">Add defender</button>
  <button class="btn" data-mode="blitz">Blitz</button>
@@ -185,10 +206,13 @@
  <button type="button" class="btn go" id="wizDockNext" style="min-width:110px">Next</button>
  </div>
  </div>
-<div class="panel" style="padding:6px">
+<div class="panel" id="fieldPanel" style="padding:6px">
+ <div id="fieldDockWrap">
+ <div id="fieldCol">
  <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
+ <div id="pbAssignPin"></div>
  <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
- <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">? Play</button>
+ <button class="btn go" id="playBtn2" style="min-width:130px;font-size:15px">&#9654; Play</button>
  <button class="btn nav" id="resetBtn2" style="min-width:110px">Reset</button>
  <button class="btn" id="undoBtn2" title="Undo">&#8630; Undo</button>
  <button class="btn" id="redoBtn2" title="Redo">&#8631; Redo</button>
@@ -203,17 +227,21 @@
  </div>
  <p class="hint" id="hint" style="margin:8px 0 0"></p>
  </div>
+ <aside id="pbDock" aria-label="Play tools"></aside>
+ </div>
+ </div>
+ <div id="pbMetaHold"></div>
 
  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in Reps Lab; feeds the education engine) -->
  <div class="panel" id="asnPanel">
  <div class="row" style="justify-content:space-between;align-items:center">
  <span class="lbl" style="margin:0">Assignments &amp; QB notes</span>
- <button class="btn" id="asnToggle">Show ?</button>
+ <button class="btn" id="asnToggle">Show &#9654;</button>
  </div>
  <div id="asnBody" style="display:none">
- <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew ? type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
+ <p class="hint" style="margin:8px 0 2px">Every player's job on this play. Faint text is filled in from what you drew &rarr; type to override it (your text is never overwritten). Saved with the play; players see their job in Reps Lab.</p>
  <div id="asnList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px;margin-top:8px"></div>
- <div class="lbl" style="margin:12px 0 4px">QB notes ? progression, hots, reminders</div>
+ <div class="lbl" style="margin:12px 0 4px">QB notes &middot; progression, hots, reminders</div>
  <textarea id="qbNotes" rows="2" style="width:100%" placeholder="e.g. Z corner is #1 vs 2-high. Hot: H slant off weak-side pressure."></textarea>
  </div>
  </div>
@@ -223,9 +251,6 @@
  <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
  <label>Family<input id="m-family" placeholder="e.g. Inside Zone"></label>
  <label>Series<input id="m-series" placeholder="e.g. Zone"></label>
- <label>Personnel<input id="m-pers" placeholder="e.g. 11"></label>
- <label>Formation<input id="m-form" placeholder="e.g. 2x2"></label>
- <label>Protection<input id="m-prot" placeholder="e.g. Slide R"></label>
  <label style="grid-column:1/-1">Tags
  <div class="row" style="margin-top:4px;gap:6px">
  <input id="m-tagIn" placeholder="Add tag + Enter" style="flex:1;text-transform:none;font-weight:600">
@@ -244,7 +269,7 @@
  <span class="sp" style="flex:1"></span>
  <button class="btn nav" id="installBtn">Install plan</button>
  <button class="btn nav" id="scoutCardsBtn" title="Printable scout cards from drawn plays">Scout cards</button>
- <button class="btn nav" id="telestrateBtn" title="Draw on film ? still-frame telestration">Film</button>
+ <button class="btn nav" id="telestrateBtn" title="Draw on film &middot; still-frame telestration">Film</button>
  <button class="btn" id="exportLib">Export playbook</button>
  <button class="btn" id="importLib">Import playbook</button>
  <input type="file" id="libFile" accept=".json" style="display:none">
@@ -428,7 +453,7 @@ function renderAsn(){
  const qn=document.getElementById("qbNotes"); if(qn && document.activeElement!==qn) qn.value=STATE.qbNotes||"";
 }
 function ctxAsnInput(host){ if(!SEL||SEL.group) return;
- ctxLbl(host,(SEL.lab||"Player")+" ? assignment (shows in Reps Lab)");
+ ctxLbl(host,(SEL.lab||"Player")+" \u00b7 assignment (shows in Reps Lab)");
  const inp=document.createElement("input"); inp.style.cssText="flex:1;min-width:220px"; inp.value=SEL.asn||""; inp.placeholder=autoAsn(SEL)||"assignment?";
  inp.oninput=e=>{ SEL.asn=e.target.value; ASN_SIG=asnSig(); const li=document.querySelector('#asnList input[data-pid="'+SEL.id+'"]'); if(li&&li!==document.activeElement) li.value=SEL.asn; };
  host.appendChild(inp);
@@ -583,7 +608,7 @@ function offerRestoreDraft(){
  if(!d||!d.state||d.saved||!draftIsMeaningful(d.state)||!draftDiffersFromSaved(d.state)){ clearDraft(); return; }
  const ov=document.createElement("div"); ov.className="ov show"; ov.style.zIndex=9999;
  ov.innerHTML='<div class="ovbox" style="max-width:460px"><b style="font-size:18px;color:var(--navy)">Restore unsaved play?</b>'
- +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' ? <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
+ +'<p class="hint" style="margin:8px 0 4px">You have an in-progress play'+(d.state.name?(' \u00b7 <b>'+esc(d.state.name)+'</b>'):'')+' that wasn\u2019t saved. Restore it, or discard and start fresh.</p>'
  +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="drDiscard">Discard</button><button class="btn go" id="drRestore">Restore</button></div></div>';
  document.body.appendChild(ov);
  ov.querySelector("#drDiscard").onclick=()=>{ clearDraft(); ov.remove(); };
@@ -593,7 +618,7 @@ function offerRestoreDraft(){
  /* Consume the prompt draft, then re-stash so leave-without-save still restores once */
  clearDraft();
  scheduleDraft(true);
- msg("Restored unsaved play"+(STATE.name?(" ? "+STATE.name):"")+".");
+ msg("Restored unsaved play"+(STATE.name?(" \u00b7 "+STATE.name):"")+".");
  ov.remove();
  };
 }
@@ -624,7 +649,139 @@ function renderAll(anim){
 }
 
 /* ---- selected panel ---- */
-function updateSelPanel(){const sp=document.getElementById("selPanel");if(!SEL){sp.style.display="none";return;}sp.style.display="flex";document.getElementById("selLab").value=SEL.lab;const st=document.getElementById("selType");st.style.display=SEL.group?"none":"";st.textContent=(SEL.type==="block"?"Make route":"Make blocker");buildCtxBar();}
+function updateSelPanel(){const sp=document.getElementById("selPanel");if(!SEL){sp.style.display="none";}else{sp.style.display="flex";document.getElementById("selLab").value=SEL.lab;const st=document.getElementById("selType");st.style.display=SEL.group?"none":"";st.textContent=(SEL.type==="block"?"Make route":"Make blocker");buildCtxBar();}syncDockFromSel();}
+let _dockSelKey=null;
+function dockOn(){ return !!(window.OFFGRD_PB_DOCK&&OFFGRD_PB_DOCK.isDockOn()); }
+function dockLbl(host,txt){ const s=document.createElement("div"); s.className="lbl"; s.style.margin="8px 0 4px"; s.textContent=txt; host.appendChild(s); }
+function dockBtn(host,txt,fn){ const b=document.createElement("button"); b.type="button"; b.className="btn"; b.textContent=txt; b.onclick=fn; host.appendChild(b); return b; }
+function dockRow(host){ const r=document.createElement("div"); r.className="row"; host.appendChild(r); return r; }
+function parkPlayMeta(){
+ const hold=document.getElementById("pbMetaHold"); if(!hold) return;
+ ["formSel","loadForm","flipForm","persSel","addWR","protSel","defFront","defCov","placeDef"].forEach(function(id){
+  const el=document.getElementById(id); if(el) hold.appendChild(el);
+ });
+ const lab=document.getElementById("showZonesLab"); if(lab) hold.appendChild(lab);
+}
+function mountPlayMeta(host){
+ dockLbl(host,"Formation");
+ const frow=dockRow(host);
+ ["formSel","loadForm","flipForm"].forEach(function(id){ const el=document.getElementById(id); if(el) frow.appendChild(el); });
+ dockLbl(host,"Personnel");
+ const prow=dockRow(host);
+ ["persSel","addWR"].forEach(function(id){ const el=document.getElementById(id); if(el) prow.appendChild(el); });
+ dockLbl(host,"Protection");
+ const trow=dockRow(host);
+ const pr=document.getElementById("protSel"); if(pr) trow.appendChild(pr);
+}
+function mountDefenseLook(host){
+ dockLbl(host,"Defense look");
+ const row=dockRow(host);
+ ["defFront","defCov","placeDef"].forEach(function(id){ const el=document.getElementById(id); if(el) row.appendChild(el); });
+ const lab=document.getElementById("showZonesLab"); if(lab) row.appendChild(lab);
+ dockBtn(dockRow(host),"Add defender",function(){ setMode("def"); });
+}
+function syncDockFromSel(){
+ if(!dockOn()) return;
+ const key=SEL?(String(SEL.id)+"|"+(SEL.group||"")+"|"+(SEL.lab||"")):"";
+ if(key===_dockSelKey) return;
+ _dockSelKey=key;
+ const k=OFFGRD_PB_DOCK.kindOfSel(SEL);
+ if(k==="wr"||k==="rb") setMode("route");
+ else if(k==="ol") setMode("block");
+ else setMode("move");
+ renderDock();
+}
+function renderDock(){
+ const host=document.getElementById("pbDock");
+ if(!host||!dockOn()) return;
+ const groups=OFFGRD_PB_DOCK.groupsForSelection(SEL);
+ parkPlayMeta();
+ host.innerHTML="";
+ if(SEL){
+  const head=dockRow(host);
+  dockBtn(head,"Play",function(){ SEL=null; setMode("move"); renderAll(); });
+  const who=document.createElement("span"); who.className="lbl"; who.style.margin="0 0 0 6px"; who.textContent=(SEL.lab||"Player");
+  head.appendChild(who);
+ }
+ groups.forEach(function(g){
+  if(g==="formation"||g==="personnel"||g==="protection"){
+   if(!host.querySelector("[data-pb-meta]")){
+    const box=document.createElement("div"); box.setAttribute("data-pb-meta","1"); host.appendChild(box); mountPlayMeta(box);
+   }
+  } else if(g==="concepts"){
+   dockLbl(host,"Concepts");
+   const row=dockRow(host);
+   CONCEPTS.forEach(function(n){ dockBtn(row,n,function(){ applyConcept(n); }); });
+  } else if(g==="defense-look"){
+   mountDefenseLook(host);
+  } else if(g==="routes-quick"){
+   dockLbl(host,"Quick");
+   const row=dockRow(host);
+   ["Hitch","Slant","Stick","Drag","Whip","Pivot"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
+  } else if(g==="routes-inter"){
+   dockLbl(host,"Intermediate");
+   const row=dockRow(host);
+   ["Curl","Out","Dig","Comeback"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
+  } else if(g==="routes-deep"){
+   dockLbl(host,"Deep");
+   const row=dockRow(host);
+   ["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
+  } else if(g==="routes-back"){
+   dockLbl(host,"Back routes");
+   const row=dockRow(host);
+   ["Flat","Wheel","Screen"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
+  } else if(g==="motion"){
+   dockLbl(host,"Motion");
+   dockBtn(dockRow(host),"Motion",function(){ setMode("motion"); });
+  } else if(g==="move"){
+   dockLbl(host,"Move");
+   dockBtn(dockRow(host),"Move",function(){ setMode("move"); });
+  } else if(g==="block-perim"){
+   dockLbl(host,"Block");
+   dockBtn(dockRow(host),"Block",function(){ applyBlock("base",0); });
+  } else if(g==="run-path"){
+   dockLbl(host,"Run path");
+   dockBtn(dockRow(host),"Draw path",function(){ setMode("route"); });
+  } else if(g==="pass-pro"){
+   dockLbl(host,"Pass pro");
+   dockBtn(dockRow(host),"Pass set",function(){ applyBlock("set",0); });
+  } else if(g==="run-blocks"){
+   dockLbl(host,"Run blocks");
+   const row=dockRow(host);
+   BLOCKS.filter(function(bl){ return bl[1]!=="set"; }).forEach(function(bl){ dockBtn(row,bl[0],function(){ applyBlock(bl[1],bl[2]); }); });
+  } else if(g==="pass-set"){
+   dockLbl(host,"Pass set");
+   dockBtn(dockRow(host),"Pass set",function(){ applyBlock("set",0); });
+  } else if(g==="direct"){
+   dockLbl(host,"Direct");
+   dockBtn(dockRow(host),"Direct path",function(){ setMode("route"); });
+  } else if(g==="blitz"){
+   dockLbl(host,"Blitz");
+   dockBtn(dockRow(host),"Blitz",function(){
+    if(!SEL||!SEL.group){ setMode("blitz"); return; }
+    snap(); SEL.role=(SEL.role==="rush"?"zone":"rush"); if(SEL.role==="zone"){ SEL.dx=SEL.x; SEL.dy=Math.max(150,SEL.y-110); SEL.route=SEL.route||[]; }
+    renderAll();
+   });
+  } else if(g==="qb-notes"){
+   dockLbl(host,"QB notes");
+   dockBtn(dockRow(host),"QB notes",function(){
+    const asnB=document.getElementById("asnBody"), asnT=document.getElementById("asnToggle");
+    if(asnB&&asnB.style.display==="none"&&asnT) asnT.click();
+    const qn=document.getElementById("qbNotes"); if(qn) qn.focus();
+   });
+  }
+ });
+}
+function bootDock(){
+ if(!dockOn()) return;
+ document.body.classList.add("pb-dock-on");
+ const pin=document.getElementById("pbAssignPin");
+ const row=document.getElementById("assignRow");
+ if(pin&&row) pin.appendChild(row);
+ _dockSelKey=SEL?(String(SEL.id)+"|"+(SEL.group||"")+"|"+(SEL.lab||"")):"";
+ if(!SEL) setMode("move");
+ renderDock();
+}
 /* ---------- context tools under the field: options follow whatever you tapped ---------- */
 const CTX_ROUTES=["Hitch","Slant","Stick","Drag","Whip","Pivot","Curl","Out","Dig","Comeback","Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner","Flat","Wheel","Screen"];
 function ctxBtn(host,txt,fn,on){const b=document.createElement("button");b.className="btn"+(on?" on":"");b.textContent=txt;b.onclick=fn;host.appendChild(b);return b;}
@@ -633,16 +790,16 @@ function buildCtxBar(){
  const host=document.getElementById("ctxBar"); if(!host) return; host.innerHTML="";
  if(!SEL) return;
  if(SEL.group){ /* defender */
- ctxLbl(host,(SEL.lab||"Defender")+" ? assignment");
+ ctxLbl(host,(SEL.lab||"Defender")+" \u00b7 assignment");
  ctxBtn(host,"Zone drop",()=>{snap();SEL.role="zone";SEL.dx=SEL.x;SEL.dy=Math.max(150,SEL.y-110);SEL.route=[];renderAll();msg((SEL.lab||"D")+": zone drop.");},SEL.role==="zone");
  ctxBtn(host,"Man (nearest)",()=>{snap();SEL.role="man";let best=null,bd=1e9;STATE.players.filter(p=>p.type==="route"||p.type==="rb").forEach(p=>{const dd=Math.abs(p.x-SEL.x);if(dd<bd){bd=dd;best=p;}});SEL.manId=best?best.id:null;SEL.route=[];renderAll();msg((SEL.lab||"D")+": man"+(best?" on "+best.lab:"")+".");},SEL.role==="man");
  ctxBtn(host,"Blitz",()=>{snap();SEL.role="rush";SEL.route=[];renderAll();msg((SEL.lab||"D")+": blitz.");},SEL.role==="rush");
- ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"?s path ? it overrides his drop.");},MODE==="route");
+ ctxBtn(host,"Draw drop path",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the defender")+"\u2019s path \u00b7 it overrides his drop.");},MODE==="route");
  if(SEL.route&&SEL.route.length) ctxBtn(host,"Clear path",()=>{snap();SEL.route=[];renderAll();});
  return;
  }
  if(SEL.ol || SEL.type==="block"){ /* lineman / blocker */
- ctxLbl(host,(SEL.lab||"Line")+" ? protection & blocks");
+ ctxLbl(host,(SEL.lab||"Line")+" \u00b7 protection & blocks");
  const ps=document.getElementById("protSel");
  if(ps){ const sel=ps.cloneNode(true); sel.removeAttribute("id"); sel.value=ps.value; sel.style.maxWidth="180px"; sel.title="Protection (whole line)"; sel.onchange=()=>{ ps.value=sel.value; ps.dispatchEvent(new Event("change")); }; host.appendChild(sel); }
  BLOCKS.forEach(bl=>ctxBtn(host,bl[0],()=>applyBlock(bl[1],bl[2])));
@@ -650,11 +807,11 @@ function buildCtxBar(){
  return;
  }
  /* skill player (WR / TE / RB / QB): routes + motion */
- ctxLbl(host,(SEL.lab||"Player")+" ? routes");
+ ctxLbl(host,(SEL.lab||"Player")+" \u00b7 routes");
  CTX_ROUTES.forEach(n=>{ if(typeof ROUTES!=="undefined" && ROUTES[n]) ctxBtn(host,n,()=>applyRoute(n)); });
  ctxLbl(host,"Tools");
- ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"?s route.");},MODE==="route");
- ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"?s pre-snap motion.");},MODE==="motion");
+ ctxBtn(host,"Draw route",()=>{setMode("route");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"\u2019s route.");},MODE==="route");
+ ctxBtn(host,"Motion",()=>{setMode("motion");buildCtxBar();msg("Tap the field to draw "+(SEL.lab||"the player")+"\u2019s pre-snap motion.");},MODE==="motion");
  ctxBtn(host,"Clear route",()=>{snap();SEL.route=[];SEL.motion=[];SEL.rname=null;renderAll();});
  ctxAsnInput(host);
 }
@@ -778,14 +935,29 @@ function migrateLib(arr){
 }
 function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a)){LIB=migrateLib(a); try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}}}}catch(e){}}
 function saveLib(){try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){} try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(e){}}
-function val(id){const el=document.getElementById(id);return el?el.value.trim():"";}
-function set(id,v){const el=document.getElementById(id);if(el)el.value=v||"";}
+function val(id){
+ if(id==="m-form"){ const el=document.getElementById("formSel"); return el?(el.value||"").trim():""; }
+ if(id==="m-pers"){ const el=document.getElementById("persSel"); return el?(el.value||"").trim():""; }
+ if(id==="m-prot"){ const el=document.getElementById("protSel"); const v=el?(el.value||"").trim():""; return (!v||v==="none")?"":v; }
+ const el=document.getElementById(id);return el?el.value.trim():"";
+}
+function set(id,v){
+ if(id==="m-form"){
+  const el=document.getElementById("formSel");
+  if(el){ const mapped=formSelValueFor(v); el.value=mapped||v||el.value; }
+  if(STATE&&v) STATE.formation=v;
+  return;
+ }
+ if(id==="m-pers"){ const el=document.getElementById("persSel"); if(el) el.value=v||""; if(STATE) STATE.personnel=v||""; return; }
+ if(id==="m-prot"){ const el=document.getElementById("protSel"); if(el) el.value=v||"none"; if(STATE) STATE.protection=(!v||v==="none")?"":v; return; }
+ const el=document.getElementById(id);if(el)el.value=v||"";
+}
 function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
 function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();}
 function renderTagChips(){
  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
  const tags=Array.isArray(STATE.tags)?STATE.tags:[];
- host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">?</button></span>`).join("");
+ host.innerHTML=tags.map((t,i)=>`<span class="tagchip">${esc(t)}<button type="button" data-i="${i}" title="Remove">&times;</button></span>`).join("");
  host.querySelectorAll("button[data-i]").forEach(b=>{ b.onclick=()=>{ STATE.tags.splice(+b.dataset.i,1); renderTagChips(); scheduleDraft(); }; });
 }
 function addTagFromInput(){
@@ -922,12 +1094,12 @@ function renderLib(){
  if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
  host.innerHTML=list.map(p=>{
  const th=p.thumbSvg?`<span class="th">${p.thumbSvg}</span>`:`<span class="th"></span>`;
- const tags=(p.tags&&p.tags.length)?` ? ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
- const grp=p.group?` ? ${esc(p.group)}`:"";
+ const tags=(p.tags&&p.tags.length)?` \u00b7 ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
+ const grp=p.group?` \u00b7 ${esc(p.group)}`:"";
  const side=playSide(p);
  const sideBadge=side==="defense"?`<span class="tag" style="color:var(--navy);font-weight:900">Defense</span>`:`<span class="tag">Offense</span>`;
  const meta=side==="defense"?[p.front||p.formation,p.coverage||p.family,p.personnel].filter(Boolean):[p.formation,p.family,p.personnel];
- return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" ? ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">?</button></div>`;
+ return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
  }).join("");
  host.querySelectorAll("button[data-act]").forEach(b=>{
  b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
@@ -1075,7 +1247,7 @@ function offerStarter(opts){
  if(document.getElementById("pbStarterOv")) return;
  const ov=document.createElement("div"); ov.id="pbStarterOv"; ov.className="ov show"; ov.style.zIndex=9998;
  ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
- +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book ? <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don\u2019t run. If you\u2019re signed in, they sync to your whole program automatically.</p>'
+ +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book \u00b7 <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don\u2019t run. If you\u2019re signed in, they sync to your whole program automatically.</p>'
  +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
  document.body.appendChild(ov);
  ov.querySelector("#stSkip").onclick=function(){ dismissStarterPrompt(); };
@@ -1083,7 +1255,7 @@ function offerStarter(opts){
  if(libraryHasPlays()){ dismissStarterPrompt(); msg("Your team playbook already loaded from the cloud."); return; }
  LIB=starterLib(); saveLib(); refreshLibUI();
  newPlay("2x2 Doubles (Gun)"); SEL=null; UNDO=[]; REDO=[]; writeMeta(); renderAll();
- msg("Starter playbook loaded ? 12 plays. Open any play, rename it, make it yours.");
+ msg("Starter playbook loaded \u00b7 12 plays. Open any play, rename it, make it yours.");
  dismissStarterPrompt();
  };
 }
@@ -1140,7 +1312,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  wireLib();
  const tagAdd=document.getElementById("m-tagAdd"); if(tagAdd) tagAdd.onclick=addTagFromInput;
  const tagIn=document.getElementById("m-tagIn"); if(tagIn) tagIn.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addTagFromInput(); } });
- ["m-name","m-family","m-series","m-pers","m-form","m-prot","m-group"].forEach(id=>{
+ ["m-name","m-family","m-series","m-group"].forEach(id=>{
  const el=document.getElementById(id); if(el) el.addEventListener("input",()=>scheduleDraft());
  });
  const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
@@ -1158,12 +1330,12 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.getElementById("protSel").onchange=e=>{snap();applyProtection(e.target.value);set("m-prot",e.target.value==="none"?"":e.target.value);renderAll();msg("Protection: "+e.target.value);};
  document.getElementById("fieldSel").onchange=e=>{STATE.field=e.target.value;renderAll();scheduleDraft();};
  document.getElementById("imgBtn").onclick=()=>document.getElementById("imgFile").click();
- document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded ? trace it, then Clear when done.");};rd.readAsDataURL(f);};
+ document.getElementById("imgFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{STATE.bg=rd.result;renderAll();msg("Image loaded \u00b7 trace it, then Clear when done.");};rd.readAsDataURL(f);};
  document.getElementById("bgOp").oninput=e=>{STATE.bgOpacity=(+e.target.value)/100;renderAll();};
  document.getElementById("bgClear").onclick=()=>{STATE.bg=null;renderAll();};
  document.getElementById("applyAssign").onclick=()=>applyAssignments(document.getElementById("assignTxt").value);
  const asnT=document.getElementById("asnToggle"), asnB=document.getElementById("asnBody");
- const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide ?":"Show ?"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
+ const asnSet=o=>{ asnB.style.display=o?"":"none"; asnT.textContent=o?"Hide \u25B6":"Show \u25B6"; try{localStorage.setItem("offgrd_pb_asn_open",o?"1":"0");}catch(e){} if(o){ASN_SIG=null;renderAsn();} };
  asnT.onclick=()=>asnSet(asnB.style.display==="none");
  let asnO=false; try{ asnO=localStorage.getItem("offgrd_pb_asn_open")==="1"; }catch(e){} asnSet(asnO);
  document.getElementById("qbNotes").oninput=e=>{ if(STATE){ STATE.qbNotes=e.target.value; ASN_SIG=asnSig(); scheduleDraft(); } };
@@ -1180,8 +1352,8 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
  document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
- document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only ? coaches save plays."); return; } savePlay(); };
- document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only ? coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
+ document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches save plays."); return; } savePlay(); };
+ document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
  document.getElementById("pngBtn").onclick=exportPNG;
  document.getElementById("printBtn").onclick=()=>window.print();
  document.getElementById("installBtn").onclick=buildInstall;
@@ -1256,12 +1428,13 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
  document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
+ bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=290"></script>
-<script type="module" src="OFFGRD-account.js?v=290"></script>
-<script src="OFFGRD-role-gate.js?v=290"></script>
-<script src="OFFGRD-mobile.js?v=290"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=291"></script>
+<script type="module" src="OFFGRD-account.js?v=291"></script>
+<script src="OFFGRD-role-gate.js?v=291"></script>
+<script src="OFFGRD-mobile.js?v=291"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
