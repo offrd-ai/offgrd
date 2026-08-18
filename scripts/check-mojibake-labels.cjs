@@ -1,7 +1,8 @@
 /**
  * Fail loud if Play / TAP / Show glyphs re-mangle to ASCII "?",
  * plus the v292 class: A?Z and placeholder/label strings ending in "?"
- * that are not genuine questions.
+ * that are not genuine questions, and the v295 class: label text
+ * STARTING with "? " (eaten leading glyph — the trailing-? grep misses these).
  *   node scripts/check-mojibake-labels.cjs
  *
  * Targeted UI-label casualties only — not a blind whole-file mojibake pass.
@@ -24,6 +25,8 @@ const PATTERNS = [
   [/Quick routes \?/, "Quick routes ?"],
   [/Concepts \?/, "Concepts ?"],
   [/Run blocks \?/, "Run blocks ?"],
+  [/\? this week/, "? this week"],
+  [/\? Plan this week/, "? Plan this week"],
   [/A\?Z/, "A?Z"]
 ];
 
@@ -64,6 +67,45 @@ function decodeLite(s) {
     .replace(/\\u2013/g, "\u2013");
 }
 
+/** Out of v295 schedule-panel scope — same casualty, later pass. */
+const LEADING_ALLOW = [
+  /^\? few$/i,
+  /^\? no reps vs this look$/i
+];
+
+function isAllowedLeading(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (isAllowedQuestion(t)) return true;
+  return LEADING_ALLOW.some(function (re) { return re.test(t); });
+}
+
+function looksLikeLeadingGlyphLabel(text) {
+  const t = String(text || "").trim();
+  if (!/^\?\s+\S/.test(t)) return false;
+  if (t.length > 40) return false;
+  if (/[.]/.test(t)) return false;
+  if (/^\?\s+(The|It|This|If|A |An )/i.test(t)) return false;
+  if (/\$\{|\+'|\+"/.test(t)) return false;
+  return true;
+}
+
+function collectLeadingQuestionLabels(src) {
+  const hits = [];
+  const add = function (kind, raw) {
+    const text = decodeLite(raw).trim();
+    if (!looksLikeLeadingGlyphLabel(text)) return;
+    if (isAllowedLeading(text)) return;
+    hits.push({ kind: kind, text: text });
+  };
+  let m;
+  const htmlText = />(\?\s[^<]{1,80})</g;
+  while ((m = htmlText.exec(src))) add("html-text", m[1]);
+  const quoted = /(["'`])(\?\s[^"'`]{1,80})\1/g;
+  while ((m = quoted.exec(src))) add("quoted", m[2]);
+  return hits;
+}
+
 function collectTrailingQuestionLabels(src) {
   const hits = [];
   const add = function (kind, raw) {
@@ -97,6 +139,10 @@ FILES.forEach(function (rel) {
   collectTrailingQuestionLabels(s).forEach(function (h) {
     fails += 1;
     console.error("FAIL " + rel + ": " + h.kind + " ends with ? — " + JSON.stringify(h.text));
+  });
+  collectLeadingQuestionLabels(s).forEach(function (h) {
+    fails += 1;
+    console.error("FAIL " + rel + ": " + h.kind + " starts with ? — " + JSON.stringify(h.text));
   });
 });
 

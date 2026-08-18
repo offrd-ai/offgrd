@@ -19,6 +19,7 @@ const REQUIRED = [
   "OFFGRD-frame-capture.js",
   "OFFGRD-cv-review.js",
   "OFFGRD-assist-import.js",
+  "OFFGRD-schedule-import.js",
   "OFFGRD-scout-report.js",
   "OFFGRD-dcaller.js",
   "OFFGRD-booth-ask.js",

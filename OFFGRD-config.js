@@ -1,8 +1,8 @@
 /* OFFGRD Supabase config. The anon/publishable key is public-safe (RLS protects data). */
-/** Single cache-bust token — every <script src> and ES module import must match (currently ?v=294). */
-window.OFFGRD_ASSET_V = "294";
+/** Single cache-bust token — every <script src> and ES module import must match (currently ?v=295). */
+window.OFFGRD_ASSET_V = "295";
 window.OFFGRD_CONFIG = {
-  assetV: "294",
+  assetV: "295",
   /* Consolidation (Sprint 1–5 cutover) — pointed at the AUTHORITY project (getOFFRD).
      BEFORE DEPLOY, in the maintenance window: (1) paste the authority anon/public key below,
      (2) add `offgrd` to Supabase ? API ? Exposed schemas, (3) serve same-origin under getoffrd.com/<path>. */

@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v294: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v295: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=294"></script>
-<script src="OFFGRD-brand-persist.js?v=294"></script>
-<script src="supabase.js?v=294"></script>
-<script src="OFFGRD-cache-gate.js?v=294"></script>
+<script src="OFFGRD-config.js?v=295"></script>
+<script src="OFFGRD-brand-persist.js?v=295"></script>
+<script src="supabase.js?v=295"></script>
+<script src="OFFGRD-cache-gate.js?v=295"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,36 +380,37 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=294"></script>
-<script src="OFFGRD-pos-glossary.js?v=294"></script>
-<script src="OFFGRD-autoderive.js?v=294"></script>
-<script src="OFFGRD-matchup.js?v=294"></script>
-<script src="OFFGRD-scoutcards.js?v=294"></script>
-<script src="OFFGRD-tendencies.js?v=294"></script>
-<script src="OFFGRD-scout-report.js?v=294"></script>
-<script src="OFFGRD-week-autotest.js?v=294"></script>
-<script src="OFFGRD-weeklypackage.js?v=294"></script>
-<script src="OFFGRD-telestrate.js?v=294"></script>
-<script src="OFFGRD-redesign.js?v=294"></script>
-<script src="OFFGRD-shell.js?v=294"></script>
-<script src="OFFGRD-caller-outcome.js?v=294"></script>
-<script src="OFFGRD-caller-sit.js?v=294"></script>
-<script src="OFFGRD-formations-data.js?v=294"></script>
-<script src="OFFGRD-formation-canon.js?v=294"></script>
-<script src="OFFGRD-assist-import.js?v=294"></script>
-<script src="OFFGRD-opp-shells.js?v=294"></script>
-<script src="OFFGRD-formation-map.js?v=294"></script>
-<script src="OFFGRD-cv-review.js?v=294"></script>
-<script src="OFFGRD-frame-capture.js?v=294"></script>
-<script src="OFFGRD-caller-log.js?v=294"></script>
-<script src="OFFGRD-caller-sync.js?v=294"></script>
-<script src="OFFGRD-caller-analysis.js?v=294"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=294"></script>
-<script src="OFFGRD-booth-ask.js?v=294"></script>
-<script src="OFFGRD-boothpack.js?v=294"></script>
-<script src="OFFGRD-booth-chat.js?v=294"></script>
-<script src="OFFGRD-caller-select.js?v=294"></script>
-<script src="OFFGRD-dcaller.js?v=294"></script>
+<script src="OFFGRD-render.js?v=295"></script>
+<script src="OFFGRD-pos-glossary.js?v=295"></script>
+<script src="OFFGRD-autoderive.js?v=295"></script>
+<script src="OFFGRD-matchup.js?v=295"></script>
+<script src="OFFGRD-scoutcards.js?v=295"></script>
+<script src="OFFGRD-tendencies.js?v=295"></script>
+<script src="OFFGRD-scout-report.js?v=295"></script>
+<script src="OFFGRD-week-autotest.js?v=295"></script>
+<script src="OFFGRD-weeklypackage.js?v=295"></script>
+<script src="OFFGRD-telestrate.js?v=295"></script>
+<script src="OFFGRD-redesign.js?v=295"></script>
+<script src="OFFGRD-shell.js?v=295"></script>
+<script src="OFFGRD-caller-outcome.js?v=295"></script>
+<script src="OFFGRD-caller-sit.js?v=295"></script>
+<script src="OFFGRD-formations-data.js?v=295"></script>
+<script src="OFFGRD-formation-canon.js?v=295"></script>
+<script src="OFFGRD-assist-import.js?v=295"></script>
+<script src="OFFGRD-schedule-import.js?v=295"></script>
+<script src="OFFGRD-opp-shells.js?v=295"></script>
+<script src="OFFGRD-formation-map.js?v=295"></script>
+<script src="OFFGRD-cv-review.js?v=295"></script>
+<script src="OFFGRD-frame-capture.js?v=295"></script>
+<script src="OFFGRD-caller-log.js?v=295"></script>
+<script src="OFFGRD-caller-sync.js?v=295"></script>
+<script src="OFFGRD-caller-analysis.js?v=295"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=295"></script>
+<script src="OFFGRD-booth-ask.js?v=295"></script>
+<script src="OFFGRD-boothpack.js?v=295"></script>
+<script src="OFFGRD-booth-chat.js?v=295"></script>
+<script src="OFFGRD-caller-select.js?v=295"></script>
+<script src="OFFGRD-dcaller.js?v=295"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -611,8 +612,22 @@
       <input type="file" id="schedOppFile" accept="image/*" style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="foot">Season</span><select id="schedSeason" style="padding:5px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-weight:700;font-size:13px"></select></div>
       <div id="schedBody"></div>
+      <div id="schedImport" style="display:none;margin:8px 0 4px;padding:10px;border:1px dashed var(--line);border-radius:9px">
+        <p class="foot" style="margin:0 0 8px">Paste the schedule text (or choose a <code>.csv</code> / <code>.ics</code>). We never fetch a link &mdash; if you have a URL, open it yourself and copy the games.</p>
+        <textarea id="schedPasteText" placeholder="8/27 vs Parkway North 7:00PM&#10;9/3 @ Parkway South 6:00PM" style="min-height:110px"></textarea>
+        <input type="file" id="schedImportFile" accept=".csv,.ics,text/csv,text/calendar" style="display:none">
+        <div class="row" style="margin-top:8px">
+          <button class="btnp" id="schedPreviewBtn">Preview import</button>
+          <button class="btnp" id="schedImportCommit" style="display:none">Commit to schedule</button>
+          <button class="ghost" id="schedImportFileBtn">Choose .csv / .ics</button>
+          <button class="ghost" id="schedImportCancel">Cancel</button>
+        </div>
+        <div id="schedImportPreview" style="max-height:36vh;overflow:auto;margin-top:8px"></div>
+        <p class="foot" id="schedImportMsg" style="margin-top:8px"></p>
+      </div>
       <div class="row">
         <button class="btnp" id="schedAdd">+ Add game</button>
+        <button class="ghost" id="schedPaste">Paste schedule</button>
         <button class="ghost" id="closeSched" style="margin-left:auto">Close</button>
       </div>
       <p class="foot" id="schedMsg" style="margin-top:10px"></p>
@@ -1494,7 +1509,7 @@ function schedStatusLine(g){
   const sc=schedScoutCounts(opp);
   const scout=(sc.off||sc.def)?('<span style="color:var(--good);font-weight:700">• scouting</span> <span class="foot">off '+sc.off+' · def '+sc.def+'</span>'):'<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
   const isPlan=WEEK&&WEEK.opponent===opp;
-  const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">? this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">? Plan this week</button>':'');
+  const planChip=isPlan?'<span class="wb" style="min-width:auto;padding:1px 8px;background:var(--good);color:#fff;border-radius:6px">&#9654; this week</span>':(SCHED_EDIT?'<button class="ghost" style="padding:3px 10px" onclick="schedPlanWeek(\''+g.id+'\')">&rarr; Plan this week</button>':'');
   return '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px">'+scout+' '+planChip+'</div>';
 }
 async function schedPlanWeek(id){
@@ -1508,15 +1523,103 @@ async function schedPlanWeek(id){
 let _schedPendingOpp="";
 function schedUploadLogo(id){ const g=SCHEDULE.find(x=>x.id===id); const opp=((g&&g.opponent)||"").trim(); if(!opp){ alert("Type the opponent's name first, then tap the crest to add their logo."); return; } _schedPendingOpp=opp; const f=document.getElementById("schedOppFile"); if(f){ f.value=""; f.click(); } }
 function schedLogoPicked(file){ if(!file||!_schedPendingOpp||typeof logoFromFile!=="function") return; logoFromFile(file,"opp-"+logoKey(_schedPendingOpp),function(url){ if(!url) return; const o=_schedPendingOpp, prev=(USER_BRANDS[o]||teamBrand(o)), ab=o.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"?"; USER_BRANDS[o]={abbr:ab, fg:prev.fg, bg:prev.bg, logo:url}; if(typeof saveBrands==="function") saveBrands(); let _ch=false; SCHEDULE.forEach(function(g){ if((g.opponent||"").trim()===o){ g.logo=url; _ch=true; } }); if(_ch) scheduleSave(); _schedPendingOpp=""; renderSchedule(); if(typeof render==="function") render(); }); }
+let _schedImportPending=null;
+function schedImportOpen(){
+  const box=document.getElementById("schedImport"); if(!box) return;
+  box.style.display="block";
+  const ta=document.getElementById("schedPasteText"); if(ta) ta.focus();
+}
+function schedImportClose(){
+  const box=document.getElementById("schedImport"); if(box) box.style.display="none";
+  const prev=document.getElementById("schedImportPreview"); if(prev) prev.innerHTML="";
+  const msg=document.getElementById("schedImportMsg"); if(msg) msg.textContent="";
+  const commit=document.getElementById("schedImportCommit"); if(commit) commit.style.display="none";
+  const ta=document.getElementById("schedPasteText"); if(ta) ta.value="";
+  const f=document.getElementById("schedImportFile"); if(f) f.value="";
+  _schedImportPending=null;
+}
+function schedImportFilePicked(file){
+  if(!file) return;
+  const rd=new FileReader();
+  rd.onload=function(){ const ta=document.getElementById("schedPasteText"); if(ta) ta.value=String(rd.result||""); schedImportPreview(); };
+  rd.readAsText(file);
+}
+function schedKnownOpponents(){
+  const names=[];
+  if(typeof GAMES!=="undefined" && GAMES) GAMES.forEach(function(g){ if(g&&g.opponent) names.push(g.opponent); });
+  SCHEDULE.forEach(function(g){ if(g&&g.opponent) names.push(g.opponent); });
+  return typeof uniq==="function" ? uniq(names) : names;
+}
+function schedImportPreview(){
+  const msg=document.getElementById("schedImportMsg");
+  const host=document.getElementById("schedImportPreview");
+  const commit=document.getElementById("schedImportCommit");
+  const SI=window.OFFGRD_SCHEDULE_IMPORT;
+  if(!SI){ if(msg) msg.textContent="Schedule import is unavailable."; return; }
+  const txt=(document.getElementById("schedPasteText")||{}).value||"";
+  const parsed=SI.parseSchedule(txt,{season:SCHED_SEASON});
+  if(commit) commit.style.display="none";
+  _schedImportPending=null;
+  if(parsed.error){
+    if(host) host.innerHTML="";
+    if(msg) msg.textContent=parsed.error;
+    return;
+  }
+  const merged=SI.mergeSchedule(SCHEDULE, parsed.rows, {uid:schedUID});
+  const known=schedKnownOpponents();
+  const haName={H:"Home",A:"Away",N:"Neutral"};
+  const flaggedSet={};
+  (parsed.flagged||[]).forEach(function(f){ if(f&&f.row) flaggedSet[(f.row.date||"")+"|"+(f.row.opponent||"")]=true; });
+  let body=(parsed.rows||[]).map(function(g){
+    const sc=typeof schedScoutCounts==="function"?schedScoutCounts(g.opponent):{off:0,def:0};
+    const exact=GAMES&&GAMES.some(function(x){ return x.opponent===g.opponent; });
+    let scout;
+    if(sc.off||sc.def) scout='<span style="color:var(--good);font-weight:700">scouting: off '+sc.off+' · def '+sc.def+'</span>';
+    else scout='<span style="color:var(--accent);font-weight:700">no scouting yet</span>';
+    const sug=(!exact && g.opponent && SI.suggestOpponent)?SI.suggestOpponent(g.opponent, known):"";
+    const near=sug?'<div class="foot">near match: '+esc(sug)+' (not renamed)</div>':"";
+    const flag=flaggedSet[(g.date||"")+"|"+(g.opponent||"")]?'<div class="foot" style="color:var(--warn)">H/A left default — line was Neutral or ambiguous</div>':"";
+    return '<tr class="tagrow"><td>'+esc(g.date||"")+'</td><td>'+esc(haName[g.ha]||g.ha||"")+'</td><td>'+esc(g.opponent||"")+near+flag+'</td><td>'+esc(g.site||"")+'</td><td>'+esc(g.time||"")+'</td><td>'+esc(g.us||"")+'</td><td>'+esc(g.them||"")+'</td><td>'+scout+'</td></tr>';
+  }).join("");
+  const unparsed=parsed.unparsed||[];
+  const unH=unparsed.length?'<div class="lbl" style="margin-top:10px">Unparsed / partial</div><pre class="foot" style="white-space:pre-wrap;margin:0">'+esc(unparsed.join("\n"))+'</pre>':"";
+  const sum=merged.nNew+" new · "+merged.nUpdated+" updated · "+merged.nUnchanged+" unchanged · "+unparsed.length+" unparsed";
+  if(host){
+    host.innerHTML='<p class="foot" style="margin:0 0 6px">'+esc(parsed.yearAnchor||"")+'</p>'
+      +'<p style="font-size:14px;margin:0 0 8px"><b>'+esc(sum)+'</b></p>'
+      +(body?'<table><thead><tr><th>Date</th><th>Home/Away</th><th>Opponent</th><th>Site</th><th>Time</th><th>Us</th><th>Opp</th><th>Scouting</th></tr></thead><tbody>'+body+'</tbody></table>':"")
+      +unH;
+  }
+  if(msg) msg.textContent=parsed.rows.length?("Preview ready · "+sum):"No usable rows.";
+  if(parsed.rows.length){
+    _schedImportPending={parsed:parsed, merged:merged};
+    if(commit) commit.style.display="";
+  }
+}
+function schedImportCommit(){
+  if(!_schedImportPending||!_schedImportPending.merged){ schedImportPreview(); if(!_schedImportPending) return; }
+  SCHEDULE=_schedImportPending.merged.rows;
+  scheduleSave();
+  renderSchedule();
+  const n=_schedImportPending.merged;
+  const un=(_schedImportPending.parsed.unparsed||[]).length;
+  const msg=document.getElementById("schedImportMsg");
+  if(msg) msg.textContent="Committed "+n.nNew+" new · "+n.nUpdated+" updated · "+n.nUnchanged+" unchanged · "+un+" unparsed.";
+  const commit=document.getElementById("schedImportCommit"); if(commit) commit.style.display="none";
+  const prev=document.getElementById("schedImportPreview"); if(prev) prev.innerHTML="";
+  _schedImportPending=null;
+}
 function renderSchedule(){
   const host=document.getElementById("schedBody"); if(!host) return;
   const ed=SCHED_EDIT;
   buildSchedSeason();
   const addB=document.getElementById("schedAdd"); if(addB) addB.style.display=ed?"":"none";
+  const pasteB=document.getElementById("schedPaste"); if(pasteB) pasteB.style.display=ed?"":"none";
+  if(!ed){ const imp=document.getElementById("schedImport"); if(imp) imp.style.display="none"; }
   const rec=schedRecord(); const recH=rec?'<p class="foot" style="margin:0 0 6px">Record <b>'+esc(rec)+'</b></p>':'';
   let list=SCHEDULE.slice().sort((a,b)=>((a.date||"")+"").localeCompare((b.date||"")+""));
   if(SCHED_SEASON && SCHED_SEASON!=="ALL") list=list.filter(function(g){ const y=(g.date||"").slice(0,4); return !y || y===SCHED_SEASON; });
-  if(!list.length){ host.innerHTML=recH+'<p class="foot">No games '+((SCHED_SEASON&&SCHED_SEASON!=="ALL")?("for "+esc(SCHED_SEASON)):"yet")+'. '+(ed?'Click <b>+ Add game</b> to add one.':'A coach can add games here.')+'</p>'; return; }
+  if(!list.length){ host.innerHTML=recH+'<p class="foot">No games '+((SCHED_SEASON&&SCHED_SEASON!=="ALL")?("for "+esc(SCHED_SEASON)):"yet")+'. '+(ed?'Click <b>+ Add game</b> or <b>Paste schedule</b> to add one.':'A coach can add games here.')+'</p>'; return; }
   const haName={H:"Home",A:"Away",N:"Neutral"};
   if(!ed){
     const body=list.map(g=>{ const res=(g.us!==""&&g.us!=null&&g.them!==""&&g.them!=null)?((+g.us>+g.them?"W":(+g.us<+g.them?"L":"T"))+" "+esc(g.us)+"-"+esc(g.them)):""; const pre=({H:"vs",A:"@",N:"vs"}[g.ha]||"vs"); return '<tr class="tagrow"><td>'+esc(g.date||"")+'</td><td>'+pre+' '+esc(g.opponent||"")+'</td><td>'+esc(g.site||"")+'</td><td>'+esc(g.time||"")+'</td><td>'+res+'</td></tr>'; }).join("");
@@ -5545,6 +5648,12 @@ function splitCSVLine(line){
 const ALIASES={
   date:["date","game","game date","gamedate"],
   opponent:["opponent","opp","vs","opp.","opponent name"],
+  ha:["ha","h/a","h / a","home/away","home-away","home away","home or away"],
+  site:["site","location","venue","stadium","field","place"],
+  time:["time","kickoff","kick off","start","start time","game time","ko"],
+  us:["us","our score","ours","score us"],
+  them:["them","opp score","their score","score them","opponent score"],
+  score:["score","final","final score"],
   qtr:["qtr","quarter","qtr.","q","period"],
   scoreMargin:["scoremargin","margin","score margin","score diff","diff","def margin"],
   down:["down","dn","dn.","dwn","d"],
@@ -5788,7 +5897,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=294", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=295", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -5917,6 +6026,12 @@ document.getElementById("manageBtn").onclick=openManager;
 document.getElementById("schedBtn").onclick=openSchedule;
 { const _c=document.getElementById("closeSched"); if(_c) _c.onclick=()=>document.getElementById("sched").classList.remove("show"); }
 { const _a=document.getElementById("schedAdd"); if(_a) _a.onclick=schedAdd; }
+{ const _p=document.getElementById("schedPaste"); if(_p) _p.onclick=schedImportOpen; }
+{ const _ip=document.getElementById("schedPreviewBtn"); if(_ip) _ip.onclick=schedImportPreview; }
+{ const _ic=document.getElementById("schedImportCommit"); if(_ic) _ic.onclick=schedImportCommit; }
+{ const _ix=document.getElementById("schedImportCancel"); if(_ix) _ix.onclick=schedImportClose; }
+{ const _ifb=document.getElementById("schedImportFileBtn"); if(_ifb) _ifb.onclick=function(){ const f=document.getElementById("schedImportFile"); if(f) f.click(); }; }
+{ const _iff=document.getElementById("schedImportFile"); if(_iff) _iff.onchange=function(e){ schedImportFilePicked(e.target.files[0]); }; }
 { const _lf=document.getElementById("schedOppFile"); if(_lf) _lf.onchange=function(e){ schedLogoPicked(e.target.files[0]); }; }
 document.getElementById("brandBtn").onclick=openBranding;
 document.getElementById("closeMgr").onclick=()=>document.getElementById("mgr").classList.remove("show");
@@ -6349,9 +6464,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=294"></script>
-<script src="OFFGRD-role-gate.js?v=294"></script>
-<script src="OFFGRD-mobile.js?v=294"></script>
+<script type="module" src="OFFGRD-account.js?v=295"></script>
+<script src="OFFGRD-role-gate.js?v=295"></script>
+<script src="OFFGRD-mobile.js?v=295"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
