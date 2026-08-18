@@ -49,9 +49,36 @@ const eagle43 = S.resolveDefFront("4-3 EAGLE");
 check("4-3 EAGLE own entry", eagle43.front === "4-3 EAGLE" && eagle43.unresolved === false);
 check("4-3 EAGLE labels 4-3 personnel", defLabs("4-3 EAGLE") === "DE,DT,DT,DE,W,M,S,CB,CB,FS,SS");
 const eagleSam = R.DFRONTS["4-3 EAGLE"].find((d) => d.pos === "SLB");
+const eagleWill = R.DFRONTS["4-3 EAGLE"].find((d) => d.pos === "WLB");
+const eagleMike = R.DFRONTS["4-3 EAGLE"].find((d) => d.pos === "MLB");
 const eagleDeR = R.DFRONTS["4-3 EAGLE"].filter((d) => d.pos === "DE").pop();
 check("4-3 EAGLE Sam on LOS outside DE", !!(eagleSam && eagleDeR && eagleSam.y === eagleDeR.y && eagleSam.x > eagleDeR.x));
+check(
+  "4-3 EAGLE geometry unchanged from v285",
+  !!(eagleSam && eagleWill && eagleMike && eagleSam.x === 710 && eagleSam.y === 358 && eagleWill.x === 400 && eagleWill.y === 316 && eagleMike.x === 500 && eagleMike.y === 312)
+);
 check("4-4 EAGLE still 3 DB", R.DFRONTS["4-4 EAGLE"].filter((d) => d.group === "DB").length === 3);
+const sixOne = S.resolveDefFront("6-1");
+check("6-1 maps to 4-3 DOUBLE EAGLE", sixOne.front === "4-3 DOUBLE EAGLE" && sixOne.unresolved === false);
+check("4-3 DOUBLE EAGLE labels 4-3 personnel", defLabs("4-3 DOUBLE EAGLE") === "DE,DT,DT,DE,W,M,S,CB,CB,FS,SS");
+const dbl = R.DFRONTS["4-3 DOUBLE EAGLE"] || [];
+const dblSam = dbl.find((d) => d.pos === "SLB");
+const dblWill = dbl.find((d) => d.pos === "WLB");
+const dblMike = dbl.find((d) => d.pos === "MLB");
+const dblDeL = dbl.filter((d) => d.pos === "DE")[0];
+const dblDeR = dbl.filter((d) => d.pos === "DE").pop();
+check(
+  "4-3 DOUBLE EAGLE both OLBs on LOS",
+  !!(dblSam && dblWill && dblMike && dblDeL && dblDeR && dblSam.x === 710 && dblSam.y === 358 && dblWill.x === 290 && dblWill.y === 358 && dblMike.x === 500 && dblMike.y === 312 && dblWill.x < dblDeL.x && dblSam.x > dblDeR.x)
+);
+check(
+  "4-3 DOUBLE EAGLE !== 4-3 EAGLE geometry",
+  JSON.stringify(R.DFRONTS["4-3 DOUBLE EAGLE"]) !== JSON.stringify(R.DFRONTS["4-3 EAGLE"]) &&
+    dblWill.y === 358 &&
+    eagleWill.y === 316
+);
+const goalLine = S.resolveDefFront("goal-line");
+check("goal-line stays unresolved", goalLine.unresolved === true && !R.DFRONTS["goal-line"]);
 ["Weird Stack", "4-3 STACK", "NOT A FRONT", "6-2"].forEach((raw) => {
   const r = S.resolveDefFront(raw);
   check(raw + " DFRONTS-miss sets unresolved", !R.DFRONTS[String(raw).trim()] && r.unresolved === true);

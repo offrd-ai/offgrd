@@ -92,6 +92,9 @@
     "4-3 EAGLE": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
       .concat([{ pos: "WLB", x: 400, y: 316 }, { pos: "MLB", x: 500, y: 312 }, { pos: "SLB", x: 710, y: 358 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
       .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 205 }, { pos: "SS", x: 570, y: 205 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
+    "4-3 DOUBLE EAGLE": [{ pos: "DE", x: 360 }, { pos: "DT", x: 455 }, { pos: "DT", x: 545 }, { pos: "DE", x: 640 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
+      .concat([{ pos: "WLB", x: 290, y: 358 }, { pos: "MLB", x: 500, y: 312 }, { pos: "SLB", x: 710, y: 358 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
+      .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 205 }, { pos: "SS", x: 570, y: 205 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),
     "3-4": [{ pos: "DE", x: 410 }, { pos: "NT", x: 500 }, { pos: "DE", x: 590 }].map(d => ({ pos: d.pos, x: d.x, y: 358, group: "DL" }))
       .concat([{ pos: "OLB", x: 345, y: 330 }, { pos: "ILB", x: 455, y: 314 }, { pos: "ILB", x: 545, y: 314 }, { pos: "OLB", x: 655, y: 330 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "LB" })))
       .concat([{ pos: "LCB", x: 120, y: 350 }, { pos: "RCB", x: 880, y: 350 }, { pos: "FS", x: 430, y: 205 }, { pos: "SS", x: 570, y: 205 }].map(d => ({ pos: d.pos, x: d.x, y: d.y, group: "DB" }))),

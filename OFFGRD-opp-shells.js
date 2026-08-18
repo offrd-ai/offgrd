@@ -769,6 +769,8 @@
     "42 under": "4-3",
     "4-3 over": "4-3 OVER",
     "4-3 eagle": "4-3 EAGLE",
+    "4-3 double eagle": "4-3 DOUBLE EAGLE",
+    "6-1": "4-3 DOUBLE EAGLE",
     "4-3 under": "4-3",
     "33 stack": "3-3-5 (Tite)",
     "3-3-5": "3-3-5 (Tite)",

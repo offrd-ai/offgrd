@@ -100,6 +100,9 @@ DEMO.forEach(function (d) {
 
 const over43 = S.resolveDefFront("4-3 OVER");
 check("4-3 OVER own DFRONTS entry", over43.front === "4-3 OVER" && over43.unresolved === false);
+const sixOne = S.resolveDefFront("6-1");
+check("6-1 maps to 4-3 DOUBLE EAGLE", sixOne.front === "4-3 DOUBLE EAGLE" && sixOne.unresolved === false);
+check("goal-line stays unresolved", S.resolveDefFront("goal-line").unresolved === true);
 ["Weird Stack", "4-3 STACK", "NOT A FRONT", "6-2"].forEach(function (raw) {
   const r = S.resolveDefFront(raw);
   check(raw + " DFRONTS-miss sets unresolved", !R.DFRONTS[String(raw).trim()] && r.unresolved === true);
