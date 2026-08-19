@@ -54,6 +54,7 @@ function callerEntryToRow(l) {
     signal: l.signal != null ? l.signal : null,
     callId: l.id || null,
     gameWeek: l.gameWeek || null,
+    qtr: "",
   };
 }
 

@@ -2080,6 +2080,58 @@
     return payload;
   }
 
+  /**
+   * Quarter for a live snap from period bookmarks ({kind, afterPlayIndex}).
+   * Empty when no marks, or when a half/quarter jump leaves the interval ambiguous.
+   */
+  function qtrFromBreaks(playIndex, breaks) {
+    if (playIndex == null || playIndex === "") return "";
+    var pi = +playIndex;
+    if (isNaN(pi)) return "";
+    var marks = (breaks || []).filter(function (b) {
+      return b && (b.kind === "quarter" || b.kind === "half");
+    });
+    if (!marks.length) return "";
+    var ordered = marks
+      .map(function (b, i) {
+        return { after: +b.afterPlayIndex, kind: b.kind, i: i };
+      })
+      .sort(function (a, b) {
+        if (a.after !== b.after) return a.after - b.after;
+        return a.i - b.i;
+      });
+    var ended = 0;
+    var stamped = [];
+    var i;
+    for (i = 0; i < ordered.length; i++) {
+      var prevEnded = ended;
+      if (ordered[i].kind === "quarter") ended = ended + 1;
+      else if (ended < 2) ended = 2;
+      else if (ended < 4) ended = 4;
+      else ended = ended + 1;
+      stamped.push({
+        after: ordered[i].after,
+        endedQ: ended,
+        jumped: ended !== prevEnded + 1,
+      });
+    }
+    var prevAfter = -Infinity;
+    for (i = 0; i < stamped.length; i++) {
+      var s = stamped[i];
+      if (pi <= s.after && pi > prevAfter) {
+        if (s.jumped || s.endedQ < 1 || s.endedQ > 4) return "";
+        return String(s.endedQ);
+      }
+      prevAfter = s.after;
+    }
+    var last = stamped[stamped.length - 1];
+    if (pi > last.after) {
+      var next = last.endedQ + 1;
+      if (next >= 1 && next <= 4) return String(next);
+    }
+    return "";
+  }
+
   var api = {
     deriveDrives: deriveDrives,
     possessionEnd: possessionEnd,
@@ -2117,6 +2169,7 @@
     lookFieldMix: lookFieldMix,
     tonightCovDistFromLog: tonightCovDistFromLog,
     lookCoverageShift: lookCoverageShift,
+    qtrFromBreaks: qtrFromBreaks,
     inferDriveEndFromSnap: inferDriveEndFromSnap,
     offenseLiveSections: offenseLiveSections,
     defenseLiveSections: defenseLiveSections,
