@@ -1715,7 +1715,14 @@ export const Cloud = {
   },
   async deleteFormationMap(teamId, rawTagNorm) {
     if (!OG || !teamId) throw new Error("Sign in first.");
-    const norm = String(rawTagNorm || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (rawTagNorm == null || String(rawTagNorm).trim() === "") {
+      throw new Error("deleteFormationMap(teamId, rawTagNorm) requires the normalized tag, not an id.");
+    }
+    const raw = String(rawTagNorm).trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
+      throw new Error("deleteFormationMap expects raw_tag_norm, not a row id.");
+    }
+    const norm = raw.toLowerCase().replace(/\s+/g, " ").trim();
     const { error } = await OG.from("offgrd_formation_map")
       .delete()
       .eq("team_id", teamId)
@@ -1748,8 +1755,16 @@ export const Cloud = {
   },
   async deletePlayMap(teamId, rawCallNorm) {
     if (!OG || !teamId) throw new Error("Sign in first.");
+    if (arguments.length < 2 || rawCallNorm == null || String(rawCallNorm).trim() === "") {
+      throw new Error("deletePlayMap(teamId, rawCallNorm) requires the normalized call, not an id.");
+    }
+    const raw = String(rawCallNorm).trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
+      throw new Error("deletePlayMap expects raw_call_norm, not a row id.");
+    }
     const PM = typeof window !== "undefined" ? window.OFFGRD_PLAY_MAP : null;
-    const norm = PM && PM.normCall ? PM.normCall(rawCallNorm) : String(rawCallNorm || "").toLowerCase().trim();
+    const norm = PM && PM.normCall ? PM.normCall(raw) : raw.toLowerCase().trim();
+    if (!norm) throw new Error("deletePlayMap: empty raw_call_norm.");
     const { error } = await OG.from("offgrd_play_map")
       .delete()
       .eq("team_id", teamId)

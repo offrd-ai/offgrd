@@ -52,9 +52,39 @@ box.callerOut = function () {
 box.CALLER_LOG = [];
 assertNoPct("caught-up", box.out("3RD & 4-6"));
 
-const expectSrc = (html.match(/function callerExpectStripHtml\([\s\S]*?\nfunction /) || [])[0];
-if (!expectSrc || !/% blitz/.test(expectSrc)) {
-  throw new Error("Expect strip must host the {n}% blitz chip");
+const expectChunk = (html.match(/function callerExpectStripHtml\([\s\S]*?\nfunction callerBlitzAlertHtml/) || [])[0];
+if (!expectChunk) throw new Error("callerExpectStripHtml not found");
+if (!/id="rd-gd-expect-blitz"/.test(expectChunk)) {
+  throw new Error("Expect chip must have id=rd-gd-expect-blitz");
+}
+
+const ebox = {
+  esc: function (s) { return String(s == null ? "" : s); },
+  fmtPct: function (x) { return Math.round((+x || 0) * 100) + "%"; },
+  weightedDist: function () { return { arr: [] }; },
+};
+vm.runInNewContext(
+  expectChunk.replace(/\nfunction callerBlitzAlertHtml$/, "\nthis.out=callerExpectStripHtml;\nthis.threat=callerBlitzThreat;\n"),
+  ebox
+);
+
+function expectHtml(pr, n) {
+  const snaps = [];
+  let i;
+  for (i = 0; i < n; i++) snaps.push({ pressure: pr >= 0.3 ? 1 : 0 });
+  return ebox.out({ g: snaps, cov: { k: "Cover 4", pct: 0.51 } }, { k: "4-3" }, pr, []);
+}
+
+const expectLow = expectHtml(0.21, 48);
+if (expectLow.indexOf('id="rd-gd-expect-blitz"') < 0) {
+  throw new Error("Expect chip must exist at 21% pressure — got: " + expectLow);
+}
+if (!/21% blitz/.test(expectLow)) throw new Error("Expect chip should show 21% blitz at pr=0.21");
+if (expectLow.indexOf("rd-gd-sticky") >= 0) throw new Error("Expect strip must not include sticky");
+
+const expectHi = expectHtml(0.51, 12);
+if (expectHi.indexOf('id="rd-gd-expect-blitz"') < 0) {
+  throw new Error("Expect chip missing on elevated sit");
 }
 
 require(path.join(ROOT, "OFFGRD-caller-outcome.js"));
@@ -86,5 +116,5 @@ if (q(0, q1h) !== "1" || q(1, q1h) !== "1" || q(2, q1h) !== "2" || q(3, q1h) !==
 }
 
 console.log("ok  sticky bar has no data-derived %");
-console.log("ok  % blitz lives on Expect");
+console.log("ok  #rd-gd-expect-blitz exists in Expect (21% and elevated)");
 console.log("ok  qtrFromBreaks fixtures");

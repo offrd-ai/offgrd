@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v298: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v301: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=298"></script>
-<script src="OFFGRD-brand-persist.js?v=298"></script>
-<script src="supabase.js?v=298"></script>
-<script src="OFFGRD-cache-gate.js?v=298"></script>
+<script src="OFFGRD-config.js?v=301"></script>
+<script src="OFFGRD-brand-persist.js?v=301"></script>
+<script src="supabase.js?v=301"></script>
+<script src="OFFGRD-cache-gate.js?v=301"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,38 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=298"></script>
-<script src="OFFGRD-pos-glossary.js?v=298"></script>
-<script src="OFFGRD-autoderive.js?v=298"></script>
-<script src="OFFGRD-matchup.js?v=298"></script>
-<script src="OFFGRD-scoutcards.js?v=298"></script>
-<script src="OFFGRD-tendencies.js?v=298"></script>
-<script src="OFFGRD-scout-report.js?v=298"></script>
-<script src="OFFGRD-week-autotest.js?v=298"></script>
-<script src="OFFGRD-weeklypackage.js?v=298"></script>
-<script src="OFFGRD-telestrate.js?v=298"></script>
-<script src="OFFGRD-redesign.js?v=298"></script>
-<script src="OFFGRD-shell.js?v=298"></script>
-<script src="OFFGRD-caller-outcome.js?v=298"></script>
-<script src="OFFGRD-caller-sit.js?v=298"></script>
-<script src="OFFGRD-formations-data.js?v=298"></script>
-<script src="OFFGRD-formation-canon.js?v=298"></script>
-<script src="OFFGRD-assist-import.js?v=298"></script>
-<script src="OFFGRD-schedule-import.js?v=298"></script>
-<script src="OFFGRD-opp-shells.js?v=298"></script>
-<script src="OFFGRD-formation-map.js?v=298"></script>
-<script src="OFFGRD-play-map.js?v=298"></script>
-<script src="OFFGRD-cv-review.js?v=298"></script>
-<script src="OFFGRD-frame-capture.js?v=298"></script>
-<script src="OFFGRD-caller-log.js?v=298"></script>
-<script src="OFFGRD-caller-sync.js?v=298"></script>
-<script src="OFFGRD-caller-analysis.js?v=298"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=298"></script>
-<script src="OFFGRD-booth-ask.js?v=298"></script>
-<script src="OFFGRD-boothpack.js?v=298"></script>
-<script src="OFFGRD-booth-chat.js?v=298"></script>
-<script src="OFFGRD-caller-select.js?v=298"></script>
-<script src="OFFGRD-dcaller.js?v=298"></script>
+<script src="OFFGRD-render.js?v=301"></script>
+<script src="OFFGRD-pos-glossary.js?v=301"></script>
+<script src="OFFGRD-autoderive.js?v=301"></script>
+<script src="OFFGRD-matchup.js?v=301"></script>
+<script src="OFFGRD-scoutcards.js?v=301"></script>
+<script src="OFFGRD-tendencies.js?v=301"></script>
+<script src="OFFGRD-scout-report.js?v=301"></script>
+<script src="OFFGRD-week-autotest.js?v=301"></script>
+<script src="OFFGRD-weeklypackage.js?v=301"></script>
+<script src="OFFGRD-telestrate.js?v=301"></script>
+<script src="OFFGRD-redesign.js?v=301"></script>
+<script src="OFFGRD-shell.js?v=301"></script>
+<script src="OFFGRD-caller-outcome.js?v=301"></script>
+<script src="OFFGRD-caller-sit.js?v=301"></script>
+<script src="OFFGRD-formations-data.js?v=301"></script>
+<script src="OFFGRD-formation-canon.js?v=301"></script>
+<script src="OFFGRD-assist-import.js?v=301"></script>
+<script src="OFFGRD-schedule-import.js?v=301"></script>
+<script src="OFFGRD-opp-shells.js?v=301"></script>
+<script src="OFFGRD-formation-map.js?v=301"></script>
+<script src="OFFGRD-play-map.js?v=301"></script>
+<script src="OFFGRD-cv-review.js?v=301"></script>
+<script src="OFFGRD-frame-capture.js?v=301"></script>
+<script src="OFFGRD-caller-log.js?v=301"></script>
+<script src="OFFGRD-caller-sync.js?v=301"></script>
+<script src="OFFGRD-caller-analysis.js?v=301"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=301"></script>
+<script src="OFFGRD-booth-ask.js?v=301"></script>
+<script src="OFFGRD-boothpack.js?v=301"></script>
+<script src="OFFGRD-booth-chat.js?v=301"></script>
+<script src="OFFGRD-caller-select.js?v=301"></script>
+<script src="OFFGRD-dcaller.js?v=301"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -3801,7 +3801,7 @@ function callerPlayRollupHtml(){
     h+=`</td><td>${b.n}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+"<span class=foot> n="+b.n+"</span>"}</td><td>${b.eff==null?"—":pct(b.eff)+"<span class=foot> n="+b.effN+"</span>"}</td></tr>`;
   });
   h+=`</tbody></table>`;
-  h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}</p>`;
+  h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}`+(view.junkN?` · ${view.junkN} play-type label${view.junkN===1?"":"s"} set aside`:``)+`</p>`;
   h+=`</section>`;
   return h;
 }
@@ -4624,8 +4624,9 @@ function callerExpectStripHtml(expect, fr, pr, liveM){
     meta+=`<span class="pill ${esc(conf.tone||"")} rd-gd-sit-conf">${esc(conf.level)}</span>`;
   }
   const alert=callerBlitzThreat(pr, g);
-  if(alert){
-    meta+=`<span class="rd-gd-expect-blitz ${alert.level==="heavy"?"is-heavy":"is-elevated"}">${Math.round(alert.pr*100)}% blitz</span>`;
+  if(g.length && pr!=null && pr==pr){
+    const blitzCls="rd-gd-expect-blitz"+(alert?(alert.level==="heavy"?" is-heavy":" is-elevated"):"");
+    meta+=`<span id="rd-gd-expect-blitz" class="${blitzCls}">${Math.round((alert?alert.pr:pr)*100)}% blitz</span>`;
   }
   const cls="rd-gd-expect-strip no-print"+(alert?(" is-blitz-"+alert.level):"")+(expect&&expect.widened?" is-widened":"")+(terminal?" is-terminal":"");
   return `<div class="${cls}"><span class="lbl">Expect</span><span class="body">${body}</span>${meta?`<span class="rd-gd-expect-meta">${meta}</span>`:""}</div>`;
@@ -6014,7 +6015,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=298", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=301", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6201,6 +6202,35 @@ function oursFormationRows(){
   }
   return (typeof gamesRows==="function")?gamesRows("ours"):[];
 }
+/* Shared chip chrome — Formations + Play map. Do not inject .fm-chip.on in one panel only. */
+function ensureMapChipStyles(){
+  if(document.getElementById("offgrd-map-chip-css")) return;
+  const s=document.createElement("style");
+  s.id="offgrd-map-chip-css";
+  s.textContent=".fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fm-chip{border:1px solid #d7dbe2;background:#fff;color:#16181d;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}.fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}.fm-chip.sug:not(.on){border-color:#4B9CD3;color:#13294B}.fm-chip i{font-style:normal;font-size:10px;font-weight:700;opacity:.85}.pm-msg.is-err,.pm-fam-row.is-err .pm-fam-free{color:#a8112b}.pm-fam-row.is-err{outline:2px solid #a8112b;outline-offset:2px;border-radius:10px}";
+  document.head.appendChild(s);
+}
+function mapPanelSkipRebuild(el, opening){
+  if(!el||el.style.display==="none") return true;
+  if(opening) return true;
+  try{
+    const a=document.activeElement;
+    if(a&&el.contains(a)){
+      const tag=(a.tagName||"").toUpperCase();
+      if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA") return true;
+    }
+  }catch(e){}
+  return false;
+}
+function pmNoteRender(why){
+  const now=Date.now();
+  const log=(window.OFFGRD_PLAY_MAP_RENDERS=window.OFFGRD_PLAY_MAP_RENDERS||[]);
+  log.push({ t:now, why:why||"paint" });
+  if(log.length>40) log.splice(0, log.length-40);
+  let n=0, i;
+  for(i=0;i<log.length;i++){ if(now-log[i].t<=1000) n++; }
+  try{ console.log("[play-map] render", why||"paint", "rps="+n); }catch(e){}
+}
 let fmEl=null;
 let fmHydrateBound=false;
 let fmOpening=false;
@@ -6208,8 +6238,7 @@ function fmBindHydrate(M){
   if(fmHydrateBound||!M||typeof M.onAfterHydrate!=="function") return;
   fmHydrateBound=true;
   M.onAfterHydrate(function(){
-    if(!fmEl||fmEl.style.display==="none") return;
-    if(fmOpening) return;
+    if(mapPanelSkipRebuild(fmEl, fmOpening)) return;
     openFormationMap();
   });
 }
@@ -6251,6 +6280,7 @@ async function openFormationMap(){
   const M=window.OFFGRD_FORMATION_MAP;
   if(!M){ console.warn("openFormationMap: module missing"); return; }
   if(fmOpening) return;
+  ensureMapChipStyles();
   fmOpening=true;
   try{
   if(!fmEl){
@@ -6274,9 +6304,6 @@ async function openFormationMap(){
   const cached=(M.getCached&&M.getCached())||[];
   if(cached.length){
     fetched=cached;
-    if(teamId&&typeof M.pullMap==="function"){
-      try{ M.pullMap(teamId).catch(function(){}); }catch(eBg){}
-    }
   } else if(teamId&&typeof M.pullMap==="function"){
     try{ fetched=await M.pullMap(teamId); }catch(e){ status.textContent=(e&&e.message)||"Could not load saved mappings."; }
   } else if(C&&teamId&&typeof C.listFormationMap==="function"){
@@ -6313,7 +6340,7 @@ async function openFormationMap(){
       +inv.auto.map(function(i){ return '<div style="padding:6px 0;border-bottom:1px solid #eef0f3"><b>'+esc(i.raw)+'</b> <span class="foot">\u00d7'+i.n+' \u00b7 '+esc(i.auto)+'</span></div>'; }).join("")
       +'</details>';
   }
-  H+='<style>.fm-panel,.fm-card{background:#fff;color:#16181d}.fm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px}.fm-panel .lbl,.fm-card .lbl{color:#5b626e}.fm-panel .foot,.fm-card .foot{color:#5b626e}.fm-panel b,.fm-card b{color:#16181d}.fm-panel .ghost{background:#fff;color:#16181d;border-color:#d7dbe2}.fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fm-chip{border:1px solid #d7dbe2;background:#fff;color:#16181d;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}.fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}.fm-chip.sug:not(.on){border-color:#4B9CD3;color:#13294B}.fm-chip i{font-style:normal;font-size:10px;font-weight:700;opacity:.85}.fm-pers-free{background:#fff;color:#16181d}</style>';
+  H+='<style>.fm-panel,.fm-card{background:#fff;color:#16181d}.fm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px}.fm-panel .lbl,.fm-card .lbl{color:#5b626e}.fm-panel .foot,.fm-card .foot{color:#5b626e}.fm-panel b,.fm-card b{color:#16181d}.fm-panel .ghost{background:#fff;color:#16181d;border-color:#d7dbe2}.fm-pers-free{background:#fff;color:#16181d}</style>';
   body.innerHTML=H;
   [].forEach.call(body.querySelectorAll(".fm-card"), function(card){
     const raw=card.getAttribute("data-raw");
@@ -6394,8 +6421,7 @@ function pmBindHydrate(M){
   if(pmHydrateBound||!M||typeof M.onAfterHydrate!=="function") return;
   pmHydrateBound=true;
   M.onAfterHydrate(function(){
-    if(!pmEl||pmEl.style.display==="none") return;
-    if(pmOpening) return;
+    if(mapPanelSkipRebuild(pmEl, pmOpening)) return;
     openPlayMap();
   });
 }
@@ -6412,10 +6438,11 @@ function pmCardHtml(item, families, book){
     +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>'+esc(item.raw)+'</b><span class="foot">'+item.n+' snap'+(item.n===1?"":"s")+(mapped?" · mapped":"")+'</span></div>'
     +(sug?'<div style="margin-top:8px"><button type="button" class="pm-sug fm-chip sug" data-fam="'+esc(sug)+'">'+esc(sug)+' <i>suggested from playbook</i></button></div>':'')
     +'<div class="lbl" style="margin-top:8px">Family</div>'
-    +'<div class="fm-row">'+(famOpts.length?famOpts.map(function(f){
-      return '<button type="button" class="fm-chip'+(fam&&fam.toLowerCase()===String(f).toLowerCase()?" on":"")+(sug&&sug.toLowerCase()===String(f).toLowerCase()?" sug":"")+'" data-kind="fam" data-val="'+esc(f)+'">'+esc(f)+'</button>';
+    +'<div class="fm-row pm-fam-row">'+(famOpts.length?famOpts.map(function(f){
+      const on=!!(fam&&fam.toLowerCase()===String(f).toLowerCase());
+      return '<button type="button" class="fm-chip'+(on?" on":"")+(sug&&sug.toLowerCase()===String(f).toLowerCase()?" sug":"")+'" data-kind="fam" data-val="'+esc(f)+'" aria-pressed="'+(on?"true":"false")+'">'+esc(f)+'</button>';
     }).join(""):'<span class="foot">Type a family</span>')
-    +'<input class="pm-fam-free" placeholder="new family" value="" style="width:120px;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px;font-weight:700"></div>'
+    +'<input class="pm-fam-free" placeholder="new family" value="" aria-label="New family" style="width:120px;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px;font-weight:700"></div>'
     +'<div class="lbl" style="margin-top:8px">Same play as <span class="foot" style="font-weight:400">(optional)</span></div>'
     +'<select class="pm-play" style="max-width:100%;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px"><option value="">—</option>'
     +plays.map(function(p){ return '<option value="'+esc(String(p.id||""))+'"'+(playId&&String(playId)===String(p.id)?" selected":"")+'>'+esc(p.name)+(p.family?(" · "+p.family):"")+'</option>'; }).join("")
@@ -6430,6 +6457,7 @@ async function openPlayMap(){
   const M=window.OFFGRD_PLAY_MAP;
   if(!M){ console.warn("openPlayMap: module missing"); return; }
   if(pmOpening) return;
+  ensureMapChipStyles();
   pmOpening=true;
   try{
   if(!pmEl){
@@ -6456,7 +6484,6 @@ async function openPlayMap(){
   const cached=(M.getCached&&M.getCached())||[];
   if(cached.length){
     fetched=cached;
-    if(teamId&&typeof M.pullMap==="function"){ try{ M.pullMap(teamId).catch(function(){}); }catch(eBg){} }
   } else if(teamId&&typeof M.pullMap==="function"){
     try{ fetched=await M.pullMap(teamId); }catch(e){ status.textContent=(e&&e.message)||"Could not load saved mappings."; }
   } else {
@@ -6483,6 +6510,14 @@ async function openPlayMap(){
   });
   stemsBox.innerHTML=SH;
   let H="";
+  if(inv.junk&&inv.junk.length){
+    H+='<div class="lbl" style="margin-top:14px">Looks like a play type, not a call</div>';
+    H+='<p class="foot" style="margin:4px 0 0">These landed in the play column on import. Nothing was deleted — they stay on the snaps.</p>';
+    inv.junk.forEach(function(item){
+      H+='<div class="pm-card pm-junk" data-raw="'+esc(item.raw)+'"><b>'+esc(item.raw)+'</b> <span class="foot">'+item.n+' snap'+(item.n===1?"":"s")
+        +(item.sources&&item.sources.length?" · "+esc(item.sources.join(", ")):"")+'</span></div>';
+    });
+  }
   if(inv.unmapped.length){
     H+='<div class="lbl" style="margin-top:14px">Needs mapping</div>';
     inv.unmapped.forEach(function(item){ H+=pmCardHtml(item, paint.families, book); });
@@ -6493,6 +6528,7 @@ async function openPlayMap(){
   }
   H+='<style>.pm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px;background:#fff;color:#16181d}.pm-card .lbl{color:#5b626e}.pm-card .foot{color:#5b626e}</style>';
   body.innerHTML=H;
+  pmNoteRender("paint");
   [].forEach.call(stemsBox.querySelectorAll(".pm-stem"), function(box){
     const stem=box.getAttribute("data-stem");
     const yes=box.querySelector(".pm-stem-yes");
@@ -6530,40 +6566,78 @@ async function openPlayMap(){
       const on=card.querySelector('.fm-chip[data-kind="fam"].on');
       return on?on.getAttribute("data-val"):"";
     }
+    function setFamChips(val){
+      [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="fam"]'), function(x){
+        const on=!!(val&&x.getAttribute("data-val")===val);
+        x.classList.toggle("on", on);
+        x.setAttribute("aria-pressed", on?"true":"false");
+      });
+    }
+    function showFamErr(text){
+      const row=card.querySelector(".pm-fam-row");
+      if(row) row.classList.add("is-err");
+      if(free) free.setAttribute("aria-invalid","true");
+      if(msg){ msg.textContent=text||"Pick a family — tap a chip or type one."; msg.classList.add("is-err"); }
+    }
+    function clearFamErr(){
+      const row=card.querySelector(".pm-fam-row");
+      if(row) row.classList.remove("is-err");
+      if(free) free.removeAttribute("aria-invalid");
+      if(msg){ msg.classList.remove("is-err"); }
+    }
     [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="fam"]'), function(btn){
       btn.onclick=function(){
-        [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="fam"]'), function(x){ x.classList.remove("on"); });
-        btn.classList.add("on");
+        setFamChips(btn.getAttribute("data-val"));
         if(free) free.value="";
+        clearFamErr();
       };
     });
     const sugBtn=card.querySelector(".pm-sug");
     if(sugBtn) sugBtn.onclick=function(){
       const fam=sugBtn.getAttribute("data-fam");
-      [].forEach.call(card.querySelectorAll('.fm-chip[data-kind="fam"]'), function(x){
-        x.classList.toggle("on", x.getAttribute("data-val")===fam);
-      });
+      setFamChips(fam);
+      if(free) free.value="";
+      clearFamErr();
     };
+    if(free){
+      free.addEventListener("input", function(){
+        if(String(free.value||"").trim()) setFamChips("");
+        clearFamErr();
+      });
+    }
     const save=card.querySelector(".pm-save");
-    if(save) save.onclick=async function(){
-      const family=selectedFam()||((free&&free.value)||"");
-      if(!family){ if(msg) msg.textContent="Pick a family first."; return; }
-      if(!C||!teamId||typeof C.upsertPlayMap!=="function"){ if(msg) msg.textContent="Sign in to save."; return; }
+    async function pmDoSave(){
+      clearFamErr();
+      const prep=M.prepareSave({
+        chip: selectedFam(),
+        typed: free?free.value:"",
+        families: paint.families||[],
+        play_id: playSel&&playSel.value?playSel.value:null
+      });
+      if(!prep||!prep.ok){
+        showFamErr((prep&&prep.error)||"Pick a family — tap a chip or type one.");
+        return;
+      }
+      if(!C||!teamId||typeof C.upsertPlayMap!=="function"){ if(msg){ msg.textContent="Sign in to save."; msg.classList.add("is-err"); } return; }
       try{
         const u=typeof C.user==="function"?await C.user():null;
         const item=inv.items.filter(function(i){ return i.raw===raw; })[0];
         const payload=M.buildUpsertPayload({
-          team_id:teamId, raw_call:raw, family:family,
+          team_id:teamId, raw_call:raw, family:prep.family,
           concept:(item&&item.mapped&&item.mapped.concept)||null,
-          play_id:playSel&&playSel.value?playSel.value:null,
+          play_id:prep.play_id,
           created_by:u&&u.id
         });
         await C.upsertPlayMap(teamId, payload);
         if(M.pullMap) await M.pullMap(teamId);
-        if(msg) msg.textContent="Saved.";
+        if(msg){ msg.textContent=prep.notice||"Saved."; msg.classList.remove("is-err"); }
         openPlayMap();
-      }catch(e){ if(msg) msg.textContent=(e&&e.message)||"Save failed."; }
-    };
+      }catch(e){ if(msg){ msg.textContent=(e&&e.message)||"Save failed."; msg.classList.add("is-err"); } }
+    }
+    if(save) save.onclick=pmDoSave;
+    if(free) free.addEventListener("keydown", function(ev){
+      if(ev&&ev.key==="Enter"){ ev.preventDefault(); pmDoSave(); }
+    });
     const unmap=card.querySelector(".pm-unmap");
     if(unmap) unmap.onclick=async function(){
       if(!confirm("Unmap "+raw+"? It will go back to unmapped.")) return;
@@ -6777,9 +6851,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=298"></script>
-<script src="OFFGRD-role-gate.js?v=298"></script>
-<script src="OFFGRD-mobile.js?v=298"></script>
+<script type="module" src="OFFGRD-account.js?v=301"></script>
+<script src="OFFGRD-role-gate.js?v=301"></script>
+<script src="OFFGRD-mobile.js?v=301"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
