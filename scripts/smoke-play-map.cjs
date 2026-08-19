@@ -78,6 +78,15 @@ const rows = [
 const struct = M.rollup(rows, { playbook: [], maps: [], axis: "structure" });
 check("structure labels are honest", struct.buckets.every(function (b) { return /^(RUN|PASS|PLAY)/.test(b.label); }));
 check("structure reconcile", struct.reconcile && struct.total === 3);
+const mixedGain = M.rollup(
+  [
+    { play: "HOUSTON", down: 1, distance: 10, gain: 6 },
+    { play: "HOUSTON", down: 1, distance: 10 },
+  ],
+  { playbook: book, maps: [{ raw_call: "HOUSTON", raw_call_norm: "houston", family: "Mesh" }], axis: "family" }
+);
+const meshMix = mixedGain.buckets.filter(function (b) { return b.key === "Mesh"; })[0];
+check("yppN differs when a snap has no gain", !!(meshMix && meshMix.n === 2 && meshMix.yppN === 1));
 check("every bucket has n", struct.buckets.every(function (b) { return b.n > 0; }));
 
 const zero = M.rollup(rows, { playbook: [], maps: [], axis: "family" });
@@ -118,6 +127,9 @@ const rollFn = (html.match(/function callerPlayRollupHtml\(\)\{[\s\S]*?\nfunctio
 check("rollup container in normal flow", /rd-gd-play-rollup/.test(rollFn) && /position:static/.test(rollFn));
 check("rollup not fixed/sticky/absolute", !/position:\s*(fixed|sticky|absolute)/.test(rollFn.replace(/position:static/g, "")));
 check("rollup not in sticky bar", !/rd-gd-sticky/.test(rollFn));
+check("axis tabs are Family and Structure only", /rd-gd-play-rollup-axis/.test(rollFn) && /Each family/.test(rollFn) && !/>Families</.test(rollFn));
+check("group tabs live in a second seg", /rd-gd-play-rollup-group/.test(rollFn) && /Each concept/.test(rollFn));
+check("inline n= only when denom differs", /nNote\(b\.yppN,b\.n\)/.test(rollFn) && /nNote\(b\.effN,b\.n\)/.test(rollFn) && !/n="\+b\.n/.test(rollFn));
 check("MEMPHIS suggest chip in panel", /suggested from playbook/.test(html));
 check("panel header is paint.statusText", /status\.textContent\s*=\s*paint\.statusText/.test(html));
 check("panel has no local coverage % copy", !/mapped = /.test(html) && !/% of your calls/.test(html));

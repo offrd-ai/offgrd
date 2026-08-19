@@ -742,6 +742,7 @@
           n: n,
           pct: total ? n / total : 0,
           ypp: ypp,
+          yppN: gains.length,
           eff: known ? ok / known : null,
           effN: known,
           thin: n < 8,
