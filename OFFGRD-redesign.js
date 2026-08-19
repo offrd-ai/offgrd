@@ -185,6 +185,7 @@
     { id: "import", label: "Import data", action: "import" },
     { id: "brand", label: "Team & logos", action: "brand" },
     { id: "formations", label: "Formations", action: "formations" },
+    { id: "playmap", label: "Play map", action: "playmap" },
     { id: "team", label: "Team / roster", action: "team" },
     { id: "sched", label: "Schedule", action: "sched" },
     { id: "manage", label: "Manage library", action: "manage" },
@@ -209,6 +210,7 @@
     { action: "import", nav: "import" },
     { action: "brand", nav: "team" },
     { action: "formations", nav: "formations" },
+    { action: "playmap", nav: "playmap" },
     { action: "team", nav: "roster" },
     { action: "sched", nav: "schedule" },
     { action: "manage", nav: "library" },
@@ -275,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "297";
+  const ASSET_V = "298";
 
   function getScoutTool() {
     try {
@@ -1483,6 +1485,13 @@
       'border-radius:var(--radius-ctl);background:var(--rd-surface);border:1px solid var(--rd-accent);color:var(--rd-accent);',
       '}',
       'html.rd-on #view-caller .rd-gd-expect-blitz.is-heavy{border-color:#c45c26;color:#c45c26;}',
+      'html.rd-on #view-caller .rd-gd-play-rollup{position:static;margin:12px 0 0;padding:12px 14px;background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-card);}',
+      'html.rd-on #view-caller .rd-gd-play-rollup-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px;}',
+      'html.rd-on #view-caller .rd-gd-play-rollup-tbl{width:100%;border-collapse:collapse;font-size:13px;}',
+      'html.rd-on #view-caller .rd-gd-play-rollup-tbl th{text-align:left;color:var(--rd-muted);font-size:11px;padding:4px 6px;}',
+      'html.rd-on #view-caller .rd-gd-play-rollup-tbl td{padding:6px;border-top:1px solid var(--rd-border);}',
+      'html.rd-on #view-caller .rd-gd-play-rollup-tbl tr.is-unmapped td{color:var(--rd-muted);}',
+      'html.rd-on #view-caller .rd-gd-thin{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--rd-muted);}',
       'html.rd-on #view-caller .rd-gd-widen-badge,html.rd-on #view-dcaller .rd-gd-widen-badge{',
       'font-size:11px;font-weight:700;color:var(--rd-muted);line-height:1.35;',
       '}',
@@ -2291,6 +2300,9 @@
       case "formations":
         if (typeof root.openFormationMap === "function") { root.openFormationMap(); return { ok: true }; }
         return navOrFail(action, "Formations is not on this page.");
+      case "playmap":
+        if (typeof root.openPlayMap === "function") { root.openPlayMap(); return { ok: true }; }
+        return navOrFail(action, "Play map is not on this page.");
       case "sched":
         if (clickExisting("schedBtn")) return { ok: true };
         if (typeof root.openSchedule === "function") { root.openSchedule(); return { ok: true }; }

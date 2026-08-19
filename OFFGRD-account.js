@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=297";
-import { openAuthModal } from "./OFFGRD-auth.js?v=297";
+import { Cloud } from "./OFFGRD-cloud.js?v=298";
+import { openAuthModal } from "./OFFGRD-auth.js?v=298";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -787,6 +787,7 @@ async function finishProgramHydrate(u){
     showOfflineBanner();
     try{ if(A.onUser && u) A.onUser(u.email); }catch(e){}
     try{ pullFormationMap(TEAM && TEAM.id); }catch(eM){}
+    try{ pullPlayMap(TEAM && TEAM.id); }catch(eP){}
     return;
   }
   await refreshCreateEligibility();
@@ -1139,7 +1140,7 @@ async function pull(silent){
     if(!silent && A.kind==="playbook"){
       try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded \u2713"; el.style.color="#1d7a45"; } }catch(e){}
     }
-    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); await pullFormationMap(TEAM && TEAM.id); } }catch(e){}
+    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); await pullFormationMap(TEAM && TEAM.id); await pullPlayMap(TEAM && TEAM.id); } }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
 }
@@ -1865,6 +1866,19 @@ async function refreshScoutSnaps(){
   }
 }
 window.OFFGRD_REFRESH_SCOUT_SNAPS = refreshScoutSnaps;
+
+/** Local-first, then Cloud.listPlayMap — same cache rule as formations. */
+function pullPlayMap(teamId){
+  try{
+    const M = window.OFFGRD_PLAY_MAP;
+    const tid = teamId || (TEAM && TEAM.id);
+    if(!M || !tid || typeof M.pullMap !== "function") return Promise.resolve([]);
+    return M.pullMap(tid).then(function(rows){
+      try{ if(typeof window.refreshView === "function") window.refreshView(); }catch(eR){}
+      return rows;
+    }).catch(function(){ return []; });
+  }catch(e){ return Promise.resolve([]); }
+}
 
 /** Local-first, then Cloud.listFormationMap — mirrors drawn-card cache. */
 function pullFormationMap(teamId){

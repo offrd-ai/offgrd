@@ -1723,6 +1723,39 @@ export const Cloud = {
       .eq("side_scope", "both");
     if (error) throw error;
   },
+
+  /* ---------- program play map (Slice 2 write + read) ---------- */
+  async listPlayMap(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("offgrd_play_map")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  async upsertPlayMap(teamId, payload) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const row = Object.assign({}, payload, {
+      team_id: teamId,
+      updated_at: new Date().toISOString(),
+    });
+    const { data, error } = await OG.from("offgrd_play_map").upsert(row, {
+      onConflict: "team_id,raw_call_norm",
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deletePlayMap(teamId, rawCallNorm) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const PM = typeof window !== "undefined" ? window.OFFGRD_PLAY_MAP : null;
+    const norm = PM && PM.normCall ? PM.normCall(rawCallNorm) : String(rawCallNorm || "").toLowerCase().trim();
+    const { error } = await OG.from("offgrd_play_map")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("raw_call_norm", norm);
+    if (error) throw error;
+  },
 };
 
 if (typeof window !== "undefined") window.Cloud = Cloud;
