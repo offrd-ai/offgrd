@@ -236,6 +236,80 @@ const emptyPrep = M.prepareSave({ chip: "", typed: "  ", families: ["Flood"] });
 check("c) empty family is an error", !!(!emptyPrep.ok && emptyPrep.target === "family" && /family/i.test(emptyPrep.error)));
 check("c) empty does not write", writes.length === writesBeforeEmpty);
 
+const mapsSplit = [
+  M.buildUpsertPayload({ raw_call: "ALPHA", family: "quick game" }),
+  M.buildUpsertPayload({ raw_call: "BRAVO", family: "Quick Game" }),
+];
+const rowsSplit = [
+  { play: "ALPHA", down: 1, distance: 10, gain: 5 },
+  { play: "BRAVO", down: 1, distance: 10, gain: 6 },
+];
+const rollSplit = M.rollup(rowsSplit, { maps: mapsSplit, playbook: [], axis: "family" });
+const splitGroups = M.offerFamilies([], mapsSplit, rowsSplit).groups;
+const splitCanon = M.canonicalFamily("quick game", splitGroups);
+check(
+  "rollup groups stored spellings as one family",
+  rollSplit.buckets.length === 1 && rollSplit.buckets[0].n === 2 && rollSplit.buckets[0].key === splitCanon
+);
+const mapsPrefix = [
+  M.buildUpsertPayload({ raw_call: "ALPHA", family: "Quick" }),
+  M.buildUpsertPayload({ raw_call: "BRAVO", family: "Quick Game" }),
+];
+const rollPrefix = M.rollup(rowsSplit, { maps: mapsPrefix, playbook: [], axis: "family" });
+check(
+  "rollup uses canonical Quick Game, not Quick",
+  rollPrefix.buckets.length === 1 && rollPrefix.buckets[0].key === "Quick Game" && rollPrefix.buckets[0].n === 2
+);
+
+M.setCache("t", []);
+const bookQG = [
+  { id: "q1", name: "Cali", family: "Quick" },
+  { id: "q2", name: "Z-In", family: "Quick Game" },
+  { id: "q3", name: "Slam West", family: "Quick" },
+];
+const paintQG = M.panelPaint([{ play: "Slam West" }, { play: "OTHER" }], { fetched: [], playbook: bookQG });
+const slam = paintQG.inv.items.filter(function (it) { return it.raw === "Slam West"; })[0];
+const qgQuick = paintQG.families.filter(function (f) { return f === "Quick"; }).length;
+const qgCanon = paintQG.families.filter(function (f) { return f === "Quick Game"; }).length;
+check("collapsed offer has Quick Game once", qgCanon === 1 && paintQG.families.length === 1);
+check("collapsed offer has Quick zero times", qgQuick === 0);
+check(
+  "suggestion is canonical, book value kept",
+  !!(slam && slam.suggestedFamily === "Quick Game" && slam.suggestedFamilyBook === "Quick" && slam.book && slam.book.family === "Quick")
+);
+check(
+  "suggestion chip template uses canonical + book attr",
+  /item\.suggestedFamily/.test(html) && /data-book-fam/.test(html) && /list="pm-fam-list"/.test(html)
+);
+
+const offerMaps = [
+  M.buildUpsertPayload({ raw_call: "HOUSTON", family: "Flood" }),
+  M.buildUpsertPayload({ raw_call: "HAMMER", family: "Mesh Attack" }),
+];
+M.setCache("t", offerMaps);
+const floodRows = [];
+for (i = 0; i < 11; i++) floodRows.push({ play: "HOUSTON" });
+for (i = 0; i < 2; i++) floodRows.push({ play: "HAMMER" });
+floodRows.push({ play: "DINO" });
+const paintOffer = M.panelPaint(floodRows, {
+  fetched: offerMaps,
+  playbook: [{ id: "s", name: "SLAM", family: "Slam" }],
+});
+check(
+  "map family joins vocabulary without reload",
+  paintOffer.families.indexOf("Mesh Attack") >= 0 && paintOffer.families.indexOf("Flood") >= 0 && paintOffer.families.indexOf("Slam") >= 0
+);
+check("most-used family is first", paintOffer.families[0] === "Flood" && paintOffer.families[1] === "Mesh Attack");
+
+const manyBook = [];
+for (i = 0; i < 8; i++) manyBook.push({ id: "f" + i, name: "P" + i, family: "Fam " + i });
+M.setCache("t", []);
+const paintMany = M.panelPaint([{ play: "P0" }], { fetched: [], playbook: manyBook });
+check(
+  "chips cap at top 6, datalist keeps full set",
+  paintMany.familyChips.length === 6 && paintMany.families.length === 8 && /id="pm-fam-list"/.test(html)
+);
+
 check("play map CSS paints .fm-chip.on", /\.fm-chip\.on\{/.test(html) && /pm-fam-row/.test(html));
 check("save uses prepareSave", /M\.prepareSave\(/.test(html) && /typed:\s*free/.test(html));
 check("empty save paints inline error", /showFamErr/.test(html) && /pm-fam-row\.is-err/.test(html));

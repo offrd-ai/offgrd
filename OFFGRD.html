@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v301: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v302: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=301"></script>
-<script src="OFFGRD-brand-persist.js?v=301"></script>
-<script src="supabase.js?v=301"></script>
-<script src="OFFGRD-cache-gate.js?v=301"></script>
+<script src="OFFGRD-config.js?v=302"></script>
+<script src="OFFGRD-brand-persist.js?v=302"></script>
+<script src="supabase.js?v=302"></script>
+<script src="OFFGRD-cache-gate.js?v=302"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,38 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=301"></script>
-<script src="OFFGRD-pos-glossary.js?v=301"></script>
-<script src="OFFGRD-autoderive.js?v=301"></script>
-<script src="OFFGRD-matchup.js?v=301"></script>
-<script src="OFFGRD-scoutcards.js?v=301"></script>
-<script src="OFFGRD-tendencies.js?v=301"></script>
-<script src="OFFGRD-scout-report.js?v=301"></script>
-<script src="OFFGRD-week-autotest.js?v=301"></script>
-<script src="OFFGRD-weeklypackage.js?v=301"></script>
-<script src="OFFGRD-telestrate.js?v=301"></script>
-<script src="OFFGRD-redesign.js?v=301"></script>
-<script src="OFFGRD-shell.js?v=301"></script>
-<script src="OFFGRD-caller-outcome.js?v=301"></script>
-<script src="OFFGRD-caller-sit.js?v=301"></script>
-<script src="OFFGRD-formations-data.js?v=301"></script>
-<script src="OFFGRD-formation-canon.js?v=301"></script>
-<script src="OFFGRD-assist-import.js?v=301"></script>
-<script src="OFFGRD-schedule-import.js?v=301"></script>
-<script src="OFFGRD-opp-shells.js?v=301"></script>
-<script src="OFFGRD-formation-map.js?v=301"></script>
-<script src="OFFGRD-play-map.js?v=301"></script>
-<script src="OFFGRD-cv-review.js?v=301"></script>
-<script src="OFFGRD-frame-capture.js?v=301"></script>
-<script src="OFFGRD-caller-log.js?v=301"></script>
-<script src="OFFGRD-caller-sync.js?v=301"></script>
-<script src="OFFGRD-caller-analysis.js?v=301"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=301"></script>
-<script src="OFFGRD-booth-ask.js?v=301"></script>
-<script src="OFFGRD-boothpack.js?v=301"></script>
-<script src="OFFGRD-booth-chat.js?v=301"></script>
-<script src="OFFGRD-caller-select.js?v=301"></script>
-<script src="OFFGRD-dcaller.js?v=301"></script>
+<script src="OFFGRD-render.js?v=302"></script>
+<script src="OFFGRD-pos-glossary.js?v=302"></script>
+<script src="OFFGRD-autoderive.js?v=302"></script>
+<script src="OFFGRD-matchup.js?v=302"></script>
+<script src="OFFGRD-scoutcards.js?v=302"></script>
+<script src="OFFGRD-tendencies.js?v=302"></script>
+<script src="OFFGRD-scout-report.js?v=302"></script>
+<script src="OFFGRD-week-autotest.js?v=302"></script>
+<script src="OFFGRD-weeklypackage.js?v=302"></script>
+<script src="OFFGRD-telestrate.js?v=302"></script>
+<script src="OFFGRD-redesign.js?v=302"></script>
+<script src="OFFGRD-shell.js?v=302"></script>
+<script src="OFFGRD-caller-outcome.js?v=302"></script>
+<script src="OFFGRD-caller-sit.js?v=302"></script>
+<script src="OFFGRD-formations-data.js?v=302"></script>
+<script src="OFFGRD-formation-canon.js?v=302"></script>
+<script src="OFFGRD-assist-import.js?v=302"></script>
+<script src="OFFGRD-schedule-import.js?v=302"></script>
+<script src="OFFGRD-opp-shells.js?v=302"></script>
+<script src="OFFGRD-formation-map.js?v=302"></script>
+<script src="OFFGRD-play-map.js?v=302"></script>
+<script src="OFFGRD-cv-review.js?v=302"></script>
+<script src="OFFGRD-frame-capture.js?v=302"></script>
+<script src="OFFGRD-caller-log.js?v=302"></script>
+<script src="OFFGRD-caller-sync.js?v=302"></script>
+<script src="OFFGRD-caller-analysis.js?v=302"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=302"></script>
+<script src="OFFGRD-booth-ask.js?v=302"></script>
+<script src="OFFGRD-boothpack.js?v=302"></script>
+<script src="OFFGRD-booth-chat.js?v=302"></script>
+<script src="OFFGRD-caller-select.js?v=302"></script>
+<script src="OFFGRD-dcaller.js?v=302"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -6015,7 +6015,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=301", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=302", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6425,24 +6425,36 @@ function pmBindHydrate(M){
     openPlayMap();
   });
 }
-function pmCardHtml(item, families, book){
+function pmCanonFam(name, paint){
+  const M=window.OFFGRD_PLAY_MAP;
+  if(M&&typeof M.canonicalFamily==="function") return M.canonicalFamily(name, paint&&paint.familyGroups);
+  return String(name||"").replace(/\s+/g," ").trim();
+}
+function pmAddChip(list, name){
+  if(!name) return;
+  const k=String(name).toLowerCase();
+  if(list.some(function(f){ return String(f).toLowerCase()===k; })) return;
+  list.unshift(name);
+}
+function pmCardHtml(item, paint, book){
   const mapped=item.mapped;
-  const fam=mapped&&mapped.family||"";
+  const fam=pmCanonFam(mapped&&mapped.family||"", paint);
   const playId=mapped&&mapped.play_id||"";
-  const sug=item.suggestedFamily||"";
-  const famOpts=(families||[]).slice();
-  if(fam && famOpts.map(function(f){ return String(f).toLowerCase(); }).indexOf(fam.toLowerCase())<0) famOpts.unshift(fam);
-  if(sug && famOpts.map(function(f){ return String(f).toLowerCase(); }).indexOf(sug.toLowerCase())<0) famOpts.unshift(sug);
+  const sug=pmCanonFam(item.suggestedFamily||"", paint);
+  const bookFam=item.suggestedFamilyBook||(item.book&&item.book.family)||"";
+  const famOpts=(paint&&paint.familyChips?paint.familyChips:(paint&&paint.families)||[]).slice();
+  pmAddChip(famOpts, sug);
+  pmAddChip(famOpts, fam);
   const plays=(book||[]).filter(function(p){ return p&&p.name; });
   return '<div class="pm-card" data-raw="'+esc(item.raw)+'">'
     +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>'+esc(item.raw)+'</b><span class="foot">'+item.n+' snap'+(item.n===1?"":"s")+(mapped?" · mapped":"")+'</span></div>'
-    +(sug?'<div style="margin-top:8px"><button type="button" class="pm-sug fm-chip sug" data-fam="'+esc(sug)+'">'+esc(sug)+' <i>suggested from playbook</i></button></div>':'')
+    +(sug?'<div style="margin-top:8px"><button type="button" class="pm-sug fm-chip sug" data-fam="'+esc(sug)+'"'+(bookFam?' data-book-fam="'+esc(bookFam)+'"':'')+'>'+esc(sug)+' <i>suggested from playbook</i></button></div>':'')
     +'<div class="lbl" style="margin-top:8px">Family</div>'
     +'<div class="fm-row pm-fam-row">'+(famOpts.length?famOpts.map(function(f){
       const on=!!(fam&&fam.toLowerCase()===String(f).toLowerCase());
       return '<button type="button" class="fm-chip'+(on?" on":"")+(sug&&sug.toLowerCase()===String(f).toLowerCase()?" sug":"")+'" data-kind="fam" data-val="'+esc(f)+'" aria-pressed="'+(on?"true":"false")+'">'+esc(f)+'</button>';
     }).join(""):'<span class="foot">Type a family</span>')
-    +'<input class="pm-fam-free" placeholder="new family" value="" aria-label="New family" style="width:120px;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px;font-weight:700"></div>'
+    +'<input class="pm-fam-free" list="pm-fam-list" placeholder="new family" value="" aria-label="New family" style="width:120px;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px;font-weight:700"></div>'
     +'<div class="lbl" style="margin-top:8px">Same play as <span class="foot" style="font-weight:400">(optional)</span></div>'
     +'<select class="pm-play" style="max-width:100%;padding:6px 8px;border:1px solid #d7dbe2;border-radius:8px"><option value="">—</option>'
     +plays.map(function(p){ return '<option value="'+esc(String(p.id||""))+'"'+(playId&&String(playId)===String(p.id)?" selected":"")+'>'+esc(p.name)+(p.family?(" · "+p.family):"")+'</option>'; }).join("")
@@ -6518,13 +6530,14 @@ async function openPlayMap(){
         +(item.sources&&item.sources.length?" · "+esc(item.sources.join(", ")):"")+'</span></div>';
     });
   }
+  H+='<datalist id="pm-fam-list">'+(paint.families||[]).map(function(f){ return '<option value="'+esc(f)+'"></option>'; }).join("")+"</datalist>";
   if(inv.unmapped.length){
     H+='<div class="lbl" style="margin-top:14px">Needs mapping</div>';
-    inv.unmapped.forEach(function(item){ H+=pmCardHtml(item, paint.families, book); });
+    inv.unmapped.forEach(function(item){ H+=pmCardHtml(item, paint, book); });
   }
   if(inv.mapped.length){
     H+='<div class="lbl" style="margin-top:18px">Mapped</div>';
-    inv.mapped.forEach(function(item){ H+=pmCardHtml(item, paint.families, book); });
+    inv.mapped.forEach(function(item){ H+=pmCardHtml(item, paint, book); });
   }
   H+='<style>.pm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px;background:#fff;color:#16181d}.pm-card .lbl{color:#5b626e}.pm-card .foot{color:#5b626e}</style>';
   body.innerHTML=H;
@@ -6851,9 +6864,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=301"></script>
-<script src="OFFGRD-role-gate.js?v=301"></script>
-<script src="OFFGRD-mobile.js?v=301"></script>
+<script type="module" src="OFFGRD-account.js?v=302"></script>
+<script src="OFFGRD-role-gate.js?v=302"></script>
+<script src="OFFGRD-mobile.js?v=302"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

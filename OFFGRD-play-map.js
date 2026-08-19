@@ -143,6 +143,77 @@
     return collapseFamilies(raw);
   }
 
+  var FAMILY_CHIP_LIMIT = 6;
+
+  function aliasMatches(name, group) {
+    var k = familyKey(name);
+    if (!k || !group) return false;
+    if (familyKey(group.canon) === k) return true;
+    var i;
+    for (i = 0; i < (group.aliases || []).length; i++) {
+      if (familyKey(group.aliases[i]) === k) return true;
+    }
+    return false;
+  }
+
+  /** Canonical spelling after collapse. Does not rewrite the playbook row. */
+  function canonicalFamily(name, groups) {
+    var typed = canonFamily(name);
+    if (!typed) return "";
+    var i;
+    for (i = 0; i < (groups || []).length; i++) {
+      if (aliasMatches(typed, groups[i])) return groups[i].canon;
+    }
+    return typed;
+  }
+
+  /**
+   * Offered set = playbook families ∪ map families, collapsed.
+   * Ranked by snaps already mapped. Chips = top FAMILY_CHIP_LIMIT.
+   */
+  function offerFamilies(playbook, maps, playRows) {
+    var raw = [];
+    (playbook || []).forEach(function (p) {
+      if (p && p.family) raw.push(p.family);
+    });
+    (maps || []).forEach(function (m) {
+      if (m && m.family) raw.push(m.family);
+    });
+    var col = collapseFamilies(raw);
+    var byNorm = Object.create(null);
+    (maps || []).forEach(function (m) {
+      if (!m) return;
+      var k = normCall(m.raw_call_norm || m.raw_call);
+      if (k) byNorm[k] = m;
+    });
+    var snapByStored = Object.create(null);
+    (playRows || []).forEach(function (r) {
+      var t = String((r && r.play) || "").trim();
+      if (!t) return;
+      var m = byNorm[normCall(t)];
+      if (!m || !m.family) return;
+      var fam = canonFamily(m.family);
+      snapByStored[fam] = (snapByStored[fam] || 0) + 1;
+    });
+    var ranked = (col.groups || []).map(function (g) {
+      var snaps = 0;
+      (g.aliases || []).forEach(function (a) {
+        snaps += snapByStored[a] || 0;
+      });
+      return { family: g.canon, aliases: g.aliases, snaps: snaps };
+    });
+    ranked.sort(function (a, b) {
+      return b.snaps - a.snaps || a.family.localeCompare(b.family);
+    });
+    return {
+      families: ranked.map(function (x) { return x.family; }),
+      familyChips: ranked.slice(0, FAMILY_CHIP_LIMIT).map(function (x) { return x.family; }),
+      notices: col.notices,
+      groups: col.groups,
+      ranked: ranked,
+    };
+  }
+
   function firstToken(raw) {
     var n = normCall(raw);
     if (!n) return "";
@@ -322,7 +393,9 @@
     return out;
   }
 
-  function inventoryCalls(rows, maps, playbook) {
+  function inventoryCalls(rows, maps, playbook, opts) {
+    opts = opts || {};
+    var groups = opts.groups;
     var byNorm = Object.create(null);
     (maps || []).forEach(function (m) {
       if (!m) return;
@@ -348,7 +421,10 @@
         mapped: byNorm[normCall(raw)] || null,
         book: findPlaybook(playbook, raw),
       };
-      rec.suggestedFamily = !rec.mapped && rec.book && rec.book.family ? canonFamily(rec.book.family) : null;
+      rec.suggestedFamilyBook = !rec.mapped && rec.book && rec.book.family ? canonFamily(rec.book.family) : null;
+      rec.suggestedFamily = rec.suggestedFamilyBook
+        ? canonicalFamily(rec.suggestedFamilyBook, groups)
+        : null;
       rec.suggestedPlayId = !rec.mapped && rec.book && rec.book.id ? rec.book.id : null;
       if (isPlayTypeToken(raw)) junk.push(rec);
       else items.push(rec);
@@ -427,14 +503,16 @@
     if (!resolved.known) {
       return { state: "unknown", statusText: "Play map isn't loaded yet.", inv: null };
     }
-    var inv = inventoryCalls(playRows, resolved.rows, opts.playbook || []);
-    var seed = seedFamilies(opts.playbook || []);
+    var offer = offerFamilies(opts.playbook || [], resolved.rows, playRows);
+    var inv = inventoryCalls(playRows, resolved.rows, opts.playbook || [], { groups: offer.groups });
     return {
       state: "ready",
       statusText: coverageLine(inv, coverageCounts(inv)),
       inv: inv,
-      families: seed.families,
-      familyNotices: seed.notices,
+      families: offer.families,
+      familyChips: offer.familyChips,
+      familyGroups: offer.groups,
+      familyNotices: offer.notices,
       source: resolved.source,
     };
   }
@@ -604,10 +682,19 @@
       if (isPlayTypeToken(t)) { junkN += 1; return false; }
       return true;
     });
+    var offer = offerFamilies(playbook, maps, list);
     var resolved = list.map(function (r) {
       var hit = r.family && r.family !== "UNMAPPED"
         ? { family: canonFamily(r.family), concept: r.concept || canonFamily(r.play), play_id: r.play_id || null, source: "row" }
         : resolveCall(r.play, { playbook: playbook, maps: maps });
+      if (hit.family && hit.family !== "UNMAPPED") {
+        hit = {
+          family: canonicalFamily(hit.family, offer.groups),
+          concept: hit.concept,
+          play_id: hit.play_id,
+          source: hit.source,
+        };
+      }
       return { row: r, hit: hit, struct: structureLabel(r) };
     });
     var familyHits = resolved.filter(function (x) { return x.hit.source !== "unmapped"; }).length;
@@ -688,6 +775,9 @@
     resolveTypedFamily: resolveTypedFamily,
     prepareSave: prepareSave,
     seedFamilies: seedFamilies,
+    offerFamilies: offerFamilies,
+    canonicalFamily: canonicalFamily,
+    FAMILY_CHIP_LIMIT: FAMILY_CHIP_LIMIT,
     suggestStems: suggestStems,
     inventoryCalls: inventoryCalls,
     isPlayTypeToken: isPlayTypeToken,
