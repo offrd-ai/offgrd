@@ -76,13 +76,8 @@ Slice B.
 Logged 2026-08-19 after the Goaline diagnostic. Success rule stays unclamped;
 revisit only if YARD LN lands on own-offense rows.
 
-1. **Selection effect (Magic 3).** Family EFF is confounded by the situations
-   each family is called in. Goaline (VIKING/PHILLY) is 0% partly because it
-   was also called on 2nd-and-25 and 4th-and-20. Proposed: an average
-   distance-to-go column beside `n`, so Flood's 73% and Quick Game's 38% are
-   not read as the same situation.
+1. **Selection effect (Magic 3) — done in situational-truth v305.** DIST
+   column beside `n`, from the same rows as EFF.
 
-2. **RESULT on own-offense rows — promoted out of Slice B.** Eleven of the
-   fourteen Goaline snaps gained exactly 0 on Pass. Without RESULT we cannot
-   tell an incompletion from a stuff; YPP treats them as the same problem.
-   See `import-fidelity-brief.md`.
+2. **RESULT on own-offense rows — done in situational-truth v305.** COMP on
+   pass-family rows. Sack/penalty reported, penalty behavior unchanged.

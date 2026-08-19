@@ -12,10 +12,9 @@ Logged 2026-08-19 from the Goaline diagnostic. Do not start these here.
 1. **Magic 3 selection effect.** Avg distance-to-go column beside `n` so family
    EFF is not read as situation-free. See `magic3-polish-brief.md` backlog.
 
-2. **RESULT on own-offense rows — PROMOTED (was Slice B).** Eleven of fourteen
-   Goaline snaps gained 0 on Pass — likely incompletions — but YPP cannot tell
-   incompletion from a stuff. `parseOffense` does not write RESULT. This is
-   now the first item after Slice A, not buried in Slice B.
+2. **RESULT on own-offense rows — done in situational-truth v305.** Classic
+   `parseOffense` stores it; Assist keeps it on the typed snap + `raw`.
+   Magic 3 COMP needs a classic ours re-import. Defense/scout paths untouched.
 
 3. **YARD LN raw string on own-offense.** Stored on 0/238 of the live corpus.
    Needed before any goal-line clamp of the success rule.

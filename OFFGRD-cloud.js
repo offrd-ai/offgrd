@@ -1529,6 +1529,7 @@ export const Cloud = {
         "bf",
       ],
       pass_zone: ["pass zone", "pass zon", "passzone"],
+      result: ["result", "play result", "outcome"],
     });
     const direction = this._normPlayDir(rawPick.direction);
     const gap = rawPick.gap || "";
@@ -1584,6 +1585,7 @@ export const Cloud = {
       blitz: blitz,
       playType: s.play_type || "",
       play: s.play || "",
+      result: (s.result && String(s.result).trim()) || rawPick.result || "",
       formation: s.formation || "",
       formation_family: s.formation_family || "",
       personnel: personnel,

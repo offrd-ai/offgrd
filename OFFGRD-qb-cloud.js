@@ -1,5 +1,5 @@
 /* Bridge for Reps Lab — exposes window.QB for saving/reading results. */
-import { Cloud } from "./OFFGRD-cloud.js?v=304";
+import { Cloud } from "./OFFGRD-cloud.js?v=305";
 
 function legacyBlitzAsDefCall(bc){
   if(!bc) return null;

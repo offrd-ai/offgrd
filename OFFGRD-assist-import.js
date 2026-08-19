@@ -387,6 +387,10 @@
       var form = pick(PRESET_ALIASES.formation.concat(["OFF FORM"]));
       if (form) snap.formation = form;
     }
+    if (snap.result == null || snap.result === "") {
+      var res = pick(PRESET_ALIASES.result.concat(["RESULT", "Result"]));
+      if (res) snap.result = res;
+    }
     return snap;
   }
 
@@ -506,6 +510,9 @@
       var gain = asNum(cellAt(cells, parsed.headers, map, "gain"));
       var success = isSuccessVal(down, distance, gain);
 
+      var resultRaw = cellAt(cells, parsed.headers, map, "result");
+      var result = resultRaw ? String(resultRaw).trim() : null;
+
       var coverage = normCoverage(cellAt(cells, parsed.headers, map, "coverage"));
       var frontRaw = cellAt(cells, parsed.headers, map, "front");
       var front = frontRaw ? normalizeDefFront(frontRaw) : null;
@@ -550,6 +557,7 @@
         play: cellAt(cells, parsed.headers, map, "play") || null,
         play_type: (cellAt(cells, parsed.headers, map, "play_type") || "").toLowerCase() || null,
         gain: gain,
+        result: result, /* typed snap; scout_snaps has no result column — persists in raw */
         success: success,
         off_structure: resolved.structure,
         off_back_count: offBack,

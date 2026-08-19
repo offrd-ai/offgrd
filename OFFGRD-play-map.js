@@ -628,6 +628,27 @@
     return O.isSuccessVal(row.down, row.distance, row.gain);
   }
 
+  /** Hudl RESULT only. Live hit/miss and blank are not inferred. */
+  function resultKind(raw) {
+    var s = String(raw == null ? "" : raw).trim().toLowerCase();
+    if (!s) return "";
+    if (/penalt/.test(s)) return "penalty";
+    if (/sack/.test(s)) return "sack";
+    if (/incomplete/.test(s)) return "incomplete";
+    if (/intercept|\bint\b/.test(s)) return "incomplete";
+    if (/complete/.test(s)) return "complete";
+    if (/scramble/.test(s)) return "scramble";
+    if (/fumble/.test(s)) return "fumble";
+    if (/^rush/.test(s)) return "rush";
+    return "other";
+  }
+
+  function isPassSnap(row) {
+    if (/pass/i.test((row && row.playType) || "")) return true;
+    var k = resultKind(row && row.result);
+    return k === "complete" || k === "incomplete" || k === "sack";
+  }
+
   function distBucket(n) {
     n = +n;
     if (!isFinite(n)) return "";
@@ -729,13 +750,27 @@
         var gains = rs.map(function (r) { return +r.gain; }).filter(function (g) { return !isNaN(g); });
         var ypp = gains.length ? gains.reduce(function (a, b) { return a + b; }, 0) / gains.length : null;
         var ok = 0, known = 0;
+        var distSum = 0, distN = 0;
+        var complete = 0, incomplete = 0, resultKnown = 0, passN = 0, sackN = 0, penaltyN = 0;
         rs.forEach(function (r) {
           var s = successOf(r);
           if (s === 1 || s === 0) {
             known += 1;
             if (s === 1) ok += 1;
+            var d = +r.distance;
+            if (isFinite(d) && d > 0) {
+              distSum += d;
+              distN += 1;
+            }
           }
+          var kind = resultKind(r.result);
+          if (kind === "penalty") penaltyN += 1;
+          if (kind === "sack") sackN += 1;
+          if (isPassSnap(r)) passN += 1;
+          if (kind === "complete") { complete += 1; resultKnown += 1; }
+          else if (kind === "incomplete") { incomplete += 1; resultKnown += 1; }
         });
+        var passFamily = passN * 2 > n;
         return {
           key: k,
           label: k,
@@ -745,6 +780,13 @@
           yppN: gains.length,
           eff: known ? ok / known : null,
           effN: known,
+          distAvg: distN ? distSum / distN : null,
+          distN: distN,
+          comp: passFamily && resultKnown ? complete / resultKnown : null,
+          compN: resultKnown,
+          passN: passN,
+          sackN: sackN,
+          penaltyN: penaltyN,
           thin: n < 8,
           unmapped: !!by[k].unmapped,
         };
@@ -803,5 +845,6 @@
     sliceReady: sliceReady,
     rollup: rollup,
     successOf: successOf,
+    resultKind: resultKind,
   };
 })(typeof window !== "undefined" ? window : globalThis);

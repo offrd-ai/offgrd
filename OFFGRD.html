@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v304: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v305: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=304"></script>
-<script src="OFFGRD-brand-persist.js?v=304"></script>
-<script src="supabase.js?v=304"></script>
-<script src="OFFGRD-cache-gate.js?v=304"></script>
+<script src="OFFGRD-config.js?v=305"></script>
+<script src="OFFGRD-brand-persist.js?v=305"></script>
+<script src="supabase.js?v=305"></script>
+<script src="OFFGRD-cache-gate.js?v=305"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,38 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=304"></script>
-<script src="OFFGRD-pos-glossary.js?v=304"></script>
-<script src="OFFGRD-autoderive.js?v=304"></script>
-<script src="OFFGRD-matchup.js?v=304"></script>
-<script src="OFFGRD-scoutcards.js?v=304"></script>
-<script src="OFFGRD-tendencies.js?v=304"></script>
-<script src="OFFGRD-scout-report.js?v=304"></script>
-<script src="OFFGRD-week-autotest.js?v=304"></script>
-<script src="OFFGRD-weeklypackage.js?v=304"></script>
-<script src="OFFGRD-telestrate.js?v=304"></script>
-<script src="OFFGRD-redesign.js?v=304"></script>
-<script src="OFFGRD-shell.js?v=304"></script>
-<script src="OFFGRD-caller-outcome.js?v=304"></script>
-<script src="OFFGRD-caller-sit.js?v=304"></script>
-<script src="OFFGRD-formations-data.js?v=304"></script>
-<script src="OFFGRD-formation-canon.js?v=304"></script>
-<script src="OFFGRD-assist-import.js?v=304"></script>
-<script src="OFFGRD-schedule-import.js?v=304"></script>
-<script src="OFFGRD-opp-shells.js?v=304"></script>
-<script src="OFFGRD-formation-map.js?v=304"></script>
-<script src="OFFGRD-play-map.js?v=304"></script>
-<script src="OFFGRD-cv-review.js?v=304"></script>
-<script src="OFFGRD-frame-capture.js?v=304"></script>
-<script src="OFFGRD-caller-log.js?v=304"></script>
-<script src="OFFGRD-caller-sync.js?v=304"></script>
-<script src="OFFGRD-caller-analysis.js?v=304"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=304"></script>
-<script src="OFFGRD-booth-ask.js?v=304"></script>
-<script src="OFFGRD-boothpack.js?v=304"></script>
-<script src="OFFGRD-booth-chat.js?v=304"></script>
-<script src="OFFGRD-caller-select.js?v=304"></script>
-<script src="OFFGRD-dcaller.js?v=304"></script>
+<script src="OFFGRD-render.js?v=305"></script>
+<script src="OFFGRD-pos-glossary.js?v=305"></script>
+<script src="OFFGRD-autoderive.js?v=305"></script>
+<script src="OFFGRD-matchup.js?v=305"></script>
+<script src="OFFGRD-scoutcards.js?v=305"></script>
+<script src="OFFGRD-tendencies.js?v=305"></script>
+<script src="OFFGRD-scout-report.js?v=305"></script>
+<script src="OFFGRD-week-autotest.js?v=305"></script>
+<script src="OFFGRD-weeklypackage.js?v=305"></script>
+<script src="OFFGRD-telestrate.js?v=305"></script>
+<script src="OFFGRD-redesign.js?v=305"></script>
+<script src="OFFGRD-shell.js?v=305"></script>
+<script src="OFFGRD-caller-outcome.js?v=305"></script>
+<script src="OFFGRD-caller-sit.js?v=305"></script>
+<script src="OFFGRD-formations-data.js?v=305"></script>
+<script src="OFFGRD-formation-canon.js?v=305"></script>
+<script src="OFFGRD-assist-import.js?v=305"></script>
+<script src="OFFGRD-schedule-import.js?v=305"></script>
+<script src="OFFGRD-opp-shells.js?v=305"></script>
+<script src="OFFGRD-formation-map.js?v=305"></script>
+<script src="OFFGRD-play-map.js?v=305"></script>
+<script src="OFFGRD-cv-review.js?v=305"></script>
+<script src="OFFGRD-frame-capture.js?v=305"></script>
+<script src="OFFGRD-caller-log.js?v=305"></script>
+<script src="OFFGRD-caller-sync.js?v=305"></script>
+<script src="OFFGRD-caller-analysis.js?v=305"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=305"></script>
+<script src="OFFGRD-booth-ask.js?v=305"></script>
+<script src="OFFGRD-boothpack.js?v=305"></script>
+<script src="OFFGRD-booth-chat.js?v=305"></script>
+<script src="OFFGRD-caller-select.js?v=305"></script>
+<script src="OFFGRD-dcaller.js?v=305"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1143,7 +1143,7 @@ function parseOffense(text){
   const find=arr=>{ for(const a of arr){ const i=lc.indexOf(a); if(i>=0) return i; } return -1; };
   const ci={ play:find(PLAY), down:find(ALIASES.down), dist:find(ALIASES.distance), cov:find(ALIASES.coverage),
     gain:find(ALIASES.gnls), ptype:find(ALIASES.playtype), odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent),
-    qtr:find(ALIASES.qtr), yl:find(ALIASES.yardline), fz:find(ALIASES.fieldZone) };
+    qtr:find(ALIASES.qtr), yl:find(ALIASES.yardline), fz:find(ALIASES.fieldZone), result:find(ALIASES.result) };
   const cols=colResolve(head);
   const colIdx=f=>(cols[f]&&cols[f].idx!=null)?cols[f].idx:-1;
   const formI=colIdx("formation"), persI=colIdx("personnel"), hashI=colIdx("hash");
@@ -1156,6 +1156,7 @@ function parseOffense(text){
   if(ci.down>=0) mapped.push('down?"'+head[ci.down]+'"');
   if(ci.qtr>=0)  mapped.push('qtr?"'+head[ci.qtr]+'"');
   if(ci.yl>=0)   mapped.push('yardline?"'+head[ci.yl]+'"');
+  if(ci.result>=0) mapped.push('result?"'+head[ci.result]+'"');
   if(formI>=0) mapped.push('formation?"'+head[formI]+'"');
   for(let li=1;li<lines.length;li++){
     const c=splitCSVLine(lines[li]); if(!c.length || c.join("").trim()==="") continue;
@@ -1172,7 +1173,7 @@ function parseOffense(text){
     if(!fz) fz=zoneFromYardLine(at(c,ci.yl));
     const qtr=at(c,ci.qtr).replace(/[^0-9]/g,"")||"";
     const covParts=coverageParts(at(c,ci.cov));
-    const row={date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:fz||"",qtr:qtr,coverage:covParts.coverage,coverageRaw:covParts.coverageRaw,coverageMod:covParts.coverageMod,front:"",play:play,playType:at(c,ci.ptype),gain:gain,success:isSuccessVal(down,distance,gain),formation:formI>=0?at(c,formI):""};
+    const row={date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:fz||"",qtr:qtr,coverage:covParts.coverage,coverageRaw:covParts.coverageRaw,coverageMod:covParts.coverageMod,front:"",play:play,playType:at(c,ci.ptype),gain:gain,result:at(c,ci.result),success:isSuccessVal(down,distance,gain),formation:formI>=0?at(c,formI):""};
     if(persI>=0) row.personnel=at(c,persI);
     if(hashI>=0) row.hash=(at(c,hashI)||"").toUpperCase().slice(0,1);
     if(structI>=0) row.offStructure=at(c,structI);
@@ -3764,6 +3765,7 @@ function callerPlayRollupHtml(){
   const axis=view.axis||"structure";
   function pct(x){ return x==null?"—":(Math.round(x*100)+"%"); }
   function ypp(x){ return x==null?"—":(Math.round(x*10)/10); }
+  function dist(x){ return x==null?"—":(Math.round(x*10)/10); }
   function nNote(denom, rowN){ return (denom!=null&&denom!==rowN)?`<span class=foot> n=${denom}</span>`:""; }
   let h=`<section id="rd-gd-play-rollup" class="rd-gd-play-rollup no-print" style="position:static" data-flow="normal">`;
   h+=`<div class="rd-gd-play-rollup-head"><span class="lbl">Own calls</span>`;
@@ -3798,12 +3800,12 @@ function callerPlayRollupHtml(){
     h+=`<p class="foot">No own-offense calls in this slice.</p></section>`;
     return h;
   }
-  h+=`<table class="rd-gd-play-rollup-tbl"><thead><tr><th></th><th>n</th><th>%</th><th>YPP</th><th>EFF</th></tr></thead><tbody>`;
+  h+=`<table class="rd-gd-play-rollup-tbl"><thead><tr><th></th><th>n</th><th>DIST</th><th>%</th><th>YPP</th><th>EFF</th><th>COMP</th></tr></thead><tbody>`;
   view.buckets.forEach(function(b){
     const cls=b.unmapped?" is-unmapped":"";
     h+=`<tr class="${cls}"><td>${esc(b.label)}${b.thin?' <span class="rd-gd-thin">THIN</span>':""}`;
     if(b.unmapped) h+=` <button type="button" class="ghost" onclick="openPlayMap()">Map</button>`;
-    h+=`</td><td>${b.n}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+nNote(b.yppN,b.n)}</td><td>${b.eff==null?"—":pct(b.eff)+nNote(b.effN,b.n)}</td></tr>`;
+    h+=`</td><td>${b.n}</td><td>${dist(b.distAvg)}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+nNote(b.yppN,b.n)}</td><td>${b.eff==null?"—":pct(b.eff)+nNote(b.effN,b.n)}</td><td>${b.comp==null?"—":pct(b.comp)+nNote(b.compN,b.n)}</td></tr>`;
   });
   h+=`</tbody></table>`;
   h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}`+(view.junkN?` · ${view.junkN} play-type label${view.junkN===1?"":"s"} set aside`:``)+`</p>`;
@@ -6042,7 +6044,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=304", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=305", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6891,9 +6893,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=304"></script>
-<script src="OFFGRD-role-gate.js?v=304"></script>
-<script src="OFFGRD-mobile.js?v=304"></script>
+<script type="module" src="OFFGRD-account.js?v=305"></script>
+<script src="OFFGRD-role-gate.js?v=305"></script>
+<script src="OFFGRD-mobile.js?v=305"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
