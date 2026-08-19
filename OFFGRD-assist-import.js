@@ -214,18 +214,11 @@
 
   function isSuccessVal(down, distance, gain) {
     var O = root.OFFGRD_CALLER_OUTCOME;
-    if (O && typeof O.isSuccessVal === "function") {
-      var r = O.isSuccessVal(down, distance, gain);
-      if (r === 1) return true;
-      if (r === 0) return false;
-      return null;
-    }
-    var g = +gain,
-      d = +distance;
-    if (isNaN(g) || isNaN(d) || d <= 0) return null;
-    if (down <= 1) return g >= 0.5 * d;
-    if (down === 2) return g >= 0.7 * d;
-    return g >= d;
+    if (!O || typeof O.isSuccessVal !== "function") return null;
+    var r = O.isSuccessVal(down, distance, gain);
+    if (r === 1) return true;
+    if (r === 0) return false;
+    return null;
   }
 
   function normCoverage(v) {

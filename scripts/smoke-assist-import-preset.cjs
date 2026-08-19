@@ -20,16 +20,10 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
-sandbox.OFFGRD_CALLER_OUTCOME = {
-  isSuccessVal: function (down, distance, gain) {
-    var g = +gain,
-      d = +distance;
-    if (isNaN(g) || isNaN(d) || d <= 0) return null;
-    if (down <= 1) return g >= 0.5 * d ? 1 : 0;
-    if (down === 2) return g >= 0.7 * d ? 1 : 0;
-    return g >= d ? 1 : 0;
-  },
-};
+vm.runInNewContext(
+  fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-outcome.js"), "utf8"),
+  sandbox
+);
 sandbox.OFFGRD_FORMATION_CANON = {
   resolve: function () {
     return null;

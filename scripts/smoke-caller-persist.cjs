@@ -19,7 +19,7 @@ function dbToNum(db) {
   if (db === "1-3") return 2;
   if (db === "4-6") return 5;
   if (db === "7-9") return 8;
-  if (db === "10+") return 12;
+  if (db === "10+") return 10;
   return null;
 }
 function uniq(a) {

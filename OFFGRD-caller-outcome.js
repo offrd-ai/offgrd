@@ -79,13 +79,13 @@
     if (db === "1-3") return 2;
     if (db === "4-6") return 5;
     if (db === "7-9") return 8;
-    if (db === "10+") return 12;
+    if (db === "10+") return 10;
     return null;
   }
 
   /**
    * Numeric yards-to-go for chain estimates / chip edits.
-   * "10+" seeds at 10 (standard 1st & 10) — not dbToNum's filter midpoint 12.
+   * "10+" seeds at 10 (standard 1st & 10). Same as dbToNum.
    * GOAL seeds at 3 (short goal-to-go midpoint) unless an exact estYards is kept.
    */
   function estYardsForBucket(db) {

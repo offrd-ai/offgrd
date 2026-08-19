@@ -33,7 +33,7 @@ if (!O) throw new Error("OFFGRD_CALLER_OUTCOME missing");
 
 /* 1) One-tap result → success from isSuccessVal */
 const solid1 = O.finalizeOutcome({ result: "solid" }, { dn: 1, db: "10+" });
-/* gain 6 vs need 12*0.5=6 → success */
+/* gain 6 vs need 10*0.5=5 → success */
 if (solid1.success !== 1) throw new Error("1st&10 solid should succeed, got " + solid1.success);
 if (solid1.concept !== "worked") throw new Error("clean success → worked");
 

@@ -70,11 +70,12 @@
   }
 
   function isSuccess(down, distance, gain) {
-    const g = +gain, d = +distance;
-    if (isNaN(g) || isNaN(d) || d <= 0) return null;
-    if (down === 1) return g >= d * 0.4;
-    if (down === 2) return g >= d * 0.5;
-    return g >= d;
+    const O = root.OFFGRD_CALLER_OUTCOME;
+    if (!O || typeof O.isSuccessVal !== "function") return null;
+    const r = O.isSuccessVal(down, distance, gain);
+    if (r === 1) return true;
+    if (r === 0) return false;
+    return null;
   }
 
   function isExplosive(gain) { return +gain >= 12; }
