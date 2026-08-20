@@ -646,5 +646,18 @@ pause(); fill.style.width='0';
   document.getElementById('stage').appendChild(o);
 })();
 }
-</script></body>
+</script><script>
+/* phones: the step caption overlaid half the mock — move it below the stage */
+if (window.matchMedia && window.matchMedia("(max-width: 700px)").matches) {
+  var _st = document.getElementById("stage"),
+      _cp = document.querySelector(".caption");
+  if (_st && _cp) {
+    _st.parentNode.insertBefore(_cp, _st.nextSibling);
+    _cp.style.cssText = "position:static;background:rgba(255,255,255,.045);" +
+      "border:1px solid rgba(124,194,255,.25);border-radius:12px;" +
+      "margin-top:10px;padding:11px 13px;font-size:13px;line-height:1.55";
+  }
+}
+</script>
+</body>
 </html>
