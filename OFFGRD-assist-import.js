@@ -36,6 +36,8 @@
     { key: "efficiency", label: "Efficiency", optional: true },
     { key: "gap", label: "Gap", optional: true },
     { key: "pass_zone", label: "Pass zone", optional: true },
+    { key: "defense_response", label: "Mot adj / defense response", optional: true },
+    { key: "form_tag", label: "Form tag", optional: true },
   ];
 
   /** Ship-with preset — locked against testplaylogs PlaylistData_* (2026-06/07). */
@@ -72,6 +74,8 @@
     efficiency: ["efficiency", "eff"],
     gap: ["gap"],
     pass_zone: ["pass zone", "pass zon", "passzone"],
+    defense_response: ["mot adj", "mot adj.", "motion adj", "defense response", "def response"],
+    form_tag: ["form tag", "formation tag", "formtag"],
   };
 
   var state = {
@@ -566,6 +570,13 @@
           cellAt(cells, parsed.headers, map, "off_strength")
         ),
         motion_type: motionType,
+        qtr: cellAt(cells, parsed.headers, map, "qtr") || null,
+        play_dir: cellAt(cells, parsed.headers, map, "play_dir") || null,
+        gap: cellAt(cells, parsed.headers, map, "gap") || null,
+        pass_zone: cellAt(cells, parsed.headers, map, "pass_zone") || null,
+        play_index: asInt(cellAt(cells, parsed.headers, map, "play_index")),
+        defense_response: cellAt(cells, parsed.headers, map, "defense_response") || null,
+        form_tag: cellAt(cells, parsed.headers, map, "form_tag") || null,
         formation: resolved.raw,
         formation_id: resolved.formationId,
         contract_version: "v1",
@@ -957,6 +968,13 @@
         off_personnel: snap.off_personnel,
         off_strength: snap.off_strength,
         motion: { motion_type: snap.motion_type },
+        qtr: snap.qtr,
+        play_dir: snap.play_dir,
+        gap: snap.gap,
+        pass_zone: snap.pass_zone,
+        play_index: snap.play_index,
+        defense_response: snap.defense_response,
+        form_tag: snap.form_tag,
         formation: snap.formation,
         raw_formation_label: snap.formation,
         formation_id: snap.formation_id,

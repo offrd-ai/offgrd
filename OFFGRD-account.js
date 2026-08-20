@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=306";
-import { openAuthModal } from "./OFFGRD-auth.js?v=306";
+import { Cloud } from "./OFFGRD-cloud.js?v=307";
+import { openAuthModal } from "./OFFGRD-auth.js?v=307";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -780,6 +780,7 @@ async function hydrateTeamsFromSession(u, opts){
 }
 
 async function finishProgramHydrate(u){
+  try{ if(Cloud.authLoopProbe && Cloud.authLoopProbe.noteHydrate) Cloud.authLoopProbe.noteHydrate(); }catch(eP){}
   if(isOffline()){
     publishProgramRole();
     try{ applyCloudBrand(); }catch(e){}
@@ -822,6 +823,7 @@ async function finishProgramHydrate(u){
 }
 
 async function onUser(u){
+  try{ if(Cloud.authLoopProbe && Cloud.authLoopProbe.noteOnUser) Cloud.authLoopProbe.noteOnUser(); }catch(eP){}
   if(!u){
     /* Offline + sideline: never wipe caller state / never signed-out gate. */
     if(isOffline() && isSidelinePinned()){
@@ -1933,13 +1935,21 @@ try{ bar(null); }catch(e){}   /* instant paint so the bar is never blank while a
 /* First chrome from LS — before Cloud.session / my_role / any await. */
 try{ paintFromPersistedState(); }catch(e){}
 dbgInfo("sess:…");
-Cloud.onAuth(u=>{
+Cloud.onAuth((u, ev)=>{
   if(!u && !_sessionResolved && window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION()) return;
   if(!u && isOffline() && (isSidelinePinned() || persistedShellPin() || (window.OFFGRD_HAS_LIKELY_SESSION && window.OFFGRD_HAS_LIKELY_SESSION()))){
     hydrateOfflineTeam();
     publishProgramRole();
     showOfflineBanner();
     dbgInfo("auth:offline-sideline");
+    return;
+  }
+  const need = Cloud.authEventNeedsHydrate
+    ? Cloud.authEventNeedsHydrate(ev, { userId: SESSION_USER && SESSION_USER.id, teamId: TEAM && TEAM.id }, { userId: u && u.id, teamId: TEAM && TEAM.id })
+    : true;
+  if(!need){
+    if(u) SESSION_USER = u;
+    dbgInfo("auth:skip-"+ev);
     return;
   }
   onUser(u); dbgInfo("auth:"+(u?u.email:"none"));

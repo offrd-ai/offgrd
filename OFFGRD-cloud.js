@@ -54,19 +54,42 @@ const EXPECTED_REF = projectRefFromUrl(cfg.url);
 
 let _myTeamsInflight = null;
 let _myTeamsRecent = null; /* { data, until } — collapses boot triple within a short TTL */
-let _myTeamsLoadCount = 0;
-let _myTeamsCountTimer = null;
+let _myTeamsPageCalls = 0;
 const MY_TEAMS_RECENT_MS = 2500;
+const _authLoopProbe = {
+  authEvents: Object.create(null),
+  onUser: 0,
+  myTeams: 0,
+  finishProgramHydrate: 0,
+};
 function _noteMyTeamsCall() {
-  _myTeamsLoadCount++;
-  if (_myTeamsCountTimer) clearTimeout(_myTeamsCountTimer);
-  _myTeamsCountTimer = setTimeout(function () {
-    try {
-      console.log("[Cloud.myTeams] calls per load:", _myTeamsLoadCount);
-    } catch (e) {}
-    _myTeamsLoadCount = 0;
-    _myTeamsCountTimer = null;
-  }, 6000);
+  _myTeamsPageCalls++;
+  _authLoopProbe.myTeams++;
+  try {
+    console.log("[Cloud.myTeams] page calls:", _myTeamsPageCalls);
+  } catch (e) {}
+}
+/** TOKEN_REFRESHED / USER_UPDATED with the same user + team do not need a re-hydrate. */
+function authEventNeedsHydrate(event, prev, next) {
+  const ev = String(event || "");
+  const prevUser = prev && prev.userId ? String(prev.userId) : "";
+  const nextUser = next && next.userId ? String(next.userId) : "";
+  const prevTeam = prev && prev.teamId ? String(prev.teamId) : "";
+  const nextTeam = next && next.teamId ? String(next.teamId) : "";
+  if (ev === "SIGNED_OUT") return true;
+  if (ev === "SIGNED_IN") return true;
+  if (ev === "TOKEN_REFRESHED" || ev === "USER_UPDATED") {
+    if (!nextUser) return true;
+    if (!prevUser || prevUser !== nextUser) return true;
+    if (!prevTeam || prevTeam !== nextTeam) return true;
+    return false;
+  }
+  if (ev === "INITIAL_SESSION") {
+    if (!nextUser) return true;
+    if (prevUser && prevUser === nextUser && prevTeam && prevTeam === nextTeam) return false;
+    return true;
+  }
+  return true;
 }
 function _invalidateMyTeamsCache() {
   _myTeamsRecent = null;
@@ -184,7 +207,33 @@ export const Cloud = {
       return null;
     }
   },
-  onAuth(cb) { return sb.auth.onAuthStateChange((_e, session) => cb(session ? session.user : null)); },
+  onAuth(cb) {
+    return sb.auth.onAuthStateChange((e, session) => {
+      const ev = e || "";
+      _authLoopProbe.authEvents[ev] = (_authLoopProbe.authEvents[ev] || 0) + 1;
+      cb(session ? session.user : null, ev);
+    });
+  },
+  authEventNeedsHydrate: authEventNeedsHydrate,
+  authLoopProbe: {
+    snapshot: function () {
+      return {
+        authEvents: Object.assign({}, _authLoopProbe.authEvents),
+        onUser: _authLoopProbe.onUser,
+        myTeams: _authLoopProbe.myTeams,
+        finishProgramHydrate: _authLoopProbe.finishProgramHydrate,
+        myTeamsPageCalls: _myTeamsPageCalls,
+      };
+    },
+    reset: function () {
+      _authLoopProbe.authEvents = Object.create(null);
+      _authLoopProbe.onUser = 0;
+      _authLoopProbe.myTeams = 0;
+      _authLoopProbe.finishProgramHydrate = 0;
+    },
+    noteOnUser: function () { _authLoopProbe.onUser++; },
+    noteHydrate: function () { _authLoopProbe.finishProgramHydrate++; },
+  },
 
   /* ---------- teams ---------- */
   /**

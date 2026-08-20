@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v306: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v307: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=306"></script>
-<script src="OFFGRD-brand-persist.js?v=306"></script>
-<script src="supabase.js?v=306"></script>
-<script src="OFFGRD-cache-gate.js?v=306"></script>
+<script src="OFFGRD-config.js?v=307"></script>
+<script src="OFFGRD-brand-persist.js?v=307"></script>
+<script src="supabase.js?v=307"></script>
+<script src="OFFGRD-cache-gate.js?v=307"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,38 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=306"></script>
-<script src="OFFGRD-pos-glossary.js?v=306"></script>
-<script src="OFFGRD-autoderive.js?v=306"></script>
-<script src="OFFGRD-matchup.js?v=306"></script>
-<script src="OFFGRD-scoutcards.js?v=306"></script>
-<script src="OFFGRD-tendencies.js?v=306"></script>
-<script src="OFFGRD-scout-report.js?v=306"></script>
-<script src="OFFGRD-week-autotest.js?v=306"></script>
-<script src="OFFGRD-weeklypackage.js?v=306"></script>
-<script src="OFFGRD-telestrate.js?v=306"></script>
-<script src="OFFGRD-redesign.js?v=306"></script>
-<script src="OFFGRD-shell.js?v=306"></script>
-<script src="OFFGRD-caller-outcome.js?v=306"></script>
-<script src="OFFGRD-caller-sit.js?v=306"></script>
-<script src="OFFGRD-formations-data.js?v=306"></script>
-<script src="OFFGRD-formation-canon.js?v=306"></script>
-<script src="OFFGRD-assist-import.js?v=306"></script>
-<script src="OFFGRD-schedule-import.js?v=306"></script>
-<script src="OFFGRD-opp-shells.js?v=306"></script>
-<script src="OFFGRD-formation-map.js?v=306"></script>
-<script src="OFFGRD-play-map.js?v=306"></script>
-<script src="OFFGRD-cv-review.js?v=306"></script>
-<script src="OFFGRD-frame-capture.js?v=306"></script>
-<script src="OFFGRD-caller-log.js?v=306"></script>
-<script src="OFFGRD-caller-sync.js?v=306"></script>
-<script src="OFFGRD-caller-analysis.js?v=306"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=306"></script>
-<script src="OFFGRD-booth-ask.js?v=306"></script>
-<script src="OFFGRD-boothpack.js?v=306"></script>
-<script src="OFFGRD-booth-chat.js?v=306"></script>
-<script src="OFFGRD-caller-select.js?v=306"></script>
-<script src="OFFGRD-dcaller.js?v=306"></script>
+<script src="OFFGRD-render.js?v=307"></script>
+<script src="OFFGRD-pos-glossary.js?v=307"></script>
+<script src="OFFGRD-autoderive.js?v=307"></script>
+<script src="OFFGRD-matchup.js?v=307"></script>
+<script src="OFFGRD-scoutcards.js?v=307"></script>
+<script src="OFFGRD-tendencies.js?v=307"></script>
+<script src="OFFGRD-scout-report.js?v=307"></script>
+<script src="OFFGRD-week-autotest.js?v=307"></script>
+<script src="OFFGRD-weeklypackage.js?v=307"></script>
+<script src="OFFGRD-telestrate.js?v=307"></script>
+<script src="OFFGRD-redesign.js?v=307"></script>
+<script src="OFFGRD-shell.js?v=307"></script>
+<script src="OFFGRD-caller-outcome.js?v=307"></script>
+<script src="OFFGRD-caller-sit.js?v=307"></script>
+<script src="OFFGRD-formations-data.js?v=307"></script>
+<script src="OFFGRD-formation-canon.js?v=307"></script>
+<script src="OFFGRD-assist-import.js?v=307"></script>
+<script src="OFFGRD-schedule-import.js?v=307"></script>
+<script src="OFFGRD-opp-shells.js?v=307"></script>
+<script src="OFFGRD-formation-map.js?v=307"></script>
+<script src="OFFGRD-play-map.js?v=307"></script>
+<script src="OFFGRD-cv-review.js?v=307"></script>
+<script src="OFFGRD-frame-capture.js?v=307"></script>
+<script src="OFFGRD-caller-log.js?v=307"></script>
+<script src="OFFGRD-caller-sync.js?v=307"></script>
+<script src="OFFGRD-caller-analysis.js?v=307"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=307"></script>
+<script src="OFFGRD-booth-ask.js?v=307"></script>
+<script src="OFFGRD-boothpack.js?v=307"></script>
+<script src="OFFGRD-booth-chat.js?v=307"></script>
+<script src="OFFGRD-caller-select.js?v=307"></script>
+<script src="OFFGRD-dcaller.js?v=307"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1191,6 +1191,11 @@ function parseOffense(text){
     if(bfI>=0) row.offBackfield=at(c,bfI);
     if(bcI>=0){ const n=parseInt(at(c,bcI).replace(/[^0-9]/g,""),10); row.offBackCount=isNaN(n)?null:n; }
     if(strI>=0) row.offStrength=at(c,strI);
+    const motAdjI=colIdx("defense_response"), formTagI=colIdx("formTag"), gapI=colIdx("gap"), pzI=colIdx("passZone");
+    if(motAdjI>=0) row.defense_response=at(c,motAdjI);
+    if(formTagI>=0) row.formTag=at(c,formTagI);
+    if(gapI>=0) row.gap=at(c,gapI);
+    if(pzI>=0) row.passZone=at(c,pzI);
     out.push(row);
   }
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+
@@ -1329,7 +1334,8 @@ function parseScout(text,forceKeep){
   const ci={ ptype:find(ALIASES.playtype), dir:find(ALIASES.direction), motion:find(ALIASES.motion),
     down:find(ALIASES.down), dist:find(ALIASES.distance), hash:find(ALIASES.hash), zone:find(ALIASES.fieldZone),
     yl:find(ALIASES.yardline), pers:find(ALIASES.personnel), form:find(ALIASES.formation),
-    odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent), gain:find(ALIASES.gnls) };
+    odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent), gain:find(ALIASES.gnls),
+    motAdj:find(ALIASES.defense_response), formTag:find(ALIASES.formTag), gap:find(ALIASES.gap), passZone:find(ALIASES.passZone) };
   const at=(c,i)=> (i>=0&&c[i]!=null)?String(c[i]).trim():"";
   const cand=[];
   for(let li=1;li<lines.length;li++){
@@ -1350,14 +1356,17 @@ function parseScout(text,forceKeep){
     let fz=at(c,ci.zone).toUpperCase();
     if(fz.indexOf("RED")===0||fz==="RZ")fz="REDZONE"; else if(/PLUS|OPP/.test(fz))fz="PLUS"; else if(/OWN/.test(fz))fz="OWN";
     if(!fz) fz=zoneFromYardLine(at(c,ci.yl)); if(!fz)fz="OWN";
-    const mRaw=at(c,ci.motion).toLowerCase();
-    const motion=(mRaw && mRaw!=="0" && mRaw!=="no" && mRaw!=="n")?1:0;
+    const mRaw=at(c,ci.motion);
+    const mLow=mRaw.toLowerCase();
+    const motion=(mRaw && mLow!=="0" && mLow!=="no" && mLow!=="n" && mLow!=="none" && mLow!=="-")?1:0;
+    const motionType=motion?mRaw:"";
     const gs=at(c,ci.gain).replace(/[^0-9\-]/g,"");
     out.push({date:at(c,ci.date),opponent:at(c,ci.opp),down:(+at(c,ci.down).replace(/[^0-9]/g,""))||1,
       distance:(+at(c,ci.dist).replace(/[^0-9]/g,""))||10, fieldZone:fz, hash:(at(c,ci.hash)||"M").toUpperCase().slice(0,1),
       personnel:at(c,ci.pers), formation:at(c,ci.form), playType:x.pt,
-      direction:(at(c,ci.dir).toUpperCase().slice(0,1).match(/[RLM]/)||[""])[0], motion:motion,
-      gain:(gs===""?null:+gs), result:at(c,find(ALIASES.result||["result"]))});
+      direction:(at(c,ci.dir).toUpperCase().slice(0,1).match(/[RLM]/)||[""])[0], motion:motion, motionType:motionType,
+      gain:(gs===""?null:+gs), result:at(c,find(ALIASES.result||["result"])),
+      defense_response:at(c,ci.motAdj), formTag:at(c,ci.formTag), gap:at(c,ci.gap), passZone:at(c,ci.passZone)});
   });
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"• No PLAY TYPE (run/pass) column found · required. ":"");
   return out;
@@ -5814,6 +5823,10 @@ const ALIASES={
   gnls:["gn/ls","gain","gnls","yds","yards","net","gn ls"],
   direction:["play dir","play direction","dir","direction","run dir"],
   motion:["motion dir","motion","with motion","motion?","mot"],
+  defense_response:["mot adj","mot adj.","motion adj","defense response","def response"],
+  formTag:["form tag","formation tag","formtag"],
+  gap:["gap"],
+  passZone:["pass zone","pass zon","passzone"],
   playnum:["play #","play#","play no","play number","play num","hudl play #"],
   offStructure:["off structure","off. structure","offensive structure","structure"],
   offBackfield:["off backfield","offensive backfield"],
@@ -5885,7 +5898,7 @@ function parseCSV(text,forceKeep){
     let idx=-1;
     for(const a of ALIASES[field]){ const i=lc.indexOf(a); if(i>=0){ idx=i; break; } }
     col[field]=idx;
-    if(idx>=0 && ["down","distance","coverage","front","blitz","stunt","presnapSafeties","hash","personnel","formation","fieldZone","yardline","odk"].indexOf(field)>=0)
+    if(idx>=0 && ["down","distance","coverage","front","blitz","stunt","presnapSafeties","hash","personnel","formation","fieldZone","yardline","odk","defense_response","formTag","gap","passZone"].indexOf(field)>=0)
       mapped.push(field+'\u2192"'+head[idx]+'"');
   }
   const at=(cells,field)=>{ const i=col[field]; return (i>=0 && cells[i]!=null)? String(cells[i]).trim() : ""; };
@@ -5953,7 +5966,11 @@ function parseCSV(text,forceKeep){
       stunt:at(c,"stunt"),
       presnapSafeties:at(c,"presnapSafeties"),
       result:at(c,"result"),
-      playNum:playNum
+      playNum:playNum,
+      defense_response:at(c,"defense_response"),
+      formTag:at(c,"formTag"),
+      gap:at(c,"gap"),
+      passZone:at(c,"passZone")
     });
   });
   LAST_MAPPING=(mapped.length?"Mapped columns: "+mapped.join(", ")+". ":"")+
@@ -6058,7 +6075,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=306", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=307", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6237,14 +6254,15 @@ function brandingHTML(){
    +'<input type="file" id="brFile" accept="image/*" style="display:none"><input type="file" id="brOppFile" accept="image/*" style="display:none">'
    +'</div>';
 }
-function oursFormationRows(){
-  const pending=((typeof PENDING!=="undefined"&&PENDING&&PENDING.games)||[]).filter(function(g){ return g.side==="ours"; });
+function formationRowsForSide(side){
+  const pending=((typeof PENDING!=="undefined"&&PENDING&&PENDING.games)||[]).filter(function(g){ return g.side===side; });
   if(pending.length){
     const rows=[]; pending.forEach(function(g){ (g.rows||[]).forEach(function(r){ rows.push(r); }); });
     if(rows.length) return rows;
   }
-  return (typeof gamesRows==="function")?gamesRows("ours"):[];
+  return (typeof gamesRows==="function")?gamesRows(side):[];
 }
+function oursFormationRows(){ return formationRowsForSide("ours"); }
 /* Shared chip chrome — Formations + Play map. Do not inject .fm-chip.on in one panel only. */
 function ensureMapChipStyles(){
   if(document.getElementById("offgrd-map-chip-css")) return;
@@ -6340,7 +6358,8 @@ async function openFormationMap(){
   fmEl.querySelector("#fmClose").onclick=function(){ fmEl.style.display="none"; };
   const status=fmEl.querySelector("#fmStatus");
   const body=fmEl.querySelector("#fmBody");
-  const rows=oursFormationRows();
+  const oursRows=formationRowsForSide("ours");
+  const oppRows=formationRowsForSide("off");
   const C=mgrCloud(); const teamId=mgrTeamId();
   fmBindHydrate(M);
   let fetched;
@@ -6360,29 +6379,44 @@ async function openFormationMap(){
   } else {
     try{ if(teamId&&M.loadCache) fetched=M.loadCache(teamId); }catch(eL){}
   }
-  const paint=M.panelPaint?M.panelPaint(rows,{ fetched:fetched, hydrating:false }):null;
-  const inv=paint&&paint.inv?paint.inv:null;
-  if(!paint||paint.state!=="ready"||!inv){
-    status.textContent=(paint&&paint.statusText)||"Formation map isn't loaded yet.";
+  const oursPaint=M.panelPaint?M.panelPaint(oursRows,{ fetched:fetched, hydrating:false }):null;
+  const oppPaint=M.panelPaint?M.panelPaint(oppRows,{ fetched:fetched, hydrating:false }):null;
+  const oursInv=oursPaint&&oursPaint.inv?oursPaint.inv:null;
+  const oppInv=oppPaint&&oppPaint.inv?oppPaint.inv:null;
+  if(!oursPaint||oursPaint.state!=="ready"||!oursInv||!oppPaint||oppPaint.state!=="ready"||!oppInv){
+    status.textContent=(oursPaint&&oursPaint.statusText)||(oppPaint&&oppPaint.statusText)||"Formation map isn't loaded yet.";
     body.innerHTML="";
     return;
   }
-  status.textContent=paint.statusText+((!C||!teamId)?" Sign in to save mappings to your program.":"");
+  const need=(oursInv.unmapped.length+oppInv.unmapped.length);
+  let statusBits=[];
+  if(need) statusBits.push(need+" formation"+(need===1?"":"s")+" need mapping");
+  else if(oursInv.mapped.length||oursInv.auto.length||oppInv.mapped.length||oppInv.auto.length) statusBits.push("All charted tags are mapped or auto-recognized");
+  else statusBits.push("No formation tags yet. Import your offense or an opponent scout");
+  status.textContent=statusBits.join(". ")+((!C||!teamId)?". Sign in to save mappings to your program.":".");
+  function fmInvBlock(title, note, inv){
+    const empty=!inv.unmapped.length&&!inv.mapped.length&&!inv.auto.length;
+    let out='<div class="lbl" style="margin-top:18px">'+title+'</div><p class="foot" style="margin:4px 0 8px">'+note+'</p>';
+    if(empty) return out+'<p class="foot">None in this vocabulary yet.</p>';
+    if(inv.unmapped.length){
+      out+='<div class="lbl" style="margin-top:10px">Needs mapping</div>';
+      inv.unmapped.forEach(function(item){ out+=fmCardHtml(item, null); });
+    }
+    if(inv.mapped.length){
+      out+='<div class="lbl" style="margin-top:14px">Mapped</div>';
+      inv.mapped.forEach(function(item){ out+=fmCardHtml(item, item.mapped); });
+    }
+    if(inv.auto.length){
+      out+='<details style="margin-top:14px"><summary class="lbl" style="cursor:pointer">Auto-recognized ('+inv.auto.length+')</summary>'
+        +'<p class="foot" style="margin:6px 0">These already normalize to a structure. Nothing is written for them.</p>'
+        +inv.auto.map(function(i){ return '<div style="padding:6px 0;border-bottom:1px solid #eef0f3"><b>'+esc(i.raw)+'</b> <span class="foot">\u00d7'+i.n+' \u00b7 '+esc(i.auto)+'</span></div>'; }).join("")
+        +'</details>';
+    }
+    return out;
+  }
   let H="";
-  if(inv.unmapped.length){
-    H+='<div class="lbl" style="margin-top:14px">Needs mapping</div>';
-    inv.unmapped.forEach(function(item){ H+=fmCardHtml(item, null); });
-  }
-  if(inv.mapped.length){
-    H+='<div class="lbl" style="margin-top:18px">Mapped</div>';
-    inv.mapped.forEach(function(item){ H+=fmCardHtml(item, item.mapped); });
-  }
-  if(inv.auto.length){
-    H+='<details style="margin-top:18px"><summary class="lbl" style="cursor:pointer">Auto-recognized ('+inv.auto.length+')</summary>'
-      +'<p class="foot" style="margin:6px 0">These already normalize to a structure. Nothing is written for them.</p>'
-      +inv.auto.map(function(i){ return '<div style="padding:6px 0;border-bottom:1px solid #eef0f3"><b>'+esc(i.raw)+'</b> <span class="foot">\u00d7'+i.n+' \u00b7 '+esc(i.auto)+'</span></div>'; }).join("")
-      +'</details>';
-  }
+  H+=fmInvBlock("Your offense","Tags from your own-offense snaps.",oursInv);
+  H+=fmInvBlock("Opponent offense","Tags from opponent-scout snaps (ODK=D / side=off). Same exact-tag map — nothing is guessed.",oppInv);
   H+='<style>.fm-panel,.fm-card{background:#fff;color:#16181d}.fm-card{margin:12px 0;padding:12px;border:1px solid #e2e5ea;border-radius:12px}.fm-panel .lbl,.fm-card .lbl{color:#5b626e}.fm-panel .foot,.fm-card .foot{color:#5b626e}.fm-panel b,.fm-card b{color:#16181d}.fm-panel .ghost{background:#fff;color:#16181d;border-color:#d7dbe2}.fm-pers-free{background:#fff;color:#16181d}</style>';
   body.innerHTML=H;
   [].forEach.call(body.querySelectorAll(".fm-card"), function(card){
@@ -6907,9 +6941,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=306"></script>
-<script src="OFFGRD-role-gate.js?v=306"></script>
-<script src="OFFGRD-mobile.js?v=306"></script>
+<script type="module" src="OFFGRD-account.js?v=307"></script>
+<script src="OFFGRD-role-gate.js?v=307"></script>
+<script src="OFFGRD-mobile.js?v=307"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
