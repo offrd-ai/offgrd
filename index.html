@@ -782,6 +782,13 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   document.addEventListener("click", function(e){
     var btn = e.target.closest(".wt-poster");
     if(!btn) return;
+    var small = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    if(small && !btn.getAttribute("data-video")){
+      // phones: the inline iframe squeezes the walkthrough stage to unreadable size —
+      // open it as its own page instead (full width, landscape + pinch-zoom work)
+      window.location.href = BASE + btn.getAttribute("data-file") + ".html?autoplay=1";
+      return;
+    }
     var vsrc = btn.getAttribute("data-video");
     if(vsrc){
       var vid = document.createElement("video");
