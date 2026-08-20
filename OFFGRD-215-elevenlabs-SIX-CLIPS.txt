@@ -1,0 +1,67 @@
+OFFGRD 2:22 COMPANION - THE SIX CLIPS STILL NEEDED
+==================================================
+Blocks 1 and 8 are word-for-word identical to the 60s spot.
+Reuse vo/block1.mp3 (open) and vo/block4.mp3 (close) - do not re-render them.
+
+Same settings: male 35-55 American low-mid, Multilingual v2,
+stability 50-60, similarity 75, style 0-15, speed 0.95.
+Spelling: OFF-GRID, never OFFGRD.
+
+Name the files Block 2.mp3 ... Block 7.mp3 so they map straight across.
+
+
+----- BLOCK 2 -- CHART IT ONCE -----
+
+Chart your film once.
+
+OFF-GRID reads your breakdown the way you exported it. No re-tagging, no converting, no learning somebody else's names for your own formations. Map your vocabulary one time and it holds everywhere after.
+
+Scout cards come out the other side, already built.
+
+
+----- BLOCK 3 -- FRIDAY NIGHT - THE SITUATION -----
+
+Friday night, you open O Caller.
+
+It already knows the down, the distance, the hash, the field zone. Nothing to spin, nothing to set. Punt, downs, takeaway, score — it tracks the drive, the series, the quarter without you touching it.
+
+The only thing on your screen is the call.
+
+
+----- BLOCK 4 -- WHAT THEY'RE ABOUT TO GIVE YOU -----
+
+Up top is what to expect. Their most likely front, their most likely coverage, how often they pressure — and the number of charted snaps behind all three, so you know how much to trust it.
+
+Underneath, your own calls. Not a library. Your book, ranked for this exact situation, with what each one has done against this look.
+
+
+----- BLOCK 5 -- ONE TAP -----
+
+You make the call. One tap grades it.
+
+That tap logs the play, updates your self-scout, sharpens the next prediction, and writes your call sheet while you stand there.
+
+If the spotter got a down wrong, fix it in the log and everything downstream fixes itself.
+
+
+----- BLOCK 6 -- IT TELLS YOU WHAT IT DOESN'T KNOW -----
+
+And when it isn't sure, it says so.
+
+Small sample gets flagged. A formation it can't resolve stays in your words and stays marked. It will not draw a rusher you never charted. Every count reconciles, and it shows you the receipt.
+
+Nobody gets beat by the play they were told was a sixty percent tendency off four snaps.
+
+
+----- BLOCK 7 -- THE OTHER SIDE, AND THE BOOTH -----
+
+D Caller runs the same way against their offense. Their structure, their tendencies, your fronts and coverages, ranked the same way.
+
+There's a booth mode for the box. A guided mode for a first-year coordinator, and one with the hand-holding turned off.
+
+By Saturday morning your self-scout is written — call family, snaps, yards per play, efficiency. Nothing to type up.
+
+
+==================================================
+320 words across these six.
+With blocks 1 and 8 reused: 382 words total, projected 2:22.

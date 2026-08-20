@@ -1,0 +1,51 @@
+OFFGRD 60-75s EXPLAINER - ELEVENLABS INPUT
+==========================================
+4 separate generations. Paste each block on its own, then butt them
+together in the edit. Blank lines are real beats - leave them in.
+
+Voice:      male, 35-55, American, low-mid register
+Model:      Eleven Multilingual v2
+Stability:  50-60
+Similarity: 75
+Style:      0-15
+Speed:      0.95
+
+Spelling note: OFF-GRID, not OFFGRD. The hyphen is what makes the
+model say it correctly. Render Block 4 first and listen before you
+spend credits on the rest - it holds the close.
+
+
+----- BLOCK 1 -- COLD OPEN -----
+
+You already know what they do on third and long.
+
+It's in the film. It's just spread across a week of clips, a legal pad, and somebody's spreadsheet.
+
+By the time it's a call sheet, half your week is gone.
+
+OFF-GRID pulls it into one place.
+
+
+----- BLOCK 2 -- THE CHART -----
+
+Chart your film once. OFF-GRID builds your scout cards from it, in your own formation language. Not somebody else's. It shows you what they actually run, how often, and how you've done against it.
+
+
+----- BLOCK 3 -- FRIDAY NIGHT -----
+
+Friday night, you open O Caller. It already knows the down, the distance, the field zone. It shows you what they're likely to give you, and the calls from your book that have worked against that look. One tap grades the play.
+
+Your call sheet and your self-scout, done as you go.
+
+D Caller does the same on the other side of the ball.
+
+
+----- BLOCK 4 -- THE CLOSE -----
+
+And when the press box wifi drops, both of them keep working.
+
+OFF-GRID. Never off guard.
+
+
+==========================================
+160 words - 76 seconds at a measured read.

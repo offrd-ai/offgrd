@@ -338,6 +338,11 @@ footer{
   width:100%;max-width:1000px;aspect-ratio:10/8.8;border:0;border-radius:16px;display:block;background:var(--panel)
 }
 .wt-poster{padding:0;cursor:pointer;overflow:hidden}
+.wt-poster--wide,video.wt-frame{aspect-ratio:16/9;background:#05080E}
+video.wt-frame{object-fit:contain}
+.wt-spot{margin:22px 0 40px;max-width:1000px}
+.wt-spot h3{font-size:clamp(20px,2.4vw,25px);font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.wt-spot p{color:var(--muted);font-size:16px;line-height:1.5;margin:0 0 16px;max-width:720px}
 .wt-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .walkthrough + .walkthrough{margin-top:8px}
 .walkthrough:last-of-type{margin-bottom:40px}
@@ -461,6 +466,17 @@ footer{
     <div class="st"><div class="v">≤3 taps</div><div class="k">To log a snap</div></div>
     <div class="st"><div class="v">Every snap</div><div class="k">AI analysis recomputed</div></div>
     <div class="st"><div class="v">0 bars</div><div class="k">Needed on gameday</div></div>
+  </div>
+</section>
+<section class="section" id="film" style="padding-top:34px;padding-bottom:10px">
+  <div class="wrap">
+    <div class="wt-spot reveal" style="margin:0 auto;max-width:1000px">
+      <h3>The whole week in sixty seconds.</h3>
+      <p>Chart the film once. Call the game from it Friday night — offline.</p>
+      <button type="button" class="wt-poster wt-poster--wide" data-video="OFFGRD-explainer-60s.mp4" data-title="OFFGRD — Never off guard" aria-label="Play: OFFGRD explainer, 60 seconds">
+        <img src="/walkthroughs/posters/offgrd-explainer-poster-wide.jpg" alt="OFFGRD — Never off guard" loading="lazy" />
+      </button>
+    </div>
   </div>
 </section>
 <section class="section" id="why">
@@ -765,7 +781,20 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   }
   document.addEventListener("click", function(e){
     var btn = e.target.closest(".wt-poster");
-    if(!btn || !btn.getAttribute("data-file")) return;
+    if(!btn) return;
+    var vsrc = btn.getAttribute("data-video");
+    if(vsrc){
+      var vid = document.createElement("video");
+      vid.className = "wt-frame";
+      vid.src = BASE + vsrc;
+      vid.controls = true; vid.autoplay = true; vid.playsInline = true;
+      vid.setAttribute("playsinline",""); vid.setAttribute("preload","metadata");
+      vid.title = btn.getAttribute("data-title") || "";
+      btn.replaceWith(vid);
+      var pr = vid.play(); if(pr && pr.catch) pr.catch(function(){});
+      return;
+    }
+    if(!btn.getAttribute("data-file")) return;
     var iframe = document.createElement("iframe");
     iframe.className = "wt-frame";
     iframe.src = BASE + btn.getAttribute("data-file") + ".html?autoplay=1";
