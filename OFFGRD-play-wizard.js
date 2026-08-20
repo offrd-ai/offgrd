@@ -522,13 +522,13 @@
       if (WZ.mode === "template") {
         const base = ["entry"].concat(g).concat(["template", "playType"]);
         if (!WZ.playType) return base;
-        if (WZ.playType === "run") return base.concat(["carrier", "assigns", "name", "tests"]);
-        return base.concat(["tweak", "name", "tests"]);
+        if (WZ.playType === "run") return base.concat(["carrier", "assigns", "vsDefense", "name", "tests"]);
+        return base.concat(["tweak", "vsDefense", "name", "tests"]);
       }
       const base = ["entry"].concat(g).concat(["formation", "personnel", "playType"]);
       if (!WZ.playType) return base;
-      if (WZ.playType === "run") return base.concat(["scheme", "carrier", "assigns", "name", "tests"]);
-      return base.concat(["concept", "tweak", "protection", "name", "tests"]);
+      if (WZ.playType === "run") return base.concat(["scheme", "carrier", "assigns", "vsDefense", "name", "tests"]);
+      return base.concat(["concept", "tweak", "protection", "vsDefense", "name", "tests"]);
     }
     if (WZ.mode === "template") return ["entry"].concat(g).concat(["template", "align", "motion", "name", "tests"]);
     return ["entry"].concat(g).concat(["front", "coverage", "pressure", "align", "motion", "name", "tests"]);
@@ -677,7 +677,9 @@
       adjusters: { motion: { default: "bump" } },
       confirmed: false,
       save: true,
-      glossaryDone: false
+      glossaryDone: false,
+      vsFront: "none",
+      vsCov: "none"
     };
     const dock = document.getElementById("wizDock");
     if (dock) dock.style.display = "block";
@@ -709,6 +711,7 @@
       assigns: "Assignments / blocks",
       tweak: "Per-player tweak",
       protection: "Protection",
+      vsDefense: "Add defense to this play",
       front: "Front",
       coverage: "Coverage",
       pressure: "Pressure / blitz",
@@ -987,6 +990,30 @@
         H.renderAll();
         render();
       }));
+    } else if (id === "vsDefense") {
+      note(body, "Optional. Drop a front/coverage onto this play so you can draw routes against it. Skip to leave the play offense-only.");
+      body.appendChild(chips([["none", "No defense"]].concat(FRONTS.map(function (x) { return [x, x]; })), WZ.vsFront || "none", function (v) {
+        WZ.vsFront = v;
+        if (v && v !== "none" && H.placeDefense) {
+          H.snap();
+          H.placeDefense(v, WZ.vsCov || "none");
+          H.renderAll();
+        }
+        render();
+      }));
+      if (WZ.vsFront && WZ.vsFront !== "none") {
+        const c = chips([["none", "Front only"]].concat(COVS.map(function (x) { return [x, x]; })), WZ.vsCov || "none", function (v) {
+          WZ.vsCov = v;
+          if (H.placeDefense) {
+            H.snap();
+            H.placeDefense(WZ.vsFront, v || "none");
+            H.renderAll();
+          }
+          render();
+        });
+        c.style.marginTop = "8px";
+        body.appendChild(c);
+      }
     } else if (id === "front") {
       note(body, "Drop our front on the field.");
       body.appendChild(chips(FRONTS, WZ.front, function (v) {
@@ -1105,7 +1132,7 @@
     const skip = document.getElementById("wizDockSkip");
     if (back) back.style.visibility = WZ.i === 0 ? "hidden" : "visible";
     if (skip) {
-      const optional = id === "glossary" || id === "personnel" || id === "pressure" || id === "motion" || (id === "coverage" && WZ.mode === "scratch");
+      const optional = id === "glossary" || id === "personnel" || id === "pressure" || id === "motion" || id === "vsDefense" || (id === "coverage" && WZ.mode === "scratch");
       skip.style.display = optional ? "" : "none";
     }
     if (next) {
@@ -1174,6 +1201,9 @@
         st.type = WZ.playType || st.type || "pass";
         if (WZ.family) st.family = WZ.family;
         if (WZ.concept) st.concept = WZ.concept;
+      }
+      if (WZ.vsFront && WZ.vsFront !== "none" && H.placeDefense) {
+        H.placeDefense(WZ.vsFront, WZ.vsCov || "none");
       }
       if (WZ.name) {
         H.set("m-name", WZ.name);

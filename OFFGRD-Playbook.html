@@ -63,6 +63,7 @@
  .skillSeg .btn{border:0;border-radius:0;min-width:72px}
  .skillSeg .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
  body.skill-guided .expert-only{display:none!important}
+ body.skill-guided #defenseLookPanel{display:block!important}
  #wizDock{display:none;border:2px solid var(--accent);background:linear-gradient(180deg,#f7fbff,#fff)}
  body.skill-guided #wizDock{display:block}
  #wizDock .wizDockNav{display:flex;justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap}
@@ -79,6 +80,7 @@
  body.pb-dock-on #skillBar,
  body.pb-dock-on #offenseMetaRow,
  body.pb-dock-on #defenseLookRow,
+ body.pb-dock-on #defenseLookPanel,
  body.pb-dock-on #ctxBar{display:none!important}
  #pbMetaHold{display:none}
  #pbAssignPin .row{margin-top:8px}
@@ -99,7 +101,7 @@
 <script src="OFFGRD-pos-glossary.js?v=307"></script>
 <script src="OFFGRD-autoderive.js?v=307"></script>
 <script src="OFFGRD-week-autotest.js?v=307"></script>
-<script src="OFFGRD-play-wizard.js?v=307"></script>
+<script src="OFFGRD-play-wizard.js?v=308"></script>
 <script src="OFFGRD-opp-shells.js?v=307"></script>
 <script src="OFFGRD-scoutcards.js?v=307"></script>
 <script src="OFFGRD-telestrate.js?v=307"></script>
@@ -168,14 +170,7 @@
  <div class="row" id="assignRow"><textarea id="assignTxt" rows="2" style="flex:1;min-width:240px" placeholder="X 6 yard hitch&#10;Y 8 yard corner&#10;F pass protection"></textarea><button class="btn nav" id="applyAssign">Apply</button></div>
  </div>
 
- <!-- DEFENSE -->
  <div class="panel expert-only" data-sec="Defense">
- <div class="row" id="defenseLookRow">
- <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
- <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
- <button class="btn" id="placeDef">Place defense</button>
- <label id="showZonesLab" style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show coverage</label>
- </div>
  <div class="row modebar" id="defenseToolsRow" style="margin-top:8px">
  <span class="lbl">Defense tools</span>
  <button class="btn" data-mode="def">Add defender</button>
@@ -231,6 +226,17 @@
  </div>
  </div>
  <div id="pbMetaHold"></div>
+
+ <!-- Add defense sits under the field so Guided (and Expert) can overlay a look on this play -->
+ <div class="panel" data-sec="DefenseLook" id="defenseLookPanel">
+ <div class="row" id="defenseLookRow">
+ <span class="lbl">Add defense</span>
+ <span class="lbl">Front</span><select id="defFront"><option value="none">&mdash; front &mdash;</option><option>4-3</option><option>3-4</option><option>4-2-5</option><option>Nickel</option><option>Bear (46)</option><option>3-3-5 (Tite)</option><option>Dime (4-1-6)</option></select>
+ <span class="lbl" style="margin-left:6px">Coverage</span><select id="defCov"><option value="none">&mdash; coverage &mdash;</option><option>Cover 0</option><option>Cover 1</option><option>2-Man</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option><option>Tampa 2</option></select>
+ <button class="btn go" id="placeDef">Place defense</button>
+ <label id="showZonesLab" style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px"><input type="checkbox" id="showZones"> Show coverage</label>
+ </div>
+ </div>
 
  <!-- ASSIGNMENTS: per-player jobs + QB notes (saved with the play; shown in Reps Lab; feeds the education engine) -->
  <div class="panel" id="asnPanel">
