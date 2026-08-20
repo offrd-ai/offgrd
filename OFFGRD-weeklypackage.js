@@ -665,13 +665,21 @@
           + "</div></div>";
         ov.style.display = "flex";
         const done = function (val) {
+          try { document.removeEventListener("keydown", onKey); } catch (eK) {}
           ov.style.display = "none";
           ov.innerHTML = "";
           resolve(!!val);
         };
+        const onKey = function (e) {
+          if (e && e.key === "Escape") {
+            e.preventDefault();
+            done(false);
+          }
+        };
         ov.querySelector("#wkpkgConfirmYes").onclick = function () { done(true); };
         ov.querySelector("#wkpkgConfirmNo").onclick = function () { done(false); };
         ov.onclick = function (e) { if (e.target === ov) done(false); };
+        document.addEventListener("keydown", onKey);
       } catch (e) {
         resolve(false);
       }
@@ -929,6 +937,7 @@
     saveDraftEdits,
     approvePackage,
     consumeGmHandoff,
+    askConfirm,
     runGenerate,
     scheduleGenerate,
     mergeGenFromResult,

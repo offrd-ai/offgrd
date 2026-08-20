@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v305: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v306: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=305"></script>
-<script src="OFFGRD-brand-persist.js?v=305"></script>
-<script src="supabase.js?v=305"></script>
-<script src="OFFGRD-cache-gate.js?v=305"></script>
+<script src="OFFGRD-config.js?v=306"></script>
+<script src="OFFGRD-brand-persist.js?v=306"></script>
+<script src="supabase.js?v=306"></script>
+<script src="OFFGRD-cache-gate.js?v=306"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,38 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=305"></script>
-<script src="OFFGRD-pos-glossary.js?v=305"></script>
-<script src="OFFGRD-autoderive.js?v=305"></script>
-<script src="OFFGRD-matchup.js?v=305"></script>
-<script src="OFFGRD-scoutcards.js?v=305"></script>
-<script src="OFFGRD-tendencies.js?v=305"></script>
-<script src="OFFGRD-scout-report.js?v=305"></script>
-<script src="OFFGRD-week-autotest.js?v=305"></script>
-<script src="OFFGRD-weeklypackage.js?v=305"></script>
-<script src="OFFGRD-telestrate.js?v=305"></script>
-<script src="OFFGRD-redesign.js?v=305"></script>
-<script src="OFFGRD-shell.js?v=305"></script>
-<script src="OFFGRD-caller-outcome.js?v=305"></script>
-<script src="OFFGRD-caller-sit.js?v=305"></script>
-<script src="OFFGRD-formations-data.js?v=305"></script>
-<script src="OFFGRD-formation-canon.js?v=305"></script>
-<script src="OFFGRD-assist-import.js?v=305"></script>
-<script src="OFFGRD-schedule-import.js?v=305"></script>
-<script src="OFFGRD-opp-shells.js?v=305"></script>
-<script src="OFFGRD-formation-map.js?v=305"></script>
-<script src="OFFGRD-play-map.js?v=305"></script>
-<script src="OFFGRD-cv-review.js?v=305"></script>
-<script src="OFFGRD-frame-capture.js?v=305"></script>
-<script src="OFFGRD-caller-log.js?v=305"></script>
-<script src="OFFGRD-caller-sync.js?v=305"></script>
-<script src="OFFGRD-caller-analysis.js?v=305"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=305"></script>
-<script src="OFFGRD-booth-ask.js?v=305"></script>
-<script src="OFFGRD-boothpack.js?v=305"></script>
-<script src="OFFGRD-booth-chat.js?v=305"></script>
-<script src="OFFGRD-caller-select.js?v=305"></script>
-<script src="OFFGRD-dcaller.js?v=305"></script>
+<script src="OFFGRD-render.js?v=306"></script>
+<script src="OFFGRD-pos-glossary.js?v=306"></script>
+<script src="OFFGRD-autoderive.js?v=306"></script>
+<script src="OFFGRD-matchup.js?v=306"></script>
+<script src="OFFGRD-scoutcards.js?v=306"></script>
+<script src="OFFGRD-tendencies.js?v=306"></script>
+<script src="OFFGRD-scout-report.js?v=306"></script>
+<script src="OFFGRD-week-autotest.js?v=306"></script>
+<script src="OFFGRD-weeklypackage.js?v=306"></script>
+<script src="OFFGRD-telestrate.js?v=306"></script>
+<script src="OFFGRD-redesign.js?v=306"></script>
+<script src="OFFGRD-shell.js?v=306"></script>
+<script src="OFFGRD-caller-outcome.js?v=306"></script>
+<script src="OFFGRD-caller-sit.js?v=306"></script>
+<script src="OFFGRD-formations-data.js?v=306"></script>
+<script src="OFFGRD-formation-canon.js?v=306"></script>
+<script src="OFFGRD-assist-import.js?v=306"></script>
+<script src="OFFGRD-schedule-import.js?v=306"></script>
+<script src="OFFGRD-opp-shells.js?v=306"></script>
+<script src="OFFGRD-formation-map.js?v=306"></script>
+<script src="OFFGRD-play-map.js?v=306"></script>
+<script src="OFFGRD-cv-review.js?v=306"></script>
+<script src="OFFGRD-frame-capture.js?v=306"></script>
+<script src="OFFGRD-caller-log.js?v=306"></script>
+<script src="OFFGRD-caller-sync.js?v=306"></script>
+<script src="OFFGRD-caller-analysis.js?v=306"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=306"></script>
+<script src="OFFGRD-booth-ask.js?v=306"></script>
+<script src="OFFGRD-boothpack.js?v=306"></script>
+<script src="OFFGRD-booth-chat.js?v=306"></script>
+<script src="OFFGRD-caller-select.js?v=306"></script>
+<script src="OFFGRD-dcaller.js?v=306"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -811,6 +811,17 @@ function ordinal(d){return ({1:"1st",2:"2nd",3:"3rd",4:"4th"})[d]||d;}
 function zlbl(z){return z==="REDZONE"?"RZ":(z||"");}
 function pctTxt(x){return Math.round(x*100)+"%";}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));}
+/* Display only. weightedDist keys stay "?" so filters (k!=="?") do not move. */
+function honestChartLabel(k){
+  const s=String(k==null?"":k).trim();
+  if(!s || s==="?") return "unspecified";
+  return s;
+}
+function askConfirm(message, confirmLabel){
+  const P=window.OFFGRD_WEEKLY_PACKAGE;
+  if(P && typeof P.askConfirm==="function") return P.askConfirm(message, confirmLabel);
+  return Promise.resolve(false);
+}
 
 /* ---------- UI builders ---------- */
 function seg(id, items, key, labels){
@@ -1012,21 +1023,21 @@ function render(){
   res.innerHTML=
     perspectiveBanner()+
     '<div class="reslead">'+leadName+' · '+sitTxt+(sit.opp!=="ANY"?" · vs "+esc(sit.opp):"")+'</div>'+
-    '<div class="callline"><div class="callname">'+esc(headK)+'</div>'+(showPct?'<div class="callpct">'+pctTxt(headPct)+'</div>':'')+((useCoverage&&covS.arr[1])?'<div class="sub" style="align-self:flex-end;padding-bottom:9px">then '+esc(covS.arr[1].k)+' '+pctTxt(covS.arr[1].pct)+'</div>':'')+'</div>'+
+    '<div class="callline"><div class="callname">'+esc(honestChartLabel(headK))+'</div>'+(showPct?'<div class="callpct">'+pctTxt(headPct)+'</div>':'')+((useCoverage&&covS.arr[1])?'<div class="sub" style="align-self:flex-end;padding-bottom:9px">then '+esc(honestChartLabel(covS.arr[1].k))+' '+pctTxt(covS.arr[1].pct)+'</div>':'')+'</div>'+
     '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span>'+
       '<span class="sub">based on <b>'+rows.length+'</b> snaps'+(useRec?" · recency-weighted":"")+'</span></div>'+
     (relaxed.length?'<div class="widen">• Thin sample · widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     (!useCoverage?'<div class="widen" style="color:var(--blue)">Coverage not tagged yet · showing front &amp; pressure. Tag COVERAGE in Hudl to add the coverage call + the play call sheet.</div>':(untagged>0?'<div class="widen">'+untagged+' of these snaps have no coverage tag yet.</div>':''))+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' · top: '+esc(blitz.arr[0].k):'')+'</div></div>'+
-      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?front.arr[0].k:"?")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" · then "+esc(front.arr[1].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Pressure</div><div class="v gold">'+pctTxt(pr)+'</div><div class="s">'+prLabel(pr)+(blitz.arr[0]?' · top: '+esc(honestChartLabel(blitz.arr[0].k)):'')+'</div></div>'+
+      '<div class="card"><div class="k">Most likely front</div><div class="v">'+esc(front.arr[0]?honestChartLabel(front.arr[0].k):"unspecified")+'</div><div class="s">'+(front.arr[0]?pctTxt(front.arr[0].pct):"")+(front.arr[1]?" · then "+esc(honestChartLabel(front.arr[1].k)):"")+'</div></div>'+
       (useCoverage
-        ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(behind.k):"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
-        : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?blitz.arr[0].k:"?")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
+        ? '<div class="card"><div class="k">If they pressure, behind it</div><div class="v" style="font-size:21px">'+(behind?esc(honestChartLabel(behind.k)):"unspecified")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>'
+        : '<div class="card"><div class="k">Top blitz</div><div class="v" style="font-size:21px">'+esc(blitz.arr[0]?honestChartLabel(blitz.arr[0].k):"unspecified")+'</div><div class="s">'+pressedRows.length+' pressured snaps</div></div>')+
     '</div>'+
     (bt
       ? '<div class="attack"><div class="h">Attack · '+esc((window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.familyOf(headK))||bt.type)+'</div><p>'+esc(bt.attack)+'</p>'+attackFromBookHTML(headK, bt)+fieldBoundaryNote(covRows)+'</div>'
-      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?front.arr[0].k+" front":"Front")+' here · pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(blitz.arr[0].k)+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
+      : '<div class="attack"><div class="h">Defensive read</div><p>'+esc(front.arr[0]?honestChartLabel(front.arr[0].k)+" front":"Front")+' here · pressure on '+pctTxt(pr)+' of snaps'+(blitz.arr[0]?' (top look: '+esc(honestChartLabel(blitz.arr[0].k))+')':'')+'. Set protection to the front/blitz; tag coverage to unlock the back-end read and call sheet.</p></div>')+
     (useCoverage? '<div class="dist"><div class="lbl">Coverage distribution (observed)'+(untagged>0?' <span style="color:var(--muted);font-weight:600">('+untagged+' untagged)</span>':'')+'</div>'+cov.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join("")+'</div>' : '')+
     '<div class="dist"><div class="lbl">Front distribution</div>'+(front.arr.length&&front.arr[0].k!=="?"?front.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i%2?" alt":""))).join(""):'<p class="foot">No front tagged.</p>')+'</div>'+
     '<div class="dist"><div class="lbl">Pressure distribution</div>'+
@@ -1048,7 +1059,7 @@ function render(){
 function bar(name,pct,count,cls){
   const w=Math.max(2,Math.round(pct*100));
   const label=Math.round(pct*100)+'%'+(count!=null?" ("+count+")":"");
-  return '<div class="barrow"><div class="name">'+esc(name)+'</div>'+
+  return '<div class="barrow"><div class="name">'+esc(honestChartLabel(name))+'</div>'+
     '<div class="track"><div class="fill '+cls+'" style="width:'+w+'%"></div></div>'+
     '<div class="barpct">'+label+'</div></div>';
 }
@@ -1081,7 +1092,7 @@ function renderGrid(useRec){
       const head=cc.length?weightedDist(cc,"coverage",useRec).arr[0]:weightedDist(cell.filter(r=>r.front),"front",useRec).arr[0];
       const pr=pressureRate(cell,useRec);
       const prc = pr>0.45?"var(--bad)":pr>0.3?"var(--warn)":"var(--muted)";
-      html+='<td class="gcell" style="'+heat(pr)+'"><div class="gc">'+esc(head?head.k:"?")+'</div>'+
+      html+='<td class="gcell" style="'+heat(pr)+'"><div class="gc">'+esc(head?honestChartLabel(head.k):"unspecified")+'</div>'+
         '<div class="gp">'+(head?Math.round(head.pct*100)+'% · ':'')+'n='+cell.length+'</div>'+
         '<div class="gpr" style="color:'+prc+'">'+Math.round(pr*100)+'% press</div></td>';
     });
@@ -1379,9 +1390,9 @@ function renderOffense(){
     '<div class="conf"><span class="pill '+cl[1]+'">'+cl[0]+' confidence</span><span class="sub">based on <b>'+rows.length+'</b> plays'+(useRec?" · recency-weighted":"")+'</span></div>'+
     (relaxed.length?'<div class="widen">• Thin sample · widened by relaxing: '+relaxed.join(", ")+'.</div>':'')+
     '<div class="cards">'+
-      '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?dirLabel(dir.arr[0].k):"?")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
+      '<div class="card"><div class="k">Run direction</div><div class="v">'+esc(dir.arr[0]?honestChartLabel(dirLabel(dir.arr[0].k)):"unspecified")+'</div><div class="s">'+(dir.arr[0]?pctTxt(dir.arr[0].pct)+" of runs":"")+'</div></div>'+
       '<div class="card"><div class="k">Motion rate</div><div class="v gold">'+pctTxt(motionRate)+'</div><div class="s">'+(motionRate>0.2?"motion-heavy":"low motion")+'</div></div>'+
-      '<div class="card"><div class="k">Most likely look</div><div class="v" style="font-size:20px">'+esc(form.arr[0]?form.arr[0].k:"?")+'</div><div class="s">'+(pers.arr[0]?esc(pers.arr[0].k):"")+'</div></div>'+
+      '<div class="card"><div class="k">Most likely look</div><div class="v" style="font-size:20px">'+esc(form.arr[0]?honestChartLabel(form.arr[0].k):"unspecified")+'</div><div class="s">'+(pers.arr[0]?esc(honestChartLabel(pers.arr[0].k)):"")+'</div></div>'+
     '</div>'+
     '<div class="attack"><div class="h">Defensive read</div><p>'+note+'</p></div>'+
     '<div class="dist"><div class="lbl">Run / Pass</div>'+rp.arr.map((d,i)=>bar(d.k,d.pct,d.raw,"cov"+(i?" alt":""))).join("")+'</div>'+
@@ -1529,7 +1540,10 @@ async function schedPlanWeek(id){
   const g=SCHEDULE.find(x=>x.id===id); if(!g) return;
   const opp=(g.opponent||"").trim(); if(!opp){ alert("Add an opponent for this game first."); return; }
   if(!window.OFFGRD_WEEK_START){ alert("Sign in to your program (top right) to start a week plan."); return; }
-  if(WEEK && WEEK.opponent && WEEK.opponent!==opp && !confirm("Start a new week plan vs "+opp+"? The current plan vs "+(WEEK.opponent||"?")+" will be archived.")) return;
+  if(WEEK && WEEK.opponent && WEEK.opponent!==opp){
+    const ok=await askConfirm("Start a new week plan vs "+opp+"? The current plan vs "+(WEEK.opponent||"?")+" will be archived.","Start week");
+    if(!ok) return;
+  }
   try{ if(typeof ensurePlan==="function") ensurePlan(); const bks=(typeof planBuckets==="function"?planBuckets():[]).map(b=>({name:b.name,dn:b.dn,db:b.db,zone:b.zone||"ANY",plays:[]})); await window.OFFGRD_WEEK_START(opp,(g.date||"").trim()||null,bks); const m=document.getElementById("sched"); if(m)m.classList.remove("show"); if(typeof setView==="function") setView("plan"); }
   catch(e){ alert((e&&e.message)||"Couldn't start the week."); }
 }
@@ -3805,7 +3819,7 @@ function callerPlayRollupHtml(){
     const cls=b.unmapped?" is-unmapped":"";
     h+=`<tr class="${cls}"><td>${esc(b.label)}${b.thin?' <span class="rd-gd-thin">THIN</span>':""}`;
     if(b.unmapped) h+=` <button type="button" class="ghost" onclick="openPlayMap()">Map</button>`;
-    h+=`</td><td>${b.n}</td><td>${dist(b.distAvg)}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+nNote(b.yppN,b.n)}</td><td>${b.eff==null?"—":pct(b.eff)+nNote(b.effN,b.n)}</td><td>${b.comp==null?"—":pct(b.comp)+nNote(b.compN,b.n)}</td></tr>`;
+    h+=`</td><td>${b.n}</td><td>${dist(b.distAvg)}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+nNote(b.yppN,b.n)}</td><td>${b.eff==null?"—":pct(b.eff)+nNote(b.effN,b.n)}</td><td>${b.comp==null?"—":pct(b.comp)+nNote(b.compN,b.n)+(b.compThin?' <span class="rd-gd-thin">THIN</span>':'')}</td></tr>`;
   });
   h+=`</tbody></table>`;
   h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}`+(view.junkN?` · ${view.junkN} play-type label${view.junkN===1?"":"s"} set aside`:``)+`</p>`;
@@ -6044,7 +6058,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=305", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=306", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6427,7 +6441,7 @@ async function openFormationMap(){
     };
     const unmap=card.querySelector(".fm-unmap");
     if(unmap) unmap.onclick=async function(){
-      if(!confirm("Unmap "+raw+"? It will go back to unmapped.")) return;
+      if(!(await askConfirm("Unmap "+raw+"? It will go back to unmapped.","Unmap"))) return;
       if(!C||!teamId||typeof C.deleteFormationMap!=="function"){ if(msg) msg.textContent="Sign in to unmap."; return; }
       try{
         await C.deleteFormationMap(teamId, M.normTag(raw));
@@ -6682,7 +6696,7 @@ async function openPlayMap(){
     });
     const unmap=card.querySelector(".pm-unmap");
     if(unmap) unmap.onclick=async function(){
-      if(!confirm("Unmap "+raw+"? It will go back to unmapped.")) return;
+      if(!(await askConfirm("Unmap "+raw+"? It will go back to unmapped.","Unmap"))) return;
       if(!C||!teamId||typeof C.deletePlayMap!=="function"){ if(msg) msg.textContent="Sign in to unmap."; return; }
       try{
         await C.deletePlayMap(teamId, M.normCall(raw));
@@ -6893,9 +6907,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=305"></script>
-<script src="OFFGRD-role-gate.js?v=305"></script>
-<script src="OFFGRD-mobile.js?v=305"></script>
+<script type="module" src="OFFGRD-account.js?v=306"></script>
+<script src="OFFGRD-role-gate.js?v=306"></script>
+<script src="OFFGRD-mobile.js?v=306"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

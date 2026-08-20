@@ -785,6 +785,7 @@
           comp: passFamily && resultKnown ? complete / resultKnown : null,
           compN: resultKnown,
           passN: passN,
+          compThin: passFamily && resultKnown > 0 && resultKnown < 8,
           sackN: sackN,
           penaltyN: penaltyN,
           thin: n < 8,
