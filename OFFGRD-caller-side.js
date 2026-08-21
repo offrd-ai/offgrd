@@ -229,6 +229,12 @@
     return { dest: dest, rows: rows };
   }
 
+  /** D Caller observation shapes. On ours they can only arrive via a routing bug. */
+  function isBareOursPlayType(play) {
+    var t = String(play || "").replace(/\s+/g, " ").trim().toLowerCase();
+    return t === "pass" || t === "run" || t === "run l" || t === "run m" || t === "run r";
+  }
+
   function assertRowAllowed(row, playbookNames) {
     if (!row || (row.side !== SEASON_OURS && row.side !== SEASON_OFF && row.side !== SEASON_DEF)) {
       return { ok: false, reason: "unset-row-side" };
@@ -238,6 +244,9 @@
     }
     if (row.side === SEASON_OURS && row.theirDirection) {
       return { ok: false, reason: "ours-has-theirDirection" };
+    }
+    if (row.side === SEASON_OURS && isBareOursPlayType(row.play) && row.source === "live_call") {
+      return { ok: false, reason: "ours-live-bare-playtype" };
     }
     if (row.side === SEASON_OFF) {
       var play = String(row.play || "").trim();
@@ -394,6 +403,123 @@
     };
   }
 
+  function liveDateISO(now) {
+    var d = now instanceof Date ? now : now != null && now !== "" ? new Date(now) : new Date();
+    if (isNaN(d.getTime())) d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1);
+    var day = String(d.getDate());
+    if (m.length < 2) m = "0" + m;
+    if (day.length < 2) day = "0" + day;
+    return y + "-" + m + "-" + day;
+  }
+
+  function liveWeekLabel(now) {
+    return "Live " + liveDateISO(now);
+  }
+
+  /** Live YYYY-MM-DD whose day is not today, or game_date not today. */
+  function isStaleLiveIdentity(sess, now) {
+    if (!sess) return true;
+    var today = liveDateISO(now);
+    var week = String(sess.week || "");
+    var m = /^Live\s+(\d{4}-\d{2}-\d{2})$/i.exec(week);
+    if (m && m[1] !== today) return true;
+    if (sess.game_date && String(sess.game_date).slice(0, 10) !== today) return true;
+    return false;
+  }
+
+  function stampFreshLiveSession(base, now, newId) {
+    var out = Object.assign({}, base || {});
+    out.week = liveWeekLabel(now);
+    out.game_date = liveDateISO(now);
+    if (newId) out.gameId = newId;
+    return out;
+  }
+
+  function eventOnLiveDate(e, today) {
+    if (!e || e.clientTs == null) return false;
+    var d = new Date(e.clientTs);
+    if (isNaN(d.getTime())) return false;
+    return liveDateISO(d) === today;
+  }
+
+  /**
+   * Recycled Live week/date → today + new gameId.
+   * Only retarget events whose clientTs is today so July test snaps stay off the new key.
+   */
+  function restampStaleSession(sess, events, now, newId) {
+    if (!isStaleLiveIdentity(sess, now)) {
+      return { session: sess, events: events || [], restamped: false };
+    }
+    var today = liveDateISO(now);
+    var oldId = sess && sess.gameId;
+    var next = stampFreshLiveSession(sess, now, newId || oldId);
+    var list = events || [];
+    if (oldId && next.gameId && oldId !== next.gameId) {
+      list.forEach(function (e) {
+        if (e && e.gameId === oldId && eventOnLiveDate(e, today)) e.gameId = next.gameId;
+      });
+    }
+    return { session: next, events: list, restamped: true, fromGameId: oldId };
+  }
+
+  /** Active caller_games row is a previous day's Live session. */
+  function callerGameIsRecycled(existing, meta) {
+    if (!existing) return false;
+    var wantDate = meta && meta.game_date != null && meta.game_date !== ""
+      ? String(meta.game_date).slice(0, 10)
+      : "";
+    var haveDate = existing.game_date != null && existing.game_date !== ""
+      ? String(existing.game_date).slice(0, 10)
+      : "";
+    if (wantDate && haveDate && wantDate !== haveDate) return true;
+    var wantWeek = meta && meta.week != null && meta.week !== "" ? String(meta.week) : "";
+    var haveWeek = existing.week != null && existing.week !== "" ? String(existing.week) : "";
+    if (wantWeek && haveWeek && wantWeek !== haveWeek) return true;
+    return false;
+  }
+
+  var TOMBSTONE_REFUSAL =
+    "this game was previously deleted — clear it in Season data manager or rename the week";
+
+  function normalizePromoteOpts(opts, fallbackLog) {
+    if (opts == null || typeof opts !== "object") opts = {};
+    var logProvided = Array.isArray(opts.log);
+    var log = logProvided
+      ? opts.log
+      : Array.isArray(fallbackLog)
+      ? fallbackLog
+      : [];
+    return {
+      side: opts.side || "offense",
+      session: opts.session && typeof opts.session === "object" ? opts.session : null,
+      log: log,
+      logProvided: logProvided,
+      sync: opts.sync,
+    };
+  }
+
+  function refuseTombstonedKey(isTombstonedFn, sess, dest, makeKey) {
+    sess = sess && typeof sess === "object" ? sess : {};
+    dest = dest || "";
+    var opp = sess.opp != null ? String(sess.opp) : "";
+    var week = sess.week != null ? String(sess.week) : "";
+    var k =
+      typeof makeKey === "function"
+        ? makeKey(opp, week, dest)
+        : opp.toLowerCase() + "|" + week.toLowerCase() + "|" + dest;
+    if (typeof isTombstonedFn === "function" && isTombstonedFn(opp, week, dest, null)) {
+      return {
+        ok: false,
+        reason: "tombstoned",
+        key: k,
+        message: TOMBSTONE_REFUSAL,
+      };
+    }
+    return { ok: true, key: k };
+  }
+
   function applySeasonPurge(seasonGames, plan) {
     if (!plan) return seasonGames;
     var drop = Object.create(null);
@@ -438,9 +564,19 @@
     eventToRow: eventToRow,
     promoteEntries: promoteEntries,
     assertRowAllowed: assertRowAllowed,
+    isBareOursPlayType: isBareOursPlayType,
     planLiveCallPurge: planLiveCallPurge,
     planCallerEventsPurge: planCallerEventsPurge,
     applySeasonPurge: applySeasonPurge,
     theirOffenseFromEntry: theirOffenseFromEntry,
+    liveDateISO: liveDateISO,
+    liveWeekLabel: liveWeekLabel,
+    isStaleLiveIdentity: isStaleLiveIdentity,
+    stampFreshLiveSession: stampFreshLiveSession,
+    restampStaleSession: restampStaleSession,
+    callerGameIsRecycled: callerGameIsRecycled,
+    TOMBSTONE_REFUSAL: TOMBSTONE_REFUSAL,
+    normalizePromoteOpts: normalizePromoteOpts,
+    refuseTombstonedKey: refuseTombstonedKey,
   };
 })(typeof window !== "undefined" ? window : globalThis);

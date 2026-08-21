@@ -606,8 +606,15 @@
       sess.gameId = game.id;
     }
     if (game) {
-      if (game.opponent) sess.opp = game.opponent;
-      if (game.week) sess.week = game.week;
+      var SideStamp = global.OFFGRD_CALLER_SIDE;
+      var recycled = SideStamp && SideStamp.callerGameIsRecycled
+        ? SideStamp.callerGameIsRecycled(game, { week: sess.week, game_date: sess.game_date })
+        : false;
+      if (!recycled) {
+        if (game.opponent) sess.opp = game.opponent;
+        if (game.week) sess.week = game.week;
+        if (game.game_date) sess.game_date = game.game_date;
+      }
     }
 
     var gameId = sess.gameId;

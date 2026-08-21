@@ -153,14 +153,26 @@
   }
 
   function ensureSession() {
-    if (session && session.gameId) return session;
     var eng = E();
-    session = {
-      gameId: eng && eng.uuid ? eng.uuid() : "dg" + Date.now(),
-      opp: opp() !== "ANY" ? opp() : weekLabel() || "opponent",
-      week: (typeof callerSessionWeekRaw === "function" ? callerSessionWeekRaw() : weekLabel()) || "",
-      side: "defense",
+    var Side = global.OFFGRD_CALLER_SIDE;
+    var mint = function () {
+      return eng && eng.uuid ? eng.uuid() : "dg" + Date.now();
     };
+    if (!session || !session.gameId) {
+      session = {
+        gameId: mint(),
+        opp: opp() !== "ANY" ? opp() : weekLabel() || "opponent",
+        week: (typeof callerSessionWeekRaw === "function" ? callerSessionWeekRaw() : weekLabel()) || "",
+        game_date: Side && Side.liveDateISO ? Side.liveDateISO() : new Date().toISOString().slice(0, 10),
+        side: "defense",
+      };
+    }
+    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session)) {
+      var stamped = Side.restampStaleSession(session, events, null, mint());
+      session = stamped.session;
+      session.side = "defense";
+      if (Array.isArray(stamped.events)) events = stamped.events;
+    }
     return session;
   }
 
@@ -2857,6 +2869,11 @@
     } catch (eOd) {}
     h += `<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth") ? "Booth on" : "Booth"}</button>`;
     h += `<button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    try {
+      if (global.CALLER_TOMBSTONE_REFUSAL && CALLER_TOMBSTONE_REFUSAL.message) {
+        h += `<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
+      }
+    } catch (eTomb) {}
     h += syncStateHtml();
     h += driveToastHtml();
     h += lastPlayBarHtml();

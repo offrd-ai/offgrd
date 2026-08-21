@@ -95,6 +95,28 @@ function _invalidateMyTeamsCache() {
   _myTeamsRecent = null;
 }
 
+/** Throw unless game is { opponent, week, side }. A string (natural_key / game_id) is a silent no-op. */
+function requireGameNaturalArgs(game, fnName) {
+  fnName = fnName || "game";
+  if (game == null || typeof game !== "object" || Array.isArray(game)) {
+    throw new Error(
+      fnName +
+        " expects { opponent, week, side }, not " +
+        (typeof game === "string" ? "a string" : game == null ? String(game) : typeof game)
+    );
+  }
+  const opponent = game.opponent != null ? String(game.opponent).trim() : "";
+  const week = game.week != null ? String(game.week).trim() : "";
+  const side = game.side != null ? String(game.side).trim() : "";
+  if (!opponent || !week || !side) {
+    throw new Error(fnName + " requires opponent, week, and side");
+  }
+  if (side !== "ours" && side !== "off" && side !== "def") {
+    throw new Error(fnName + ": side must be ours, off, or def, got " + JSON.stringify(game.side));
+  }
+  return { opponent, week, side };
+}
+
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
   sb,
@@ -705,12 +727,11 @@ export const Cloud = {
    * Deliberate import / Commit to season — remove the natural-key tombstone so upsert
    * can proceed. Tombstones only block passive pull/mergeGames resurrection.
    */
+  requireGameNaturalArgs,
   async clearGameTombstone(teamId, game) {
     if (!OG) throw new Error("offgrd schema unavailable");
-    if (!teamId || !game) throw new Error("clearGameTombstone: teamId and game required");
-    const opponent = game.opponent != null ? String(game.opponent) : "?";
-    const week = game.week != null ? String(game.week) : "?";
-    const side = game.side != null ? String(game.side) : "";
+    if (!teamId) throw new Error("clearGameTombstone: teamId and game required");
+    const { opponent, week, side } = requireGameNaturalArgs(game, "clearGameTombstone");
     const nk = this.gameNaturalKey(opponent, week, side);
     const { error, count } = await OG.from("scouting_game_tombstones")
       .delete({ count: "exact" })
@@ -726,10 +747,8 @@ export const Cloud = {
    */
   async tombstoneGame(teamId, game, reason) {
     if (!OG) throw new Error("offgrd schema unavailable");
-    if (!teamId || !game) throw new Error("tombstoneGame: teamId and game required");
-    const opponent = game.opponent != null ? String(game.opponent) : "?";
-    const week = game.week != null ? String(game.week) : "?";
-    const side = game.side != null ? String(game.side) : "";
+    if (!teamId) throw new Error("tombstoneGame: teamId and game required");
+    const { opponent, week, side } = requireGameNaturalArgs(game, "tombstoneGame");
     const nk = this.gameNaturalKey(opponent, week, side);
     let gameId = game.id || game.cid || null;
     if (!gameId) {
@@ -793,7 +812,12 @@ export const Cloud = {
     if (!OG || !teamId) return null;
     const side = (meta && meta.side) === "defense" ? "defense" : "offense";
     const existing = await this.activeCallerGame(teamId, side);
-    if (existing) return existing;
+    const Side = typeof window !== "undefined" ? window.OFFGRD_CALLER_SIDE : null;
+    if (existing && Side && Side.callerGameIsRecycled && Side.callerGameIsRecycled(existing, meta)) {
+      await this.archiveCallerGame(existing.id);
+    } else if (existing) {
+      return existing;
+    }
     const row = {
       team_id: teamId,
       opponent: (meta && meta.opponent) || null,

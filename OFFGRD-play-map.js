@@ -362,9 +362,10 @@
     "2pt": 1,
     "2 point": 1,
     "2point": 1,
+    "extra point": 1,
   };
 
-  /** PlayType leaked into the play column (Pass / Run / 2-pt / PLAY). Not a call. */
+  /** PlayType / ST label in the play column (Pass / Run / 2-pt / Extra Point / PLAY). Not a playbook call. */
   function isPlayTypeToken(raw) {
     return !!PLAY_TYPE_TOKENS[normCall(raw)];
   }

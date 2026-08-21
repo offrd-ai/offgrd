@@ -33,13 +33,16 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-sid
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-outcome.js"), "utf8"), sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-log.js"), "utf8"), sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-sync.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-play-map.js"), "utf8"), sandbox);
 
 const S = sandbox.OFFGRD_CALLER_SIDE;
 const C = sandbox.OFFGRD_CALLER;
 const Sync = sandbox.OFFGRD_CALLER_SYNC_ENGINE;
+const M = sandbox.OFFGRD_PLAY_MAP;
 if (!S) throw new Error("OFFGRD_CALLER_SIDE missing");
 if (!C) throw new Error("OFFGRD_CALLER missing");
 if (!Sync || !Sync.eventToSyncRow) throw new Error("OFFGRD_CALLER_SYNC_ENGINE.eventToSyncRow missing");
+if (!M) throw new Error("OFFGRD_PLAY_MAP missing");
 
 let fails = 0;
 function check(name, cond, detail) {
@@ -166,6 +169,63 @@ check("mapper offense→ours", S.eventSideToSeasonSide("offense") === "ours");
 check("mapper defense→off", S.eventSideToSeasonSide("defense") === "off");
 check("mapper never returns def", S.eventSideToSeasonSide("defense") !== "def");
 
+/* Fresh Live session stamps today — never a recycled July label. */
+const boothNow = new Date("2026-08-21T17:00:00Z");
+const todayIso = S.liveDateISO(boothNow);
+check("liveDateISO is the calendar day", todayIso === "2026-08-21");
+const stamped = S.stampFreshLiveSession(
+  { opp: "Parkway North", week: "Live 2026-07-24", game_date: "2026-07-24", gameId: "july" },
+  boothNow,
+  "aug-id"
+);
+check("fresh session week is today, not inherited", stamped.week === "Live 2026-08-21");
+check("fresh session date is today, not inherited", stamped.game_date === "2026-08-21");
+check("stale July Live identity", S.isStaleLiveIdentity({ week: "Live 2026-07-24", game_date: "2026-07-24" }, boothNow));
+check("today Live identity is current", !S.isStaleLiveIdentity({ week: "Live 2026-08-21", game_date: "2026-08-21" }, boothNow));
+check(
+  "active caller_games row from July is recycled",
+  S.callerGameIsRecycled(
+    { week: "Live 2026-07-24", game_date: "2026-07-24" },
+    { week: "Live 2026-08-21", game_date: "2026-08-21" }
+  )
+);
+
+const tombs = { "parkway north|live 2026-07-24|ours": 1 };
+function isTomb(opp, week, side) {
+  return !!tombs[String(opp).toLowerCase() + "|" + String(week).toLowerCase() + "|" + side];
+}
+const refused = S.refuseTombstonedKey(
+  isTomb,
+  { opp: "Parkway North", week: "Live 2026-07-24" },
+  "ours",
+  function (o, w, s) {
+    return String(o).trim().toLowerCase() + "|" + String(w).trim().toLowerCase() + "|" + s;
+  }
+);
+check(
+  "tombstoned promote is a loud refusal",
+  refused.ok === false &&
+    refused.reason === "tombstoned" &&
+    /previously deleted/.test(refused.message) &&
+    !!refused.key
+);
+const allowed = S.refuseTombstonedKey(
+  isTomb,
+  { opp: "Parkway North", week: "Live 2026-08-21" },
+  "ours",
+  function (o, w, s) {
+    return String(o).trim().toLowerCase() + "|" + String(w).trim().toLowerCase() + "|" + s;
+  }
+);
+check("fresh key is not tombstoned", allowed.ok === true);
+check(
+  "bare promote opts do not throw",
+  !throws(function () {
+    S.normalizePromoteOpts();
+  }) && S.normalizePromoteOpts().side === "offense" && Array.isArray(S.normalizePromoteOpts().log)
+);
+check("normalizePromoteOpts() log is []", S.normalizePromoteOpts().log.length === 0);
+
 /* fold must not merge two gameIds — 5 in, 5 out, or a loud failure.
  * Same playIndex on both games would collide if fold merged. */
 function evGame(id, gameId, playIndex, play, side, ts) {
@@ -238,6 +298,56 @@ check(
 check(
   "ours row with theirDirection is refused",
   S.assertRowAllowed({ side: "ours", play: "SOUTH BEND", theirDirection: "L" }, PLAYBOOK).reason === "ours-has-theirDirection"
+);
+
+const FILM_BARE = ["Pass", "Run", "Run L", "Run M", "Run R", "2-pt", "Extra Point"];
+const LIVE_ILLEGAL_OURS = ["Pass", "Run", "Run L", "Run M", "Run R"];
+FILM_BARE.forEach(function (play) {
+  check(
+    "ours scout_import " + play + " is legal",
+    S.assertRowAllowed({ side: "ours", play: play, source: "scout_import" }, PLAYBOOK).ok === true
+  );
+  check(
+    "ours (none) " + play + " is legal",
+    S.assertRowAllowed({ side: "ours", play: play, source: "none" }, PLAYBOOK).ok === true &&
+      S.assertRowAllowed({ side: "ours", play: play }, PLAYBOOK).ok === true
+  );
+});
+LIVE_ILLEGAL_OURS.forEach(function (play) {
+  const live = S.assertRowAllowed({ side: "ours", play: play, source: "live_call" }, PLAYBOOK);
+  check(
+    "ours live_call " + play + " is ours-live-bare-playtype",
+    live.ok === false && live.reason === "ours-live-bare-playtype"
+  );
+});
+["2-pt", "Extra Point"].forEach(function (play) {
+  check(
+    "ours live_call " + play + " is legal",
+    S.assertRowAllowed({ side: "ours", play: play, source: "live_call" }, PLAYBOOK).ok === true
+  );
+});
+check(
+  "ours live_call SOUTH BEND is still legal",
+  S.assertRowAllowed({ side: "ours", play: "SOUTH BEND", source: "live_call" }, PLAYBOOK).ok === true
+);
+
+const xpPromo = S.eventToRow({ play: "Extra Point", side: "offense" }, "offense", PLAYBOOK);
+check(
+  "live Extra Point promotes to ours",
+  !!(xpPromo && xpPromo.ok && xpPromo.dest === "ours" && xpPromo.row.side === "ours" &&
+    xpPromo.row.play === "Extra Point" && xpPromo.row.source === "live_call")
+);
+const xpInv = M.inventoryCalls([xpPromo.row], [], PLAYBOOK);
+const xpRoll = M.rollup([xpPromo.row], { playbook: PLAYBOOK, maps: [], axis: "family" });
+check(
+  "live Extra Point lands in the set-aside count",
+  xpInv.junkSnaps === 1 && xpRoll.junkN === 1 && xpRoll.total === 0
+);
+check(
+  "live Run M is refused with ours-live-bare-playtype",
+  throws(function () {
+    S.eventToRow({ play: "Run M", side: "offense" }, "offense", PLAYBOOK);
+  }) && S.assertRowAllowed({ side: "ours", play: "Run M", source: "live_call" }, PLAYBOOK).reason === "ours-live-bare-playtype"
 );
 
 /* B — assertRowAllowed / stampRow is the write gate, not a smoke-only helper */
