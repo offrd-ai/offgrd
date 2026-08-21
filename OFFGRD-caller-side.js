@@ -137,6 +137,9 @@
     if (s === EVENT_OFFENSE && p.theirPlayType) {
       throw CallerSideError("offense event cannot carry theirPlayType");
     }
+    if (s === EVENT_OFFENSE && p.theirDirection) {
+      throw CallerSideError("offense event cannot carry theirDirection");
+    }
     return true;
   }
 
@@ -187,10 +190,12 @@
       out.theirPlayType = their.playType;
       out.theirDirection = their.direction;
       out.play = their.playType || "";
-      return out;
+    } else {
+      if (Object.prototype.hasOwnProperty.call(out, "theirPlayType")) delete out.theirPlayType;
+      if (Object.prototype.hasOwnProperty.call(out, "theirDirection")) delete out.theirDirection;
     }
-    if (Object.prototype.hasOwnProperty.call(out, "theirPlayType")) delete out.theirPlayType;
-    if (Object.prototype.hasOwnProperty.call(out, "theirDirection")) delete out.theirDirection;
+    var gate = assertRowAllowed(out, playbookNames);
+    if (!gate.ok) throw CallerSideError("row refused: " + gate.reason);
     return out;
   }
 
@@ -230,6 +235,9 @@
     }
     if (row.side === SEASON_OURS && row.theirPlayType) {
       return { ok: false, reason: "ours-has-theirPlayType" };
+    }
+    if (row.side === SEASON_OURS && row.theirDirection) {
+      return { ok: false, reason: "ours-has-theirDirection" };
     }
     if (row.side === SEASON_OFF) {
       var play = String(row.play || "").trim();
@@ -326,6 +334,66 @@
     };
   }
 
+  /**
+   * One-shot test-corpus plan: archive caller_games, delete their events.
+   * After the first real game this becomes archive-only — do not delete events.
+   * Tombstone only blocks the purged natural key. A new session is a new key.
+   */
+  function planCallerEventsPurge(callerGames, callerEvents, opts) {
+    opts = opts || {};
+    var games = Array.isArray(callerGames) ? callerGames : [];
+    var events = Array.isArray(callerEvents) ? callerEvents : [];
+    var filter = opts.gameIds && opts.gameIds.length ? opts.gameIds.map(String) : null;
+    var archiveIds = [];
+    var seen = Object.create(null);
+    games.forEach(function (g) {
+      var id = g && (g.id || g.gameId);
+      if (!id) return;
+      id = String(id);
+      if (filter && filter.indexOf(id) < 0) return;
+      if (seen[id]) return;
+      seen[id] = 1;
+      archiveIds.push(id);
+    });
+    if (filter) {
+      filter.forEach(function (id) {
+        if (!seen[id]) {
+          seen[id] = 1;
+          archiveIds.push(id);
+        }
+      });
+    }
+    if (!filter && !archiveIds.length) {
+      events.forEach(function (e) {
+        var id = e && (e.gameId || e.game_id);
+        if (!id) return;
+        id = String(id);
+        if (seen[id]) return;
+        seen[id] = 1;
+        archiveIds.push(id);
+      });
+    }
+    var eventsByGame = Object.create(null);
+    archiveIds.forEach(function (id) {
+      eventsByGame[id] = 0;
+    });
+    var deleteEventCount = 0;
+    events.forEach(function (e) {
+      var id = e && (e.gameId || e.game_id);
+      if (!id || !seen[String(id)]) return;
+      eventsByGame[String(id)] += 1;
+      deleteEventCount += 1;
+    });
+    return {
+      archiveGameIds: archiveIds,
+      eventsByGame: eventsByGame,
+      deleteEventCount: deleteEventCount,
+      localKeys: [O_STORE_KEY, D_STORE_KEY, LEGACY_KEY, SYNCED_KEY],
+      policy: "delete-once-test-corpus",
+      afterFirstRealGame: "archive-only — do not delete caller_events",
+    };
+  }
+
   function applySeasonPurge(seasonGames, plan) {
     if (!plan) return seasonGames;
     var drop = Object.create(null);
@@ -371,6 +439,7 @@
     promoteEntries: promoteEntries,
     assertRowAllowed: assertRowAllowed,
     planLiveCallPurge: planLiveCallPurge,
+    planCallerEventsPurge: planCallerEventsPurge,
     applySeasonPurge: applySeasonPurge,
     theirOffenseFromEntry: theirOffenseFromEntry,
   };

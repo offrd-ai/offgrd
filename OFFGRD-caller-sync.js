@@ -7,8 +7,10 @@
    Ledger policy: stamp local ∩ remote (~1,085 on Parkway), not every
    remote id (1,349 includes 264 cloud-only rows). D-store is a partial
    mirror of the O-store — census and stamp always dedupe by eventId.
-   Sideless locals confirmed remote are stamped; only a local-only
-   straggler is held.
+   Sideless locals confirmed remote are stamped from the remote row's
+   side (lookup by event_id if the local gameId is missing/stale).
+   Only a local-only straggler is held. Ledger ids with no local event
+   are pruned — the contract is local ∩ remote, not a cloud souvenir.
    Requires offgrd.caller_* side column + is_staff_coach RLS (apply-caller-side-staff-rls.sql). */
 (function (global) {
   var SYNCED_KEY = "offgrd_caller_synced_ids_v1";
@@ -124,6 +126,55 @@
     });
   }
 
+  function remoteEventSide(r) {
+    if (!r) return null;
+    if (r.side === "offense" || r.side === "defense") return r.side;
+    var p = r.payload;
+    if (p && (p.side === "offense" || p.side === "defense")) return p.side;
+    return null;
+  }
+
+  function liftSideFromRemote(ev, remoteById) {
+    if (!ev || !ev.eventId || !remoteById) return false;
+    var rs = remoteEventSide(remoteById[ev.eventId]);
+    if (!rs || ev.side === rs) return false;
+    ev.side = rs;
+    return true;
+  }
+
+  function persistLiftedSides(remoteById) {
+    ["offense", "defense"].forEach(function (which) {
+      var key = storeKey(which);
+      var evs = readStoreEvents(key);
+      var changed = false;
+      evs.forEach(function (e) {
+        if (liftSideFromRemote(e, remoteById)) changed = true;
+      });
+      if (!changed) return;
+      try {
+        var st = JSON.parse(localStorage.getItem(key) || "{}") || {};
+        st.events = evs;
+        localStorage.setItem(key, JSON.stringify(st));
+      } catch (eW) {}
+    });
+  }
+
+  /** Drop ledger ids that are not in the local union (local ∩ remote contract). */
+  function pruneLedgerToLocal(localIds) {
+    var keep = Object.create(null);
+    (localIds || []).forEach(function (id) {
+      if (id && !isSideBucket(id)) keep[id] = 1;
+    });
+    var map = loadSyncedMap();
+    var changed = false;
+    Object.keys(map).forEach(function (k) {
+      if (isSideBucket(k) || keep[k]) return;
+      delete map[k];
+      changed = true;
+    });
+    if (changed) saveSyncedMap(map);
+  }
+
   function loadHeldMap() {
     try {
       return JSON.parse(localStorage.getItem(HELD_KEY) || "{}") || {};
@@ -173,9 +224,10 @@
       var id = eventIds[j];
       if (!id || isSideBucket(id)) continue;
       map[id] = 1;
-      if (side && held[side] && held[side][id]) delete held[side][id];
+      if (held.offense && held.offense[id]) delete held.offense[id];
+      if (held.defense && held.defense[id]) delete held.defense[id];
     }
-    if (side && held[side]) saveHeldMap(held);
+    saveHeldMap(held);
     saveSyncedMap(map);
   }
 
@@ -591,20 +643,46 @@
       merged = eng.mergeEvents(events, remote);
     }
 
+    var remoteById = Object.create(null);
+    remoteAll.forEach(function (e) {
+      if (e && e.eventId) remoteById[e.eventId] = e;
+    });
+    var localUnion = allLocalCallerEvents(merged);
+    var missingIds = [];
+    localUnion.forEach(function (e) {
+      if (e && e.eventId && !remoteById[e.eventId]) missingIds.push(e.eventId);
+    });
+    if (missingIds.length && cloud.listCallerEventsByIds) {
+      var found = await cloud.listCallerEventsByIds(teamId, missingIds);
+      (found || []).forEach(function (e) {
+        if (!e || !e.eventId) return;
+        remoteAll.push(e);
+        remoteById[e.eventId] = e;
+      });
+    }
+    events.forEach(function (e) {
+      liftSideFromRemote(e, remoteById);
+    });
+    merged.forEach(function (e) {
+      liftSideFromRemote(e, remoteById);
+    });
+    persistLiftedSides(remoteById);
     if (opts.applyRemote) {
       opts.applyRemote(merged, game, sess);
     }
-
     var remoteIds = Object.create(null);
-    remoteAll.forEach(function (e) {
-      if (e && e.eventId) remoteIds[e.eventId] = 1;
+    Object.keys(remoteById).forEach(function (id) {
+      remoteIds[id] = 1;
     });
-    var localUnion = allLocalCallerEvents(merged);
     var confirmed = [];
     localUnion.forEach(function (e) {
-      if (e && e.eventId && remoteIds[e.eventId]) confirmed.push(e.eventId);
+      if (e && e.eventId && remoteIds[e.eventId]) {
+        liftSideFromRemote(e, remoteById);
+        confirmed.push(e.eventId);
+      }
     });
     if (confirmed.length) markSynced(side, confirmed);
+    pruneLedgerToLocal(uniqueLocalIds(merged));
     var heldStragglers = 0;
     localUnion.forEach(function (e) {
       if (!e || !e.eventId || remoteIds[e.eventId]) return;
@@ -645,8 +723,10 @@
       }
     }
 
-    if (eng && eng.foldCallerEvents && cloud.markCallerEventSuperseded) {
-      var folded = eng.foldCallerEvents(merged);
+    if (eng && cloud.markCallerEventSuperseded) {
+      var folded = eng.foldEachGame
+        ? eng.foldEachGame(merged, { side: side })
+        : eng.foldCallerEvents(merged, { side: side, gameId: gameId });
       var ids = Object.keys(folded.supersededIds || {}).filter(function (id) {
         return folded.supersededIds[id];
       });

@@ -818,6 +818,23 @@ export const Cloud = {
     const { error } = await OG.from("caller_games").update({ status: "archived" }).eq("id", gameId);
     if (error) throw error;
   },
+  async listCallerGames(teamId) {
+    if (!OG || !teamId) return [];
+    const { data, error } = await OG.from("caller_games").select("*").eq("team_id", teamId);
+    if (error) throw error;
+    return data || [];
+  },
+  /** One-shot test-corpus wipe. After the first real game, archive only — do not delete events. */
+  async deleteCallerEventsForGame(teamId, gameId) {
+    if (!OG || !teamId || !gameId) return 0;
+    const { data, error } = await OG.from("caller_events")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("game_id", gameId)
+      .select("event_id");
+    if (error) throw error;
+    return (data || []).length;
+  },
   /**
    * Land proposed Monday Focus payload on the game row (sync path).
    * Never calls start_tracked_focus — coach confirm only.
@@ -877,28 +894,45 @@ export const Cloud = {
     await this.archiveCallerGame(g.id);
     return g;
   },
+  _mapCallerEventRow(r) {
+    if (!r) return null;
+    return {
+      eventId: r.event_id,
+      gameId: r.game_id,
+      playIndex: r.play_index,
+      type: r.type,
+      payload: r.payload || {},
+      deviceId: r.device_id,
+      actorId: r.actor_id,
+      clientTs: Number(r.client_ts),
+      seq: r.seq,
+      superseded: !!r.superseded,
+      teamId: r.team_id,
+      side: r.side === "defense" ? "defense" : r.side === "offense" ? "offense" : null,
+    };
+  },
   async listCallerEvents(teamId, gameId) {
     if (!OG || !teamId || !gameId) return [];
     const { data, error } = await OG.from("caller_events").select("*")
       .eq("team_id", teamId).eq("game_id", gameId)
       .order("client_ts", { ascending: true });
     if (error) throw error;
-    return (data || []).map(function (r) {
-      return {
-        eventId: r.event_id,
-        gameId: r.game_id,
-        playIndex: r.play_index,
-        type: r.type,
-        payload: r.payload || {},
-        deviceId: r.device_id,
-        actorId: r.actor_id,
-        clientTs: Number(r.client_ts),
-        seq: r.seq,
-        superseded: !!r.superseded,
-        teamId: r.team_id,
-        side: r.side === "defense" ? "defense" : r.side === "offense" ? "offense" : null,
-      };
-    });
+    return (data || []).map((r) => this._mapCallerEventRow(r));
+  },
+  /** Lookup by event_id — sideless locals may not carry the cloud game id. */
+  async listCallerEventsByIds(teamId, eventIds) {
+    if (!OG || !teamId || !eventIds || !eventIds.length) return [];
+    const out = [];
+    for (let i = 0; i < eventIds.length; i += 150) {
+      const chunk = eventIds.slice(i, i + 150).filter(Boolean);
+      if (!chunk.length) continue;
+      const { data, error } = await OG.from("caller_events").select("*")
+        .eq("team_id", teamId)
+        .in("event_id", chunk);
+      if (error) throw error;
+      (data || []).forEach((r) => out.push(this._mapCallerEventRow(r)));
+    }
+    return out;
   },
   /** Idempotent upsert on event_id — safe to retry after press-box drops. */
   async appendCallerEvents(teamId, events) {

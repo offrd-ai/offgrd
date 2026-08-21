@@ -166,6 +166,99 @@ check("mapper offense→ours", S.eventSideToSeasonSide("offense") === "ours");
 check("mapper defense→off", S.eventSideToSeasonSide("defense") === "off");
 check("mapper never returns def", S.eventSideToSeasonSide("defense") !== "def");
 
+/* fold must not merge two gameIds — 5 in, 5 out, or a loud failure.
+ * Same playIndex on both games would collide if fold merged. */
+function evGame(id, gameId, playIndex, play, side, ts) {
+  return C.buildEvent({
+    eventId: id,
+    type: "call",
+    playIndex: playIndex,
+    payload: { play: play },
+    side: side,
+    gameId: gameId,
+    deviceId: "d",
+    seq: playIndex + 1,
+    clientTs: ts,
+  });
+}
+const GAME_A = "532950a1-north";
+const GAME_B = "b16fbedc-live";
+const mixedGames = [
+  evGame("a0", GAME_A, 0, "Slam West", "offense", 1000),
+  evGame("a1", GAME_A, 1, "SOUTH BEND", "offense", 1100),
+  evGame("b0", GAME_B, 0, "Pass", "defense", 1200),
+  evGame("a2", GAME_A, 2, "2x2 Smash", "offense", 1300),
+  evGame("b1", GAME_B, 1, "Run", "defense", 1400),
+];
+check(
+  "mixed gameIds without scope throw",
+  throws(function () {
+    C.foldCallerEvents(mixedGames);
+  })
+);
+const foldA = C.foldCallerEvents(mixedGames, { gameId: GAME_A, side: "offense" });
+const foldB = C.foldCallerEvents(mixedGames, { gameId: GAME_B, side: "defense" });
+check("game A fold is 3 snaps", foldA.log.length === 3 && foldA.log.every(function (l) { return l.play !== "Pass" && l.play !== "Run"; }));
+check("game B fold is 2 snaps", foldB.log.length === 2 && foldB.log.every(function (l) { return l.play === "Pass" || l.play === "Run"; }));
+check("5 in, 5 out", foldA.log.length + foldB.log.length === 5);
+const accounted = Object.create(null);
+foldA.log.concat(foldB.log).forEach(function (l) {
+  accounted[l.eventId || l.id] = "log";
+});
+Object.keys(foldA.supersededIds || {}).concat(Object.keys(foldB.supersededIds || {})).forEach(function (id) {
+  if ((foldA.supersededIds && foldA.supersededIds[id]) || (foldB.supersededIds && foldB.supersededIds[id])) {
+    accounted[id] = "superseded";
+  }
+});
+(foldA.collisions || []).concat(foldB.collisions || []).forEach(function (c) {
+  if (c.keep) accounted[c.keep.eventId] = accounted[c.keep.eventId] || "collision-keep";
+  if (c.drop) accounted[c.drop.eventId] = "collision-drop";
+});
+check(
+  "nothing dropped without collisions or supersededIds",
+  mixedGames.every(function (e) { return !!accounted[e.eventId]; }) &&
+    !foldA.log.some(function (l) { return l.eventId === "b0" || l.eventId === "b1"; }) &&
+    !foldB.log.some(function (l) { return l.eventId === "a0" || l.eventId === "a1" || l.eventId === "a2"; })
+);
+const parts = C.foldEachGame(mixedGames);
+check(
+  "partition keeps both games independently",
+  parts.byGameId[GAME_A].log.length === 3 &&
+    parts.byGameId[GAME_B].log.length === 2 &&
+    Object.keys(parts.supersededIds || {}).filter(function (id) { return parts.supersededIds[id]; }).length === 0
+);
+
+/* A — theirDirection is defense-only */
+check(
+  "offense + theirDirection throws",
+  throws(function () {
+    S.assertEventAllowed({ play: "SOUTH BEND", theirDirection: "L" }, "offense", PLAYBOOK);
+  })
+);
+check(
+  "ours row with theirDirection is refused",
+  S.assertRowAllowed({ side: "ours", play: "SOUTH BEND", theirDirection: "L" }, PLAYBOOK).reason === "ours-has-theirDirection"
+);
+
+/* B — assertRowAllowed / stampRow is the write gate, not a smoke-only helper */
+check(
+  "stampRow refuses offense+theirDirection",
+  throws(function () {
+    S.eventToRow({ play: "SOUTH BEND", theirDirection: "L", side: "offense" }, "offense", PLAYBOOK);
+  })
+);
+
+const purgePlan = S.planCallerEventsPurge(
+  [{ id: GAME_A }, { id: GAME_B }],
+  mixedGames
+);
+check(
+  "caller-events purge plans archive + delete",
+  purgePlan.archiveGameIds.length === 2 &&
+    purgePlan.deleteEventCount === 5 &&
+    purgePlan.localKeys.indexOf("offgrd_caller_events_v2") >= 0
+);
+
 /* 8 — sync row reads the same field buildEvent writes (top-level side) */
 const builtO = C.buildEvent({
   type: "call",
@@ -335,11 +428,16 @@ function evAt(id, seq) {
       return { session: { gameId: "g" }, events: fixture };
     },
   };
-  const beforeN = topLevelEventIds().length;
   const first = await Sync.flush(flushOpts);
   const afterIds = topLevelEventIds();
   check("flush records every accepted id on the ledger", !!(first && first.ok) && afterIds.indexOf("n1") >= 0 && afterIds.indexOf("n2") >= 0 && afterIds.indexOf("n3") >= 0);
-  check("ledger grows by the number of rows accepted", afterIds.length === beforeN + 3 && pushedRows === 3);
+  check(
+    "ledger grows by the number of rows accepted",
+    afterIds.length === 3 &&
+      afterIds.indexOf("legacy-a") < 0 &&
+      afterIds.indexOf("n1") >= 0 &&
+      pushedRows === 3
+  );
   check("no top-level key is a side name", noSideKeys());
   const pushedAfterFirst = pushedRows;
   const second = await Sync.flush(flushOpts);
@@ -434,19 +532,29 @@ function evAt(id, seq) {
       unionIds.indexOf("only-d") >= 0
   );
 
-  const remoteSideless = { eventId: "sideless-remote", gameId: "g-d", type: "call", payload: { play: "Pass" } };
-  const localOnlySideless = { eventId: "sideless-straggler", gameId: "g-d", type: "call", payload: { play: "Pass" } };
+  const remoteSideless = { eventId: "sideless-remote", type: "call", payload: { play: "Pass" } };
+  const localOnlySideless = { eventId: "sideless-straggler", type: "call", payload: { play: "Pass" } };
+  const remoteWithSide = {
+    eventId: "sideless-remote",
+    gameId: "g-cloud",
+    type: "call",
+    side: "offense",
+    payload: { play: "Pass" },
+  };
   sandbox.localStorage.setItem(
     "offgrd_caller_events_v2",
     JSON.stringify({ events: [remoteSideless, localOnlySideless] })
   );
   sandbox.localStorage.setItem("offgrd_dcaller_events_v2", JSON.stringify({ events: [] }));
-  sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, JSON.stringify({ "orphan-ledger": 1 }));
   sandbox.OFFGRD_CALLER_BRIDGE.cloud.ensureCallerGame = async function () {
     return { id: "g-o" };
   };
-  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function (_tid, gid) {
-    if (gid === "g-d") return [remoteSideless];
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function () {
+    return [];
+  };
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEventsByIds = async function (_tid, ids) {
+    if ((ids || []).indexOf("sideless-remote") >= 0) return [remoteWithSide];
     return [];
   };
   await Sync.flush({
@@ -455,8 +563,19 @@ function evAt(id, seq) {
       return { session: { gameId: "g-o" }, events: [] };
     },
   });
-  check("sideless confirmed remote is stamped, not held", Sync.isSynced("offense", "sideless-remote") && !Sync.isHeld("offense", "sideless-remote"));
+  const liftedStore = JSON.parse(sandbox.localStorage.getItem("offgrd_caller_events_v2") || "{}");
+  const liftedEv = (liftedStore.events || []).filter(function (e) {
+    return e.eventId === "sideless-remote";
+  })[0];
+  check(
+    "sideless confirmed remote is stamped from remote side",
+    Sync.isSynced("offense", "sideless-remote") &&
+      !Sync.isHeld("offense", "sideless-remote") &&
+      liftedEv &&
+      liftedEv.side === "offense"
+  );
   check("sideless local-only straggler is held", Sync.isHeld("offense", "sideless-straggler") && !Sync.isSynced("offense", "sideless-straggler"));
+  check("ledger orphans with no local event are pruned", topLevelEventIds().indexOf("orphan-ledger") < 0);
 
   sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
   sandbox.localStorage.removeItem("offgrd_caller_events_v2");

@@ -1078,10 +1078,15 @@
     return tendencyShift(expectSample());
   }
 
+  function foldOpts() {
+    var sess = ensureSession();
+    return { side: "defense", gameId: sess && sess.gameId };
+  }
+
   function refold() {
     var eng = E();
     if (!eng || !eng.foldCallerEvents) return;
-    var folded = eng.foldCallerEvents(events, { side: "defense" });
+    var folded = eng.foldCallerEvents(events, foldOpts());
     log = folded.log || [];
     try {
       if (global.OFFGRD_BOOTHPACK && OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate();
@@ -1632,7 +1637,7 @@
     var eng = E();
     var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
     if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events, { side: "defense" });
+      var folded = eng.foldCallerEvents(events, foldOpts());
       if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
     }
     var dir = direction || pendingDir || null;
@@ -1841,7 +1846,7 @@
     var eng = E();
     var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
     if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events, { side: "defense" });
+      var folded = eng.foldCallerEvents(events, foldOpts());
       if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
     }
     var sess = ensureSession();
