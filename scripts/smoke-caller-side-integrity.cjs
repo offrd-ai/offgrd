@@ -22,6 +22,9 @@ const sandbox = {
     setItem(k, v) {
       this._m[k] = String(v);
     },
+    removeItem(k) {
+      delete this._m[k];
+    },
   },
 };
 sandbox.window = sandbox;
@@ -285,13 +288,19 @@ function evAt(id, seq) {
   );
   check("network error is not a row fault", !Sync.isRowFault({ message: "Failed to fetch" }));
 
+  function ledgerRaw() {
+    return JSON.parse(sandbox.localStorage.getItem(Sync.SYNCED_KEY) || "{}");
+  }
   function topLevelEventIds() {
-    const raw = JSON.parse(sandbox.localStorage.getItem(Sync.SYNCED_KEY) || "{}");
-    return Object.keys(raw).filter(function (k) {
-      return k !== "offense" && k !== "defense";
-    });
+    return Object.keys(ledgerRaw());
+  }
+  function noSideKeys(raw) {
+    raw = raw || ledgerRaw();
+    return Object.keys(raw).indexOf("offense") < 0 && Object.keys(raw).indexOf("defense") < 0;
   }
 
+  sandbox.localStorage.removeItem("offgrd_caller_events_v2");
+  sandbox.localStorage.removeItem("offgrd_dcaller_events_v2");
   sandbox.localStorage.setItem(Sync.SYNCED_KEY, JSON.stringify({ "legacy-a": 1, "legacy-b": 1 }));
   const fixture = [evAt("n1", 21), evAt("n2", 22), evAt("n3", 23)];
   let pushedRows = 0;
@@ -331,6 +340,7 @@ function evAt(id, seq) {
   const afterIds = topLevelEventIds();
   check("flush records every accepted id on the ledger", !!(first && first.ok) && afterIds.indexOf("n1") >= 0 && afterIds.indexOf("n2") >= 0 && afterIds.indexOf("n3") >= 0);
   check("ledger grows by the number of rows accepted", afterIds.length === beforeN + 3 && pushedRows === 3);
+  check("no top-level key is a side name", noSideKeys());
   const pushedAfterFirst = pushedRows;
   const second = await Sync.flush(flushOpts);
   check(
@@ -348,6 +358,140 @@ function evAt(id, seq) {
     "already-on-cloud rows advance the ledger without a re-push",
     topLevelEventIds().length === 3 && pushedRows === 0
   );
+  check("cloud stamp leaves no side-name keys", noSideKeys());
+
+  sandbox.localStorage.setItem(
+    Sync.SYNCED_KEY,
+    JSON.stringify({ leftover: 1, offense: { "bucket-o": 1 }, defense: { "bucket-d": 1 } })
+  );
+  Sync.isSynced("offense", "leftover");
+  const lifted = ledgerRaw();
+  check(
+    "nested side buckets migrate to top-level ids",
+    !!(lifted.leftover && lifted["bucket-o"] && lifted["bucket-d"]) && noSideKeys(lifted)
+  );
+
+  function evDef(id, seq) {
+    return C.buildEvent({
+      type: "call",
+      playIndex: 0,
+      payload: { play: "Pass" },
+      side: "defense",
+      gameId: "g-d",
+      deviceId: "d",
+      seq: seq,
+      eventId: id,
+    });
+  }
+  const dStore = [evDef("d1", 31), evDef("d2", 32), evDef("d3", 33)];
+  sandbox.localStorage.setItem("offgrd_dcaller_events_v2", JSON.stringify({ events: dStore }));
+  sandbox.localStorage.setItem("offgrd_caller_events_v2", JSON.stringify({ events: [] }));
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+  pushedRows = 0;
+  const listedGames = [];
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.ensureCallerGame = async function () {
+    return { id: "g-o" };
+  };
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function (_tid, gid) {
+    listedGames.push(gid);
+    if (gid === "g-d") return dStore;
+    return [];
+  };
+  await Sync.flush({
+    side: "offense",
+    getState: function () {
+      return { session: { gameId: "g-o" }, events: [] };
+    },
+  });
+  check("offense flush lists the D-store game", listedGames.indexOf("g-d") >= 0);
+  check(
+    "offense flush stamps D-store ids already in cloud",
+    Sync.listSyncedIds().indexOf("d1") >= 0 &&
+      Sync.listSyncedIds().indexOf("d2") >= 0 &&
+      Sync.listSyncedIds().indexOf("d3") >= 0 &&
+      pushedRows === 0
+  );
+  check("D-store stamp leaves no side-name keys", noSideKeys());
+
+  const shared = evDef("same-id", 51);
+  sandbox.localStorage.setItem(
+    "offgrd_caller_events_v2",
+    JSON.stringify({ events: [shared, evAt("only-o", 52)] })
+  );
+  sandbox.localStorage.setItem(
+    "offgrd_dcaller_events_v2",
+    JSON.stringify({ events: [shared, evDef("only-d", 53)] })
+  );
+  const union = Sync.allLocalCallerEvents();
+  const unionIds = union.map(function (e) {
+    return e.eventId;
+  });
+  check(
+    "union counts a mirrored eventId once",
+    union.length === 3 &&
+      unionIds.filter(function (id) { return id === "same-id"; }).length === 1 &&
+      unionIds.indexOf("only-o") >= 0 &&
+      unionIds.indexOf("only-d") >= 0
+  );
+
+  const remoteSideless = { eventId: "sideless-remote", gameId: "g-d", type: "call", payload: { play: "Pass" } };
+  const localOnlySideless = { eventId: "sideless-straggler", gameId: "g-d", type: "call", payload: { play: "Pass" } };
+  sandbox.localStorage.setItem(
+    "offgrd_caller_events_v2",
+    JSON.stringify({ events: [remoteSideless, localOnlySideless] })
+  );
+  sandbox.localStorage.setItem("offgrd_dcaller_events_v2", JSON.stringify({ events: [] }));
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.ensureCallerGame = async function () {
+    return { id: "g-o" };
+  };
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function (_tid, gid) {
+    if (gid === "g-d") return [remoteSideless];
+    return [];
+  };
+  await Sync.flush({
+    side: "offense",
+    getState: function () {
+      return { session: { gameId: "g-o" }, events: [] };
+    },
+  });
+  check("sideless confirmed remote is stamped, not held", Sync.isSynced("offense", "sideless-remote") && !Sync.isHeld("offense", "sideless-remote"));
+  check("sideless local-only straggler is held", Sync.isHeld("offense", "sideless-straggler") && !Sync.isSynced("offense", "sideless-straggler"));
+
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+  sandbox.localStorage.removeItem("offgrd_caller_events_v2");
+  sandbox.localStorage.removeItem("offgrd_dcaller_events_v2");
+  pushedRows = 0;
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.ensureCallerGame = async function () {
+    return { id: "g-d" };
+  };
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function () {
+    return [];
+  };
+  const dFlush = [evDef("dx", 41), evDef("dy", 42), evDef("dz", 43)];
+  const dFirst = await Sync.flush({
+    side: "defense",
+    getState: function () {
+      return { session: { gameId: "g-d" }, events: dFlush };
+    },
+  });
+  check(
+    "defense flush advances the ledger",
+    !!(dFirst && dFirst.ok) &&
+      pushedRows === 3 &&
+      Sync.listSyncedIds().indexOf("dx") >= 0 &&
+      Sync.listSyncedIds().indexOf("dy") >= 0 &&
+      Sync.listSyncedIds().indexOf("dz") >= 0
+  );
+  const pushedD = pushedRows;
+  await Sync.flush({
+    side: "defense",
+    getState: function () {
+      return { session: { gameId: "g-d" }, events: dFlush };
+    },
+  });
+  check("second defense flush is a no-op", pushedRows === pushedD && Sync.pendingCount("defense", dFlush) === 0);
+  check("defense ledger has no side-name keys", noSideKeys());
 
   if (fails) {
     console.error(fails + " failed");
