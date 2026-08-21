@@ -1120,22 +1120,16 @@
 
   function append(type, playIndex, payload) {
     var eng = E();
-    var Side = global.OFFGRD_CALLER_SIDE;
     var sess = ensureSession();
-    var stamped = Side && Side.stampPayload ? Side.stampPayload(payload || {}, "defense") : Object.assign({}, payload || {}, { side: "defense" });
-    if (!stamped.side) {
-      try {
-        console.warn("[dcaller] refuse event with unset side", type);
-      } catch (e) {}
-      return null;
-    }
+    var clean = Object.assign({}, payload || {});
+    if (Object.prototype.hasOwnProperty.call(clean, "side")) delete clean.side;
     seq = (seq || 0) + 1;
     var ev = eng.buildEvent
       ? eng.buildEvent({
           gameId: sess.gameId,
           playIndex: playIndex,
           type: type,
-          payload: stamped,
+          payload: clean,
           deviceId: eng.deviceId ? eng.deviceId() : "dev",
           actorId: null,
           clientTs: Date.now(),
@@ -1147,7 +1141,7 @@
           gameId: sess.gameId,
           playIndex: playIndex,
           type: type,
-          payload: stamped,
+          payload: clean,
           deviceId: "dev",
           actorId: null,
           clientTs: Date.now(),
@@ -1155,7 +1149,7 @@
           superseded: false,
           side: "defense",
         };
-    if (!ev) {
+    if (!ev || ev.side !== "defense") {
       try {
         console.warn("[dcaller] buildEvent rejected", type);
       } catch (e2) {}
@@ -2022,7 +2016,7 @@
     var st = eng && eng.getSyncHeaderState
       ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing())
       : { label: "All synced", pending: 0, syncing: false };
-    var cls = st.pending ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
+    var cls = st.held || st.pending ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
     var backupNote = lastUploadAt ? " · backup saved" : "";
     /* Export tucked away — cloud sync is the real path; JSON is emergency only. */
     return (

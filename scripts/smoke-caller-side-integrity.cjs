@@ -29,11 +29,14 @@ sandbox.globalThis = sandbox;
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-side.js"), "utf8"), sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-outcome.js"), "utf8"), sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-log.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "OFFGRD-caller-sync.js"), "utf8"), sandbox);
 
 const S = sandbox.OFFGRD_CALLER_SIDE;
 const C = sandbox.OFFGRD_CALLER;
+const Sync = sandbox.OFFGRD_CALLER_SYNC_ENGINE;
 if (!S) throw new Error("OFFGRD_CALLER_SIDE missing");
 if (!C) throw new Error("OFFGRD_CALLER missing");
+if (!Sync || !Sync.eventToSyncRow) throw new Error("OFFGRD_CALLER_SYNC_ENGINE.eventToSyncRow missing");
 
 let fails = 0;
 function check(name, cond, detail) {
@@ -160,8 +163,134 @@ check("mapper offense→ours", S.eventSideToSeasonSide("offense") === "ours");
 check("mapper defense→off", S.eventSideToSeasonSide("defense") === "off");
 check("mapper never returns def", S.eventSideToSeasonSide("defense") !== "def");
 
-if (fails) {
-  console.error(fails + " failed");
-  process.exit(1);
+/* 8 — sync row reads the same field buildEvent writes (top-level side) */
+const builtO = C.buildEvent({
+  type: "call",
+  playIndex: 0,
+  payload: { play: "SOUTH BEND" },
+  side: "offense",
+  gameId: "g",
+  deviceId: "d",
+  seq: 1,
+});
+const builtD = C.buildEvent({
+  type: "call",
+  playIndex: 0,
+  payload: { play: "Pass" },
+  side: "defense",
+  gameId: "g",
+  deviceId: "d",
+  seq: 2,
+});
+const syncO = Sync.eventToSyncRow(builtO, "team-1");
+const syncD = Sync.eventToSyncRow(builtD, "team-1");
+check(
+  "sync row side matches buildEvent (offense)",
+  !!(syncO && syncO.side === "offense" && syncO.side === builtO.side)
+);
+check(
+  "sync row side matches buildEvent (defense)",
+  !!(syncD && syncD.side === "defense" && syncD.side === builtD.side)
+);
+check("buildEvent does not bury side on payload", builtO.payload.side == null && builtD.payload.side == null);
+check(
+  "payload.side alone does not write an event",
+  throws(function () {
+    C.buildEvent({
+      type: "call",
+      playIndex: 0,
+      payload: { play: "SOUTH BEND", side: "offense" },
+      gameId: "g",
+      deviceId: "d",
+      seq: 3,
+    });
+  })
+);
+check("eventSide reads top-level only", S.eventSide({ side: "offense", payload: { side: "defense" } }) === "offense");
+check("eventSide ignores buried payload.side", S.eventSide({ payload: { side: "defense" } }) === null);
+const lifted = S.normalizeEventSide({ eventId: "legacy", payload: { side: "defense" } });
+check("legacy payload.side lifts to top-level", lifted.side === "defense");
+const liftedRow = Sync.eventToSyncRow(lifted, "team-1");
+check("legacy lift reaches the sync row", !!(liftedRow && liftedRow.side === "defense"));
+check(
+  "unsided event is not a sync row",
+  Sync.eventToSyncRow({ eventId: "orphan", payload: { play: "Pass" } }, "team-1") === null
+);
+
+function rejectBad(batch) {
+  if ((batch || []).some(function (e) { return e && e.eventId === "bad-row"; })) {
+    const err = new Error('null value in column "side" violates not-null constraint');
+    err.code = "23502";
+    err.status = 400;
+    return Promise.reject(err);
+  }
+  return Promise.resolve((batch || []).map(function (e) { return { event_id: e.eventId }; }));
 }
-console.log("smoke-caller-side-integrity: all ok");
+
+function evAt(id, seq) {
+  return C.buildEvent({
+    type: "call",
+    playIndex: 0,
+    payload: { play: "SOUTH BEND" },
+    side: "offense",
+    gameId: "g",
+    deviceId: "d",
+    seq: seq,
+    eventId: id,
+  });
+}
+
+(async function () {
+  const batch = [evAt("ok-1", 10), evAt("bad-row", 11), evAt("ok-2", 12)];
+  const isolated = await Sync.appendIsolated(batch, rejectBad, { chunkSize: 2 });
+  check(
+    "isolated upsert syncs every valid row",
+    isolated.synced.indexOf("ok-1") >= 0 && isolated.synced.indexOf("ok-2") >= 0 && isolated.synced.length === 2
+  );
+  check(
+    "isolated upsert quarantines only the bad row",
+    isolated.held.length === 1 && isolated.held[0].eventId === "bad-row" && isolated.unresolved.length === 0
+  );
+
+  Sync.clearSyncedSide("offense");
+  Sync.markSynced("offense", isolated.synced);
+  isolated.held.forEach(function (h) {
+    Sync.markHeld("offense", h.eventId, h.reason);
+  });
+  const hdr = Sync.getSyncHeaderState("offense", batch, false);
+  check("header names held rows", hdr.label === "2 synced · 1 held" && hdr.held === 1 && hdr.pending === 0);
+
+  const many = [];
+  for (let i = 0; i < 1148; i++) many.push({ eventId: "s" + i, side: "offense", type: "call", payload: { play: "SOUTH BEND" } });
+  many.push({ eventId: "h1", side: "offense", type: "call", payload: { play: "SOUTH BEND" } });
+  many.push({ eventId: "h2", side: "offense", type: "call", payload: { play: "SOUTH BEND" } });
+  Sync.clearSyncedSide("offense");
+  Sync.markSynced(
+    "offense",
+    many.slice(0, 1148).map(function (e) {
+      return e.eventId;
+    })
+  );
+  Sync.markHeld("offense", "h1", "400");
+  Sync.markHeld("offense", "h2", "400");
+  check(
+    "header uses synced · held copy",
+    Sync.getSyncHeaderState("offense", many, false).label === "1,148 synced · 2 held"
+  );
+  Sync.clearSyncedSide("offense");
+
+  check(
+    "400 constraint is a row fault",
+    Sync.isRowFault({ code: "23502", message: 'null value in column "side" violates not-null constraint' })
+  );
+  check("network error is not a row fault", !Sync.isRowFault({ message: "Failed to fetch" }));
+
+  if (fails) {
+    console.error(fails + " failed");
+    process.exit(1);
+  }
+  console.log("smoke-caller-side-integrity: all ok");
+})().catch(function (e) {
+  console.error(e);
+  process.exit(1);
+});

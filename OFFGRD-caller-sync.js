@@ -3,9 +3,12 @@
    Idempotent by eventId (server PK upsert ignoreDuplicates).
    Single-flight + bounded exponential backoff — no storms.
    Header copy matches Daily Check: "N pending · will sync" / "All synced."
+   Held rows surface as "1,148 synced · 2 held" — they do not fail the batch.
    Requires offgrd.caller_* side column + is_staff_coach RLS (apply-caller-side-staff-rls.sql). */
 (function (global) {
   var SYNCED_KEY = "offgrd_caller_synced_ids_v1";
+  var HELD_KEY = "offgrd_caller_held_ids_v1";
+  var UPSERT_CHUNK = 150;
   var MAX_BACKOFF = 30000;
   var SNAP_DEBOUNCE_MS = 700;
   var OPEN_DELAY_MS = 1400;
@@ -57,22 +60,154 @@
     } catch (e) {}
   }
 
+  function loadHeldMap() {
+    try {
+      return JSON.parse(localStorage.getItem(HELD_KEY) || "{}") || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveHeldMap(map) {
+    try {
+      localStorage.setItem(HELD_KEY, JSON.stringify(map));
+    } catch (e) {}
+  }
+
   function markSynced(side, eventIds) {
     if (!side || !eventIds || !eventIds.length) return;
     var map = loadSyncedMap();
     if (!map[side]) map[side] = {};
-    for (var i = 0; i < eventIds.length; i++) {
-      if (eventIds[i]) map[side][eventIds[i]] = 1;
+    var held = loadHeldMap();
+    if (held[side]) {
+      for (var i = 0; i < eventIds.length; i++) {
+        if (eventIds[i]) delete held[side][eventIds[i]];
+      }
+      saveHeldMap(held);
+    }
+    for (var j = 0; j < eventIds.length; j++) {
+      if (eventIds[j]) map[side][eventIds[j]] = 1;
     }
     saveSyncedMap(map);
   }
 
-  /** After Clear — drop pending/synced markers so the next game doesn't inherit them. */
+  function markHeld(side, eventId, reason) {
+    if (!side || !eventId) return;
+    var held = loadHeldMap();
+    if (!held[side]) held[side] = {};
+    held[side][eventId] = { reason: reason || "upsert-failed", at: Date.now() };
+    saveHeldMap(held);
+    var synced = loadSyncedMap();
+    if (synced[side] && synced[side][eventId]) {
+      delete synced[side][eventId];
+      saveSyncedMap(synced);
+    }
+  }
+
+  function isHeld(side, eventId) {
+    if (!side || !eventId) return false;
+    var held = loadHeldMap();
+    return !!(held[side] && held[side][eventId]);
+  }
+
+  function isSynced(side, eventId) {
+    if (!side || !eventId) return false;
+    var map = loadSyncedMap();
+    return !!(map[side] && map[side][eventId]);
+  }
+
+  function heldCount(side, events) {
+    var n = 0;
+    var seen = Object.create(null);
+    var held = (loadHeldMap()[side] || {});
+    Object.keys(held).forEach(function (id) {
+      if (id) {
+        seen[id] = 1;
+        n += 1;
+      }
+    });
+    (events || []).forEach(function (e) {
+      if (!e || !e.eventId || seen[e.eventId]) return;
+      if (!eventToSyncRow(e, null)) {
+        seen[e.eventId] = 1;
+        n += 1;
+      }
+    });
+    return n;
+  }
+
+  function syncedCount(side, events) {
+    var n = 0;
+    (events || []).forEach(function (e) {
+      if (e && e.eventId && isSynced(side, e.eventId)) n += 1;
+    });
+    return n;
+  }
+
+  function formatN(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  /** Constraint / 400 = this row is bad. Network / 5xx = leave pending and retry. */
+  function isRowFault(err) {
+    if (!err) return false;
+    var code = String(err.code || err.status || err.statusCode || "");
+    if (code === "23502" || code === "23514" || code === "22P02" || code === "23503") return true;
+    if (code === "400" || err.status === 400 || err.statusCode === 400) return true;
+    var msg = String(err.message || err.details || err.hint || "");
+    return /not-null|not null|null value|violates|invalid input|check constraint|22P02|23502|400\b/i.test(msg);
+  }
+
+  /**
+   * Upsert in chunks. On chunk failure, retry row-by-row so one bad row
+   * quarantines itself instead of blocking the rest of the chunk.
+   */
+  async function appendIsolated(events, upsertFn, opts) {
+    opts = opts || {};
+    var chunkSize = opts.chunkSize > 0 ? opts.chunkSize : UPSERT_CHUNK;
+    var list = Array.isArray(events) ? events : [];
+    var synced = [];
+    var held = [];
+    var unresolved = [];
+    var i, j, chunk, one;
+    for (i = 0; i < list.length; i += chunkSize) {
+      chunk = list.slice(i, i + chunkSize);
+      try {
+        await upsertFn(chunk);
+        for (j = 0; j < chunk.length; j++) {
+          if (chunk[j] && chunk[j].eventId) synced.push(chunk[j].eventId);
+        }
+      } catch (chunkErr) {
+        for (j = 0; j < chunk.length; j++) {
+          one = chunk[j];
+          try {
+            await upsertFn([one]);
+            if (one && one.eventId) synced.push(one.eventId);
+          } catch (rowErr) {
+            if (isRowFault(rowErr) || isRowFault(chunkErr)) {
+              held.push({
+                eventId: one && one.eventId,
+                reason: (rowErr && rowErr.message) || (chunkErr && chunkErr.message) || "upsert-failed",
+              });
+            } else if (one && one.eventId) {
+              unresolved.push(one.eventId);
+            }
+          }
+        }
+      }
+    }
+    return { synced: synced, held: held, unresolved: unresolved };
+  }
+
+  /** After Clear — drop pending/synced/held markers so the next game doesn't inherit them. */
   function clearSyncedSide(side) {
     if (!side) return;
     var map = loadSyncedMap();
     delete map[side];
     saveSyncedMap(map);
+    var held = loadHeldMap();
+    delete held[side];
+    saveHeldMap(held);
     notify();
   }
 
@@ -109,12 +244,35 @@
     return { archived: false };
   }
 
+  function eventToSyncRow(e, teamId) {
+    var Side = global.OFFGRD_CALLER_SIDE;
+    if (Side && Side.eventToSyncRow) return Side.eventToSyncRow(e, teamId);
+    if (!e || !e.eventId) return null;
+    if (Side && Side.normalizeEventSide) Side.normalizeEventSide(e);
+    var side = e.side === "defense" || e.side === "offense" ? e.side : null;
+    if (!side) return null;
+    return {
+      event_id: e.eventId,
+      team_id: teamId,
+      game_id: e.gameId,
+      play_index: e.playIndex,
+      type: e.type,
+      payload: e.payload || {},
+      device_id: e.deviceId,
+      actor_id: e.actorId || null,
+      client_ts: e.clientTs,
+      seq: e.seq,
+      superseded: !!e.superseded,
+      side: side,
+    };
+  }
+
   function pendingEvents(side, events) {
     var map = loadSyncedMap();
     var done = map[side] || {};
     var out = [];
     (events || []).forEach(function (e) {
-      if (e && e.eventId && !done[e.eventId]) out.push(e);
+      if (e && e.eventId && !done[e.eventId] && !isHeld(side, e.eventId) && eventToSyncRow(e, null)) out.push(e);
     });
     return out;
   }
@@ -123,36 +281,59 @@
     return pendingEvents(side, events).length;
   }
 
-  /** Same language as Daily Check getSyncHeaderState. */
+  /** Same language as Daily Check getSyncHeaderState. Held rows never look like "All synced". */
   function getSyncHeaderState(side, events, syncing) {
     var online = isOnline();
     var pending = pendingCount(side, events);
+    var held = heldCount(side, events);
+    var syncedN = syncedCount(side, events);
     var sync = syncing != null ? !!syncing : _syncing;
+    var heldLabel = held > 0 ? formatN(syncedN) + " synced · " + formatN(held) + " held" : null;
     if (sync) {
       return {
         online: online,
         pending: pending,
+        held: held,
+        synced: syncedN,
         syncing: true,
-        label: pending ? pending + " pending · syncing…" : "Syncing…",
+        label: pending ? pending + " pending · syncing…" : heldLabel || "Syncing…",
       };
     }
     if (!online && pending > 0) {
       return {
         online: online,
         pending: pending,
+        held: held,
+        synced: syncedN,
         syncing: false,
-        label: "Offline · " + pending + " pending",
+        label: held
+          ? "Offline · " + pending + " pending · " + formatN(held) + " held"
+          : "Offline · " + pending + " pending",
       };
     }
     if (pending > 0) {
       return {
         online: online,
         pending: pending,
+        held: held,
+        synced: syncedN,
         syncing: false,
-        label: pending + " pending · will sync",
+        label: held
+          ? pending + " pending · " + formatN(held) + " held"
+          : pending + " pending · will sync",
       };
     }
-    return { online: online, pending: 0, syncing: false, label: "All synced" };
+    if (held > 0) {
+      return {
+        online: online,
+        pending: 0,
+        held: held,
+        synced: syncedN,
+        syncing: false,
+        label: heldLabel,
+      };
+    }
+    return { online: online, pending: 0, held: 0, synced: syncedN, syncing: false, label: "All synced" };
   }
 
   function clearBackoff() {
@@ -303,14 +484,39 @@
     var pending = pendingEvents(side, merged);
     /* Also push any already-synced that gained superseded flag — full list is safe (idempotent). */
     var toPush = merged.length ? merged : pending;
-    if (toPush.length && cloud.appendCallerEvents) {
-      await cloud.appendCallerEvents(teamId, toPush);
-      markSynced(
-        side,
-        toPush.map(function (e) {
-          return e.eventId;
-        })
+    var syncable = [];
+    var skippedNoSide = 0;
+    (toPush || []).forEach(function (e) {
+      if (eventToSyncRow(e, teamId)) syncable.push(e);
+      else if (e && e.eventId) skippedNoSide += 1;
+    });
+    if (skippedNoSide) {
+      (toPush || []).forEach(function (e) {
+        if (e && e.eventId && !eventToSyncRow(e, teamId)) markHeld(side, e.eventId, "no-side");
+      });
+      try {
+        console.warn("[caller-sync] held", skippedNoSide, "events with no side");
+      } catch (eSkip) {}
+    }
+    var pushed = 0;
+    var heldN = 0;
+    if (syncable.length && cloud.appendCallerEvents) {
+      var isolated = await appendIsolated(
+        syncable,
+        function (chunk) {
+          return cloud.appendCallerEvents(teamId, chunk);
+        },
+        { chunkSize: UPSERT_CHUNK }
       );
+      markSynced(side, isolated.synced);
+      (isolated.held || []).forEach(function (h) {
+        markHeld(side, h.eventId, h.reason);
+      });
+      pushed = isolated.synced.length;
+      heldN = (isolated.held || []).length;
+      if (isolated.unresolved && isolated.unresolved.length) {
+        throw new Error("caller-sync: " + isolated.unresolved.length + " rows unresolved");
+      }
     }
 
     if (eng && eng.foldCallerEvents && cloud.markCallerEventSuperseded) {
@@ -351,7 +557,8 @@
     return {
       ok: true,
       pending: pendingCount(side, merged),
-      pushed: toPush.length,
+      pushed: pushed,
+      held: heldN + skippedNoSide,
       remote: remote.length,
       mondayFocus: mondayWritten,
     };
@@ -411,7 +618,15 @@
     subscribe: subscribe,
     isSyncing: isSyncing,
     markSynced: markSynced,
+    markHeld: markHeld,
+    isHeld: isHeld,
+    heldCount: heldCount,
     clearSyncedSide: clearSyncedSide,
     clearAndArchiveGame: clearAndArchiveGame,
+    eventToSyncRow: eventToSyncRow,
+    appendIsolated: appendIsolated,
+    isRowFault: isRowFault,
+    UPSERT_CHUNK: UPSERT_CHUNK,
+    HELD_KEY: HELD_KEY,
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -14,9 +14,8 @@
 
   function eventSideOf(e) {
     var S = global.OFFGRD_CALLER_SIDE;
+    if (S && S.normalizeEventSide) S.normalizeEventSide(e);
     if (S && S.eventSide) return S.eventSide(e);
-    var p = e && e.payload;
-    if (p && (p.side === "offense" || p.side === "defense")) return p.side;
     if (e && (e.side === "offense" || e.side === "defense")) return e.side;
     return null;
   }
@@ -32,7 +31,8 @@
     opts = opts || {};
     var S = global.OFFGRD_CALLER_SIDE;
     var payload = Object.assign({}, opts.payload || {});
-    var raw = opts.side != null ? opts.side : payload.side;
+    if (Object.prototype.hasOwnProperty.call(payload, "side")) delete payload.side;
+    var raw = opts.side;
     var side;
     if (S && S.requireEventSide) {
       side = S.requireEventSide(raw);
@@ -43,8 +43,7 @@
         "caller event side required: expected \"offense\" or \"defense\", got " + JSON.stringify(raw)
       );
     }
-    payload.side = side;
-    return {
+    var ev = {
       eventId: opts.eventId || uuid(),
       gameId: opts.gameId,
       playIndex: opts.playIndex,
@@ -57,6 +56,7 @@
       superseded: !!opts.superseded,
       side: side,
     };
+    return S && S.stampPayload ? S.stampPayload(ev, side) : ev;
   }
 
   function uuid() {
@@ -101,6 +101,9 @@
     opts = opts || {};
     var want = opts.side || null;
     var S = global.OFFGRD_CALLER_SIDE;
+    events = (events || []).map(function (e) {
+      return S && S.normalizeEventSide ? S.normalizeEventSide(e) || e : e;
+    });
     if (want) {
       if (S && S.requireEventSide) want = S.requireEventSide(want);
       else if (want !== "offense" && want !== "defense") {
@@ -436,8 +439,10 @@
       if (!e || !e.eventId) return;
       map[e.eventId] = e;
     });
+    var S = global.OFFGRD_CALLER_SIDE;
     return Object.keys(map).map(function (k) {
-      return map[k];
+      var e = map[k];
+      return S && S.normalizeEventSide ? S.normalizeEventSide(e) || e : e;
     });
   }
 
@@ -445,7 +450,14 @@
     try {
       var x = localStorage.getItem(key || STORE_KEY);
       if (!x) return null;
-      return JSON.parse(x);
+      var st = JSON.parse(x);
+      var S = global.OFFGRD_CALLER_SIDE;
+      if (st && Array.isArray(st.events) && S && S.normalizeEventSide) {
+        st.events.forEach(function (e) {
+          S.normalizeEventSide(e);
+        });
+      }
+      return st;
     } catch (e) {
       return null;
     }
@@ -474,7 +486,6 @@
         type: "call",
         side: migSide,
         payload: {
-          side: migSide,
           sitTxt: l.sitTxt,
           play: l.play,
           dn: l.dn,
@@ -504,7 +515,7 @@
           playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
           type: "outcome",
           side: migSide,
-          payload: { result: l.result, side: migSide },
+          payload: { result: l.result },
           deviceId: device,
           actorId: actorId || null,
           clientTs: (l.ts || Date.now()) + 1,

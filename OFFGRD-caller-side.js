@@ -3,8 +3,9 @@
  *   O Caller records OUR OFFENSE against THEIR DEFENSE.
  *   D Caller records OUR DEFENSE against THEIR OFFENSE.
  *
- * Event payload.side is required: "offense" | "defense".
- * An event that cannot name its side is not written.
+ * Event.side is required at the top level: "offense" | "defense".
+ * An event that cannot name its side is not written. Do not bury side
+ * on payload — two locations is how sync sent null and 400'd the batch.
  *
  * Season corpus (do not add a fourth bucket):
  *   ours = our offense
@@ -56,17 +57,64 @@
 
   function eventSide(ev) {
     if (!ev) return null;
-    var p = ev.payload || ev;
-    if (isEventSide(p.side)) return p.side;
-    if (isEventSide(ev.side)) return ev.side;
-    return null;
+    return isEventSide(ev.side) ? ev.side : null;
   }
 
-  function stampPayload(payload, side) {
+  /**
+   * Lift legacy payload.side onto the event (once). After this, eventSide
+   * and the sync mapper read top-level only. Does not invent a side.
+   */
+  function normalizeEventSide(ev) {
+    if (!ev) return ev;
+    if (isEventSide(ev.side)) return ev;
+    var p = ev.payload;
+    if (p && isEventSide(p.side)) ev.side = p.side;
+    return ev;
+  }
+
+  /**
+   * Stamp side on the event (top-level). Never writes payload.side.
+   * Bare play-field objects are returned unchanged — side belongs on the event.
+   */
+  function stampPayload(obj, side) {
     var s = requireEventSide(side);
-    var out = Object.assign({}, payload || {});
+    var out = Object.assign({}, obj || {});
+    var isEvent = !!(out.eventId || (out.payload && typeof out.payload === "object" &&
+      (out.type === "call" || out.type === "outcome" || out.type === "observation" ||
+        out.type === "correction" || out.type === "undo" || out.type === "resolve_collision")));
+    if (!isEvent) {
+      if (Object.prototype.hasOwnProperty.call(out, "side")) delete out.side;
+      return out;
+    }
     out.side = s;
+    if (out.payload && Object.prototype.hasOwnProperty.call(out.payload, "side")) {
+      var p = Object.assign({}, out.payload);
+      delete p.side;
+      out.payload = p;
+    }
     return out;
+  }
+
+  /** Cloud caller_events insert row. Null if the event has no side — never send null. */
+  function eventToSyncRow(e, teamId) {
+    if (!e || !e.eventId) return null;
+    normalizeEventSide(e);
+    var side = eventSide(e);
+    if (!isEventSide(side)) return null;
+    return {
+      event_id: e.eventId,
+      team_id: teamId,
+      game_id: e.gameId,
+      play_index: e.playIndex,
+      type: e.type,
+      payload: e.payload || {},
+      device_id: e.deviceId,
+      actor_id: e.actorId || null,
+      client_ts: e.clientTs,
+      seq: e.seq,
+      superseded: !!e.superseded,
+      side: side,
+    };
   }
 
   function playbookNameSet(playbookNames) {
@@ -95,6 +143,7 @@
   function filterEventsBySide(events, want) {
     var s = requireEventSide(want);
     return (events || []).filter(function (e) {
+      normalizeEventSide(e);
       return eventSide(e) === s;
     });
   }
@@ -311,7 +360,9 @@
     requireEventSide: requireEventSide,
     eventSideToSeasonSide: eventSideToSeasonSide,
     eventSide: eventSide,
+    normalizeEventSide: normalizeEventSide,
     stampPayload: stampPayload,
+    eventToSyncRow: eventToSyncRow,
     assertEventAllowed: assertEventAllowed,
     filterEventsBySide: filterEventsBySide,
     filterLogBySide: filterLogBySide,

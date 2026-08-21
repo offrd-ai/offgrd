@@ -77,7 +77,7 @@
     opts = opts || {};
     if (next !== "guided" && next !== "expert") return skill;
     skill = next;
-    lsSet(SKILL_KEY, skill);
+    if (opts.persist !== false) lsSet(SKILL_KEY, skill);
     try {
       if (H && H.onSkillChange) H.onSkillChange(skill);
     } catch (e) {}
@@ -101,6 +101,17 @@
       }
     }
     return skill;
+  }
+
+  function reevaluateSkill() {
+    /* Cloud hydrate landed: a user with plays is not a novice.
+       Only ever escalates guided→expert; never the reverse.
+       Never fires if the user chose a mode (saved pref) or is mid-wizard. */
+    if (lsGet(SKILL_KEY)) return skill;
+    if (skill !== "guided") return skill;
+    if (WZ && WZ.i > 0) return skill;
+    try { if (!(H && H.libCount && H.libCount() > 0)) return skill; } catch (e) { return skill; }
+    return setSkill("expert");
   }
 
   function chips(items, current, onpick) {
@@ -1333,15 +1344,19 @@
     skill = defaultSkill();
     /* Opp-card shell edit skips Guided "How do you want to start?" — land on the draft. */
     const skipGuided = fromOppCard();
-    document.body.classList.toggle("skill-guided", skill === "guided" && !skipGuided);
-    document.body.classList.toggle("skill-expert", skill === "expert" || skipGuided);
+    if (skipGuided) {
+      setSkill("expert", { persist: false });
+    } else {
+      document.body.classList.toggle("skill-guided", skill === "guided");
+      document.body.classList.toggle("skill-expert", skill === "expert");
+    }
 
     const g = document.getElementById("skillGuided");
     const e = document.getElementById("skillExpert");
     if (g) g.onclick = function () { setSkill("guided"); };
     if (e) e.onclick = function () { setSkill("expert"); };
-    if (g) g.classList.toggle("on", skill === "guided" && !skipGuided);
-    if (e) e.classList.toggle("on", skill === "expert" || skipGuided);
+    if (g) g.classList.toggle("on", skill === "guided");
+    if (e) e.classList.toggle("on", skill === "expert");
 
     const back = document.getElementById("wizDockBack");
     const next = document.getElementById("wizDockNext");
@@ -1355,7 +1370,7 @@
 
     const dock = document.getElementById("wizDock");
     if (dock) {
-      if (skill === "guided" && !skipGuided) {
+      if (skill === "guided") {
         dock.style.display = "block";
         open({ quiet: true });
       } else {
@@ -1371,6 +1386,7 @@
     close: close,
     setSkill: setSkill,
     getSkill: getSkill,
+    reevaluateSkill: reevaluateSkill,
     autoBuildTests: autoBuildTests,
     OFF_TEMPLATES: OFF_TEMPLATES,
     DEF_TEMPLATES: DEF_TEMPLATES,

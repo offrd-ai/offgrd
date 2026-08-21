@@ -896,33 +896,46 @@ export const Cloud = {
         seq: r.seq,
         superseded: !!r.superseded,
         teamId: r.team_id,
-        side: r.side === "defense" ? "defense" : r.side === "offense" ? "offense" : ((r.payload && r.payload.side) === "defense" ? "defense" : (r.payload && r.payload.side) === "offense" ? "offense" : null),
+        side: r.side === "defense" ? "defense" : r.side === "offense" ? "offense" : null,
       };
     });
   },
   /** Idempotent upsert on event_id — safe to retry after press-box drops. */
   async appendCallerEvents(teamId, events) {
     if (!OG || !teamId || !events || !events.length) return [];
-    const rows = events.map(function (e) {
-      return {
-        event_id: e.eventId,
-        team_id: teamId,
-        game_id: e.gameId,
-        play_index: e.playIndex,
-        type: e.type,
-        payload: e.payload || {},
-        device_id: e.deviceId,
-        actor_id: e.actorId || null,
-        client_ts: e.clientTs,
-        seq: e.seq,
-        superseded: !!e.superseded,
-        side: e.side === "defense" || (e.payload && e.payload.side === "defense")
-          ? "defense"
-          : e.side === "offense" || (e.payload && e.payload.side === "offense")
-            ? "offense"
-            : null,
-      };
+    const Sync = typeof window !== "undefined" ? window.OFFGRD_CALLER_SYNC_ENGINE : null;
+    const Side = typeof window !== "undefined" ? window.OFFGRD_CALLER_SIDE : null;
+    const toRow = (Sync && Sync.eventToSyncRow) || (Side && Side.eventToSyncRow);
+    const rows = [];
+    let skippedNoSide = 0;
+    events.forEach(function (e) {
+      const row = toRow
+        ? toRow(e, teamId)
+        : (e && e.eventId && (e.side === "offense" || e.side === "defense")
+          ? {
+              event_id: e.eventId,
+              team_id: teamId,
+              game_id: e.gameId,
+              play_index: e.playIndex,
+              type: e.type,
+              payload: e.payload || {},
+              device_id: e.deviceId,
+              actor_id: e.actorId || null,
+              client_ts: e.clientTs,
+              seq: e.seq,
+              superseded: !!e.superseded,
+              side: e.side,
+            }
+          : null);
+      if (row && row.side) rows.push(row);
+      else skippedNoSide += 1;
     });
+    if (skippedNoSide) {
+      try {
+        console.warn("[Cloud.appendCallerEvents] skip", skippedNoSide, "events with no side");
+      } catch (eSkip) {}
+    }
+    if (!rows.length) return [];
     const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");
     if (error) throw error;
     return data || [];
