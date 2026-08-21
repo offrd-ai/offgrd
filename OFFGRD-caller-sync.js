@@ -74,20 +74,48 @@
     } catch (e) {}
   }
 
-  function markSynced(side, eventIds) {
-    if (!side || !eventIds || !eventIds.length) return;
-    var map = loadSyncedMap();
-    if (!map[side]) map[side] = {};
-    var held = loadHeldMap();
-    if (held[side]) {
-      for (var i = 0; i < eventIds.length; i++) {
-        if (eventIds[i]) delete held[side][eventIds[i]];
+  function isSideBucket(k) {
+    return k === "offense" || k === "defense";
+  }
+
+  /** Every accepted event id lives at the top level so a census of the key moves. */
+  function allSyncedIds(map) {
+    var ids = Object.create(null);
+    var raw = map || loadSyncedMap();
+    Object.keys(raw).forEach(function (k) {
+      if (isSideBucket(k)) {
+        var nest = raw[k];
+        if (nest && typeof nest === "object") {
+          Object.keys(nest).forEach(function (id) {
+            if (id) ids[id] = 1;
+          });
+        }
+        return;
       }
-      saveHeldMap(held);
+      if (k) ids[k] = 1;
+    });
+    return ids;
+  }
+
+  function listSyncedIds() {
+    return Object.keys(allSyncedIds());
+  }
+
+  function markSynced(side, eventIds) {
+    if (!eventIds || !eventIds.length) return;
+    var map = loadSyncedMap();
+    if (side && (!map[side] || typeof map[side] !== "object" || Array.isArray(map[side]))) {
+      map[side] = {};
     }
+    var held = loadHeldMap();
     for (var j = 0; j < eventIds.length; j++) {
-      if (eventIds[j]) map[side][eventIds[j]] = 1;
+      var id = eventIds[j];
+      if (!id) continue;
+      map[id] = 1;
+      if (side) map[side][id] = 1;
+      if (side && held[side] && held[side][id]) delete held[side][id];
     }
+    if (side && held[side]) saveHeldMap(held);
     saveSyncedMap(map);
   }
 
@@ -111,9 +139,10 @@
   }
 
   function isSynced(side, eventId) {
-    if (!side || !eventId) return false;
+    if (!eventId) return false;
     var map = loadSyncedMap();
-    return !!(map[side] && map[side][eventId]);
+    if (map[eventId]) return true;
+    return !!(side && map[side] && typeof map[side] === "object" && map[side][eventId]);
   }
 
   function heldCount(side, events) {
@@ -203,6 +232,12 @@
   function clearSyncedSide(side) {
     if (!side) return;
     var map = loadSyncedMap();
+    var nested = map[side];
+    if (nested && typeof nested === "object") {
+      Object.keys(nested).forEach(function (id) {
+        delete map[id];
+      });
+    }
     delete map[side];
     saveSyncedMap(map);
     var held = loadHeldMap();
@@ -268,11 +303,11 @@
   }
 
   function pendingEvents(side, events) {
-    var map = loadSyncedMap();
-    var done = map[side] || {};
     var out = [];
     (events || []).forEach(function (e) {
-      if (e && e.eventId && !done[e.eventId] && !isHeld(side, e.eventId) && eventToSyncRow(e, null)) out.push(e);
+      if (e && e.eventId && !isSynced(side, e.eventId) && !isHeld(side, e.eventId) && eventToSyncRow(e, null)) {
+        out.push(e);
+      }
     });
     return out;
   }
@@ -481,9 +516,16 @@
       opts.applyRemote(merged, game, sess);
     }
 
+    if (remote.length) {
+      markSynced(
+        side,
+        remote.map(function (e) {
+          return e && e.eventId;
+        }).filter(Boolean)
+      );
+    }
     var pending = pendingEvents(side, merged);
-    /* Also push any already-synced that gained superseded flag — full list is safe (idempotent). */
-    var toPush = merged.length ? merged : pending;
+    var toPush = pending;
     var syncable = [];
     var skippedNoSide = 0;
     (toPush || []).forEach(function (e) {
@@ -618,6 +660,9 @@
     subscribe: subscribe,
     isSyncing: isSyncing,
     markSynced: markSynced,
+    listSyncedIds: listSyncedIds,
+    isSynced: isSynced,
+    SYNCED_KEY: SYNCED_KEY,
     markHeld: markHeld,
     isHeld: isHeld,
     heldCount: heldCount,

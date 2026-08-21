@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=312";
-import { openAuthModal } from "./OFFGRD-auth.js?v=312";
+import { Cloud } from "./OFFGRD-cloud.js?v=313";
+import { openAuthModal } from "./OFFGRD-auth.js?v=313";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -164,8 +164,8 @@ function bar(user){
   acct.innerHTML =
     '<span style="color:#5b626e;font-size:12px;margin-right:6px">'+user.email+'</span>'+ badge +
     ' <button class="cbtn" id="cteam">Team</button>'+
-    ((SYNCABLE && canEdit()) ? ' <button class="cbtn" id="cs">Sync â†‘</button>' : '')+
-    (SYNCABLE ? ' <button class="cbtn" id="cd">Load â†“</button>' : '')+
+    ((SYNCABLE && canEdit()) ? ' <button class="cbtn" id="cs">Sync &uarr;</button>' : '')+
+    (SYNCABLE ? ' <button class="cbtn" id="cd">Load &darr;</button>' : '')+
     (SYNCABLE ? ' <span id="syncstat" style="font-size:11px;color:#9aa4b2;font-weight:700;margin-left:2px"></span>' : '')+
     ' <button class="cbtn" id="co">Sign out</button>';
   styleBtns();
@@ -1069,7 +1069,7 @@ try{
   window.OFFGRD_LOAD_TOMBSTONES=loadTombstones;
 }catch(e){}
 
-/** Indexed localâ†”cloud reconcile — O(n) Maps, no nested scans, no full JSON.stringify. */
+/** Indexed local/cloud reconcile — O(n) Maps, no nested scans, no full JSON.stringify. */
 function mergePlaybook(cloudRows, local){
   const cloud = (cloudRows||[]).map(r=>Object.assign({}, r.data||{}, {cid:r.id, name:r.name||((r.data&&r.data.name)||"")}));
   const byId=new Map(), byKey=new Map();
@@ -1131,7 +1131,7 @@ async function pull(silent){
           else A.set(next);
         }
       }
-      /* Playbook: never native alert() on Load â†“ — it hard-blocks the renderer. */
+      /* Playbook: never native alert() on Load down — it hard-blocks the renderer. */
       if(!silent && A.kind!=="playbook") alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
@@ -1329,7 +1329,7 @@ async function renderTeam(){
   const copy=el('<button class="ogm-b">Copy</button>'); copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} }; codeRow.appendChild(copy);
   if(isAdmin()){ const rot=el('<button class="ogm-b">New code</button>'); rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ alert(e.message);} }; codeRow.appendChild(rot); }
   codeSec.appendChild(codeRow);
-  codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches — they sign up, then enter it under â€œJoin a programâ€. New members join as Player; change roles below.</p>'));
+  codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches — they sign up, then enter it under &ldquo;Join a program&rdquo;. New members join as Player; change roles below.</p>'));
   body.appendChild(codeSec);
 
   // admin: invite + pending + roster ; non-admin: roster read-only
@@ -1442,7 +1442,7 @@ function obCoachDone(){
    +linkNote
    +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
-   +'<p class="ogm-note">They sign up, tap â€œI’m a playerâ€, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
+   +'<p class="ogm-note">They sign up, tap &ldquo;I&rsquo;m a player&rdquo;, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours — logo &amp; colors</div>'
    +'<div class="ogm-row" style="align-items:center;margin-top:6px">'
    +'<span id="obCrest" style="display:inline-flex;width:42px;height:42px;border-radius:9px;align-items:center;justify-content:center;font-weight:900;font-size:13px;overflow:hidden;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span>'
@@ -1715,8 +1715,8 @@ function obPlayerDone(ps, gy){
   const b=ensureOB().querySelector("#obBody"); markOB();
   const gyLine = gy ? ' · Class of <b style="color:#13294B">'+esc(gy)+'</b>' : '';
   b.innerHTML='<p class="ogm-note" style="font-size:14px">Locked in: <b style="color:#13294B">'+esc(ps)+'</b>'+gyLine+' \u2713 — recruiting profile seeded.</p>'
-   +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>â–¶ Snap</b>, watch it develop, make your read. Or open <b>Recruiting</b> to finish your profile.</p></div>'
-   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html#train" style="text-decoration:none;display:inline-flex;align-items:center">â–¶ Take your first reps</a><button class="ogm-b" id="obDone2">Later</button></div>';
+   +'<div class="ogm-sec"><div class="ogm-lbl">Right now</div><p class="ogm-note">The play freezes pre-snap. Read the defense, hit <b>&#9654; Snap</b>, watch it develop, make your read. Or open <b>Recruiting</b> to finish your profile.</p></div>'
+   +'<div class="ogm-row" style="margin-top:12px;justify-content:flex-end"><a class="ogm-b go" href="OFFGRD-QB.html#train" style="text-decoration:none;display:inline-flex;align-items:center">&#9654; Take your first reps</a><button class="ogm-b" id="obDone2">Later</button></div>';
   b.querySelector("#obDone2").onclick=()=>{ obEl.classList.remove("show"); };
 }
 

@@ -6,6 +6,11 @@
  *   node scripts/check-mojibake-labels.cjs
  *
  * Targeted UI-label casualties only — not a blind whole-file mojibake pass.
+ *
+ * Also the v313 class: UTF-8 read as Latin-1 / cp1252
+ *   â€  (U+00E2 U+20AC)  curly quotes, dashes, ellipsis
+ *   â†  (U+00E2 U+2020)  arrows  ↑↓→←
+ *   â–  (U+00E2 U+2013)  ▶ / geometric
  */
 "use strict";
 const fs = require("fs");
@@ -15,7 +20,11 @@ const FILES = [
   "OFFGRD-Playbook.html",
   "OFFGRD.html",
   "OFFGRD-QB.html",
-  "index.html"
+  "index.html",
+  "OFFGRD-account.js",
+  "OFFGRD-auth.js",
+  "OFFGRD-dcaller.js",
+  "OFFGRD-redesign.js"
 ];
 const PATTERNS = [
   [/\? Play\s*</, "? Play"],
@@ -27,8 +36,26 @@ const PATTERNS = [
   [/Run blocks \?/, "Run blocks ?"],
   [/\? this week/, "? this week"],
   [/\? Plan this week/, "? Plan this week"],
-  [/A\?Z/, "A?Z"]
+  [/A\?Z/, "A?Z"],
+  [/\u00e2\u20ac/, "â€ (UTF-8 punctuation read as Latin-1)"],
+  [/\u00e2\u2020/, "â† (UTF-8 arrow read as Latin-1)"],
+  [/\u00e2\u2013/, "â– (UTF-8 triangle read as Latin-1)"]
 ];
+
+(function assertDoubleEncGate() {
+  const arrow = "Sync \u00e2\u2020\u2018";
+  const quote = "\u00e2\u20ac\u0153Join";
+  const tri = "\u00e2\u2013\u00b6 Snap";
+  if (!PATTERNS[PATTERNS.length - 2][0].test(arrow)) {
+    throw new Error("double-enc gate missed â†");
+  }
+  if (!PATTERNS[PATTERNS.length - 3][0].test(quote)) {
+    throw new Error("double-enc gate missed â€");
+  }
+  if (!PATTERNS[PATTERNS.length - 1][0].test(tri)) {
+    throw new Error("double-enc gate missed â–");
+  }
+})();
 
 /** Real questions — do not treat a trailing "?" as an eaten ellipsis. */
 const QUESTION_ALLOW = [

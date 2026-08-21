@@ -285,6 +285,70 @@ function evAt(id, seq) {
   );
   check("network error is not a row fault", !Sync.isRowFault({ message: "Failed to fetch" }));
 
+  function topLevelEventIds() {
+    const raw = JSON.parse(sandbox.localStorage.getItem(Sync.SYNCED_KEY) || "{}");
+    return Object.keys(raw).filter(function (k) {
+      return k !== "offense" && k !== "defense";
+    });
+  }
+
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, JSON.stringify({ "legacy-a": 1, "legacy-b": 1 }));
+  const fixture = [evAt("n1", 21), evAt("n2", 22), evAt("n3", 23)];
+  let pushedRows = 0;
+  sandbox.OFFGRD_CALLER_BRIDGE = {
+    getTeamId: function () {
+      return "team-1";
+    },
+    canSync: function () {
+      return true;
+    },
+    getActorId: function () {
+      return "actor";
+    },
+    cloud: {
+      ensureCallerGame: async function () {
+        return { id: "g" };
+      },
+      listCallerEvents: async function () {
+        return [];
+      },
+      appendCallerEvents: async function (_tid, chunk) {
+        pushedRows += (chunk || []).length;
+        return (chunk || []).map(function (e) {
+          return { event_id: e.eventId };
+        });
+      },
+    },
+  };
+  const flushOpts = {
+    side: "offense",
+    getState: function () {
+      return { session: { gameId: "g" }, events: fixture };
+    },
+  };
+  const beforeN = topLevelEventIds().length;
+  const first = await Sync.flush(flushOpts);
+  const afterIds = topLevelEventIds();
+  check("flush records every accepted id on the ledger", !!(first && first.ok) && afterIds.indexOf("n1") >= 0 && afterIds.indexOf("n2") >= 0 && afterIds.indexOf("n3") >= 0);
+  check("ledger grows by the number of rows accepted", afterIds.length === beforeN + 3 && pushedRows === 3);
+  const pushedAfterFirst = pushedRows;
+  const second = await Sync.flush(flushOpts);
+  check(
+    "second sync of the same batch is a no-op",
+    !!(second && second.ok) && pushedRows === pushedAfterFirst && Sync.pendingCount("offense", fixture) === 0
+  );
+
+  sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+  pushedRows = 0;
+  sandbox.OFFGRD_CALLER_BRIDGE.cloud.listCallerEvents = async function () {
+    return fixture;
+  };
+  await Sync.flush(flushOpts);
+  check(
+    "already-on-cloud rows advance the ledger without a re-push",
+    topLevelEventIds().length === 3 && pushedRows === 0
+  );
+
   if (fails) {
     console.error(fails + " failed");
     process.exit(1);
