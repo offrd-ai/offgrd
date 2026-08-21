@@ -26,8 +26,8 @@ function uniq(a) {
   return [...new Set(a)];
 }
 
-/** Mirror of callerEntryToRow (must stay in sync with OFFGRD.html). */
-function callerEntryToRow(l) {
+/** Mirror of callerEntryToRow (must stay in sync with OFFGRD.html). Side required in prod. */
+function callerEntryToRow(l, side) {
   const down = +l.dn || 1;
   const distance = dbToNum(l.db);
   const success = l.result === "hit" ? 1 : l.result === "miss" ? 0 : null;
@@ -59,6 +59,7 @@ function callerEntryToRow(l) {
     callId: l.id || null,
     gameWeek: l.gameWeek || null,
     qtr: "",
+    side: side === "defense" ? "def" : "ours",
   };
 }
 
@@ -122,7 +123,7 @@ const entry = {
   date: "2026-07-24",
   signal: 12,
 };
-const liveRow = callerEntryToRow(entry);
+const liveRow = callerEntryToRow(entry, "offense");
 const liveKeys = Object.keys(liveRow)
   .filter((k) => SCOUT_OURS_KEYS.includes(k))
   .sort();
@@ -143,7 +144,7 @@ CALLER_DB_BUCKETS.forEach((db) => {
 ["short", "long", "", undefined, null, "ANY", "11+", "3"].forEach((bad) => {
   if (dbToNum(bad) != null) throw new Error("dbToNum must be null for " + JSON.stringify(bad));
 });
-const unbucketed = callerEntryToRow(Object.assign({}, entry, { db: "short", id: "c_bad" }));
+const unbucketed = callerEntryToRow(Object.assign({}, entry, { db: "short", id: "c_bad" }), "offense");
 if (unbucketed.distance != null) throw new Error("unrecognised db must leave distance null");
 const mB = (r, db) => db === "ANY" || (r.distance != null && distBucket(r.distance) === db);
 if (mB(unbucketed, "10+") || mB(unbucketed, "1-3")) {
@@ -206,7 +207,7 @@ console.log(
 );
 
 // ungraded must not move the math
-const pending = callerEntryToRow(Object.assign({}, entry, { result: null, id: "c_pend" }));
+const pending = callerEntryToRow(Object.assign({}, entry, { result: null, id: "c_pend" }), "offense");
 const withPending = scout.concat([pending]);
 const mid = bestCallsFor(withPending, "Cover 3", 1, "10+", "Run").find(
   (x) => x.play === "KARATE COMBO"
@@ -217,7 +218,7 @@ if (mid.n !== 2 || Math.round(mid.sr * 100) !== 50) {
 console.log("OK ungraded success:null excluded from bestCallsFor");
 
 // Slice 2: untouched front/pressure → null; bestCallsFor unchanged when obs fields present
-const bare = callerEntryToRow(Object.assign({}, entry, { front: null, pressure: null, id: "c_bare" }));
+const bare = callerEntryToRow(Object.assign({}, entry, { front: null, pressure: null, id: "c_bare" }), "offense");
 if (bare.front != null || bare.pressure != null) throw new Error("untouched must be null");
 const decorated = afterPool.map((r) =>
   Object.assign({}, r, { front: "Nickel", pressure: "mike-a", frontCarried: true, pressureCarried: false })
@@ -300,7 +301,7 @@ const graded = [
 ];
 const foldOk = C.foldCallerEvents(graded);
 if (foldOk.log.length !== 2) throw new Error("expected 2 HOUSTON calls in fold");
-const rowsBefore = foldOk.log.map((l) => callerEntryToRow(l));
+const rowsBefore = foldOk.log.map((l) => callerEntryToRow(l, "offense"));
 const oursBefore = scout.concat(rowsBefore);
 const bcBefore = bestCallsFor(oursBefore, "Cover 3", 1, "10+", "Run");
 const hBefore = bcBefore.find((x) => x.play === "HOUSTON");
@@ -312,7 +313,7 @@ const foldUndo = C.foldCallerEvents(
 if (foldUndo.log.length !== 1 || foldUndo.log[0].playIndex !== 0) {
   throw new Error("undo last HOUSTON should leave one: " + JSON.stringify(foldUndo.log));
 }
-const rowsAfterUndo = foldUndo.log.map((l) => callerEntryToRow(l));
+const rowsAfterUndo = foldUndo.log.map((l) => callerEntryToRow(l, "offense"));
 const oursAfterUndo = scout.concat(rowsAfterUndo);
 const bcAfterUndo = bestCallsFor(oursAfterUndo, "Cover 3", 1, "10+", "Run");
 /* n=1 left → drops below bestCallsFor threshold; HOUSTON gone from suggestions */

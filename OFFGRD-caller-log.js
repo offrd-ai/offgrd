@@ -9,7 +9,55 @@
   /** Same play name within this window → one call (fat-finger / unregistered tap). Fold-enforced. */
   var DEDUP_MS = 3000;
   var STORE_KEY = "offgrd_caller_events_v2";
+  var DCALLER_STORE_KEY = "offgrd_dcaller_events_v2";
   var DEVICE_KEY = "offgrd_device_id";
+
+  function eventSideOf(e) {
+    var S = global.OFFGRD_CALLER_SIDE;
+    if (S && S.eventSide) return S.eventSide(e);
+    var p = e && e.payload;
+    if (p && (p.side === "offense" || p.side === "defense")) return p.side;
+    if (e && (e.side === "offense" || e.side === "defense")) return e.side;
+    return null;
+  }
+
+  function slotKey(e, foldSide) {
+    return (eventSideOf(e) || foldSide || "_") + ":" + e.playIndex;
+  }
+
+  /**
+   * Required side on every event. Unset / bad side throws — do not default.
+   */
+  function buildEvent(opts) {
+    opts = opts || {};
+    var S = global.OFFGRD_CALLER_SIDE;
+    var payload = Object.assign({}, opts.payload || {});
+    var raw = opts.side != null ? opts.side : payload.side;
+    var side;
+    if (S && S.requireEventSide) {
+      side = S.requireEventSide(raw);
+    } else if (raw === "offense" || raw === "defense") {
+      side = raw;
+    } else {
+      throw new Error(
+        "caller event side required: expected \"offense\" or \"defense\", got " + JSON.stringify(raw)
+      );
+    }
+    payload.side = side;
+    return {
+      eventId: opts.eventId || uuid(),
+      gameId: opts.gameId,
+      playIndex: opts.playIndex,
+      type: opts.type,
+      payload: payload,
+      deviceId: opts.deviceId,
+      actorId: opts.actorId,
+      clientTs: opts.clientTs != null ? opts.clientTs : Date.now(),
+      seq: opts.seq,
+      superseded: !!opts.superseded,
+      side: side,
+    };
+  }
 
   function uuid() {
     try {
@@ -49,13 +97,27 @@
    * Dual calls at same playIndex from different devices → keep earlier,
    * mark later superseded, surface collision until resolve_collision.
    */
-  function foldCallerEvents(events) {
+  function foldCallerEvents(events, opts) {
+    opts = opts || {};
+    var want = opts.side || null;
+    var S = global.OFFGRD_CALLER_SIDE;
+    if (want) {
+      if (S && S.requireEventSide) want = S.requireEventSide(want);
+      else if (want !== "offense" && want !== "defense") {
+        throw new Error("foldCallerEvents: side must be \"offense\" or \"defense\"");
+      }
+      events = (events || []).filter(function (e) {
+        var got = eventSideOf(e);
+        if (got) return got === want;
+        return e && e.type && e.type !== "call";
+      });
+    }
     var sorted = sortEvents(events);
     var byPlay = Object.create(null);
     var superseded = Object.create(null);
     var collisions = [];
     var resolved = Object.create(null);
-    var i, e, slot, other, keep, drop, c;
+    var i, e, slot, other, keep, drop, c, skey;
 
     for (i = 0; i < sorted.length; i++) {
       e = sorted[i];
@@ -111,9 +173,10 @@
           }
         }
 
-        slot = byPlay[e.playIndex];
+        skey = slotKey(e, want);
+        slot = byPlay[skey];
         if (!slot || !slot.call) {
-          byPlay[e.playIndex] = {
+          byPlay[skey] = {
             call: e,
             outcome: slot && slot.outcome ? slot.outcome : null,
             obs: slot && slot.obs ? slot.obs : null,
@@ -144,9 +207,10 @@
         continue;
       }
       if (e.type === "outcome") {
-        slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, undone: false };
+        skey = slotKey(e, want);
+        slot = byPlay[skey] || { call: null, outcome: null, obs: null, undone: false };
         slot.outcome = e; /* LWW */
-        byPlay[e.playIndex] = slot;
+        byPlay[skey] = slot;
         continue;
       }
       /* observation = front/pressure about the snap; correction may also carry those fields.
@@ -154,7 +218,8 @@
        * Protects a human amend from a later offline sticky-carry sync.
        * correction also LWW-patches call situation/play (dn/db/hash/zone/play) — never mutates events. */
       if (e.type === "observation" || e.type === "correction") {
-        slot = byPlay[e.playIndex] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
+        skey = slotKey(e, want);
+        slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
           var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection"];
@@ -218,11 +283,11 @@
             }
           }
         }
-        byPlay[e.playIndex] = slot;
+        byPlay[skey] = slot;
         continue;
       }
       if (e.type === "undo") {
-        slot = byPlay[e.playIndex];
+        slot = byPlay[slotKey(e, want)];
         if (slot) {
           slot.undone = true;
           if (slot.call) superseded[slot.call.eventId] = true;
@@ -238,23 +303,23 @@
       }
     }
 
-    var indexes = Object.keys(byPlay)
-      .map(Number)
-      .filter(function (n) {
-        return !isNaN(n);
-      })
-      .sort(function (a, b) {
-        return a - b;
-      });
+    var slotKeys = Object.keys(byPlay).sort(function (a, b) {
+      var pa = byPlay[a] && byPlay[a].call ? byPlay[a].call.playIndex : Number(String(a).split(":").pop());
+      var pb = byPlay[b] && byPlay[b].call ? byPlay[b].call.playIndex : Number(String(b).split(":").pop());
+      if (pa !== pb) return (pa || 0) - (pb || 0);
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
 
     var log = [];
     var rows = [];
     var activity = [];
+    var indexNums = [];
 
-    indexes.forEach(function (pi) {
-      slot = byPlay[pi];
+    slotKeys.forEach(function (key) {
+      slot = byPlay[key];
       if (!slot || !slot.call || slot.undone) return;
       if (superseded[slot.call.eventId]) return;
+      var pi = slot.call.playIndex;
       var base = slot.call.payload || {};
       var patch = slot.sitPatch || {};
       var p = Object.assign({}, base, patch);
@@ -291,9 +356,11 @@
         p.situationInferred === true || p.situationInferred === false
           ? !!p.situationInferred
           : false;
+      var entrySide = eventSideOf(slot.call) || want || null;
       var entry = {
         id: slot.call.eventId,
         playIndex: pi,
+        side: entrySide,
         sitTxt: p.sitTxt || "",
         play: p.play,
         result: fin.result,
@@ -327,6 +394,7 @@
         eventId: slot.call.eventId,
       };
       log.push(entry);
+      if (typeof pi === "number" && !isNaN(pi)) indexNums.push(pi);
       activity.push({
         playIndex: pi,
         play: p.play,
@@ -352,7 +420,7 @@
       collisions: collisions,
       supersededIds: superseded,
       activity: activity,
-      nextPlayIndex: indexes.length ? Math.max.apply(null, indexes) + 1 : 0,
+      nextPlayIndex: indexNums.length ? Math.max.apply(null, indexNums) + 1 : 0,
       sorted: sorted,
     };
   }
@@ -373,9 +441,9 @@
     });
   }
 
-  function loadStore() {
+  function loadStore(key) {
     try {
-      var x = localStorage.getItem(STORE_KEY);
+      var x = localStorage.getItem(key || STORE_KEY);
       if (!x) return null;
       return JSON.parse(x);
     } catch (e) {
@@ -383,9 +451,9 @@
     }
   }
 
-  function saveStore(state) {
+  function saveStore(state, key) {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      localStorage.setItem(key || STORE_KEY, JSON.stringify(state));
     } catch (e) {}
   }
 
@@ -395,6 +463,7 @@
     var events = [];
     var seq = 0;
     var gameId = (session && session.gameId) || uuid();
+    var migSide = session && session.side === "defense" ? "defense" : "offense";
     log.forEach(function (l, idx) {
       seq += 1;
       var callId = l.id && String(l.id).length >= 30 ? l.id : uuid();
@@ -403,7 +472,9 @@
         gameId: gameId,
         playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
         type: "call",
+        side: migSide,
         payload: {
+          side: migSide,
           sitTxt: l.sitTxt,
           play: l.play,
           dn: l.dn,
@@ -432,7 +503,8 @@
           gameId: gameId,
           playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
           type: "outcome",
-          payload: { result: l.result },
+          side: migSide,
+          payload: { result: l.result, side: migSide },
           deviceId: device,
           actorId: actorId || null,
           clientTs: (l.ts || Date.now()) + 1,
@@ -471,10 +543,12 @@
     COLLISION_MS: COLLISION_MS,
     DEDUP_MS: DEDUP_MS,
     STORE_KEY: STORE_KEY,
+    DCALLER_STORE_KEY: DCALLER_STORE_KEY,
     uuid: uuid,
     deviceId: deviceId,
     sortEvents: sortEvents,
     foldCallerEvents: foldCallerEvents,
+    buildEvent: buildEvent,
     mergeEvents: mergeEvents,
     loadStore: loadStore,
     saveStore: saveStore,

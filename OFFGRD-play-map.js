@@ -697,10 +697,16 @@
     var maps = opts.maps != null ? opts.maps : _mapRows;
     var axis = opts.axis;
     var junkN = 0;
+    var leakedDefense = 0;
     var list = (rows || []).filter(function (r) {
       var t = r && String(r.play || "").trim();
       if (!t) return false;
-      if (isPlayTypeToken(t)) { junkN += 1; return false; }
+      if (isPlayTypeToken(t)) {
+        junkN += 1;
+        var tok = normCall(t);
+        if (tok === "pass" || tok === "run" || tok === "run m") leakedDefense += 1;
+        return false;
+      }
       return true;
     });
     var offer = offerFamilies(playbook, maps, list);
@@ -807,6 +813,7 @@
       slice: null,
       resolvedShare: list.length ? familyHits / list.length : 0,
       junkN: junkN,
+      leakedDefense: leakedDefense,
     };
   }
 

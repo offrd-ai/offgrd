@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v308: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v309: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -335,10 +335,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=308"></script>
-<script src="OFFGRD-brand-persist.js?v=308"></script>
-<script src="supabase.js?v=308"></script>
-<script src="OFFGRD-cache-gate.js?v=308"></script>
+<script src="OFFGRD-config.js?v=309"></script>
+<script src="OFFGRD-brand-persist.js?v=309"></script>
+<script src="supabase.js?v=309"></script>
+<script src="OFFGRD-cache-gate.js?v=309"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -380,38 +380,39 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=308"></script>
-<script src="OFFGRD-pos-glossary.js?v=308"></script>
-<script src="OFFGRD-autoderive.js?v=308"></script>
-<script src="OFFGRD-matchup.js?v=308"></script>
-<script src="OFFGRD-scoutcards.js?v=308"></script>
-<script src="OFFGRD-tendencies.js?v=308"></script>
-<script src="OFFGRD-scout-report.js?v=308"></script>
-<script src="OFFGRD-week-autotest.js?v=308"></script>
-<script src="OFFGRD-weeklypackage.js?v=308"></script>
-<script src="OFFGRD-telestrate.js?v=308"></script>
-<script src="OFFGRD-redesign.js?v=308"></script>
-<script src="OFFGRD-shell.js?v=308"></script>
-<script src="OFFGRD-caller-outcome.js?v=308"></script>
-<script src="OFFGRD-caller-sit.js?v=308"></script>
-<script src="OFFGRD-formations-data.js?v=308"></script>
-<script src="OFFGRD-formation-canon.js?v=308"></script>
-<script src="OFFGRD-assist-import.js?v=308"></script>
-<script src="OFFGRD-schedule-import.js?v=308"></script>
-<script src="OFFGRD-opp-shells.js?v=308"></script>
-<script src="OFFGRD-formation-map.js?v=308"></script>
-<script src="OFFGRD-play-map.js?v=308"></script>
-<script src="OFFGRD-cv-review.js?v=308"></script>
-<script src="OFFGRD-frame-capture.js?v=308"></script>
-<script src="OFFGRD-caller-log.js?v=308"></script>
-<script src="OFFGRD-caller-sync.js?v=308"></script>
-<script src="OFFGRD-caller-analysis.js?v=308"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=308"></script>
-<script src="OFFGRD-booth-ask.js?v=308"></script>
-<script src="OFFGRD-boothpack.js?v=308"></script>
-<script src="OFFGRD-booth-chat.js?v=308"></script>
-<script src="OFFGRD-caller-select.js?v=308"></script>
-<script src="OFFGRD-dcaller.js?v=308"></script>
+<script src="OFFGRD-render.js?v=309"></script>
+<script src="OFFGRD-pos-glossary.js?v=309"></script>
+<script src="OFFGRD-autoderive.js?v=309"></script>
+<script src="OFFGRD-matchup.js?v=309"></script>
+<script src="OFFGRD-scoutcards.js?v=309"></script>
+<script src="OFFGRD-tendencies.js?v=309"></script>
+<script src="OFFGRD-scout-report.js?v=309"></script>
+<script src="OFFGRD-week-autotest.js?v=309"></script>
+<script src="OFFGRD-weeklypackage.js?v=309"></script>
+<script src="OFFGRD-telestrate.js?v=309"></script>
+<script src="OFFGRD-redesign.js?v=309"></script>
+<script src="OFFGRD-shell.js?v=309"></script>
+<script src="OFFGRD-caller-outcome.js?v=309"></script>
+<script src="OFFGRD-caller-sit.js?v=309"></script>
+<script src="OFFGRD-formations-data.js?v=309"></script>
+<script src="OFFGRD-formation-canon.js?v=309"></script>
+<script src="OFFGRD-assist-import.js?v=309"></script>
+<script src="OFFGRD-schedule-import.js?v=309"></script>
+<script src="OFFGRD-opp-shells.js?v=309"></script>
+<script src="OFFGRD-formation-map.js?v=309"></script>
+<script src="OFFGRD-play-map.js?v=309"></script>
+<script src="OFFGRD-cv-review.js?v=309"></script>
+<script src="OFFGRD-frame-capture.js?v=309"></script>
+<script src="OFFGRD-caller-side.js?v=309"></script>
+<script src="OFFGRD-caller-log.js?v=309"></script>
+<script src="OFFGRD-caller-sync.js?v=309"></script>
+<script src="OFFGRD-caller-analysis.js?v=309"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=309"></script>
+<script src="OFFGRD-booth-ask.js?v=309"></script>
+<script src="OFFGRD-boothpack.js?v=309"></script>
+<script src="OFFGRD-booth-chat.js?v=309"></script>
+<script src="OFFGRD-caller-select.js?v=309"></script>
+<script src="OFFGRD-dcaller.js?v=309"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -2969,15 +2970,31 @@ function callerLookBits(entry){
   if(entry.pressure) bits.push(callerPressureLabel(entry.pressure));
   return bits;
 }
-/** Fold output entry → offense row (identical shape to parseOffense / Hudl ours). */
-function callerEntryToRow(l){
+/**
+ * Fold output entry → snap row.
+ * side is required. Named mapper: offense → ours, defense → off.
+ * Unset side throws at requireEventSide. Defense play is their run/pass, not our playbook.
+ */
+function callerEntryToRow(l, side, playbookNames){
+  const S=window.OFFGRD_CALLER_SIDE;
+  let eventSide=null;
+  try{
+    eventSide=S&&S.requireEventSide?S.requireEventSide(side||(l&&l.side)):((side==="offense"||side==="defense")?side:(l&&(l.side==="offense"||l.side==="defense")?l.side:null));
+  }catch(eReq){
+    try{ console.warn("[callerEntryToRow]", eReq&&eReq.message); }catch(e){}
+    return null;
+  }
+  if(!eventSide){
+    try{ console.warn("[callerEntryToRow] refuse row with unset side", l&&l.play); }catch(e){}
+    return null;
+  }
   const down=+l.dn||1;
   const distance=(typeof dbToNum==="function"?dbToNum(l.db):null);
   const O=window.OFFGRD_CALLER_OUTCOME;
   const learn=O&&O.learningSuccess?O.learningSuccess(l):(l.result==="hit"?1:l.result==="miss"?0:(l.success!=null?l.success:null));
   const front=(l.front!=null&&l.front!=="")?l.front:null;
   const prScout=callerPressureToScout(l.pressure);
-  return {
+  const base={
     date: l.date||callerSessionDate(),
     opponent: l.opponent||callerSessionOpp(),
     down: down,
@@ -3017,6 +3034,9 @@ function callerEntryToRow(l){
     callId: l.id||l.eventId||null,
     gameWeek: l.gameWeek||null
   };
+  if(S&&S.stampRow) return S.stampRow(base, eventSide, l, playbookNames);
+  base.side=eventSide==="defense"?"off":"ours";
+  return base;
 }
 /** Team def_playbook fronts/pressures (WEEK.gen or local QB author cache), plus "other". */
 function callerDefaultDefPlaybook(){
@@ -3256,7 +3276,14 @@ function callerMergeDriveOverFeed(kind){
   }
 }
 function callerDefenseLog(){
-  try{ if(window.OFFGRD_DCALLER&&OFFGRD_DCALLER.getLog) return OFFGRD_DCALLER.getLog()||[]; }catch(e){}
+  try{
+    if(window.OFFGRD_DCALLER&&OFFGRD_DCALLER.logForUi) return OFFGRD_DCALLER.logForUi()||[];
+    if(window.OFFGRD_DCALLER&&OFFGRD_DCALLER.getLog){
+      const raw=OFFGRD_DCALLER.getLog()||[];
+      const S=window.OFFGRD_CALLER_SIDE;
+      return S&&S.filterLogBySide?S.filterLogBySide(raw,"defense"):raw;
+    }
+  }catch(e){}
   return [];
 }
 function callerLiveOpts(){
@@ -3285,7 +3312,7 @@ function callerLiveOpts(){
   }catch(e2){}
   return {
     side: "offense",
-    offenseLog: CALLER_LOG,
+    offenseLog: callerLogForUi(),
     defenseLog: callerDefenseLog(),
     shifts: shifts,
     shift: shift,
@@ -3418,7 +3445,7 @@ function callerMarkBreak(kind){
     });
     CALLER_LIVE_EXPANDED=true;
     callerSaveLocal();
-    try{ callerSyncToGames(); }catch(eSyncQ){}
+    try{ callerSyncToGames({ side: "offense" }); }catch(eSyncQ){}
     renderCaller();
     try{
       const panel=document.getElementById("rd-live-panel");
@@ -3831,7 +3858,13 @@ function callerPlayRollupHtml(){
     h+=`</td><td>${b.n}</td><td>${dist(b.distAvg)}</td><td>${pct(b.pct)}</td><td>${b.ypp==null?"—":ypp(b.ypp)+nNote(b.yppN,b.n)}</td><td>${b.eff==null?"—":pct(b.eff)+nNote(b.effN,b.n)}</td><td>${b.comp==null?"—":pct(b.comp)+nNote(b.compN,b.n)+(b.compThin?' <span class="rd-gd-thin">THIN</span>':'')}</td></tr>`;
   });
   h+=`</tbody></table>`;
-  h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}`+(view.junkN?` · ${view.junkN} play-type label${view.junkN===1?"":"s"} set aside`:``)+`</p>`;
+  h+=`<p class="foot">${view.total} calls · totals reconcile ${view.reconcile?"ok":"NO"}`;
+  if(view.junkN){
+    h+=view.leakedDefense
+      ?` · <span style="color:#c0392b;font-weight:800">${view.junkN} defensive snap${view.junkN===1?"":"s"} misfiled — not own-offense</span>`
+      :` · ${view.junkN} play-type label${view.junkN===1?"":"s"} set aside`;
+  }
+  h+=`</p>`;
   h+=`</section>`;
   return h;
 }
@@ -3843,7 +3876,7 @@ function callerLivePanelHtml(){
   h+=`<span class="rd-live-panel-kicker">Live analysis</span>`;
   h+=`<span class="rd-live-panel-title">In-game AI</span>`;
   h+=`</div>`;
-  h+=`<span class="foot rd-live-panel-meta">Live · ${CALLER_LOG.length} snap${CALLER_LOG.length===1?"":"s"}</span>`;
+  h+=`<span class="foot rd-live-panel-meta">Live · ${callerLogForUi().length} snap${callerLogForUi().length===1?"":"s"}</span>`;
   h+=CALLER_LIVE_EXPANDED
     ?`<button type="button" class="ghost rd-live-panel-toggle" onclick="callerSetLiveExpanded(false)">Collapse</button>`
     :`<button type="button" class="ghost rd-live-panel-toggle" onclick="callerSetLiveExpanded(true)">Expand</button>`;
@@ -3980,65 +4013,104 @@ function callerAnalysisMarksHtml(){
 function callerRefold(opts){
   const E=callerEngine();
   if(!E){ return; }
-  const folded=E.foldCallerEvents(CALLER_EVENTS);
+  const folded=E.foldCallerEvents(CALLER_EVENTS, { side: "offense" });
   CALLER_LOG=folded.log||[];
   CALLER_COLLISIONS=folded.collisions||[];
   CALLER_ACTIVITY=folded.activity||[];
   try{ if(window.OFFGRD_BOOTHPACK&&OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate(); }catch(e){}
-  callerSyncToGames(opts);
+  callerSyncToGames(Object.assign({ side: "offense" }, opts||{}));
 }
-/** Write folded (non-superseded) calls into GAMES ours · one dataset for bestCallsFor. */
+/**
+ * Write folded calls into the season store.
+ * offense → ours. defense → off (their offense). Named mapper only.
+ * Never overwrite a scout_import / film game.
+ */
 function callerSyncToGames(opts){
-  const sess=callerEnsureSession();
-  const k=gameKey(sess.opp, sess.week, "ours");
-  /* v212: tombstoned natural key — never re-plant Live into season store. */
+  opts=opts||{};
+  const S=window.OFFGRD_CALLER_SIDE;
+  let eventSide=null;
   try{
-    if(typeof window.OFFGRD_IS_GAME_TOMBSTONED==="function" && window.OFFGRD_IS_GAME_TOMBSTONED(sess.opp, sess.week, "ours", null)){
-      GAMES=GAMES.filter(g=>gameKey(g.opponent,g.week,g.side)!==k && !(g.side==="ours" && g.source==="live_call" && String(g.week||"").toLowerCase().indexOf("live")===0 && gameKey(g.opponent,"x","ours").split("|")[0]===gameKey(sess.opp,"x","ours").split("|")[0]));
+    eventSide=S&&S.requireEventSide?S.requireEventSide(opts.side):(opts.side==="offense"||opts.side==="defense"?opts.side:null);
+  }catch(eSide){
+    try{ console.warn("[callerSyncToGames]", eSide&&eSide.message); }catch(e){}
+    return;
+  }
+  if(!eventSide){
+    try{ console.warn("[callerSyncToGames] refuse unset side"); }catch(e){}
+    return;
+  }
+  const dest=S&&S.eventSideToSeasonSide?S.eventSideToSeasonSide(eventSide):(eventSide==="defense"?"off":"ours");
+  if(eventSide==="defense" && !Array.isArray(opts.log)){
+    try{ console.warn("[callerSyncToGames] defense sync requires its own log"); }catch(e){}
+    return;
+  }
+  const sess=opts.session||callerEnsureSession();
+  const log=Array.isArray(opts.log)?opts.log:CALLER_LOG;
+  const k=gameKey(sess.opp, sess.week, dest);
+  try{
+    if(typeof window.OFFGRD_IS_GAME_TOMBSTONED==="function" && window.OFFGRD_IS_GAME_TOMBSTONED(sess.opp, sess.week, dest, null)){
+      GAMES=GAMES.filter(g=> !(g.source==="live_call" && (g.key===k || gameKey(g.opponent,g.week,g.side)===k)));
       saveGames(opts); rebuildActive();
       return;
     }
   }catch(eTomb){}
-  /* Special teams never enter the offensive "ours" dataset · bestCallsFor/playKind stay offense-only. */
-  const rows=CALLER_LOG.filter(l=>!callerIsST(l)).map(callerEntryToRow);
-  /* Match by normalized key OR any prior Live blob for same opp (trim/cid drift). */
-  let prev=GAMES.find(g=> (g.key===k) || (gameKey(g.opponent,g.week,g.side)===k));
+  const book=((typeof PBOOK!=="undefined"&&Array.isArray(PBOOK))?PBOOK:[]).map(function(p){ return p&&p.name; }).filter(Boolean);
+  const rows=log.filter(function(l){
+    if(eventSide==="offense" && callerIsST(l)) return false;
+    const got=S&&S.eventSide?S.eventSide(l):l.side;
+    if(got && got!==eventSide) return false;
+    return true;
+  }).map(function(l){
+    try{ return callerEntryToRow(l, eventSide, book); }
+    catch(eRow){ try{ console.warn("[callerEntryToRow]", eRow&&eRow.message); }catch(e){} return null; }
+  }).filter(Boolean);
+  function isLiveBlob(g){
+    return g && g.source==="live_call";
+  }
+  let prev=GAMES.find(g=> isLiveBlob(g) && ((g.key===k) || (gameKey(g.opponent,g.week,g.side)===k)));
   if(!prev){
-    prev=GAMES.find(g=> g.side==="ours" && g.source==="live_call" && gameKey(g.opponent,"x","ours").split("|")[0]===gameKey(sess.opp,"x","ours").split("|")[0] && String(g.week||"").toLowerCase().indexOf("live")===0);
+    prev=GAMES.find(g=> isLiveBlob(g) && g.side===dest && gameKey(g.opponent,"x",dest).split("|")[0]===gameKey(sess.opp,"x",dest).split("|")[0] && String(g.week||"").toLowerCase().indexOf("live")===0);
   }
   if(!rows.length){
-    if(prev) GAMES=GAMES.filter(g=>g!==prev && g.key!==k);
+    if(eventSide==="defense") return;
+    if(prev && isLiveBlob(prev)) GAMES=GAMES.filter(g=>g!==prev && g.key!==k);
     saveGames(opts); rebuildActive();
     return;
   }
   rows.forEach(function(r){
-    r.opponent=sess.opp; r.gameWeek=sess.week;
+    r.opponent=sess.opp; r.gameWeek=sess.week; r.side=dest;
     if(!r.date) r.date=callerSessionDate();
     r.source="live_call";
   });
-  if(prev){
-    /* Folded CALLER_LOG is SoT for this Live blob — replace rows, keep cid (Sync ↑ updates). */
+  if(prev && isLiveBlob(prev)){
     prev.rows=rows;
     prev.source="live_call";
     prev.opponent=sess.opp;
     prev.week=sess.week;
+    prev.side=dest;
     prev.key=k;
   } else {
-    GAMES.push({key:k, opponent:sess.opp, week:sess.week, side:"ours", source:"live_call", rows:rows, cid:null});
+    GAMES.push({key:k, opponent:sess.opp, week:sess.week, side:dest, source:"live_call", rows:rows, cid:null});
   }
   saveGames(opts); rebuildActive();
 }
 function callerAppend(type, playIndex, payload){
   const E=callerEngine();
+  const S=window.OFFGRD_CALLER_SIDE;
   const sess=callerEnsureSession();
   const actor=callerActor();
+  const stamped=S&&S.stampPayload?S.stampPayload(payload||{}, "offense"):Object.assign({}, payload||{}, { side: "offense" });
+  if(!stamped.side){
+    try{ console.warn("[callerAppend] refuse event with unset side", type); }catch(e){}
+    return null;
+  }
   CALLER_SEQ=(CALLER_SEQ||0)+1;
   const ev=(E&&E.buildEvent)
     ? E.buildEvent({
         gameId: sess.gameId,
         playIndex: playIndex,
         type: type,
-        payload: payload||{},
+        payload: stamped,
         deviceId: callerDeviceId(),
         actorId: actor.id,
         clientTs: Date.now(),
@@ -4050,7 +4122,7 @@ function callerAppend(type, playIndex, payload){
         gameId: sess.gameId,
         playIndex: playIndex,
         type: type,
-        payload: payload||{},
+        payload: stamped,
         deviceId: callerDeviceId(),
         actorId: actor.id,
         clientTs: Date.now(),
@@ -4058,6 +4130,10 @@ function callerAppend(type, playIndex, payload){
         superseded: false,
         side: "offense"
       };
+  if(!ev){
+    try{ console.warn("[callerAppend] buildEvent rejected", type); }catch(e){}
+    return null;
+  }
   CALLER_EVENTS.push(ev);
   callerRefold();
   callerSaveLocal();
@@ -4232,7 +4308,7 @@ function callerHydrateFromGames(){
   callerRefold({sync:false});
   callerSaveLocal();
 }
-function callerPersist(){ callerSaveLocal(); callerSyncToGames(); callerScheduleSync(); }
+function callerPersist(){ callerSaveLocal(); callerSyncToGames({ side: "offense" }); callerScheduleSync(); }
 function dispatchCall(play){ callerLog(play); }
 try{ window.dispatchCall=dispatchCall; }catch(e){}
 function callerAgo(ts){
@@ -4240,6 +4316,12 @@ function callerAgo(ts){
   if(s<5) return "just now";
   if(s<60) return s+"s ago";
   return Math.round(s/60)+"m ago";
+}
+/** Coach-facing O log — offense snaps only. Defense rows are a defect here. */
+function callerLogForUi(){
+  const S=window.OFFGRD_CALLER_SIDE;
+  if(S&&S.filterLogBySide) return S.filterLogBySide(CALLER_LOG, "offense");
+  return (CALLER_LOG||[]).filter(function(l){ return l&&l.side!=="defense"&&l.side!=="def"; });
 }
 /** Selection / ON CALL · always from folded CALLER_LOG (survives refresh + multi-device). */
 function callerOnCall(){
@@ -5436,7 +5518,7 @@ function renderCaller(){
     if(CALLER_LOG.length){
       h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button></div>`;
       h+=`<p class="foot">${CALLER_LOG.length} calls \u00b7 tap Edit to fix any snap</p>`;
-      h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{})).join("");
+      h+=callerLogForUi().map((l,i)=>callerCallItemHtml(l,i,{})).join("");
       h+=`</div>`;
     }
     h+=`</div>`; /* /rd-gd-panel game */
@@ -5486,7 +5568,7 @@ function renderCaller(){
   h+=`<div class="persp" style="border:none;padding:0;margin-top:10px"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
   if(CALLER_LOG.length){
     h+=`<p class="foot">${CALLER_LOG.length} calls</p>`;
-    h+=CALLER_LOG.map((l,i)=>callerCallItemHtml(l,i,{compact:true})).join("");
+    h+=callerLogForUi().map((l,i)=>callerCallItemHtml(l,i,{compact:true})).join("");
   } else h+=`<p class="foot">Tap <b>Call</b> on a play, then one-tap a result bucket. Flags are optional.</p>`;
   h+=`</div>`;
   host.innerHTML=h;
@@ -5534,7 +5616,7 @@ function callerLog(play){
   let signal=null;
   try{ const m=callerSignalMap(); if(m&&m[play]!=null) signal=m[play]; }catch(e){}
   const actor=callerActor();
-  const folded=E?E.foldCallerEvents(CALLER_EVENTS):{ nextPlayIndex:CALLER_LOG.length };
+  const folded=E?E.foldCallerEvents(CALLER_EVENTS, { side: "offense" }):{ nextPlayIndex:CALLER_LOG.length };
   const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
   const isTwo=!!cs.forTwo;
   callerAppend("call", playIndex, {
@@ -5602,7 +5684,7 @@ function callerLogST(kind){
   }
   const cs=callerSit;
   const actor=callerActor();
-  const folded=E?E.foldCallerEvents(CALLER_EVENTS):{ nextPlayIndex:CALLER_LOG.length };
+  const folded=E?E.foldCallerEvents(CALLER_EVENTS, { side: "offense" }):{ nextPlayIndex:CALLER_LOG.length };
   const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
   const sitLabel=kind==="xp"?"After TD":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""));
   callerAppend("call", playIndex, {
@@ -6075,7 +6157,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=308", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=309", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -6813,7 +6895,7 @@ DEF_SAMPLE=buildSample();
 OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); loadCallerSession(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
-window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames({sync:false}); else saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
+window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames({sync:false, side:"offense"}); else saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
 window.OFFGRD_SET_SNAP_CORPUS=setSnapCorpus;
 /* week plan hook · account.js feeds the active week_plans row here on every pull.
    Registered at TOP LEVEL, synchronously (the Playbook sync lesson · never move into DOMContentLoaded). */
@@ -6844,7 +6926,7 @@ window.OFFGRD_WEEK={set:function(wp,ce){
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
 rebuildActive();
 callerHydrateFromGames();
-if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames();
+if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames({ side: "offense" });
 try{
   if(window.OFFGRD_CALLER_SYNC) setTimeout(function(){ window.OFFGRD_CALLER_SYNC(); }, 1200);
   if(window.OFFGRD_CALLER_SYNC_ENGINE&&OFFGRD_CALLER_SYNC_ENGINE.subscribe){
@@ -6941,9 +7023,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=308"></script>
-<script src="OFFGRD-role-gate.js?v=308"></script>
-<script src="OFFGRD-mobile.js?v=308"></script>
+<script type="module" src="OFFGRD-account.js?v=309"></script>
+<script src="OFFGRD-role-gate.js?v=309"></script>
+<script src="OFFGRD-mobile.js?v=309"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.

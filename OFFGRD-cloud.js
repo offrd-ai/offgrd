@@ -896,7 +896,7 @@ export const Cloud = {
         seq: r.seq,
         superseded: !!r.superseded,
         teamId: r.team_id,
-        side: r.side === "defense" ? "defense" : "offense",
+        side: r.side === "defense" ? "defense" : r.side === "offense" ? "offense" : ((r.payload && r.payload.side) === "defense" ? "defense" : (r.payload && r.payload.side) === "offense" ? "offense" : null),
       };
     });
   },
@@ -916,7 +916,11 @@ export const Cloud = {
         client_ts: e.clientTs,
         seq: e.seq,
         superseded: !!e.superseded,
-        side: e.side === "defense" ? "defense" : "offense",
+        side: e.side === "defense" || (e.payload && e.payload.side === "defense")
+          ? "defense"
+          : e.side === "offense" || (e.payload && e.payload.side === "offense")
+            ? "offense"
+            : null,
       };
     });
     const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");

@@ -246,9 +246,16 @@
       notify({ status: "error", message: "Sign in with a staff team to ask Booth.", thread: thread });
       return;
     }
+    var askSide = opts.side === "offense" || opts.side === "defense"
+      ? opts.side
+      : (opts.payload && (opts.payload.side === "offense" || opts.payload.side === "defense") ? opts.payload.side : null);
+    if (!askSide) {
+      notify({ status: "error", message: "Booth needs a caller side.", thread: thread });
+      return;
+    }
 
     var built = Pack.build({
-      side: opts.side || (opts.payload && opts.payload.side) || "defense",
+      side: askSide,
       offenseLog: (opts.payload && opts.payload.offenseLog) || opts.offenseLog || [],
       defenseLog: (opts.payload && opts.payload.defenseLog) || opts.defenseLog || [],
       shifts: (opts.payload && opts.payload.shifts) || opts.shifts || [],

@@ -188,7 +188,23 @@
    */
   function flush(opts) {
     opts = opts || {};
-    var side = opts.side || "offense";
+    var Side = global.OFFGRD_CALLER_SIDE;
+    var side = null;
+    try {
+      side = Side && Side.requireEventSide ? Side.requireEventSide(opts.side) : (opts.side === "offense" || opts.side === "defense" ? opts.side : null);
+    } catch (eSide) {
+      try {
+        console.warn("[caller-sync] refuse unset side", eSide && eSide.message);
+      } catch (e0) {}
+      return Promise.resolve({ ok: false, reason: "unset-side" });
+    }
+    if (!side) {
+      try {
+        console.warn("[caller-sync] refuse unset side");
+      } catch (e0) {}
+      return Promise.resolve({ ok: false, reason: "unset-side" });
+    }
+    opts.side = side;
     if (_flight) return _flight;
     _flight = doFlush(opts)
       .catch(function (e) {
@@ -212,7 +228,14 @@
   }
 
   async function doFlush(opts) {
-    var side = opts.side || "offense";
+    var Side = global.OFFGRD_CALLER_SIDE;
+    var side = null;
+    try {
+      side = Side && Side.requireEventSide ? Side.requireEventSide(opts.side) : (opts.side === "offense" || opts.side === "defense" ? opts.side : null);
+    } catch (eSide) {
+      return { ok: false, reason: "unset-side" };
+    }
+    if (!side) return { ok: false, reason: "unset-side" };
     if (!isOnline()) {
       notify();
       return { ok: false, offline: true, pending: pendingCount(side, (opts.getState() || {}).events) };
@@ -265,6 +288,7 @@
     var remote = [];
     if (cloud.listCallerEvents) {
       remote = await cloud.listCallerEvents(teamId, gameId);
+      if (Side && Side.filterEventsBySide) remote = Side.filterEventsBySide(remote, side);
     }
     var eng = global.OFFGRD_CALLER;
     var merged = events;
@@ -344,7 +368,19 @@
   }
 
   function bindTriggers(opts) {
-    var side = (opts && opts.side) || "offense";
+    var Side = global.OFFGRD_CALLER_SIDE;
+    var side = null;
+    try {
+      side = Side && Side.requireEventSide ? Side.requireEventSide(opts && opts.side) : ((opts && opts.side) === "defense" ? "defense" : ((opts && opts.side) === "offense" ? "offense" : null));
+    } catch (eBindSide) {
+      side = null;
+    }
+    if (!side) {
+      try {
+        console.warn("[caller-sync] bindTriggers refuse unset side");
+      } catch (eBind) {}
+      return;
+    }
     if (_bound[side]) return;
     _bound[side] = true;
 

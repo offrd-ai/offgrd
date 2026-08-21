@@ -158,7 +158,7 @@
     session = {
       gameId: eng && eng.uuid ? eng.uuid() : "dg" + Date.now(),
       opp: opp() !== "ANY" ? opp() : weekLabel() || "opponent",
-      week: weekLabel() || "",
+      week: (typeof callerSessionWeekRaw === "function" ? callerSessionWeekRaw() : weekLabel()) || "",
       side: "defense",
     };
     return session;
@@ -788,7 +788,7 @@
     h += `<span class="rd-live-panel-kicker">Live analysis</span>`;
     h += `<span class="rd-live-panel-title">In-game AI</span>`;
     h += `</div>`;
-    h += `<span class="foot rd-live-panel-meta">Live · ${log.length} snap${log.length === 1 ? "" : "s"}</span>`;
+    h += `<span class="foot rd-live-panel-meta">Live · ${logForUi().length} snap${logForUi().length === 1 ? "" : "s"}</span>`;
     h += liveExpanded
       ? `<button type="button" class="ghost rd-live-panel-toggle" onclick="OFFGRD_DCALLER.setLiveExpanded(false)">Collapse</button>`
       : `<button type="button" class="ghost rd-live-panel-toggle" onclick="OFFGRD_DCALLER.setLiveExpanded(true)">Expand</button>`;
@@ -1081,11 +1081,20 @@
   function refold() {
     var eng = E();
     if (!eng || !eng.foldCallerEvents) return;
-    var folded = eng.foldCallerEvents(events);
+    var folded = eng.foldCallerEvents(events, { side: "defense" });
     log = folded.log || [];
     try {
       if (global.OFFGRD_BOOTHPACK && OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate();
     } catch (e) {}
+    try {
+      if (typeof callerSyncToGames === "function") {
+        callerSyncToGames({ side: "defense", log: log, session: ensureSession() });
+      }
+    } catch (eSync) {
+      try {
+        console.warn("[dcaller] sync to def game", eSync && eSync.message);
+      } catch (e2) {}
+    }
   }
 
   function loadSession() {
@@ -1111,14 +1120,22 @@
 
   function append(type, playIndex, payload) {
     var eng = E();
+    var Side = global.OFFGRD_CALLER_SIDE;
     var sess = ensureSession();
+    var stamped = Side && Side.stampPayload ? Side.stampPayload(payload || {}, "defense") : Object.assign({}, payload || {}, { side: "defense" });
+    if (!stamped.side) {
+      try {
+        console.warn("[dcaller] refuse event with unset side", type);
+      } catch (e) {}
+      return null;
+    }
     seq = (seq || 0) + 1;
     var ev = eng.buildEvent
       ? eng.buildEvent({
           gameId: sess.gameId,
           playIndex: playIndex,
           type: type,
-          payload: payload || {},
+          payload: stamped,
           deviceId: eng.deviceId ? eng.deviceId() : "dev",
           actorId: null,
           clientTs: Date.now(),
@@ -1130,7 +1147,7 @@
           gameId: sess.gameId,
           playIndex: playIndex,
           type: type,
-          payload: payload || {},
+          payload: stamped,
           deviceId: "dev",
           actorId: null,
           clientTs: Date.now(),
@@ -1138,6 +1155,12 @@
           superseded: false,
           side: "defense",
         };
+    if (!ev) {
+      try {
+        console.warn("[dcaller] buildEvent rejected", type);
+      } catch (e2) {}
+      return null;
+    }
     events.push(ev);
     refold();
     saveLocal();
@@ -1268,7 +1291,7 @@
   }
 
   function liveRowsAsSnaps() {
-    return log
+    return logForUi()
       .filter(function (l) {
         return l.playType && l.result;
       })
@@ -1615,7 +1638,7 @@
     var eng = E();
     var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
     if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events);
+      var folded = eng.foldCallerEvents(events, { side: "defense" });
       if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
     }
     var dir = direction || pendingDir || null;
@@ -1824,7 +1847,7 @@
     var eng = E();
     var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
     if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events);
+      var folded = eng.foldCallerEvents(events, { side: "defense" });
       if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
     }
     var sess = ensureSession();
@@ -2784,12 +2807,21 @@
     return h;
   }
 
+  function logForUi() {
+    var Side = global.OFFGRD_CALLER_SIDE;
+    if (Side && Side.filterLogBySide) return Side.filterLogBySide(log, "defense");
+    return (log || []).filter(function (l) {
+      return l && l.side === "defense";
+    });
+  }
+
   function logHtml() {
-    if (!log.length) return `<p class="foot">No defensive snaps logged yet.</p>`;
+    var rows = logForUi();
+    if (!rows.length) return `<p class="foot">No defensive snaps logged yet.</p>`;
     var Out = O();
     var h = `<div class="rd-dc-log"><div class="persp" style="border:none;padding:0;margin-bottom:6px"><span class="pl"><b>D log</b></span>`;
     h += `<button type="button" class="ghost no-print" style="margin-left:auto" onclick="OFFGRD_DCALLER.clear()">Clear</button></div>`;
-    log
+    rows
       .slice()
       .reverse()
       .forEach(function (l) {
@@ -2990,6 +3022,7 @@
     resetFirstDown: resetFirstDown,
     driveOver: driveOver,
     movedChains: movedChains,
+    logForUi: logForUi,
     logTheirPlay: logTheirPlay,
     logST: logST,
     logTry: logTry,
@@ -3030,7 +3063,7 @@
       return mondayFocusPayload;
     },
     getLog: function () {
-      return log.slice();
+      return logForUi().slice();
     },
     getEvents: function () {
       return events.slice();

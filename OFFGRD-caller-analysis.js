@@ -548,9 +548,15 @@
    */
   function boothChipAnswer(chipId, payload) {
     payload = payload || {};
-    var side = payload.side === "offense" ? "offense" : "defense";
+    var side = payload.side === "offense" || payload.side === "defense" ? payload.side : null;
+    if (!side) return { lines: [], error: "unset-side" };
     var oLog = payload.offenseLog || [];
     var dLog = payload.defenseLog || [];
+    var SideMod = global.OFFGRD_CALLER_SIDE;
+    if (SideMod && SideMod.filterLogBySide) {
+      oLog = SideMod.filterLogBySide(oLog, "offense");
+      dLog = SideMod.filterLogBySide(dLog, "defense");
+    }
     var shifts = payload.shifts || [];
     var lines = [];
     var thinFlags = [];
