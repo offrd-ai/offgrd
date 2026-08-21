@@ -309,15 +309,33 @@
    * Normalize outcome payload → folded fields.
    * sit: { dn, db }
    */
+  /**
+   * flags: [] / flag: null are writes (coach clear). A missing key is not.
+   * Keep the array and the singular in sync when only one is present.
+   */
+  function outcomeFlags(payload) {
+    payload = payload || {};
+    var hasFlags = Object.prototype.hasOwnProperty.call(payload, "flags");
+    var hasFlag = Object.prototype.hasOwnProperty.call(payload, "flag");
+    var flags = hasFlags ? (Array.isArray(payload.flags) ? payload.flags.slice() : []) : null;
+    var flag = hasFlag ? (payload.flag == null || payload.flag === "" ? null : payload.flag) : undefined;
+    if (hasFlags && hasFlag) return { flags: flags, flag: flag };
+    if (hasFlags) return { flags: flags, flag: flags.length ? flags[0] : null };
+    if (hasFlag) return { flags: flag ? [flag] : [], flag: flag };
+    return { flags: [], flag: null };
+  }
+
   function finalizeOutcome(payload, sit, playType) {
     payload = payload || {};
     sit = sit || {};
+    var tags = outcomeFlags(payload);
     var raw = payload.result;
     if (raw == null || raw === "") {
       return {
         result: null,
         gain: null,
-        flag: null,
+        flag: tags.flag,
+        flags: tags.flags,
         negated: false,
         success: null,
         concept: null,
@@ -359,7 +377,8 @@
       return {
         result: raw,
         gain: null,
-        flag: payload.flag || null,
+        flag: tags.flag,
+        flags: tags.flags,
         negated: false,
         success: successL,
         concept: conceptL,
@@ -372,7 +391,8 @@
       return {
         result: raw,
         gain: payload.gain != null ? payload.gain : null,
-        flag: payload.flag || null,
+        flag: tags.flag,
+        flags: tags.flags,
         negated: !!payload.negated,
         success: null,
         concept: payload.conceptOverride || null,
@@ -381,7 +401,7 @@
     }
 
     var gain = payload.gain != null ? +payload.gain : bucketToGain(bucket);
-    var flag = payload.flag || null;
+    var flag = tags.flag;
     var negated = isPenaltyFlag(flag);
     /* Prefer chain estimate when present; success ≠ zero gain — concept is separate from advance. */
     var dist =
@@ -401,6 +421,7 @@
       result: bucket,
       gain: gain,
       flag: flag,
+      flags: tags.flags,
       negated: negated,
       success: success,
       concept: concept,
@@ -632,6 +653,7 @@
     deriveConcept: deriveConcept,
     conceptLabel: conceptLabel,
     flagLabel: flagLabel,
+    outcomeFlags: outcomeFlags,
     finalizeOutcome: finalizeOutcome,
     learningSuccess: learningSuccess,
     isGraded: isGraded,

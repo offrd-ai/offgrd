@@ -24,6 +24,89 @@
     return (eventSideOf(e) || foldSide || "_") + ":" + e.playIndex;
   }
 
+  function eventGameId(e) {
+    if (!e || e.gameId == null || e.gameId === "") return null;
+    return String(e.gameId);
+  }
+
+  /** Distinct gameIds present on events. Missing/empty gameId is not a game. */
+  function distinctGameIds(events) {
+    var seen = Object.create(null);
+    var out = [];
+    (events || []).forEach(function (e) {
+      var id = eventGameId(e);
+      if (!id || seen[id]) return;
+      seen[id] = 1;
+      out.push(id);
+    });
+    return out;
+  }
+
+  /**
+   * A fold is one game. Two gameIds never merge.
+   * gameId set → keep only that game (ignore everything else).
+   * gameId unset + two or more gameIds → throw (loud; do not collide playIndexes).
+   * gameId unset + one gameId → keep that game.
+   * gameId unset + none → pass through (legacy fixtures without gameId).
+   */
+  function scopeEventsToGame(events, gameId) {
+    var list = events || [];
+    var want = gameId != null && gameId !== "" ? String(gameId) : null;
+    if (want) {
+      return list.filter(function (e) {
+        return eventGameId(e) === want;
+      });
+    }
+    var ids = distinctGameIds(list);
+    if (ids.length > 1) {
+      throw new Error(
+        "foldCallerEvents: mixed gameIds without gameId scope (" + ids.join(", ") + ")"
+      );
+    }
+    if (ids.length === 1) {
+      return list.filter(function (e) {
+        return eventGameId(e) === ids[0];
+      });
+    }
+    return list;
+  }
+
+  /**
+   * Partition by gameId and fold each independently.
+   * Snaps from both games survive; nothing is dropped unless it lands
+   * in that game's collisions or supersededIds.
+   */
+  function foldEachGame(events, opts) {
+    opts = opts || {};
+    var groups = Object.create(null);
+    var orphan = [];
+    (events || []).forEach(function (e) {
+      var id = eventGameId(e);
+      if (!id) {
+        orphan.push(e);
+        return;
+      }
+      (groups[id] = groups[id] || []).push(e);
+    });
+    var byGameId = Object.create(null);
+    var supersededIds = Object.create(null);
+    var collisions = [];
+    Object.keys(groups).forEach(function (gid) {
+      var r = foldCallerEvents(groups[gid], Object.assign({}, opts, { gameId: gid }));
+      byGameId[gid] = r;
+      Object.keys(r.supersededIds || {}).forEach(function (id) {
+        if (r.supersededIds[id]) supersededIds[id] = true;
+      });
+      (r.collisions || []).forEach(function (c) {
+        collisions.push(c);
+      });
+    });
+    if (orphan.length) {
+      byGameId[""] = foldCallerEvents(orphan, Object.assign({}, opts, { gameId: null }));
+    }
+    return { byGameId: byGameId, supersededIds: supersededIds, collisions: collisions };
+  }
+
   /**
    * Required side on every event. Unset / bad side throws — do not default.
    */
@@ -83,6 +166,41 @@
     }
   }
 
+  function hasOwn(obj, key) {
+    return !!(obj && Object.prototype.hasOwnProperty.call(obj, key));
+  }
+
+  /**
+   * Outcome field LWW. A present key is a write — [] and null clear.
+   * A missing key is not an update. flags:[] also clears flag unless
+   * flag is set on the same payload; flag:null clears flags the same way.
+   */
+  function mergeOutcomeFields(prev, next) {
+    prev = prev || {};
+    next = next || {};
+    var out = Object.assign({}, prev);
+    ["result", "gain", "conceptOverride", "movedChains", "signal"].forEach(function (k) {
+      if (hasOwn(next, k)) out[k] = next[k];
+    });
+    var hasFlags = hasOwn(next, "flags");
+    var hasFlag = hasOwn(next, "flag");
+    if (hasFlags) {
+      out.flags = Array.isArray(next.flags) ? next.flags.slice() : [];
+      if (!out.flags.length && !hasFlag) out.flag = null;
+    }
+    if (hasFlag) {
+      out.flag = next.flag == null || next.flag === "" ? null : next.flag;
+      if (out.flag == null && !hasFlags) out.flags = [];
+    }
+    return out;
+  }
+
+  function applyOutcomeSignal(slot, payload) {
+    if (!hasOwn(payload, "signal")) return;
+    slot.sitPatch = slot.sitPatch || {};
+    slot.sitPatch.signal = payload.signal;
+  }
+
   function sortEvents(events) {
     return (events || []).slice().sort(function (a, b) {
       if (a.clientTs !== b.clientTs) return a.clientTs - b.clientTs;
@@ -93,7 +211,9 @@
   }
 
   /**
-   * Deterministic fold. Ordered by clientTs, ties (deviceId, seq).
+   * Deterministic fold. One game at a time — opts.gameId or a single
+   * gameId in the input. Two gameIds without a scope throw (never merge).
+   * Ordered by clientTs, ties (deviceId, seq).
    * Dual calls at same playIndex from different devices → keep earlier,
    * mark later superseded, surface collision until resolve_collision.
    */
@@ -101,6 +221,7 @@
     opts = opts || {};
     var want = opts.side || null;
     var S = global.OFFGRD_CALLER_SIDE;
+    events = scopeEventsToGame(events, opts.gameId);
     events = (events || []).map(function (e) {
       return S && S.normalizeEventSide ? S.normalizeEventSide(e) || e : e;
     });
@@ -211,8 +332,11 @@
       }
       if (e.type === "outcome") {
         skey = slotKey(e, want);
-        slot = byPlay[skey] || { call: null, outcome: null, obs: null, undone: false };
-        slot.outcome = e; /* LWW */
+        slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
+        var prevPay = (slot.outcome && slot.outcome.payload) || {};
+        var nextPay = mergeOutcomeFields(prevPay, e.payload || {});
+        slot.outcome = Object.assign({}, e, { type: "outcome", payload: nextPay });
+        applyOutcomeSignal(slot, e.payload || {});
         byPlay[skey] = slot;
         continue;
       }
@@ -225,7 +349,7 @@
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection"];
+          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection", "signal"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -240,23 +364,25 @@
               if (pl[sitKeys[sk]] !== undefined) slot.sitPatch[sitKeys[sk]] = pl[sitKeys[sk]];
             }
           }
-          if (pl.result !== undefined || pl.flag !== undefined || pl.conceptOverride !== undefined) {
+          if (
+            pl.result !== undefined ||
+            pl.flag !== undefined ||
+            pl.flags !== undefined ||
+            pl.conceptOverride !== undefined ||
+            pl.signal !== undefined
+          ) {
             var prevOut = (slot.outcome && slot.outcome.payload) || {};
             slot.outcome = {
               eventId: e.eventId,
               playIndex: e.playIndex,
               type: "outcome",
-              payload: Object.assign({}, prevOut, {
-                result: pl.result !== undefined ? pl.result : prevOut.result,
-                flag: pl.flag !== undefined ? pl.flag : prevOut.flag,
-                conceptOverride:
-                  pl.conceptOverride !== undefined ? pl.conceptOverride : prevOut.conceptOverride,
-              }),
+              payload: mergeOutcomeFields(prevOut, pl),
               deviceId: e.deviceId,
               actorId: e.actorId,
               clientTs: e.clientTs,
               seq: e.seq,
             };
+            applyOutcomeSignal(slot, pl);
           }
         }
         if (pl.front !== undefined || pl.pressure !== undefined) {
@@ -337,7 +463,7 @@
       var front = obs && obs.front != null && obs.front !== "" ? obs.front : null;
       var pressure = obs && obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
       var Out = global.OFFGRD_CALLER_OUTCOME;
-      var fin = { result: null, gain: null, flag: null, negated: false, success: null, concept: null, conceptOverride: null };
+      var fin = { result: null, gain: null, flag: null, flags: [], negated: false, success: null, concept: null, conceptOverride: null };
       var movedChains = false;
       if (slot.outcome && slot.outcome.payload) {
         movedChains = !!slot.outcome.payload.movedChains;
@@ -348,8 +474,14 @@
             estYards: p.estYards,
           });
         } else {
-          fin.result = slot.outcome.payload.result || null;
-          fin.flag = slot.outcome.payload.flag || null;
+          fin.result = slot.outcome.payload.result != null && slot.outcome.payload.result !== ""
+            ? slot.outcome.payload.result
+            : null;
+          var rawTags = Out && Out.outcomeFlags
+            ? Out.outcomeFlags(slot.outcome.payload)
+            : { flag: slot.outcome.payload.flag || null, flags: slot.outcome.payload.flags || [] };
+          fin.flag = rawTags.flag;
+          fin.flags = rawTags.flags;
           fin.conceptOverride = slot.outcome.payload.conceptOverride || null;
           if (fin.result === "hit") fin.success = 1;
           else if (fin.result === "miss") fin.success = 0;
@@ -369,6 +501,7 @@
         result: fin.result,
         gain: fin.gain,
         flag: fin.flag,
+        flags: Array.isArray(fin.flags) ? fin.flags : fin.flag ? [fin.flag] : [],
         negated: !!fin.negated,
         success: fin.success,
         concept: fin.concept,
@@ -385,7 +518,7 @@
         theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,
         opponent: p.opponent,
         date: p.date,
-        signal: p.signal,
+        signal: hasOwn(p, "signal") ? (p.signal == null || p.signal === "" ? null : p.signal) : p.signal,
         front: front,
         pressure: pressure,
         frontCarried: !!(front && obs && obs.frontCarried),
@@ -559,6 +692,9 @@
     deviceId: deviceId,
     sortEvents: sortEvents,
     foldCallerEvents: foldCallerEvents,
+    foldEachGame: foldEachGame,
+    distinctGameIds: distinctGameIds,
+    scopeEventsToGame: scopeEventsToGame,
     buildEvent: buildEvent,
     mergeEvents: mergeEvents,
     loadStore: loadStore,
