@@ -197,6 +197,8 @@
   .filmopt input{margin-top:3px;flex:none;accent-color:var(--accent)}
   .filmopt b{display:block;font-size:14px;margin-bottom:3px}
   .filmopt .foot{margin:0}
+  .impsuggest{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--chip)}
+  .impsuggest button{padding:5px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer}
   .mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
   .maprow{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
   .maprow span:first-child{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800}
@@ -564,10 +566,15 @@
         <p class="foot" style="margin:0 0 8px">Writes <b>scout_snaps</b> with <code>tag_source=import</code> (not the season library). Re-importing the same opponent/week/side asks to replace. Delete a batch anytime under <b>Manage \u2192 Auto-Scout imports</b>. DEF FRONT / COVERAGE / BLITZ map when present.</p>
         <div id="assistMapGrid"></div>
       </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div class="field"><div class="lbl">Opponent</div><input id="imp-opp" placeholder="e.g. Parkway North" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
+      <div id="imp-sched-wrap" class="field" style="display:none;margin-bottom:10px">
+        <div class="lbl">Opponent</div>
+        <select id="imp-sched-pick" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></select>
+      </div>
+      <div id="imp-freetext-wrap" class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field" id="imp-opp-field"><div class="lbl">Opponent</div><input id="imp-opp" placeholder="e.g. Parkway North" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
         <div class="field"><div class="lbl">Week / game label</div><input id="imp-week" placeholder="e.g. Wk 3 or 2024" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
       </div>
+      <p id="imp-opp-suggest" class="impsuggest" style="display:none"></p>
       <div class="field" id="imp-film-box" style="margin-bottom:10px">
         <div class="lbl">Whose film is this?</div>
         <div id="imp-film-choices" class="filmchoice">
@@ -809,6 +816,8 @@ let OFF_DATA=[];
 let IMPORT_MODE="defense";
 let FILM_DETECT={kind:null,oDef:0,dDef:0,evidence:""};
 let FILM_KIND_USER=false;
+let IMP_SCHED_CUSTOM=false;
+let IMP_OPP_SUGGEST_DECLINED="";
 let CALL_MODE="exact";
 let SCOUT_DATA=[]; let SCOUT_MODE="defense"; let SCOUT_SOURCE="sample";
 let GAMES=[]; let DEF_SAMPLE=[]; let OURS_SAMPLE=[]; let ACCT_EMAIL="";
@@ -1313,11 +1322,175 @@ function openImport(mode){
     : IMPORT_MODE==="autoscout"
     ? "Auto-Scout import: Hudl Assist/Classic CSV → scout_snaps (tag_source=import). Confirm the column map, preview formation match-rate, then commit. Same opponent/week/side re-import replaces prior batch."
     : "Defense mode: drop a Hudl export with COVERAGE (man/zone or specific shells); FRONT and BLITZ are auto-mapped if present. Reads the snaps where we faced their defense.";
+  try{ refreshImportSchedulePick(); }catch(e){}
   try{
     if(window.OFFGRD_ASSIST_IMPORT&&OFFGRD_ASSIST_IMPORT.setAssistChrome){
       OFFGRD_ASSIST_IMPORT.setAssistChrome(IMPORT_MODE==="autoscout");
     }
   }catch(e){}
+}
+function importSchedDateShort(iso){
+  const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return "";
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return months[+m[2]-1]+" "+(+m[3]);
+}
+function importSchedGames(){
+  const rows=(Array.isArray(SCHEDULE)?SCHEDULE:[]).filter(function(g){ return (g.opponent||"").trim(); });
+  let year=SCHED_SEASON;
+  if(!year || year==="ALL"){
+    const ys=rows.map(function(g){ return (g.date||"").slice(0,4); }).filter(Boolean).sort();
+    year=ys.length?ys[ys.length-1]:"";
+  }
+  let list=rows.slice();
+  if(year && year!=="ALL") list=list.filter(function(g){ const y=(g.date||"").slice(0,4); return !y || y===year; });
+  list.sort(function(a,b){ return ((a.date||"")+"").localeCompare(b.date||""); });
+  const weekOf={};
+  const sid=function(g){ return g.id||((g.date||"")+"|"+((g.opponent||"").trim())); };
+  list.filter(function(g){ return g.date; }).forEach(function(g,i){ weekOf[sid(g)]=i+1; });
+  return list.map(function(g){
+    const name=(g.opponent||"").trim();
+    const id=sid(g);
+    const wk=weekOf[id];
+    const ds=importSchedDateShort(g.date);
+    const bits=[];
+    if(wk) bits.push("Wk "+wk);
+    if(ds) bits.push(ds);
+    const weekVal=bits.join(" · ") || g.date || "";
+    return {id:id, opponent:name, week:weekVal, label:bits.length?(name+" — "+bits.join(" · ")):name};
+  });
+}
+function importSchedNames(){
+  const seen={}, out=[];
+  importSchedGames().forEach(function(g){
+    if(!seen[g.opponent.toLowerCase()]){ seen[g.opponent.toLowerCase()]=true; out.push(g.opponent); }
+  });
+  return out;
+}
+function importOppDistance(a,b){
+  const s=String(a||"").toLowerCase(), t=String(b||"").toLowerCase();
+  if(s===t) return 0;
+  const n=s.length, m=t.length;
+  if(!n) return m; if(!m) return n;
+  if(Math.abs(n-m)>3) return 99;
+  const dp=new Array(n+1);
+  for(let i=0;i<=n;i++){ dp[i]=new Array(m+1); dp[i][0]=i; }
+  for(let j=0;j<=m;j++) dp[0][j]=j;
+  for(let i=1;i<=n;i++){
+    for(let j=1;j<=m;j++){
+      dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+(s[i-1]===t[j-1]?0:1));
+    }
+  }
+  return dp[n][m];
+}
+function suggestScheduledOpponent(typed){
+  const name=String(typed||"").trim();
+  if(!name) return "";
+  const known=importSchedNames();
+  if(!known.length) return "";
+  const low=name.toLowerCase();
+  for(let i=0;i<known.length;i++){
+    if(known[i].toLowerCase()===low && known[i]!==name) return known[i];
+  }
+  const SI=window.OFFGRD_SCHEDULE_IMPORT;
+  if(SI&&typeof SI.suggestOpponent==="function"){
+    const sug=SI.suggestOpponent(name, known);
+    if(sug && sug.toLowerCase()!==low) return sug;
+  }
+  let best="", bestD=99;
+  known.forEach(function(cand){
+    const d=importOppDistance(name, cand);
+    if(d>0 && d<=2 && d<bestD){ bestD=d; best=cand; }
+  });
+  return best;
+}
+function refreshImportOppSuggest(){
+  const box=document.getElementById("imp-opp-suggest");
+  const inp=document.getElementById("imp-opp");
+  if(!box||!inp) return;
+  const typed=(inp.value||"").trim();
+  if(!IMP_SCHED_CUSTOM && document.getElementById("imp-sched-wrap")&&document.getElementById("imp-sched-wrap").style.display!=="none"){
+    box.style.display="none"; box.innerHTML=""; return;
+  }
+  const sug=suggestScheduledOpponent(typed);
+  if(!sug || sug===typed || IMP_OPP_SUGGEST_DECLINED.toLowerCase()===typed.toLowerCase()){
+    box.style.display="none"; box.innerHTML=""; return;
+  }
+  box.style.display="flex";
+  box.innerHTML="Same as scheduled opponent <b>"+esc(sug)+"</b>?"
+    +'<button type="button" class="btnp" data-imp-merge="1">Use '+esc(sug)+"</button>"
+    +'<button type="button" class="ghost" data-imp-keep="1">Keep what I typed</button>';
+  const merge=box.querySelector("[data-imp-merge]");
+  const keep=box.querySelector("[data-imp-keep]");
+  if(merge) merge.onclick=function(){ inp.value=sug; IMP_OPP_SUGGEST_DECLINED=""; box.style.display="none"; box.innerHTML=""; updateImportPerspUI(); };
+  if(keep) keep.onclick=function(){ IMP_OPP_SUGGEST_DECLINED=typed; box.style.display="none"; box.innerHTML=""; };
+}
+function refreshImportSchedulePick(){
+  const games=importSchedGames();
+  const wrap=document.getElementById("imp-sched-wrap");
+  const pick=document.getElementById("imp-sched-pick");
+  const oppField=document.getElementById("imp-opp-field");
+  if(!wrap||!pick) return;
+  if(!games.length){
+    wrap.style.display="none";
+    if(oppField) oppField.style.display="";
+    IMP_SCHED_CUSTOM=true;
+    pick.innerHTML="";
+    refreshImportOppSuggest();
+    return;
+  }
+  wrap.style.display="";
+  const curOpp=(document.getElementById("imp-opp")||{}).value||"";
+  const curWeek=(document.getElementById("imp-week")||{}).value||"";
+  let sel="";
+  if(IMP_SCHED_CUSTOM) sel="__CUSTOM__";
+  else {
+    const hit=games.find(function(g){ return g.opponent===curOpp && (!curWeek || g.week===curWeek); })
+      || games.find(function(g){ return g.opponent===curOpp; });
+    if(hit) sel=hit.id;
+  }
+  pick.innerHTML='<option value="">Select a scheduled game\u2026</option>'
+    +games.map(function(g){ return '<option value="'+esc(g.id)+'"'+(sel===g.id?" selected":"")+'>'+esc(g.label)+"</option>"; }).join("")
+    +'<option value="__CUSTOM__"'+(sel==="__CUSTOM__"?" selected":"")+">+ Game not on schedule\u2026</option>";
+  if(oppField) oppField.style.display=(sel==="__CUSTOM__" || !sel)?"":"none";
+  const ft=document.getElementById("imp-freetext-wrap");
+  if(ft) ft.style.gridTemplateColumns=(oppField&&oppField.style.display==="none")?"1fr":"1fr 1fr";
+  refreshImportOppSuggest();
+}
+function applyImportSchedulePick(){
+  const pick=document.getElementById("imp-sched-pick");
+  if(!pick) return;
+  const v=pick.value;
+  const opp=document.getElementById("imp-opp");
+  const week=document.getElementById("imp-week");
+  const oppField=document.getElementById("imp-opp-field");
+  if(v==="__CUSTOM__"){
+    IMP_SCHED_CUSTOM=true;
+    if(oppField) oppField.style.display="";
+    const ft=document.getElementById("imp-freetext-wrap");
+    if(ft) ft.style.gridTemplateColumns="1fr 1fr";
+    if(opp) opp.focus();
+    refreshImportOppSuggest();
+    updateImportPerspUI();
+    return;
+  }
+  IMP_SCHED_CUSTOM=false;
+  IMP_OPP_SUGGEST_DECLINED="";
+  if(!v){
+    if(oppField) oppField.style.display="";
+    refreshImportOppSuggest();
+    return;
+  }
+  const g=importSchedGames().find(function(x){ return x.id===v; });
+  if(!g) return;
+  if(opp) opp.value=g.opponent;
+  if(week) week.value=g.week;
+  if(oppField) oppField.style.display="none";
+  const ft=document.getElementById("imp-freetext-wrap");
+  if(ft) ft.style.gridTemplateColumns="1fr";
+  const sug=document.getElementById("imp-opp-suggest");
+  if(sug){ sug.style.display="none"; sug.innerHTML=""; }
+  updateImportPerspUI();
 }
 
 function detectFilmKind(txt){
@@ -2200,7 +2373,7 @@ const PLAN_KEY="offgrd_plan_v1"; let WB_PANELS=5, USE_WB=true;
 const WEEK_KEY="offgrd_week_v1"; let WEEK=null, WEEK_EDIT=false, PBOOK=[];
 const SCHED_KEY="offgrd_schedule_v1"; let SCHEDULE=[]; let SCHED_EDIT=false; let SCHED_TEAM_ID=""; let SCHED_SEASON=null;
 try{ const _s=localStorage.getItem(SCHED_KEY); if(_s){ const _a=JSON.parse(_s); if(Array.isArray(_a)) SCHEDULE=_a; } }catch(e){}
-window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag,teamId){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; if(teamId)SCHED_TEAM_ID=teamId; try{ SCHEDULE.forEach(function(g){ if(g.logo && g.opponent && !(USER_BRANDS[g.opponent]&&USER_BRANDS[g.opponent].logo)){ const pv=(USER_BRANDS[g.opponent]||teamBrand(g.opponent)); USER_BRANDS[g.opponent]={abbr:pv.abbr,fg:pv.fg,bg:pv.bg,logo:g.logo}; } }); if(typeof saveBrands==="function") saveBrands(); }catch(e){} try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); }};
+window.OFFGRD_SCHEDULE={set:function(sched,canEditFlag,teamId){ SCHEDULE=Array.isArray(sched)?sched:[]; SCHED_EDIT=!!canEditFlag; if(teamId)SCHED_TEAM_ID=teamId; try{ SCHEDULE.forEach(function(g){ if(g.logo && g.opponent && !(USER_BRANDS[g.opponent]&&USER_BRANDS[g.opponent].logo)){ const pv=(USER_BRANDS[g.opponent]||teamBrand(g.opponent)); USER_BRANDS[g.opponent]={abbr:pv.abbr,fg:pv.fg,bg:pv.bg,logo:g.logo}; } }); if(typeof saveBrands==="function") saveBrands(); }catch(e){} try{ localStorage.setItem(SCHED_KEY, JSON.stringify(SCHEDULE)); }catch(e){} const m=document.getElementById("sched"); if(m&&m.classList.contains("show")) renderSchedule(); try{ const modal=document.getElementById("modal"); if(modal&&modal.classList.contains("show")&&typeof refreshImportSchedulePick==="function") refreshImportSchedulePick(); }catch(eImp){} }};
 function loadWeekCache(){ try{ const x=localStorage.getItem(WEEK_KEY); if(x){ WEEK=JSON.parse(x); try{ window.WEEK=WEEK; }catch(e2){} } }catch(e){} }
 function weekPushBuckets(){ if(WEEK && WEEK_EDIT && window.OFFGRD_WEEK_PUSH){ WEEK.buckets=planBuckets(); try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} window.OFFGRD_WEEK_PUSH({buckets:WEEK.buckets}); } }
 function weekSet(k,v){ if(!WEEK||!WEEK_EDIT) return; WEEK[k]=v||null; try{ localStorage.setItem(WEEK_KEY, JSON.stringify(WEEK)); }catch(e){} if(window.OFFGRD_WEEK_PUSH){ const f={}; f[k]=WEEK[k]; window.OFFGRD_WEEK_PUSH(f); } if(k==="opponent"&&v&&GAMES.some(g=>g.opponent===v)) setOpponent(v); else refreshView(); }
@@ -6310,7 +6483,9 @@ document.getElementById("commitBtn").onclick=function(){
   }
   commitPending();
 };
-["imp-opp","imp-opp2"].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input",updateImportPerspUI); });
+["imp-opp","imp-opp2"].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input",function(){ if(id==="imp-opp") refreshImportOppSuggest(); updateImportPerspUI(); }); });
+const schedPick=document.getElementById("imp-sched-pick");
+if(schedPick) schedPick.addEventListener("change",applyImportSchedulePick);
 document.querySelectorAll('input[name="imp-film"]').forEach(r=>{
   r.addEventListener("change",()=>{ FILM_KIND_USER=true; updateImportPerspUI(); });
 });
