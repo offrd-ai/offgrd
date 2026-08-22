@@ -191,6 +191,12 @@
   .callbig{font-size:32px;font-weight:900;color:var(--accent);line-height:1.05}
   .repcols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:640px){.repcols{grid-template-columns:1fr}}
+  .filmchoice{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .filmopt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--panel)}
+  .filmopt:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%, var(--panel))}
+  .filmopt input{margin-top:3px;flex:none;accent-color:var(--accent)}
+  .filmopt b{display:block;font-size:14px;margin-bottom:3px}
+  .filmopt .foot{margin:0}
   .mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
   .maprow{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
   .maprow span:first-child{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800}
@@ -546,12 +552,12 @@
               <option value="def">Their defense (side=def)</option>
             </select>
           </div>
-          <div class="field"><div class="lbl">ODK rows to keep</div>
+          <div class="field"><div class="lbl">Which snaps to keep</div>
             <select id="imp-assist-odk" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
-              <option value="auto">Auto (off→D, def→O)</option>
-              <option value="D">ODK = D only</option>
-              <option value="O">ODK = O only</option>
-              <option value="all">All rows (no ODK filter)</option>
+              <option value="auto">Auto (match the unit)</option>
+              <option value="D">Opponent&rsquo;s offensive snaps</option>
+              <option value="O">Opponent&rsquo;s defensive snaps</option>
+              <option value="all">All snaps</option>
             </select>
           </div>
         </div>
@@ -562,34 +568,48 @@
         <div class="field"><div class="lbl">Opponent</div><input id="imp-opp" placeholder="e.g. Parkway North" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
         <div class="field"><div class="lbl">Week / game label</div><input id="imp-week" placeholder="e.g. Wk 3 or 2024" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700"></div>
       </div>
-      <div class="field" style="margin-bottom:10px">
-        <div class="lbl">Other team in this film <span class="foot" style="font-weight:400">(optional · fill in to scout BOTH teams from one file)</span></div>
-        <input id="imp-opp2" placeholder="e.g. Lafayette" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
-        <div class="field"><div class="lbl">ODK &ldquo;O&rdquo; = whose offense? <span class="foot" style="font-weight:400">(whose film / tagging this is)</span></div>
-          <select id="imp-odk-persp" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
-            <option value="US">My team&rsquo;s offense (our game)</option>
-            <option value="A">(Opponent)</option>
-            <option value="B">(Other team)</option>
-          </select>
+      <div class="field" id="imp-film-box" style="margin-bottom:10px">
+        <div class="lbl">Whose film is this?</div>
+        <div id="imp-film-choices" class="filmchoice">
+          <label class="filmopt">
+            <input type="radio" name="imp-film" value="US">
+            <span>
+              <b id="imp-film-us-title">Our game &mdash; we played Opponent</b>
+              <span class="foot" id="imp-film-us-sub">Your offense is the O rows. We read Opponent&rsquo;s defense from your offensive snaps.</span>
+            </span>
+          </label>
+          <label class="filmopt">
+            <input type="radio" name="imp-film" value="THEIR">
+            <span>
+              <b id="imp-film-their-title">Opponent playing someone else (scout film)</b>
+              <span class="foot" id="imp-film-their-sub">Opponent&rsquo;s offense is the O rows. We read their defense from the D rows.</span>
+            </span>
+          </label>
         </div>
-        <div class="field"><div class="lbl">Scout which team(s)?</div>
-          <select id="imp-scout-who" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
-            <option value="A">(Opponent)</option>
-            <option value="B">(Other team)</option>
-            <option value="BOTH">Both teams</option>
-          </select>
+        <p class="foot" id="imp-film-detect" style="margin:8px 0 0"></p>
+        <div id="imp-opp2-wrap" style="display:none;margin-top:10px">
+          <div class="lbl">Who were they playing? <span class="foot" style="font-weight:400">(optional &middot; fill in to scout both teams from one file)</span></div>
+          <input id="imp-opp2" placeholder="e.g. Lafayette" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700">
         </div>
       </div>
+      <select id="imp-odk-persp" style="display:none" aria-hidden="true">
+        <option value="US">US</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+      </select>
+      <select id="imp-scout-who" style="display:none" aria-hidden="true">
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="BOTH">BOTH</option>
+      </select>
       <p class="foot" id="imp-persp-hint" style="margin:0 0 10px"></p>
       <div id="classicImportHints">
-      <p><b>Works directly with Hudl.</b> In Hudl Classic · Reports / Breakdown, hit <b>Export to Excel</b> · upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN, ODK?). One row per snap; header row required.</p>
+      <p><b>Works directly with Hudl.</b> In Hudl Classic · Reports / Breakdown, hit <b>Export to Excel</b> · upload the <code>.xlsx</code> directly (or save as <code>.csv</code>), then upload or paste it below. The importer auto-recognizes Hudl column names (DN, DIST, OFF FORM, OFF PERS, DEF FRONT, COVERAGE, BLITZ, YARD LN). One row per snap; header row required.</p>
       <p style="color:var(--muted)">Only <code>coverage</code> is required. Everything else is optional and auto-mapped:</p>
       <ul style="margin:6px 0 0 0;padding-left:18px;color:var(--muted)">
         <li><b>Coverage</b> auto-normalizes: <code>Cov 3</code>, <code>C3</code>, <code>3 Buzz</code>, <code>Quarters</code>, <code>2 Man</code> ? Cover 3 / Cover 4 / 2-man, etc.</li>
         <li><b>Pressure</b> is inferred when a <code>BLITZ</code> column has a value (or use an explicit <code>pressure</code> 1/0). A separate <code>STUNT</code> column is stored and does not count as pressure.</li>
-        <li><b>Field zone</b> reads from a zone column or is derived from <code>YARD LN</code>; an <code>ODK</code> column auto-filters to defensive snaps only.</li>
+        <li><b>Field zone</b> reads from a zone column or is derived from <code>YARD LN</code>. Confirm whose film this is above &mdash; the importer picks the right snaps.</li>
         <li>After loading, the box below lists exactly which columns it mapped · check it once for a new Hudl export.</li>
       </ul>
       </div>
@@ -787,6 +807,8 @@ let DATA = buildSample();
 let DATASOURCE = "sample";
 let OFF_DATA=[];
 let IMPORT_MODE="defense";
+let FILM_DETECT={kind:null,oDef:0,dDef:0,evidence:""};
+let FILM_KIND_USER=false;
 let CALL_MODE="exact";
 let SCOUT_DATA=[]; let SCOUT_MODE="defense"; let SCOUT_SOURCE="sample";
 let GAMES=[]; let DEF_SAMPLE=[]; let OURS_SAMPLE=[]; let ACCT_EMAIL="";
@@ -1277,18 +1299,20 @@ function openImport(mode){
   const wrap=document.getElementById("modal");
   if(!wrap){ console.warn("openImport: #modal missing"); return; }
   wrap.classList.add("show");
-  try{ updateImportPerspUI(); }catch(e){}
+  try{ refreshFilmDetect(); }catch(e){}
   document.querySelectorAll("#seg-importmode button").forEach(x=>{ if(x.dataset.mode===IMPORT_MODE)x.classList.add("on"); else x.classList.remove("on"); });
+  const filmBox=document.getElementById("imp-film-box");
+  if(filmBox) filmBox.style.display = IMPORT_MODE==="autoscout"?"none":"";
   const note=document.getElementById("importModeNote");
   if(note) note.textContent = IMPORT_MODE==="full"
-    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense (D rows), their defense (O rows w/ coverage/front/blitz), and your call sheet (O rows w/ OFF PLAY) · all tagged to the Opponent + Week you enter below."
+    ? "Full game: drop ONE Hudl playlist export. Auto-splits into their offense, their defense, and your call sheet · all tagged to the Opponent + Week you enter below."
     : IMPORT_MODE==="offense"
-    ? "Our-offense mode (call sheet): needs PLAY/CONCEPT, the COVERAGE faced, DN, DIST, and GN/LS. ODK filters to offensive snaps."
+    ? "Our-offense mode (call sheet): needs PLAY/CONCEPT, the COVERAGE faced, DN, DIST, and GN/LS. Uses our offensive snaps."
     : IMPORT_MODE==="scout"
-    ? "Opponent-offense mode: drop your Hudl playlist export. Auto-maps PLAY TYPE, PLAY DIR, MOTION DIR, OFF FORM, BACKFIELD, DN, DIST. Uses ODK=D rows (your defense vs their offense)."
+    ? "Opponent-offense mode: drop your Hudl playlist export. Auto-maps PLAY TYPE, PLAY DIR, MOTION DIR, OFF FORM, BACKFIELD, DN, DIST. Uses their offensive snaps."
     : IMPORT_MODE==="autoscout"
     ? "Auto-Scout import: Hudl Assist/Classic CSV → scout_snaps (tag_source=import). Confirm the column map, preview formation match-rate, then commit. Same opponent/week/side re-import replaces prior batch."
-    : "Defense mode: drop a Hudl export with COVERAGE (man/zone or specific shells); FRONT and BLITZ are auto-mapped if present (Assist tags these). Reads ODK=O rows (your offense vs their defense).";
+    : "Defense mode: drop a Hudl export with COVERAGE (man/zone or specific shells); FRONT and BLITZ are auto-mapped if present. Reads the snaps where we faced their defense.";
   try{
     if(window.OFFGRD_ASSIST_IMPORT&&OFFGRD_ASSIST_IMPORT.setAssistChrome){
       OFFGRD_ASSIST_IMPORT.setAssistChrome(IMPORT_MODE==="autoscout");
@@ -1296,28 +1320,88 @@ function openImport(mode){
   }catch(e){}
 }
 
-function updateImportPerspUI(){
+function detectFilmKind(txt){
+  const cleaned=typeof stripJunkRows==="function"?stripJunkRows(txt||""):(txt||"");
+  const lines=cleaned.replace(/\r/g,"").split("\n").filter(l=>l.trim().length);
+  if(lines.length<2) return {kind:null,oDef:0,dDef:0,evidence:""};
+  const headers=splitCSVLine(lines[0]).map(h=>h.trim());
+  const cols=colResolve(headers);
+  const oi=cols.odk?cols.odk.idx:-1;
+  const cvi=cols.coverage?cols.coverage.idx:-1;
+  const fri=cols.front?cols.front.idx:-1;
+  const bli=cols.blitz?cols.blitz.idx:-1;
+  if(oi<0) return {kind:null,oDef:0,dDef:0,evidence:"No O/D column — pick whose film this is."};
+  let oDef=0,dDef=0;
+  lines.slice(1).forEach(l=>{
+    const c=splitCSVLine(l); if(!c.length||c.join("").trim()==="") return;
+    const k=((c[oi]||"").trim().toUpperCase()[0])||"?";
+    const hasDef=(cvi>=0&&(c[cvi]||"").trim())||(fri>=0&&(c[fri]||"").trim())||(bli>=0&&(c[bli]||"").trim());
+    if(!hasDef) return;
+    if(k==="O") oDef++;
+    else if(k==="D") dDef++;
+  });
+  const tot=oDef+dDef;
+  if(tot<3) return {kind:null,oDef,dDef,evidence:tot?("Only "+tot+" tagged defensive snap"+(tot===1?"":"s")+" — pick whose film this is."):"No coverage / front / blitz tags found — pick whose film this is."};
+  if(oDef/tot>=0.7 && oDef>=dDef+2) return {kind:"US",oDef,dDef,evidence:"Looks like our game — coverage tags are on the O snaps."};
+  if(dDef/tot>=0.7 && dDef>=oDef+2) return {kind:"THEIR",oDef,dDef,evidence:"Looks like {Opp}'s own film — coverage tags are on the D snaps."};
+  return {kind:null,oDef,dDef,evidence:"Mixed tags (O "+oDef+" / D "+dDef+") — pick whose film this is."};
+}
+function getImportFilmKind(){
+  const sel=document.querySelector('input[name="imp-film"]:checked');
+  return sel?sel.value:"";
+}
+function setImportFilmKind(kind){
+  document.querySelectorAll('input[name="imp-film"]').forEach(r=>{ r.checked=!!(kind && r.value===kind); });
+}
+function resolveImportPersp(){
+  const kind=getImportFilmKind();
   const a=(document.getElementById("imp-opp").value||"").trim();
   const b=(document.getElementById("imp-opp2").value||"").trim();
   const nameA=a||"Opponent", nameB=b||"Other team";
+  let perspVal="US";
+  if(kind==="THEIR") perspVal=(FILM_DETECT&&FILM_DETECT.kind==="US")?"B":"A";
+  const scoutVal=(kind==="THEIR"&&b)?"BOTH":"A";
+  return {kind,perspVal,scoutVal,nameA,nameB,opp2:b};
+}
+function refreshFilmDetect(opts){
+  if(opts&&opts.resetUser) FILM_KIND_USER=false;
+  const raw=(document.getElementById("csvText")||{}).value||"";
+  FILM_DETECT=detectFilmKind(raw);
+  if(!FILM_KIND_USER) setImportFilmKind(FILM_DETECT.kind||"");
+  updateImportPerspUI();
+  return FILM_DETECT;
+}
+function updateImportPerspUI(){
+  const a=(document.getElementById("imp-opp").value||"").trim();
+  const nameA=a||"Opponent";
+  const usTitle=document.getElementById("imp-film-us-title");
+  const usSub=document.getElementById("imp-film-us-sub");
+  const theirTitle=document.getElementById("imp-film-their-title");
+  const theirSub=document.getElementById("imp-film-their-sub");
+  if(usTitle) usTitle.textContent="Our game — we played "+nameA;
+  if(usSub) usSub.textContent="Your offense is the O rows. We read "+nameA+"'s defense from your offensive snaps.";
+  if(theirTitle) theirTitle.textContent=nameA+" playing someone else (scout film)";
+  if(theirSub) theirSub.textContent=nameA+"'s offense is the O rows. We read their defense from the D rows.";
+  const kind=getImportFilmKind();
+  const wrap=document.getElementById("imp-opp2-wrap");
+  if(wrap) wrap.style.display=kind==="THEIR"?"":"none";
+  const ev=document.getElementById("imp-film-detect");
+  if(ev){
+    const raw=FILM_DETECT&&FILM_DETECT.evidence?String(FILM_DETECT.evidence):"";
+    ev.textContent=raw?raw.replace("{Opp}",nameA):"";
+  }
+  const resolved=resolveImportPersp();
   const persp=document.getElementById("imp-odk-persp"), who=document.getElementById("imp-scout-who");
-  if(!persp||!who) return;
-  persp.options[1].textContent=nameA+"'s offense (their film)";
-  persp.options[2].textContent=nameB+"'s offense (their film)";
-  persp.options[2].disabled=!b;
-  who.options[0].textContent="Just "+nameA;
-  who.options[1].textContent="Just "+nameB;
-  who.options[1].disabled=!b;
-  who.options[2].disabled=!b;
-  if(!b && (who.value==="B"||who.value==="BOTH")) who.value="A";
-  if(!b && persp.value==="B") persp.value="US";
-  // plain-language hint of what will be scouted and from which ODK rows
-  const pv=persp.value, wv=who.value;
-  const perspName = pv==="A"?nameA : (pv==="B"?nameB : "your team");
-  const targets = b ? (wv==="A"?[nameA] : (wv==="B"?[nameB] : [nameA,nameB])) : [nameA];
-  const bits = targets.map(T=>{ const owns=(pv!=="US" && ((pv==="A"&&T===nameA)||(pv==="B"&&T===nameB))); return T+"'s D from ODK="+(owns?"D":"O")+", O from ODK="+(owns?"O":"D"); });
+  if(persp) persp.value=resolved.perspVal;
+  if(who) who.value=resolved.scoutVal;
   const hint=document.getElementById("imp-persp-hint");
-  if(hint) hint.innerHTML = (b?"Scouting <b>both teams</b> from one file. ":"")+"ODK &ldquo;O&rdquo; = "+esc(perspName)+"&rsquo;s offense. "+bits.map(esc).join(" &middot; ")+".";
+  if(hint){
+    if(!kind) hint.textContent="";
+    else if(kind==="US") hint.innerHTML="We'll scout <b>"+esc(nameA)+"</b>'s defense from the snaps you faced.";
+    else hint.innerHTML=resolved.opp2
+      ? "Scouting <b>both teams</b> from one file."
+      : "We'll scout <b>"+esc(nameA)+"</b>'s defense from their own snaps.";
+  }
 }
 /* ---------- OFFENSE SCOUT: predict opponent run/pass ---------- */
 const SCOUT_SAMPLE=[{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":-4,"result":"Sack"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":14,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"R","motion":1,"gain":4,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":4,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":13,"result":"Complete"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3X1","playType":"Run","direction":"L","motion":0,"gain":1,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":9,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":-7,"result":"Sack"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":16,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":13,"result":"Complete"},{"date":"2024-10-11","opponent":"Parkway North","down":4,"distance":3,"fieldZone":"OWN","hash":"R","personnel":"Gun Pro","formation":"Unbalanced Pro Wing Open","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"PRO WING","playType":"Run","direction":"L","motion":1,"gain":9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":1,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"","playType":"Run","direction":"R","motion":0,"gain":2,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"DART","playType":"Pass","direction":"R","motion":0,"gain":19,"result":"Complete, TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Pass","direction":"R","motion":0,"gain":0,"result":"Incomplete"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":0,"gain":-1,"result":"Penalty"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":11,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"R","motion":1,"gain":3,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":8,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"Unbalanced 2x1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2x1 Wing","playType":"Run","direction":"L","motion":0,"gain":9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":1,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"2x1 Wing","playType":"Run","direction":"R","motion":0,"gain":9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"2x1 Wing","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"Unbalanced 2x1","playType":"Run","direction":"L","motion":0,"gain":0,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"Unbalanced 2x1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":1,"gain":1,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":9,"fieldZone":"OWN","hash":"M","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"L","motion":1,"gain":-2,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":11,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":8,"result":"Complete"},{"date":"2024-10-11","opponent":"Parkway North","down":4,"distance":3,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"Tank Wing","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"R","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":3,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"L","motion":1,"gain":4,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":10,"result":"Complete"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":5,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":1,"gain":null,"result":"Interception"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"","formation":"","playType":"Run","direction":"R","motion":0,"gain":-1,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":15,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":3,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"TREY","playType":"Run","direction":"L","motion":0,"gain":-2,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":5,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"3x1 wing","playType":"Pass","direction":"L","motion":0,"gain":-5,"result":"Complete"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"DART","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":3,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":23,"result":"Rush, TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":3,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"SPREAD","playType":"Run","direction":"L","motion":0,"gain":67,"result":"Rush, TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2x1 Wing","playType":"Run","direction":"R","motion":1,"gain":5,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":5,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"3x1 wing","playType":"Pass","direction":"L","motion":0,"gain":12,"result":"Scramble"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"TREY","playType":"Run","direction":"L","motion":0,"gain":25,"result":"Rush, TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2x1 Wing","playType":"Run","direction":"R","motion":0,"gain":4,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":6,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"3x1 wing","playType":"Pass","direction":"L","motion":0,"gain":null,"result":"Interception, Def TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":-9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":19,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":35,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":5,"result":"Penalty"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":5,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2x1 Wing","playType":"Run","direction":"R","motion":0,"gain":9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"DART","playType":"Run","direction":"R","motion":0,"gain":5,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":5,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"SLOT WING","playType":"Run","direction":"R","motion":0,"gain":-2,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":7,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"SLOT WING","playType":"Run","direction":"R","motion":0,"gain":13,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"3x1 wing","playType":"Run","direction":"L","motion":0,"gain":5,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":5,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"TREY","playType":"Run","direction":"R","motion":0,"gain":4,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":6,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"L","motion":1,"gain":1,"result":"Fumble"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"R","motion":0,"gain":97,"result":"Rush, TD"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"SPREAD","playType":"Run","direction":"R","motion":0,"gain":3,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":7,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"R","motion":0,"gain":9,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":1,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"SPREAD","playType":"Run","direction":"R","motion":0,"gain":21,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"L","motion":0,"gain":1,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":2,"distance":9,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"L","motion":0,"gain":8,"result":"Rush"},{"date":"2024-10-11","opponent":"Parkway North","down":3,"distance":1,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"SPREAD","playType":"Run","direction":"R","motion":0,"gain":-1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"L","motion":1,"gain":0,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"3X1","playType":"Run","direction":"L","motion":0,"gain":26,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"","formation":"","playType":"Pass","direction":"R","motion":0,"gain":-2,"result":"Sack"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":12,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"2X2","playType":"Pass","direction":"R","motion":0,"gain":42,"result":"Complete, TD"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"L","motion":0,"gain":2,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":8,"fieldZone":"OWN","hash":"R","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"L","motion":1,"gain":0,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":8,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Pass","direction":"R","motion":0,"gain":28,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"","formation":"","playType":"Run","direction":"R","motion":0,"gain":8,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":2,"fieldZone":"OWN","hash":"R","personnel":"","formation":"","playType":"Run","direction":"R","motion":0,"gain":0,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":2,"fieldZone":"OWN","hash":"R","personnel":"","formation":"","playType":"Run","direction":"R","motion":0,"gain":-4,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"GUN","formation":"Quads","playType":"Pass","direction":"R","motion":1,"gain":3,"result":"Scramble"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":7,"fieldZone":"OWN","hash":"M","personnel":"Gun Pro","formation":"2X1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":7,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"2X2","playType":"Pass","direction":"R","motion":0,"gain":9,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":0,"gain":35,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Interception"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"DART","playType":"Pass","direction":"R","motion":0,"gain":-10,"result":"Penalty"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":20,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"DART","playType":"Run","direction":"R","motion":0,"gain":1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":24,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"R","motion":1,"gain":-16,"result":"Penalty"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":40,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"R","motion":0,"gain":1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"R","motion":0,"gain":10,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"L","motion":1,"gain":-11,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":21,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"2X2","playType":"Pass","direction":"L","motion":1,"gain":9,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":12,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"R","motion":1,"gain":-5,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":22,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":5,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":5,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"2X2","playType":"Pass","direction":"R","motion":0,"gain":0,"result":"Interception"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":11,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":20,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left H Left","formation":"PRO","playType":"Run","direction":"R","motion":0,"gain":-15,"result":"Penalty"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":25,"fieldZone":"OWN","hash":"M","personnel":"Gun Right H Right","formation":"PRO","playType":"Run","direction":"L","motion":0,"gain":1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":24,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":37,"result":"Complete, TD"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Run","direction":"L","motion":0,"gain":4,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":6,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"R","motion":0,"gain":7,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3X1","playType":"Run","direction":"L","motion":0,"gain":7,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":3,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":3,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Run","direction":"L","motion":0,"gain":2,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":4,"distance":1,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"L","motion":0,"gain":0,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"2X2","playType":"Pass","direction":"L","motion":0,"gain":2,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":8,"fieldZone":"OWN","hash":"R","personnel":"Gun Left","formation":"3X1","playType":"Run","direction":"L","motion":0,"gain":17,"result":"Penalty"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"PRO WING","playType":"Run","direction":"R","motion":0,"gain":53,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"","formation":"","playType":"Run","direction":"L","motion":0,"gain":-3,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":13,"fieldZone":"OWN","hash":"L","personnel":"Gun Right","formation":"ACE","playType":"Pass","direction":"R","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":13,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"DART","playType":"Pass","direction":"L","motion":0,"gain":7,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"3X1","playType":"Run","direction":"R","motion":0,"gain":3,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":7,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"L","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":7,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"3X1","playType":"Run","direction":"R","motion":0,"gain":3,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"2x1 Wing","playType":"Run","direction":"L","motion":0,"gain":-1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":11,"fieldZone":"OWN","hash":"M","personnel":"Gun Left","formation":"3X1","playType":"Pass","direction":"R","motion":0,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":11,"fieldZone":"OWN","hash":"M","personnel":"Gun Right","formation":"2X2","playType":"Run","direction":"R","motion":1,"gain":-6,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Left","formation":"3X1","playType":"Run","direction":"R","motion":0,"gain":17,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":0,"gain":1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":9,"fieldZone":"OWN","hash":"M","personnel":"Gun Pro","formation":"2X1","playType":"Pass","direction":"L","motion":0,"gain":38,"result":"Complete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":0,"gain":-3,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":2,"distance":13,"fieldZone":"OWN","hash":"M","personnel":"Gun Pro","formation":"2X1","playType":"Run","direction":"R","motion":0,"gain":-1,"result":"Rush"},{"date":"2025-10-10","opponent":"Parkway North","down":3,"distance":14,"fieldZone":"OWN","hash":"R","personnel":"Gun Right","formation":"3X1","playType":"Pass","direction":"R","motion":1,"gain":0,"result":"Incomplete"},{"date":"2025-10-10","opponent":"Parkway North","down":1,"distance":10,"fieldZone":"OWN","hash":"L","personnel":"Pistol Double Wing","formation":"TANK","playType":"Run","direction":"R","motion":0,"gain":-5,"result":"Rush"}];
@@ -2643,10 +2727,17 @@ function previewImport(){
   const headers=lines.length?splitCSVLine(lines[0]).map(h=>h.trim()):[];
   const firstRow=lines.length>1?splitCSVLine(lines[1]):[];
   const cols=colResolve(headers);
-  const opp2=(document.getElementById("imp-opp2").value||"").trim();
-  const perspVal=(document.getElementById("imp-odk-persp")||{}).value||"US";
-  const scoutVal=(document.getElementById("imp-scout-who")||{}).value||"A";
-  const nameA=opp||"Team A", nameB=opp2||"Team B";
+  const film=resolveImportPersp();
+  if(IMPORT_MODE!=="offense" && IMPORT_MODE!=="autoscout" && !film.kind){
+    document.getElementById("importPreview").innerHTML="";
+    document.getElementById("commitBtn").style.display="none";
+    document.getElementById("importMsg").textContent="Pick whose film this is — we couldn't tell from the tags.";
+    return;
+  }
+  const opp2=film.opp2;
+  const perspVal=film.perspVal;
+  const scoutVal=film.scoutVal;
+  const nameA=film.nameA, nameB=film.nameB;
   const perspName = perspVal==="A"?nameA : (perspVal==="B"?nameB : "__US__");
   // For scout team T: the perspective team owns ODK "O". If T owns O, T's offense is O rows
   // and T's defense is D rows; otherwise the reverse. This handles our-own film, an
@@ -2667,7 +2758,25 @@ function previewImport(){
   const lbl={off:"offense",def:"defense",ours:"your plays"};
   let H=`<div class="lbl" style="margin-top:6px">Detected columns</div><div class="mapgrid">`;
   [["down","Down"],["distance","Distance"],["coverage","Coverage"],["front","Def front"],["blitz","Blitz"],["playtype","Play type"],["play","Off. play"],["hash","Hash"],["formation","Formation"],["yardline","Yard line"],["qtr","Quarter"],["odk","ODK"]].forEach(f=>{ const c=cols[f[0]]; if(c) H+=`<div class="maprow"><span>${f[1]}</span><b>${esc(c.header)}</b><span class="foot">${esc(String(firstRow[c.idx]||"").slice(0,14))}</span></div>`; });
+  function topCount(rows,field){ const t={}; rows.forEach(r=>{ const k=(r[field]||"").trim(); if(k) t[k]=(t[k]||0)+1; }); return Object.keys(t).sort((a,b)=>t[b]-t[a])[0]||""; }
+  function defensiveReceipt(games,keepFn){
+    const defs=games.filter(g=>g.side==="def");
+    if(!defs.length && (IMPORT_MODE==="full"||IMPORT_MODE==="defense")){
+      return "Read 0 defensive snaps for "+nameA+" (from "+keepFn(nameA,"def")+" rows).";
+    }
+    return defs.map(g=>{
+      const n=g.rows.length, side=keepFn(g.opp,"def");
+      const cov=topCount(g.rows,"coverage"), front=topCount(g.rows,"front");
+      let extra="";
+      if(cov) extra+=" — "+cov+" heavy";
+      if(front) extra+=(extra?", ":" — ")+front+" base";
+      return "Read "+n+" defensive snap"+(n===1?"":"s")+" for "+g.opp+" (from "+side+" rows)"+extra+".";
+    }).join(" ");
+  }
+  const receipt=defensiveReceipt(PENDING.games,keepFor);
+  PENDING.receipt=receipt;
   H+=`</div><div class="lbl" style="margin-top:10px">Will load</div><p style="font-size:14px">`+PENDING.games.map(g=>`<b>${g.rows.length}</b> ${esc(g.opp)} ${lbl[g.side]}`).join(" &middot; ")+` &mdash; ${esc(PENDING.week)}</p>`;
+  if(receipt) H+=`<p style="font-size:14px;font-weight:700;margin:6px 0 0">${esc(receipt)}</p>`;
   // ---- import sanity readout: ODK split + what each side captures + inversion/blank-tag flags ----
   (function(){
     let H2='<div class="lbl" style="margin-top:10px">Import check</div>';
@@ -2682,7 +2791,7 @@ function previewImport(){
     else H2+='<p style="font-size:13px;margin:2px 0">No ODK column · every row treated as one side.</p>';
     let warns=[];
     const hasO=(odkDist.O||0)>0, hasD=(odkDist.D||0)>0;
-    if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected (O and D snaps). If this is "+esc(nameA)+"?s own film, set ODK ?O? = their offense so O/D aren?t swapped.");
+    if(oi>=0 && hasO && hasD && perspVal==="US" && !opp2) warns.push("Full game detected. If this is "+esc(nameA)+"'s own film, choose \""+esc(nameA)+" playing someone else\".");
     teams.forEach(T=>{
       const ok=keepFor(T,"off"), dk=keepFor(T,"def");
       const oN=offByODK[ok]||0, dN=defByODK[dk]||0, oOpp=offByODK[ok==="O"?"D":"O"]||0;
@@ -2850,7 +2959,7 @@ async function commitPending(){
   const primary=(games[0]||{}).opp||sit.opp;
   sit.opp=primary; sit.pers="ANY"; sit.form="ANY";
   buildControls(); setView("scout");
-  if(msgEl) msgEl.textContent="Committed "+week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games."+syncNote;
+  if(msgEl) msgEl.textContent=(PENDING&&PENDING.receipt?PENDING.receipt+" ":"")+"Committed "+week+" \u2192 "+parts.join(" \u00b7 ")+". Library: "+GAMES.length+" games."+syncNote;
   document.getElementById("importPreview").innerHTML="";
   if(btn){ btn.disabled=false; btn.textContent="Commit to season"; btn.style.display="none"; }
   PENDING=null;
@@ -6202,7 +6311,11 @@ document.getElementById("commitBtn").onclick=function(){
   commitPending();
 };
 ["imp-opp","imp-opp2"].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input",updateImportPerspUI); });
-["imp-odk-persp","imp-scout-who"].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("change",updateImportPerspUI); });
+document.querySelectorAll('input[name="imp-film"]').forEach(r=>{
+  r.addEventListener("change",()=>{ FILM_KIND_USER=true; updateImportPerspUI(); });
+});
+const csvBox=document.getElementById("csvText");
+if(csvBox) csvBox.addEventListener("input",()=>refreshFilmDetect({resetUser:true}));
 document.querySelectorAll("#seg-importmode button").forEach(b=>b.onclick=()=>openImport(b.dataset.mode));
 function ensureXLSX(cb){
   if(window.XLSX) return cb();
@@ -6272,6 +6385,7 @@ document.getElementById("fileIn").onchange=e=>{
           const wb=XLSX.read(new Uint8Array(rd.result),{type:"array",cellDates:false,cellText:true,raw:true});
           const ws=wb.Sheets[wb.SheetNames[0]];
           document.getElementById("csvText").value=sheetToCsvRaw(ws);
+          refreshFilmDetect({resetUser:true});
           if(msg) msg.textContent="Excel loaded \u2014 click Preview import.";
         }catch(ex){ alert("Couldn\u2019t read that Excel file \u2014 try saving it as CSV. ("+ex.message+")"); if(msg) msg.textContent=""; }
       };
@@ -6279,7 +6393,7 @@ document.getElementById("fileIn").onchange=e=>{
     });
   } else {
     /* CSV: plain text — no SheetJS date coercion */
-    const rd=new FileReader(); rd.onload=()=>{ document.getElementById("csvText").value=rd.result; if(msg) msg.textContent="CSV loaded \u2014 click Preview import."; }; rd.readAsText(f);
+    const rd=new FileReader(); rd.onload=()=>{ document.getElementById("csvText").value=rd.result; refreshFilmDetect({resetUser:true}); if(msg) msg.textContent="CSV loaded \u2014 click Preview import."; }; rd.readAsText(f);
   }
 };
 document.getElementById("manageBtn").onclick=openManager;

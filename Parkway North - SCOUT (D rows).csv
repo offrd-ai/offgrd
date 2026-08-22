@@ -1,0 +1,28 @@
+PLAY #,ODK,DN,DIST,HASH,YARD LN,PLAY TYPE,RESULT,GN/LS,OFF FORM,OFF PLAY,OFF STR,PLAY DIR,GAP,PASS ZONE,DEF FRONT,COVERAGE,BLITZ,QTR
+15,D,1,10,,,run,rush,2,,,,,,,4-3,COVER 4,,1
+16,D,2,8,,,pass,complete,6,,,,,,,4-3,COVER 4,SAM B,1
+17,D,1,10,,,run,rush,3,,,,,,,4-3,COVER 4,,1
+18,D,2,7,,,pass,incomplete,0,,,,,,,4-2,COVER 3,DOUBLE A,1
+19,D,3,7,,,pass,complete,12,,,,,,,4-3,COVER 4,,1
+20,D,1,10,,,run,rush,4,,,,,,,4-3,COVER 4,,1
+21,D,2,6,,,pass,sack,-5,,,,,,,5-3,COVER 1,WILL C,1
+22,D,3,11,,,pass,incomplete,0,,,,,,,4-3,COVER 4 MATCH,,1
+23,D,4,11,,,pass,incomplete,0,,,,,,,4-3,COVER 4,,1
+24,D,1,10,,,run,rush,1,,,,,,,4-4,COVER 3,,2
+25,D,2,9,,,pass,complete,24,,,,,,,4-3,COVER 4,,2
+26,D,1,10,,,run,penalty,-3,,,,,,,4-3,COVER 4,MIKE A,2
+27,D,1,13,,,pass,incomplete,0,,,,,,,4-2,COVER 0,MIKE WILL,2
+28,D,2,13,,,run,rush,5,,,,,,,4-3,COVER 4,,2
+29,D,3,8,,,pass,complete,9,,,,,,,4-3,COVER 3,,2
+30,D,1,10,,,run,rush,2,,,,,,,4-3,COVER 4,,3
+31,D,2,8,,,pass,incomplete,0,,,,,,,5-3,TRIPS MATCH / X LOC,SAM B,3
+32,D,3,8,,,pass,complete,11,,,,,,,4-3,COVER 4,,3
+33,D,1,10,,,run,rush,7,,,,,,,4-3,COVER 4,,3
+34,D,2,3,,,run,rush,1,,,,,,,4-4,COVER 1,DOUBLE A,3
+35,D,3,2,,,pass,incomplete,0,,,,,,,4-3,COVER 4,,3
+36,D,1,10,,,pass,complete,8,,,,,,,4-3,COVER 4 MATCH,,4
+37,D,2,2,,,run,rush,3,,,,,,,4-3,COVER 4,,4
+38,D,1,10,,,pass,sack,-4,,,,,,,4-2,TWINS MATCH / X LOC,WILL C,4
+39,D,2,14,,,pass,incomplete,0,,,,,,,4-3,COVER 4,,4
+40,D,3,14,,,pass,complete,15,,,,,,,4-3,COVER 3,,4
+77,D,4,4,,,run,rush,2,,,,,,,4-3,COVER 4,MIKE A,4
