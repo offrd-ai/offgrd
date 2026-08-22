@@ -46,6 +46,8 @@ function unifyHtml(rel) {
     /(from\s+["'])(\.\/[^"']+\.js)\?v=\d+(["'])/g,
     "$1$2?v=" + V + "$3"
   );
+  /* SW registration is part of the release token */
+  h = h.replace(/(["'])offgrd-sw\.js(?:\?v=\d+)?\1/g, "$1offgrd-sw.js?v=" + V + "$1");
   h = h.replace(/<!-- v\d+:/, "<!-- v" + V + ":");
   fs.writeFileSync(p, h);
   const after = [...new Set([...h.matchAll(/[?&]v=(\d+)/g)].map((m) => m[1]))];
