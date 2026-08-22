@@ -1304,7 +1304,11 @@
   function liveRowsAsSnaps() {
     return logForUi()
       .filter(function (l) {
-        return l.playType && l.result;
+        if (!l.playType || !l.result) return false;
+        var fn = global.liveSnapActiveInPool;
+        if (typeof fn !== "function") return true;
+        var opp = l.opponent || (session && session.opp) || "";
+        return fn({ opponent: opp, loggedAt: l.loggedAt || l.ts || 0 }, "off");
       })
       .map(function (l) {
         return {

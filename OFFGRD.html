@@ -421,7 +421,7 @@
 <script src="OFFGRD-boothpack.js?v=319"></script>
 <script src="OFFGRD-booth-chat.js?v=319"></script>
 <script src="OFFGRD-caller-select.js?v=319"></script>
-<script src="OFFGRD-dcaller.js?v=319"></script>
+<script src="OFFGRD-dcaller.js?v=320"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -1716,6 +1716,7 @@ function setSnapCorpus(rows){
   SNAP_CORPUS_READY=true;
   try{ if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.clearCache) OFFGRD_OPP_SHELLS.clearCache(); }catch(e){}
   rebuildActive();
+  try{ sweepLeftoverLiveLooks(); }catch(eSw){}
 }
 function rebuildActive(){
   const def=snapRows("def"); DATA=def; DATASOURCE=def.length?"library":"not tagged";
@@ -2859,8 +2860,81 @@ function renderDefPlanBody(oppName){
 }
 function loadLive(){ try{ const x=localStorage.getItem(LIVE_KEY); if(x){ const a=JSON.parse(x); if(Array.isArray(a)) LIVE_SNAPS=a; } }catch(e){} }
 function saveLive(){ try{ localStorage.setItem(LIVE_KEY, JSON.stringify(LIVE_SNAPS)); }catch(e){} }
-function liveLog(cov){ const cs=callerSit; LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"}); saveLive(); renderCaller(); }
-function liveClear(){ LIVE_SNAPS=LIVE_SNAPS.filter(r=>r.opponent!==sit.opp); saveLive(); renderCaller(); }
+const LIVE_POOL_RETIRE_KEY="offgrd_live_pool_retired_v1";
+function loadLivePoolRetired(){ try{ const x=JSON.parse(localStorage.getItem(LIVE_POOL_RETIRE_KEY)||"{}"); return x&&typeof x==="object"?x:{}; }catch(e){ return {}; } }
+function saveLivePoolRetired(m){ try{ localStorage.setItem(LIVE_POOL_RETIRE_KEY, JSON.stringify(m||{})); }catch(e){} }
+/** Charted import (or first boot with film) stamps "retired through now" per opponent+side. */
+function markLivePoolRetired(opp, side){
+  if(!opp || opp==="ANY") return 0;
+  if(side!=="def" && side!=="off") return 0;
+  const m=loadLivePoolRetired();
+  const row=m[opp]||{};
+  row[side]=Date.now();
+  m[opp]=row;
+  saveLivePoolRetired(m);
+  return row[side];
+}
+function livePoolRetiredAt(opp, side){
+  if(!opp || opp==="ANY") return 0;
+  const row=loadLivePoolRetired()[opp]||{};
+  return +(row[side]||0)||0;
+}
+/** Leftover unstamped snaps drop. Snaps logged after the retire stamp (rematch Friday) stay. */
+function liveSnapActiveInPool(r, side){
+  if(!r) return false;
+  const retiredAt=livePoolRetiredAt(r.opponent, side==="off"?"off":"def");
+  if(!retiredAt) return true;
+  const logged=+r.loggedAt || +r.ts || 0;
+  if(!logged) return false;
+  return logged>retiredAt;
+}
+function isChartedFilmGame(g){
+  if(!g) return false;
+  if(g.source==="live_call") return false;
+  if(/^live\b/i.test(String(g.week||""))) return false;
+  const rows=Array.isArray(g.rows)?g.rows:[];
+  if(rows.length && rows.every(function(r){ return r&&r.source==="live_call"; })) return false;
+  return rows.length>0 || g.source==="import" || g.source==="scout_import" || g.source==="Hudl";
+}
+function filmedOpponents(side){
+  const out={};
+  function add(opp){ if(opp && opp!=="ANY") out[opp]=1; }
+  (GAMES||[]).forEach(function(g){ if(g&&g.side===side&&isChartedFilmGame(g)) add(g.opponent); });
+  (SNAP_CORPUS||[]).forEach(function(r){
+    if(!r||r.side!==side) return;
+    if(r.source==="live_call"||r.source==="live_dcall"||r.date==="live") return;
+    add(r.opponent);
+  });
+  return Object.keys(out);
+}
+function liveLog(cov){ const cs=callerSit; LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live", loggedAt:Date.now()}); saveLive(); renderCaller(); }
+/** Drop live "they showed" taps for one opponent so a charted import is the only vote. */
+function retireLiveLooksForOpponent(opp){
+  if(!opp || opp==="ANY") return 0;
+  const before=LIVE_SNAPS.length;
+  LIVE_SNAPS=LIVE_SNAPS.filter(r=>r.opponent!==opp);
+  const n=before-LIVE_SNAPS.length;
+  if(n) saveLive();
+  markLivePoolRetired(opp, "def");
+  return n;
+}
+function liveClear(){ retireLiveLooksForOpponent(sit.opp); renderCaller(); }
+/** Once per filmed opponent: retire leftover live. Already-stamped rematch looks stay. */
+function sweepLeftoverLiveLooks(){
+  let defN=0;
+  filmedOpponents("def").forEach(function(opp){
+    const before=LIVE_SNAPS.length;
+    LIVE_SNAPS=LIVE_SNAPS.filter(function(r){ return r.opponent!==opp || r.loggedAt; });
+    defN+=before-LIVE_SNAPS.length;
+    if(!livePoolRetiredAt(opp, "def")) markLivePoolRetired(opp, "def");
+  });
+  if(defN) saveLive();
+  let offN=0;
+  filmedOpponents("off").forEach(function(opp){
+    if(!livePoolRetiredAt(opp, "off")){ markLivePoolRetired(opp, "off"); offN+=1; }
+  });
+  return { def:defN, off:offN };
+}
 function colResolve(headers){
   const lc=headers.map(h=>h.toLowerCase()); const out={};
   for(const f in ALIASES){ for(const a of ALIASES[f]){ const i=lc.indexOf(a); if(i>=0){ out[f]={header:headers[i],idx:i}; break; } } }
@@ -3106,6 +3180,10 @@ async function commitPending(){
     const existed=upsertGame(g.opp,week,g.side,"import",g.rows,{sync:false});
     parts.push((existed?"Replaced ":"Added ")+g.rows.length+" "+g.opp+" "+sideLbl[g.side]);
     if(g.side==="off")hasOff=true; if(g.side==="def")hasDef=true;
+    /* Charted D (our-game / their coverage) supersedes Friday's live looks for that opponent. */
+    if(g.side==="def" && g.opp) retireLiveLooksForOpponent(g.opp);
+    /* Charted O (their film) supersedes D Caller live in the Expect pool — log stays. */
+    if(g.side==="off" && g.opp) markLivePoolRetired(g.opp, "off");
   });
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(GAMES)); }catch(eLS){}
 
@@ -3205,7 +3283,7 @@ function callerSitApi(){ return window.OFFGRD_CALLER_SIT||null; }
 function callerExpectSample(){
   const def=oppRows("def"), cs=callerSit;
   const dbF=callerDbFilter(cs.db, cs.estYards);
-  const liveM=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
+  const liveM=LIVE_SNAPS.filter(r=>(sit.opp==="ANY"||r.opponent===sit.opp)&&liveSnapActiveInPool(r,"def"));
   const pool=def.concat(liveM);
   const Sit=callerSitApi();
   let resolved=null;
@@ -5117,7 +5195,7 @@ function callerLogShowed(cov){
   /* Keep live blend for Expect only when setting (not clearing) a coverage. */
   if(!clearing){
     const cs=callerSit;
-    LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live"});
+    LIVE_SNAPS.push({opponent:sit.opp, down:+cs.dn, distance:dbToNum(cs.db), fieldZone:(cs.zone==="ANY"?"":cs.zone), hash:(cs.hash==="ANY"?"":cs.hash), coverage:cov, front:"", pressure:0, date:"live", loggedAt:Date.now()});
     try{ saveLive(); }catch(e){}
   }
   if(on&&on.playIndex!=null){
@@ -7234,9 +7312,14 @@ function closeGetStarted(){ if(gsEl) gsEl.style.display="none"; }
 DEF_SAMPLE=buildSample();
 OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); loadCallerSession(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
+try{ sweepLeftoverLiveLooks(); }catch(eSweep){}
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
-window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames({sync:false, side:"offense"}); else saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
+window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();try{sweepLeftoverLiveLooks();}catch(eSw2){}callerHydrateFromGames();if(CALLER_EVENTS.length||CALLER_LOG.length) callerSyncToGames({sync:false, side:"offense"}); else saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
 window.OFFGRD_SET_SNAP_CORPUS=setSnapCorpus;
+window.markLivePoolRetired=markLivePoolRetired;
+window.livePoolRetiredAt=livePoolRetiredAt;
+window.liveSnapActiveInPool=liveSnapActiveInPool;
+window.sweepLeftoverLiveLooks=sweepLeftoverLiveLooks;
 /* week plan hook · account.js feeds the active week_plans row here on every pull.
    Registered at TOP LEVEL, synchronously (the Playbook sync lesson · never move into DOMContentLoaded). */
 window.OFFGRD_WEEK={set:function(wp,ce){
@@ -7363,7 +7446,7 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=319"></script>
+<script type="module" src="OFFGRD-account.js?v=320"></script>
 <script src="OFFGRD-role-gate.js?v=319"></script>
 <script src="OFFGRD-mobile.js?v=319"></script>
 <script>

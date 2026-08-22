@@ -3,6 +3,13 @@
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
 import { Cloud } from "./OFFGRD-cloud.js?v=319";
 import { openAuthModal } from "./OFFGRD-auth.js?v=319";
+import {
+  PLAYER_IMPORT_CAP,
+  parseInviteCsv,
+  parseInviteEmailList,
+  describeInvitePreview,
+  invitePreviewSentence
+} from "./OFFGRD-invite-parse.js?v=320";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -13,6 +20,7 @@ let _eligibilityChecked = false;
 const AKEY = "offgrd_team";
 const ROLE_KEY = "offgrd_my_role";
 const coachPortalUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.coachPortalUrl) || "https://getoffrd.com/high-school-coach/profile";
+const billingUrl = () => (window.OFFGRD_CONFIG && window.OFFGRD_CONFIG.billingUrl) || "https://getoffrd.com/offgrd/billing";
 function isOffline(){ return typeof navigator !== "undefined" && navigator.onLine === false; }
 function isSidelinePinned(){
   try{
@@ -110,7 +118,20 @@ const roleLabel = r => ({owner:"Admin", coach_edit:"Coach · Edit", coach_view:"
 const canEdit  = () => ["owner","coach_edit","coach"].includes(ROLE);
 const isAdmin  = () => ROLE === "owner";
 const INVITE_ROLES = [["coach_edit","Coach — can edit"],["coach_view","Coach — view only"],["player","Player — view only"]];
+const STAFF_INVITE_ROLES = [["coach_edit","Coach · Edit"],["coach_view","Coach · View"]];
 const ALL_ROLES    = [["owner","Admin"],["coach_edit","Coach — Edit"],["coach_view","Coach — View"],["player","Player"]];
+function isTrialExpiredErr(e){
+  const msg = String((e && (e.message || e.code)) || e || "");
+  return msg.indexOf("trial_expired") >= 0;
+}
+function routeTrialExpired(){ try{ location.assign(billingUrl()); }catch(e){} }
+function fmtInviteWhen(iso){
+  try{
+    const d = new Date(iso);
+    if(Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric" });
+  }catch(e){ return ""; }
+}
 /** Signed-in, not a coach role, cannot create a program → player chrome (avoids coach nav while ROLE is still null). */
 function assumePlayerChrome(){
   if(ROLE === "player") return true;
@@ -124,7 +145,8 @@ function assumePlayerChrome(){
   s.textContent = `
   .ogm-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:9999;overflow:auto}
   .ogm-ov.show{display:flex}
-  .ogm-box{background:#fff;color:#16181d;border-radius:14px;max-width:560px;width:100%;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.35);font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .ogm-box{background:#fff;color:#16181d;border-radius:14px;max-width:640px;width:100%;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.35);font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .ogm-ta{width:100%;min-height:88px;resize:vertical;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
   .ogm-box h3{margin:0;font-size:19px;color:#13294B}
   .ogm-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .ogm-sec{margin-top:16px;padding-top:14px;border-top:1px solid #e2e5ea}
@@ -1299,19 +1321,40 @@ function renderSetup(body){
   body.appendChild(joinSection());
 }
 
+async function findInviteRow(teamId, email, role){
+  const list = await Cloud.listInvites(teamId);
+  const em = String(email || "").toLowerCase();
+  return (list || []).find(function(iv){
+    return String(iv.email || "").toLowerCase() === em && (!role || iv.role === role);
+  }) || null;
+}
+async function sendOffgrdInviteMail(teamId, email, role){
+  const row = await findInviteRow(teamId, email, role);
+  if(!row) return false;
+  await Cloud.sendInviteEmail(row.id);
+  return true;
+}
+
 async function renderTeam(){
   const body = ensureModal().querySelector("#ogmBody");
   if(!TEAM){ renderSetup(body); return; }
   body.innerHTML = '<p class="ogm-note">Loading…</p>';
   let roster=[], invites=[];
+  let writeBlocked=false;
   try{ roster = await Cloud.teamRoster(TEAM.id); }catch(e){}
-  if(isAdmin()){ try{ invites = await Cloud.listInvites(TEAM.id); }catch(e){} }
+  if(isAdmin()){
+    try{ invites = await Cloud.listInvites(TEAM.id); }catch(e){}
+    try{
+      const sub = await Cloud.teamSubscription(TEAM.id);
+      const ent = sub && (sub.entitlement || sub.status);
+      writeBlocked = ent === "trial_expired";
+    }catch(e){}
+  }
   body.innerHTML="";
 
   const linkSec = renderSchoolLinkSection(true);
   if(linkSec) body.appendChild(linkSec);
 
-  // program name + role + team switcher
   const head = el('<div class="ogm-row" style="justify-content:space-between;margin-top:6px"></div>');
   head.appendChild(el('<div><div style="font-size:17px;font-weight:900;color:#13294B">'+esc(TEAM.name)+'</div><div class="ogm-note">You are: <b>'+roleLabel(ROLE)+'</b></div></div>'));
   if(TEAMS.length>1){
@@ -1321,38 +1364,209 @@ async function renderTeam(){
     const w=el('<div><div class="ogm-lbl">Active program</div></div>'); w.appendChild(sel); head.appendChild(w);
   }
   body.appendChild(head);
-
-  // join code
-  const codeSec = el('<div class="ogm-sec"><div class="ogm-lbl">Program join code</div></div>');
-  const codeRow = el('<div class="ogm-row"></div>');
-  codeRow.appendChild(el('<span class="ogm-code">'+esc(TEAM.join_code||"——")+'</span>'));
-  const copy=el('<button class="ogm-b">Copy</button>'); copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} }; codeRow.appendChild(copy);
-  if(isAdmin()){ const rot=el('<button class="ogm-b">New code</button>'); rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ alert(e.message);} }; codeRow.appendChild(rot); }
-  codeSec.appendChild(codeRow);
-  codeSec.appendChild(el('<p class="ogm-note">Share this with players/coaches — they sign up, then enter it under &ldquo;Join a program&rdquo;. New members join as Player; change roles below.</p>'));
-  body.appendChild(codeSec);
-
-  // admin: invite + pending + roster ; non-admin: roster read-only
-  if(isAdmin()){
-    const inv = el('<div class="ogm-sec"><div class="ogm-lbl">Invite by email</div></div>');
-    const irow = el('<div class="ogm-row"></div>');
-    const email=el('<input class="ogm-in" type="email" placeholder="coach@school.org">');
-    const rsel=document.createElement("select"); rsel.className="ogm-sel"; INVITE_ROLES.forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;rsel.appendChild(o);});
-    const send=el('<button class="ogm-b go">Invite</button>');
-    const stat=el('<p class="ogm-note"></p>');
-    send.onclick=async()=>{ const em=email.value.trim(); if(!em){stat.textContent="Enter an email.";return;} send.disabled=true; try{ const res=await Cloud.inviteMember(TEAM.id, em, rsel.value); stat.textContent = res==="added" ? em+" was added now." : em+" is invited — they’ll join when they sign up."; email.value=""; renderTeamKeep(stat.textContent); }catch(e){ stat.textContent=e.message||"Invite failed"; } send.disabled=false; };
-    irow.appendChild(email); irow.appendChild(rsel); irow.appendChild(send); inv.appendChild(irow); inv.appendChild(stat);
-    body.appendChild(inv);
-
-    if(invites.length){
-      const pend=el('<div class="ogm-sec"><div class="ogm-lbl">Pending invites</div></div>');
-      invites.forEach(iv=>{ const r=el('<div class="ogm-mem"></div>'); r.appendChild(el('<span class="nm">'+esc(iv.email)+'</span>')); r.appendChild(el('<span class="ogm-badge">'+roleLabel(iv.role)+'</span>')); const rv=el('<button class="ogm-b dz">Revoke</button>'); rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(e.message);} }; r.appendChild(rv); pend.appendChild(r); });
-      body.appendChild(pend);
-    }
+  if(_keepMsg){
+    body.appendChild(el('<p class="ogm-note"><b>'+esc(_keepMsg)+'</b></p>'));
+    _keepMsg=null;
   }
 
-  // roster
-  const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+roster.length+')</div></div>');
+  const staffInvites = invites.filter(function(iv){ return iv.role !== "player"; });
+  const playerInvites = invites.filter(function(iv){ return iv.role === "player"; });
+
+  if(isAdmin() && writeBlocked){
+    const bill = el('<div class="ogm-sec"></div>');
+    bill.appendChild(el('<p class="ogm-note">Your trial ended — your work is saved. Choose a season plan to invite staff or players.</p>'));
+    const go=el('<button class="ogm-b go">Program billing</button>');
+    go.onclick=()=>routeTrialExpired();
+    bill.appendChild(go);
+    body.appendChild(bill);
+  }
+
+  /* STAFF — admin-gated today (invite_member: "Only the admin can invite").
+     Coach·Edit inviting players but not staff is a separate product decision. */
+  if(isAdmin()){
+    const staff = el('<div class="ogm-sec"><div class="ogm-lbl">Staff</div></div>');
+    staff.appendChild(el('<p class="ogm-note" style="margin-top:0">Invite a coach by email and role. Same send as Collaboration — they get the invite in their inbox.</p>'));
+    if(!writeBlocked){
+      const irow = el('<div class="ogm-row"></div>');
+      const email=el('<input class="ogm-in" type="email" placeholder="coach@school.org">');
+      const rsel=document.createElement("select"); rsel.className="ogm-sel";
+      STAFF_INVITE_ROLES.forEach(function(pair){ const o=document.createElement("option"); o.value=pair[0]; o.textContent=pair[1]; rsel.appendChild(o); });
+      const send=el('<button class="ogm-b go">Send</button>');
+      const stat=el('<p class="ogm-note"></p>');
+      send.onclick=async()=>{
+        const em=email.value.trim().toLowerCase();
+        if(!em){ stat.textContent="Enter an email."; return; }
+        send.disabled=true;
+        try{
+          const res=await Cloud.inviteMember(TEAM.id, em, rsel.value);
+          if(res==="pending"){
+            try{ await sendOffgrdInviteMail(TEAM.id, em, rsel.value); }
+            catch(mailErr){
+              if(isTrialExpiredErr(mailErr)){ routeTrialExpired(); return; }
+              stat.textContent=em+" is invited, but the email did not send. Use Resend below.";
+              email.value=""; renderTeamKeep(stat.textContent); return;
+            }
+            stat.textContent=em+" is invited — email sent.";
+          } else {
+            stat.textContent=em+" was added now.";
+          }
+          email.value="";
+          renderTeamKeep(stat.textContent);
+        }catch(e){
+          if(isTrialExpiredErr(e)){ routeTrialExpired(); return; }
+          stat.textContent=e.message||"Invite failed";
+        }
+        send.disabled=false;
+      };
+      irow.appendChild(email); irow.appendChild(rsel); irow.appendChild(send);
+      staff.appendChild(irow); staff.appendChild(stat);
+    }
+    if(staffInvites.length){
+      staff.appendChild(el('<div class="ogm-lbl" style="margin-top:12px">Pending staff</div>'));
+      staffInvites.forEach(function(iv){
+        const r=el('<div class="ogm-mem"></div>');
+        r.appendChild(el('<span class="nm">'+esc(iv.email)+'</span>'));
+        r.appendChild(el('<span class="ogm-badge">'+roleLabel(iv.role)+'</span>'));
+        if(iv.created_at) r.appendChild(el('<span class="ogm-note" style="margin:0">'+esc(fmtInviteWhen(iv.created_at))+'</span>'));
+        if(!writeBlocked){
+          const rs=el('<button class="ogm-b">Resend</button>');
+          rs.onclick=async()=>{
+            rs.disabled=true;
+            try{ await Cloud.sendInviteEmail(iv.id); rs.textContent="Sent \u2713"; }
+            catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message||"Resend failed"); }
+            rs.disabled=false;
+          };
+          r.appendChild(rs);
+        }
+        const rv=el('<button class="ogm-b dz">Revoke</button>');
+        rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(e.message);} };
+        r.appendChild(rv);
+        staff.appendChild(r);
+      });
+    }
+    body.appendChild(staff);
+  }
+
+  /* PLAYERS — join code stays first. Bulk import is admin-only. */
+  const players = el('<div class="ogm-sec"><div class="ogm-lbl">Players</div></div>');
+  const codeRow = el('<div class="ogm-row"></div>');
+  codeRow.appendChild(el('<span class="ogm-code">'+esc(TEAM.join_code||"——")+'</span>'));
+  const copy=el('<button class="ogm-b">Copy</button>');
+  copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} };
+  codeRow.appendChild(copy);
+  if(isAdmin() && !writeBlocked){
+    const rot=el('<button class="ogm-b">New code</button>');
+    rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message);} };
+    codeRow.appendChild(rot);
+  }
+  players.appendChild(codeRow);
+  players.appendChild(el('<p class="ogm-note">Locker-room path: players sign up, then enter this code. They join as Player.</p>'));
+
+  if(isAdmin() && !writeBlocked){
+    const importWrap = el('<div style="margin-top:12px"></div>');
+    importWrap.appendChild(el('<div class="ogm-lbl">Import player list</div>'));
+    const ta=el('<textarea class="ogm-in ogm-ta" placeholder="Paste emails — one per line, or comma-separated"></textarea>');
+    const file=el('<input type="file" accept=".csv,text/csv,text/plain" style="display:none">');
+    const brow=el('<div class="ogm-row" style="margin-top:8px"></div>');
+    const csvBtn=el('<button class="ogm-b">Upload CSV</button>');
+    const prevBtn=el('<button class="ogm-b go">Preview</button>');
+    const commitBtn=el('<button class="ogm-b go" style="display:none">Invite these players</button>');
+    const pstat=el('<p class="ogm-note"></p>');
+    let staged=null;
+    let fromCsv=false;
+    csvBtn.onclick=()=>file.click();
+    ta.oninput=function(){ fromCsv=false; staged=null; commitBtn.style.display="none"; };
+    file.onchange=function(){
+      const f=file.files && file.files[0];
+      if(!f) return;
+      const reader=new FileReader();
+      reader.onload=function(){ ta.value=String(reader.result||""); fromCsv=true; staged=null; commitBtn.style.display="none"; pstat.textContent="CSV loaded. Preview before sending."; };
+      reader.readAsText(f);
+    };
+    prevBtn.onclick=async()=>{
+      const raw=ta.value||"";
+      const firstLine=(raw.split(/\r?\n/)[0]||"");
+      const looksCsv=fromCsv || /email|name/i.test(firstLine);
+      const parsed=looksCsv ? parseInviteCsv(raw) : parseInviteEmailList(raw);
+      if(!parsed.rows.length){ pstat.textContent="No valid emails in that list."; staged=null; commitBtn.style.display="none"; return; }
+      if(parsed.rows.length>PLAYER_IMPORT_CAP){
+        pstat.textContent="That's "+parsed.rows.length+" players. Import up to "+PLAYER_IMPORT_CAP+" at a time.";
+        staged=null; commitBtn.style.display="none"; return;
+      }
+      prevBtn.disabled=true;
+      try{
+        const lookup=await Cloud.previewInviteEmails(TEAM.id, parsed.rows.map(function(r){ return r.email; }));
+        const preview=describeInvitePreview(parsed, lookup);
+        pstat.textContent=invitePreviewSentence(preview);
+        staged=parsed.rows;
+        commitBtn.style.display="";
+      }catch(e){
+        if(isTrialExpiredErr(e)){ routeTrialExpired(); return; }
+        const rosterMails=(roster||[]).map(function(m){ return String(m.email||"").toLowerCase(); });
+        const pendingMails=playerInvites.map(function(iv){ return String(iv.email||"").toLowerCase(); });
+        const preview=describeInvitePreview(parsed, { existing:[], members:rosterMails, pending:pendingMails });
+        pstat.textContent=invitePreviewSentence(preview);
+        staged=parsed.rows;
+        commitBtn.style.display="";
+      }
+      prevBtn.disabled=false;
+    };
+    commitBtn.onclick=async()=>{
+      if(!staged || !staged.length) return;
+      commitBtn.disabled=true; prevBtn.disabled=true;
+      let added=0, pending=0, failed=0;
+      for(let i=0;i<staged.length;i++){
+        const em=staged[i].email;
+        pstat.textContent="Inviting "+(i+1)+" of "+staged.length+"…";
+        try{
+          const res=await Cloud.inviteMember(TEAM.id, em, "player");
+          if(res==="added") added++;
+          else {
+            pending++;
+            try{ await sendOffgrdInviteMail(TEAM.id, em, "player"); }
+            catch(mailErr){ if(isTrialExpiredErr(mailErr)){ routeTrialExpired(); return; } }
+          }
+        }catch(e){
+          if(isTrialExpiredErr(e)){ routeTrialExpired(); return; }
+          failed++;
+        }
+      }
+      const bits=["Done."];
+      if(added) bits.push(added+" already had accounts and were added.");
+      if(pending) bits.push(pending+" invited.");
+      if(failed) bits.push(failed+" failed.");
+      renderTeamKeep(bits.join(" "));
+    };
+    brow.appendChild(csvBtn); brow.appendChild(prevBtn); brow.appendChild(commitBtn);
+    importWrap.appendChild(ta); importWrap.appendChild(file); importWrap.appendChild(brow); importWrap.appendChild(pstat);
+    players.appendChild(importWrap);
+  }
+
+  if(isAdmin() && playerInvites.length){
+    players.appendChild(el('<div class="ogm-lbl" style="margin-top:12px">Pending players</div>'));
+    playerInvites.forEach(function(iv){
+      const r=el('<div class="ogm-mem"></div>');
+      r.appendChild(el('<span class="nm">'+esc(iv.email)+'</span>'));
+      if(iv.created_at) r.appendChild(el('<span class="ogm-note" style="margin:0">'+esc(fmtInviteWhen(iv.created_at))+'</span>'));
+      if(!writeBlocked){
+        const rs=el('<button class="ogm-b">Resend</button>');
+        rs.onclick=async()=>{
+          rs.disabled=true;
+          try{ await Cloud.sendInviteEmail(iv.id); rs.textContent="Sent \u2713"; }
+          catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message||"Resend failed"); }
+          rs.disabled=false;
+        };
+        r.appendChild(rs);
+      }
+      const rv=el('<button class="ogm-b dz">Revoke</button>');
+      rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(e.message);} };
+      r.appendChild(rv);
+      players.appendChild(r);
+    });
+  }
+  body.appendChild(players);
+
+  const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+roster.length+' joined · '+invites.length+' pending)</div></div>');
   const me = (await Cloud.user()); const myId = me ? me.id : null;
   roster.forEach(m=>{
     const row=el('<div class="ogm-mem"></div>');
@@ -1370,7 +1584,6 @@ async function renderTeam(){
   });
   body.appendChild(rsec);
 
-  // join another program (everyone)
   body.appendChild(joinSection());
 }
 let _keepMsg=null;
@@ -1442,7 +1655,7 @@ function obCoachDone(){
    +linkNote
    +'<div class="ogm-sec"><div class="ogm-lbl">1 · Invite staff &amp; players</div>'
    +'<div class="ogm-row"><span class="ogm-code">'+esc((TEAM&&TEAM.join_code)||"——")+'</span><button class="ogm-b" id="obCopy">Copy code</button></div>'
-   +'<p class="ogm-note">They sign up, tap &ldquo;I&rsquo;m a player&rdquo;, enter this code, and pick their position. Coaches join the same way — promote them under <b>Team</b>.</p></div>'
+   +'<p class="ogm-note">Players: share the join code or import a list under <b>Team</b>. Staff: invite by email and role from that same Team modal — don&rsquo;t send coaches the player code.</p></div>'
    +'<div class="ogm-sec"><div class="ogm-lbl">2 · Make it yours — logo &amp; colors</div>'
    +'<div class="ogm-row" style="align-items:center;margin-top:6px">'
    +'<span id="obCrest" style="display:inline-flex;width:42px;height:42px;border-radius:9px;align-items:center;justify-content:center;font-weight:900;font-size:13px;overflow:hidden;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span>'

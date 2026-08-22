@@ -454,6 +454,47 @@ export const Cloud = {
     if (error) throw error; return data || [];
   },
   async revokeInvite(id) { const { error } = await OG.from("invites").delete().eq("id", id); if (error) throw error; },
+  async previewInviteEmails(teamId, emails) {
+    const list = (emails || []).map(function (e) { return String(e || "").trim().toLowerCase(); }).filter(Boolean);
+    const { data, error } = await sb.rpc("offgrd_preview_invite_emails", { t: teamId, emails: list });
+    if (error) throw error;
+    const row = data && typeof data === "object" ? data : {};
+    return {
+      existing: Array.isArray(row.existing) ? row.existing : [],
+      members: Array.isArray(row.members) ? row.members : [],
+      pending: Array.isArray(row.pending) ? row.pending : []
+    };
+  },
+  async teamSubscription(teamId) {
+    const { data, error } = await sb.rpc("offgrd_team_subscription", { p_team_id: teamId });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return row || null;
+  },
+  async sendInviteEmail(offgrdInviteId) {
+    const { data: sess } = await sb.auth.getSession();
+    const tok = sess && sess.session && sess.session.access_token;
+    if (!tok) throw new Error("Sign in first.");
+    let host = "https://getoffrd.com/api/send-coach-invite";
+    try {
+      if (typeof location !== "undefined" && /getoffrd\.com$/i.test(location.hostname)) {
+        host = "/api/send-coach-invite";
+      }
+    } catch (e) {}
+    const r = await fetch(host, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+      body: JSON.stringify({ offgrdInviteId: offgrdInviteId })
+    });
+    const out = await r.json().catch(function () { return {}; });
+    if (r.status === 403 && (out.error === "trial_expired" || String(out.message || "").indexOf("trial_expired") >= 0)) {
+      const err = new Error("trial_expired");
+      err.code = "trial_expired";
+      throw err;
+    }
+    if (!r.ok) throw new Error(out.error || out.message || ("Email did not send (" + r.status + ")"));
+    return true;
+  },
   async joinByCode(code) {
     _invalidateMyTeamsCache();
     const { data, error } = await sb.rpc("offgrd_join_by_code", { code });
