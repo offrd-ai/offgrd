@@ -74,39 +74,46 @@
  #pbDock{display:none;position:relative;flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
  #pbDock .row{margin-top:4px}
  body.pb-dock-on #pbDock{display:block}
+ body.pb-dock-on .panel.expert-only,
  body.pb-dock-on #routePanel,
  body.pb-dock-on #offenseToolsRow,
  body.pb-dock-on #defenseToolsRow,
  body.pb-dock-on #skillBar,
+ body.pb-dock-on #wizDock,
  body.pb-dock-on #offenseMetaRow,
  body.pb-dock-on #defenseLookRow,
  body.pb-dock-on #defenseLookPanel,
  body.pb-dock-on #ctxBar{display:none!important}
  #pbMetaHold{display:none}
  #pbAssignPin .row{margin-top:8px}
+ .fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+ .fm-chip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}
+ .fm-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
  @media (min-width:900px){
   body.pb-dock-on #fieldDockWrap{flex-direction:row;align-items:flex-start}
   body.pb-dock-on #pbDock{flex:0 0 280px;width:280px;max-width:280px}
  }
 
 </style>
-<script src="OFFGRD-config.js?v=320"></script>
-<script src="OFFGRD-brand-persist.js?v=320"></script>
-<script src="supabase.js?v=320"></script>
-<script src="OFFGRD-cache-gate.js?v=320"></script>
-<script src="OFFGRD-formations-data.js?v=320"></script>
-<script src="OFFGRD-formation-canon.js?v=320"></script>
-<script src="OFFGRD-render.js?v=320"></script>
-<script src="OFFGRD-pb-dock.js?v=320"></script>
-<script src="OFFGRD-pos-glossary.js?v=320"></script>
-<script src="OFFGRD-autoderive.js?v=320"></script>
-<script src="OFFGRD-week-autotest.js?v=320"></script>
-<script src="OFFGRD-play-wizard.js?v=320"></script>
-<script src="OFFGRD-opp-shells.js?v=320"></script>
-<script src="OFFGRD-scoutcards.js?v=320"></script>
-<script src="OFFGRD-telestrate.js?v=320"></script>
-<script src="OFFGRD-redesign.js?v=320"></script>
-<script src="OFFGRD-shell.js?v=320"></script>
+<script src="OFFGRD-config.js?v=321"></script>
+<script src="OFFGRD-brand-persist.js?v=321"></script>
+<script src="supabase.js?v=321"></script>
+<script src="OFFGRD-cache-gate.js?v=321"></script>
+<script src="OFFGRD-formations-data.js?v=321"></script>
+<script src="OFFGRD-formation-canon.js?v=321"></script>
+<script src="OFFGRD-play-map.js?v=321"></script>
+<script src="OFFGRD-formation-map.js?v=321"></script>
+<script src="OFFGRD-render.js?v=321"></script>
+<script src="OFFGRD-pb-dock.js?v=321"></script>
+<script src="OFFGRD-pos-glossary.js?v=321"></script>
+<script src="OFFGRD-autoderive.js?v=321"></script>
+<script src="OFFGRD-week-autotest.js?v=321"></script>
+<script src="OFFGRD-play-wizard.js?v=321"></script>
+<script src="OFFGRD-opp-shells.js?v=321"></script>
+<script src="OFFGRD-scoutcards.js?v=321"></script>
+<script src="OFFGRD-telestrate.js?v=321"></script>
+<script src="OFFGRD-redesign.js?v=321"></script>
+<script src="OFFGRD-shell.js?v=321"></script>
 </head>
 <body>
  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
@@ -255,7 +262,11 @@
  <div class="panel">
  <div class="meta">
  <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
- <label>Family<input id="m-family" placeholder="e.g. Inside Zone"></label>
+ <label>Family
+ <div id="m-family-chips" class="fm-row"></div>
+ <input id="m-family" list="m-family-list" placeholder="type a family" autocomplete="off">
+ <datalist id="m-family-list"></datalist>
+ </label>
  <label>Series<input id="m-series" placeholder="e.g. Zone"></label>
  <label style="grid-column:1/-1">Tags
  <div class="row" style="margin-top:4px;gap:6px">
@@ -316,7 +327,8 @@
 <script>
 /* ============ OFFGRD Playbook ? vector routes, edit, animate ============ */
 const LOS=380,W=1000,H=640;
-let MODE="route",SEL=null,STATE=null,DRAG=null,ANIM=null,LIB=[];
+let MODE="move",SEL=null,STATE=null,DRAG=null,ANIM=null,LIB=[];
+let DOCK_VERB=null;
 let UNDO=[],REDO=[];
 const STORE="offgrd_playbook_v1";
 const DRAFT_KEY="offgrd_pb_draft";
@@ -691,10 +703,7 @@ function syncDockFromSel(){
  const key=SEL?(String(SEL.id)+"|"+(SEL.group||"")+"|"+(SEL.lab||"")):"";
  if(key===_dockSelKey) return;
  _dockSelKey=key;
- const k=OFFGRD_PB_DOCK.kindOfSel(SEL);
- if(k==="wr"||k==="rb") setMode("route");
- else if(k==="ol") setMode("block");
- else setMode("move");
+ DOCK_VERB=null;
  renderDock();
 }
 function renderDock(){
@@ -737,11 +746,8 @@ function renderDock(){
    const row=dockRow(host);
    ["Flat","Wheel","Screen"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
   } else if(g==="motion"){
-   dockLbl(host,"Motion");
-   dockBtn(dockRow(host),"Motion",function(){ setMode("motion"); });
-  } else if(g==="move"){
-   dockLbl(host,"Move");
-   dockBtn(dockRow(host),"Move",function(){ setMode("move"); });
+   dockLbl(host,"Motion path");
+   dockBtn(dockRow(host),"Motion path",function(){ DOCK_VERB=null; setMode("motion"); msg("Tap the field to draw pre-snap motion. Drag the player to realign."); });
   } else if(g==="block-perim"){
    dockLbl(host,"Block");
    dockBtn(dockRow(host),"Block",function(){ applyBlock("base",0); });
@@ -761,12 +767,80 @@ function renderDock(){
   } else if(g==="direct"){
    dockLbl(host,"Direct");
    dockBtn(dockRow(host),"Direct path",function(){ setMode("route"); });
+  } else if(g==="dl-slant"){
+   dockLbl(host,"Slant / stunt");
+   dockBtn(dockRow(host),"Slant / stunt",function(){
+    if(!SEL||!SEL.group) return;
+    snap(); SEL.role="rush"; SEL.route=[{x:SEL.x+(SEL.x<500?70:-70),y:SEL.y-40,cx:null,cy:null},{x:SEL.x+(SEL.x<500?40:-40),y:SEL.y-90,cx:null,cy:null}];
+    renderAll(); msg((SEL.lab||"DL")+": slant / stunt.");
+   });
+  } else if(g==="dl-contain"){
+   dockLbl(host,"Contain");
+   dockBtn(dockRow(host),"Contain",function(){
+    if(!SEL||!SEL.group) return;
+    snap(); SEL.role="zone"; SEL.dx=SEL.x<500?SEL.x-80:SEL.x+80; SEL.dy=SEL.y-20; SEL.route=[];
+    renderAll(); msg((SEL.lab||"DL")+": contain.");
+   });
+  } else if(g==="dl-two-gap"){
+   dockLbl(host,"Two-gap");
+   dockBtn(dockRow(host),"Two-gap",function(){
+    if(!SEL||!SEL.group) return;
+    snap(); SEL.role="zone"; SEL.dx=SEL.x; SEL.dy=SEL.y-25; SEL.route=[];
+    renderAll(); msg((SEL.lab||"DL")+": two-gap.");
+   });
+  } else if(g==="zone-drop"){
+   dockLbl(host,"Zone drop");
+   dockBtn(dockRow(host),"Zone drop",function(){
+    if(!SEL||!SEL.group) return;
+    DOCK_VERB="zone-drop"; setMode("move");
+    msg("Tap a landmark on the field for "+(SEL.lab||"the defender")+"\u2019s drop.");
+   });
   } else if(g==="blitz"){
    dockLbl(host,"Blitz");
    dockBtn(dockRow(host),"Blitz",function(){
-    if(!SEL||!SEL.group){ setMode("blitz"); return; }
-    snap(); SEL.role=(SEL.role==="rush"?"zone":"rush"); if(SEL.role==="zone"){ SEL.dx=SEL.x; SEL.dy=Math.max(150,SEL.y-110); SEL.route=SEL.route||[]; }
-    renderAll();
+    if(!SEL||!SEL.group) return;
+    DOCK_VERB="blitz"; setMode("move");
+    msg("Tap the gap for "+(SEL.lab||"the defender")+"\u2019s blitz.");
+   });
+  } else if(g==="spy"){
+   dockLbl(host,"Spy");
+   dockBtn(dockRow(host),"Spy",function(){
+    if(!SEL||!SEL.group) return;
+    snap(); SEL.role="zone";
+    const rb=(STATE.players||[]).find(function(p){ return p&&(p.type==="rb"||p.type==="qb"); });
+    SEL.dx=rb?rb.x:500; SEL.dy=rb?Math.min(SEL.y, rb.y-10):450; SEL.route=[];
+    renderAll(); msg((SEL.lab||"LB")+": spy.");
+   });
+  } else if(g==="man"){
+   dockLbl(host,"Man");
+   dockBtn(dockRow(host),"Man",function(){
+    if(!SEL||!SEL.group) return;
+    DOCK_VERB="man"; setMode("move");
+    msg("Tap the receiver "+(SEL.lab||"the defender")+" covers.");
+   });
+  } else if(g==="press"){
+   dockLbl(host,"Press / Off");
+   dockBtn(dockRow(host),"Press / Off",function(){
+    if(!SEL||!SEL.group) return;
+    snap();
+    const press = SEL.y > LOS-36;
+    SEL.y = press ? LOS-8 : LOS-55;
+    renderAll(); msg((SEL.lab||"DB")+": "+(press?"press":"off")+" alignment.");
+   });
+  } else if(g==="qb-drop"){
+   dockLbl(host,"Drop depth");
+   dockBtn(dockRow(host),"Drop",function(){
+    if(!SEL) return;
+    snap(); SEL.route=[{x:SEL.x,y:SEL.y+36,cx:null,cy:null},{x:SEL.x,y:SEL.y+72,cx:null,cy:null}]; SEL.rname="Drop";
+    renderAll(); msg((SEL.lab||"QB")+": drop.");
+   });
+  } else if(g==="qb-boot"){
+   dockLbl(host,"Boot / roll");
+   dockBtn(dockRow(host),"Boot / roll",function(){
+    if(!SEL) return;
+    snap(); const dir=SEL.x>=500?1:-1;
+    SEL.route=[{x:SEL.x+dir*40,y:SEL.y+16,cx:null,cy:null},{x:SEL.x+dir*130,y:SEL.y-24,cx:null,cy:null}]; SEL.rname="Boot";
+    renderAll(); msg((SEL.lab||"QB")+": boot / roll.");
    });
   } else if(g==="qb-notes"){
    dockLbl(host,"QB notes");
@@ -785,7 +859,7 @@ function bootDock(){
  const row=document.getElementById("assignRow");
  if(pin&&row) pin.appendChild(row);
  _dockSelKey=SEL?(String(SEL.id)+"|"+(SEL.group||"")+"|"+(SEL.lab||"")):"";
- if(!SEL) setMode("move");
+ setMode("move");
  renderDock();
 }
 /* ---------- context tools under the field: options follow whatever you tapped ---------- */
@@ -832,19 +906,44 @@ function cancelAnim(){ OFFGRD_RENDER.cancelAnim(); ANIM=null; }
 
 /* ---- interaction ---- */
 function nearestHit(pt){const pl=hitPlayer(pt);const di=hitDef(pt);const d=di>=0?STATE.defs[di]:null;if(pl&&d)return ((pl.x-pt.x)**2+(pl.y-pt.y)**2)<=((d.x-pt.x)**2+(d.y-pt.y)**2)?pl:d;return pl||d;}
+function nearestDropLand(pt){
+ const D=DLAND||{};
+ let best=pt, bd=3600;
+ Object.keys(D).forEach(function(k){
+  const L=D[k]; if(!L) return;
+  const dd=(L.x-pt.x)*(L.x-pt.x)+(L.y-pt.y)*(L.y-pt.y);
+  if(dd<bd){ bd=dd; best=L; }
+ });
+ return best;
+}
 function onDown(e){if(!STATE)return;e.preventDefault();cancelAnim();const pt=toSvg(e);
  const hh=hitHandle(pt);
  if(hh){snap();DRAG={kind:hh.kind,i:hh.i};return;}
- if(MODE==="blitz"){const di=hitDef(pt);if(di>=0){snap();const d=STATE.defs[di];d.role=(d.role==="rush"?"zone":"rush");if(d.role==="zone"){d.dx=d.x;d.dy=Math.max(150,d.y-110);d.route=d.route||[];}renderAll();}return;}
  if(MODE==="def"){const di=hitDef(pt);if(di>=0){SEL=STATE.defs[di];snap();DRAG={kind:"obj",o:STATE.defs[di]};}else{snap();STATE.defs.push({x:pt.x,y:pt.y,lab:"D",group:"DB",role:"zone",dx:pt.x,dy:Math.max(150,pt.y-110),manId:null,color:"#13294B",route:[]});}renderAll();return;}
  if(MODE==="text"){const ti=hitText(pt);if(ti>=0){const nv=prompt("Edit text (blank to delete):",STATE.texts[ti].text);if(nv!==null){snap();if(nv.trim()==="")STATE.texts.splice(ti,1);else STATE.texts[ti].text=nv;}}else{const nv=prompt("Text label:");if(nv&&nv.trim()){snap();STATE.texts.push({x:pt.x,y:pt.y,text:nv.trim(),color:"#13294B",size:18});}}renderAll();return;}
  if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};renderAll();return;}
  const hit=nearestHit(pt);
  if(MODE==="erase"){if(hit){snap();hit.route=[];hit.rname=null;if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
+ if(DOCK_VERB==="man" && SEL && SEL.group && hit && !hit.group){
+  snap(); SEL.role="man"; SEL.manId=hit.id; SEL.route=[]; DOCK_VERB=null;
+  renderAll(); msg((SEL.lab||"D")+": man on "+(hit.lab||"receiver")+"."); return;
+ }
+ if(DOCK_VERB==="zone-drop" && SEL && SEL.group && !hit){
+  const land=nearestDropLand(pt);
+  snap(); SEL.role="zone"; SEL.dx=land.x; SEL.dy=land.y; SEL.route=[]; DOCK_VERB=null;
+  renderAll(); msg((SEL.lab||"D")+": zone drop."); return;
+ }
+ if(DOCK_VERB==="blitz" && SEL && SEL.group && !hit){
+  snap(); SEL.role="rush"; SEL.route=[{x:pt.x,y:pt.y,cx:null,cy:null}]; DOCK_VERB=null;
+  renderAll(); msg((SEL.lab||"D")+": blitz."); return;
+ }
+ const dragOk = !(window.OFFGRD_PB_DOCK && OFFGRD_PB_DOCK.tapDrags) || OFFGRD_PB_DOCK.tapDrags(hit,{ mode:MODE, pending:DOCK_VERB, sel:SEL });
+ if(hit && dragOk){ SEL=hit; snap(); DRAG={kind:"obj",o:hit}; renderAll(); return; }
  if(MODE==="block"){const pl=hitPlayer(pt);if(pl){snap();pl.type=(pl.type==="block"?"route":"block");pl.route=[];}renderAll();return;}
- if(MODE==="move"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}renderAll();return;}
  if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.rname=null;SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
- if(MODE==="motion"){if(hit){SEL=hit;}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
+ if(MODE==="motion"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
+ if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}
+ renderAll();
 }
 function onMove(e){if(!DRAG)return;e.preventDefault();const pt=toSvg(e);
  if(DRAG.kind==="draw"){DRAG.st.pts.push({x:pt.x,y:pt.y});renderAll();return;}
@@ -957,8 +1056,8 @@ function set(id,v){
  if(id==="m-prot"){ const el=document.getElementById("protSel"); if(el) el.value=v||"none"; if(STATE) STATE.protection=(!v||v==="none")?"":v; return; }
  const el=document.getElementById(id);if(el)el.value=v||"";
 }
-function readMeta(){if(!STATE)return;STATE.name=val("m-name");STATE.family=val("m-family");STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
-function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();}
+function readMeta(){if(!STATE)return;STATE.name=val("m-name");const typedFam=val("m-family");STATE.family=typedFam?(applyPlaybookFamily({typed:typedFam})||typedFam):"";STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
+function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();renderFamilyChips();}
 function renderTagChips(){
  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
  const tags=Array.isArray(STATE.tags)?STATE.tags:[];
@@ -1211,41 +1310,136 @@ function loadOppCardDraftIfPresent(){
   return true;
  }catch(e){ return false; }
 }
+function personnelList(){
+ const M=window.OFFGRD_FORMATION_MAP;
+ if(M && Array.isArray(M.PERSONNEL) && M.PERSONNEL.length) return M.PERSONNEL.slice();
+ return Object.keys(PERS);
+}
+function fillPersSel(){
+ const el=document.getElementById("persSel");
+ if(!el) return;
+ const cur=el.value;
+ el.innerHTML="";
+ const blank=document.createElement("option"); blank.value=""; blank.textContent="\u2014 pers \u2014"; el.appendChild(blank);
+ personnelList().forEach(function(code){
+  const o=document.createElement("option"); o.value=code; o.textContent=code; el.appendChild(o);
+ });
+ if(cur) el.value=cur;
+}
+function formKeyForMappedStructure(struct){
+ const M=window.OFFGRD_FORMATION_MAP;
+ const f=M && M.formationForStructure && M.formationForStructure(struct);
+ const display=f && f.display;
+ if(display && FORMS[display]) return display;
+ if(display && FORMS[display+" (Gun)"]) return display+" (Gun)";
+ const map={ "2x2":"2x2 Doubles (Gun)", "3x1":"Trips Rt (Gun)", "3x2":"Empty 3x2 (Gun)", "2x1":"I-Form Pro", "1x1":"I-Form Pro", "4x1":"Empty 3x2 (Gun)" };
+ return map[String(struct||"").toLowerCase()] || "2x2 Doubles (Gun)";
+}
 function formSelValueFor(form){
  const raw=String(form||"").trim();
  if(!raw) return "";
  if(FORMS[raw]) return raw;
+ const el=document.getElementById("formSel");
+ if(el && [].some.call(el.options, function(o){ return o.value===raw; })) return raw;
  const keys=Object.keys(FORMS);
  const n=raw.toLowerCase().replace(/\s+/g," ");
  const exact=keys.find(k=>k.toLowerCase()===n);
  if(exact) return exact;
  const strip=s=>s.toLowerCase().replace(/\s*\((gun|pistol)\)\s*$/,"").replace(/\s+/g," ").trim();
  const loose=keys.find(k=>strip(k)===strip(raw));
- if(loose) return loose;
- const hit=keys.find(k=>strip(k).indexOf(strip(raw))>=0||strip(raw).indexOf(strip(k))>=0);
- return hit||"";
+ return loose||"";
 }
-function clearMappedFormOption(el){
+function fillFormSel(){
+ const el=document.getElementById("formSel");
  if(!el) return;
- const syn=el.querySelector("option[data-mapped-raw]");
- if(syn) syn.remove();
+ const keep=el.value || (STATE && STATE.formation) || "";
+ el.innerHTML="";
+ Object.keys(FORMS).forEach(function(k){
+  const o=document.createElement("option"); o.value=k; o.textContent=k; el.appendChild(o);
+ });
+ const M=window.OFFGRD_FORMATION_MAP;
+ if(M && typeof M.playbookFormOptions==="function"){
+  const opt=M.playbookFormOptions(Object.keys(FORMS));
+  (opt.mapped||[]).forEach(function(row){
+   if(!row || !row.raw_tag || FORMS[row.raw_tag]) return;
+   const o=document.createElement("option");
+   o.value=row.raw_tag;
+   o.textContent=row.raw_tag;
+   o.setAttribute("data-mapped-raw","1");
+   el.appendChild(o);
+  });
+ }
+ if(keep){
+  const v=formSelValueFor(keep);
+  if(v) el.value=v;
+ }
+}
+function applyFormationChoice(value){
+ const raw=String(value||"").trim();
+ if(!raw) return "";
+ const M=window.OFFGRD_FORMATION_MAP;
+ const mapped=M && M.isHydrated && M.isHydrated() && M.resolveMapped && M.resolveMapped(raw);
+ if(mapped){
+  newPlay(formKeyForMappedStructure(mapped.off_structure));
+  STATE.formation=mapped.raw_tag||raw;
+  if(mapped.off_personnel && PERS[mapped.off_personnel]) placePersonnel(mapped.off_personnel);
+  writeMeta();
+  return STATE.formation;
+ }
+ newPlay(raw);
+ set("m-form", raw);
+ return raw;
 }
 function syncFormSelToState(){
  const el=document.getElementById("formSel");
  if(!el||!STATE) return;
- clearMappedFormOption(el);
- const v=formSelValueFor(STATE.formation);
- if(v){ el.value=v; return; }
  const raw=String(STATE.formation||"").trim();
  if(!raw) return;
- const o=document.createElement("option");
- o.value="";
- o.textContent=raw+" (mapped)";
- o.disabled=true;
- o.selected=true;
- o.setAttribute("data-mapped-raw","1");
- el.insertBefore(o, el.firstChild);
- try{ el.selectedIndex=0; }catch(e){}
+ if([].some.call(el.options, function(o){ return o.value===raw; })){ el.value=raw; return; }
+ const v=formSelValueFor(raw);
+ if(v){ el.value=v; return; }
+}
+function familyOffer(){
+ const PM=window.OFFGRD_PLAY_MAP;
+ if(!PM || typeof PM.offerFamilies!=="function") return { familyChips:[], families:[], groups:[] };
+ const maps=(PM.isHydrated && PM.isHydrated() && PM.getCached) ? (PM.getCached()||[]) : [];
+ return PM.offerFamilies(LIB||[], maps, []);
+}
+function renderFamilyChips(){
+ const host=document.getElementById("m-family-chips");
+ const inp=document.getElementById("m-family");
+ const list=document.getElementById("m-family-list");
+ if(!host || !window.OFFGRD_PLAY_MAP) return;
+ const offer=familyOffer();
+ const cur=inp ? String(inp.value||"").trim() : "";
+ host.innerHTML="";
+ (offer.familyChips||[]).forEach(function(name){
+  const b=document.createElement("button");
+  b.type="button"; b.className="fm-chip"+(name.toLowerCase()===cur.toLowerCase()?" on":"");
+  b.textContent=name;
+  b.onclick=function(){ applyPlaybookFamily({ chip:name, typed:"" }); };
+  host.appendChild(b);
+ });
+ if(list){
+  list.innerHTML="";
+  (offer.families||[]).forEach(function(name){
+   const o=document.createElement("option"); o.value=name; list.appendChild(o);
+  });
+ }
+}
+function applyPlaybookFamily(opts){
+ opts=opts||{};
+ const PM=window.OFFGRD_PLAY_MAP;
+ if(!PM || typeof PM.prepareSave!=="function") return "";
+ const offer=familyOffer();
+ const prep=PM.prepareSave({ typed:opts.typed||"", chip:opts.chip||"", families:offer.families||[] });
+ if(!prep.ok) return "";
+ const inp=document.getElementById("m-family");
+ if(inp) inp.value=prep.family;
+ if(STATE) STATE.family=prep.family;
+ renderFamilyChips();
+ if(prep.notice) msg(prep.notice);
+ return prep.family;
 }
 function offerStarter(opts){
  opts=opts||{};
@@ -1297,6 +1491,7 @@ window.OFFGRD_APP={
  /* One UI refresh after merge ? never per-row, never sync-push from set (avoids pull?push loops). */
  refreshLibUI();
  try { if (window.OFFGRD_PLAY_WIZARD && OFFGRD_PLAY_WIZARD.reevaluateSkill) OFFGRD_PLAY_WIZARD.reevaluateSkill(); } catch (e) {}
+ try { renderFamilyChips(); fillFormSel(); } catch (e) {}
  /* Cloud hydrate landed with plays ? never nag with the starter prompt. */
  if(LIB && LIB.length) dismissStarterPrompt();
  },
@@ -1309,7 +1504,13 @@ window.OFFGRD_APP={
 };
 
 document.addEventListener("DOMContentLoaded",()=>{
- const fs=document.getElementById("formSel");Object.keys(FORMS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;fs.appendChild(o);});
+ const fs=document.getElementById("formSel");
+ fillFormSel();
+ fillPersSel();
+ try{
+  if(window.OFFGRD_FORMATION_MAP && OFFGRD_FORMATION_MAP.onAfterHydrate) OFFGRD_FORMATION_MAP.onAfterHydrate(function(){ fillFormSel(); syncFormSelToState(); });
+  if(window.OFFGRD_PLAY_MAP && OFFGRD_PLAY_MAP.onAfterHydrate) OFFGRD_PLAY_MAP.onAfterHydrate(function(){ renderFamilyChips(); });
+ }catch(e){}
  loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();refreshLibUI();setMode("route");syncUndo();
  const oppCard=loadOppCardDraftIfPresent();
  if(!oppCard){ offerStarter(); offerRestoreDraft(); }
@@ -1334,18 +1535,23 @@ document.addEventListener("DOMContentLoaded",()=>{
  wireLib();
  const tagAdd=document.getElementById("m-tagAdd"); if(tagAdd) tagAdd.onclick=addTagFromInput;
  const tagIn=document.getElementById("m-tagIn"); if(tagIn) tagIn.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addTagFromInput(); } });
- ["m-name","m-family","m-series","m-group"].forEach(id=>{
+ ["m-name","m-series","m-group"].forEach(id=>{
  const el=document.getElementById(id); if(el) el.addEventListener("input",()=>scheduleDraft());
  });
+ const famIn=document.getElementById("m-family");
+ if(famIn){
+  famIn.addEventListener("input",()=>scheduleDraft());
+  famIn.addEventListener("change",function(){ applyPlaybookFamily({ typed: famIn.value }); scheduleDraft(); });
+ }
  const RCAT=[["Quick",["Hitch","Slant","Stick","Drag","Whip","Pivot"]],["Intermediate",["Curl","Out","Dig","Comeback"]],["Deep",["Corner","Post","Go","Fade","Seam","Sluggo","Post-Corner"]],["Back / RB",["Flat","Wheel","Screen"]]];
  const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
  const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
  const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
  const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
  const loadFormation=()=>{
-  if(fs.selectedOptions[0]&&fs.selectedOptions[0].getAttribute("data-mapped-raw")) return;
   if(isOppCardEditSession()&&!confirm("Load "+fs.value+"? This replaces the opponent card on the field.")){ fs.value=formSelValueFor(STATE.formation); if(!fs.value) syncFormSelToState(); return; }
-  newPlay(fs.value);set("m-form",fs.value);renderAll();msg("Loaded "+fs.value);
+  const loaded=applyFormationChoice(fs.value);
+  renderAll(); msg("Loaded "+loaded);
  };
  document.getElementById("loadForm").onclick=loadFormation;fs.onchange=loadFormation;document.getElementById("flipForm").onclick=flipPlay;
  document.getElementById("persSel").onchange=e=>{if(!e.target.value)return;snap();placePersonnel(e.target.value);set("m-pers",e.target.value);renderAll();msg(e.target.value+" personnel ("+PERS[e.target.value].RB+" RB, "+PERS[e.target.value].TE+" TE, "+PERS[e.target.value].WR+" WR)");};
@@ -1371,12 +1577,12 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
  const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
  document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
- document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){newPlay(fs.value);writeMeta();renderAll();}};
+ document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){applyFormationChoice(fs.value);renderAll();}};
  document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
  document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
  document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches save plays."); return; } savePlay(); };
- document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches create plays."); return; } newPlay(fs.value);writeMeta();renderAll();msg("New play."); };
+ document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches create plays."); return; } applyFormationChoice(fs.value);renderAll();msg("New play."); };
  document.getElementById("pngBtn").onclick=exportPNG;
  document.getElementById("printBtn").onclick=()=>window.print();
  document.getElementById("installBtn").onclick=buildInstall;
@@ -1433,7 +1639,7 @@ document.addEventListener("DOMContentLoaded",()=>{
    rebuildRoute, renderAll, savePlay, setMode, msg, set, readMeta,
    selectPlayer:(p)=>{ SEL=p; updateSelPanel(); renderAll(); },
    formations:()=>Object.keys(FORMS),
-   personnelCodes:()=>Object.keys(PERS),
+   personnelCodes:()=>personnelList(),
    concepts:()=>CONCEPTS.slice(),
    routeNames:()=>Object.keys(ROUTES),
    onSkillChange:(sk)=>{
@@ -1454,10 +1660,10 @@ document.getElementById("wizBtn").onclick=wizOpen;
  bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=320"></script>
-<script type="module" src="OFFGRD-account.js?v=320"></script>
-<script src="OFFGRD-role-gate.js?v=320"></script>
-<script src="OFFGRD-mobile.js?v=320"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=321"></script>
+<script type="module" src="OFFGRD-account.js?v=321"></script>
+<script src="OFFGRD-role-gate.js?v=321"></script>
+<script src="OFFGRD-mobile.js?v=321"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

@@ -1,15 +1,15 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=320";
-import { openAuthModal } from "./OFFGRD-auth.js?v=320";
+import { Cloud } from "./OFFGRD-cloud.js?v=321";
+import { openAuthModal } from "./OFFGRD-auth.js?v=321";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
   parseInviteEmailList,
   describeInvitePreview,
   invitePreviewSentence
-} from "./OFFGRD-invite-parse.js?v=320";
+} from "./OFFGRD-invite-parse.js?v=321";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);

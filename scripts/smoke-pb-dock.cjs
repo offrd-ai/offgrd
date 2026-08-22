@@ -27,17 +27,23 @@ check("OL kind", D.kindOfSel({ ol: 1, lab: "LT" }) === "ol");
 const wr = D.groupsForSelection({ type: "route", role: "WR", lab: "X" });
 check("WR → routes", anyRoute(wr), wr.join(","));
 check("WR → motion", has(wr, "motion"), wr.join(","));
-check("WR → move", has(wr, "move"), wr.join(","));
+check("WR → no move tool", !has(wr, "move"), wr.join(","));
 check("WR → block", has(wr, "block-perim"), wr.join(","));
 check("WR → no run-blocks", !anyRun(wr), wr.join(","));
+check("WR → no blitz", !has(wr, "blitz"), wr.join(","));
 
 const te = D.groupsForSelection({ type: "route", role: "TE", lab: "Y" });
 check("TE → receiver groups", anyRoute(te) && has(te, "motion") && !anyRun(te), te.join(","));
 
 const lb = D.groupsForSelection({ group: "LB", lab: "W" });
+check("LB kind", D.kindOfSel({ group: "LB", lab: "W" }) === "lb");
 check("LB → blitz", has(lb, "blitz"), lb.join(","));
-check("LB → move", has(lb, "move"), lb.join(","));
-check("LB → direct", has(lb, "direct"), lb.join(","));
+check("LB → zone-drop", has(lb, "zone-drop"), lb.join(","));
+check("LB → spy", has(lb, "spy"), lb.join(","));
+check("LB → man", has(lb, "man"), lb.join(","));
+check("LB → no DL slant", !has(lb, "dl-slant"), lb.join(","));
+check("LB → no press", !has(lb, "press"), lb.join(","));
+check("LB → no routes", !anyRoute(lb), lb.join(","));
 
 const play = D.groupsForSelection(null);
 ["formation", "personnel", "protection", "concepts", "defense-look"].forEach(function (id) {
@@ -48,15 +54,37 @@ check("null → no player verbs", !anyRoute(play) && !anyRun(play) && !has(play,
 const qb = D.groupsForSelection({ type: "qb", lab: "QB" });
 check("QB → no route group", !anyRoute(qb), qb.join(","));
 check("QB kind", D.kindOfSel({ type: "qb", lab: "QB" }) === "qb");
+check("QB → drop + boot + notes", has(qb, "qb-drop") && has(qb, "qb-boot") && has(qb, "qb-notes"), qb.join(","));
 
 const rb = D.groupsForSelection({ type: "rb", lab: "RB" });
 check("RB → back routes", has(rb, "routes-back"), rb.join(","));
 check("RB → no run-blocks", !anyRun(rb), rb.join(","));
+check("RB → no move tool", !has(rb, "move"), rb.join(","));
 
 const dl = D.groupsForSelection({ group: "DL", lab: "T" });
-check("DL → move+direct, no blitz", has(dl, "move") && has(dl, "direct") && !has(dl, "blitz"), dl.join(","));
+check("DL kind", D.kindOfSel({ group: "DL", lab: "T" }) === "dl");
+check("DL → slant/contain/two-gap/drop", has(dl, "dl-slant") && has(dl, "dl-contain") && has(dl, "dl-two-gap") && has(dl, "zone-drop"), dl.join(","));
+check("DL → no blitz", !has(dl, "blitz"), dl.join(","));
+check("DL → no man", !has(dl, "man"), dl.join(","));
+check("DL → no routes", !anyRoute(dl), dl.join(","));
 
-check("flag default off (no storage)", D.isDockOn() === false);
+const db = D.groupsForSelection({ group: "DB", lab: "CB" });
+check("DB kind", D.kindOfSel({ group: "DB", lab: "CB" }) === "db");
+check("DB → man/drop/blitz/press", has(db, "man") && has(db, "zone-drop") && has(db, "blitz") && has(db, "press"), db.join(","));
+check("DB → no spy", !has(db, "spy"), db.join(","));
+check("DB → no slant", !has(db, "dl-slant"), db.join(","));
+
+check("dock default ON (no storage)", D.isDockOn() === true);
+check("classic hatch off by default", D.isClassicOn() === false);
+
+const off = { type: "route", lab: "X" };
+const def = { group: "LB", lab: "W" };
+check("offense tap drags with no mode", D.tapDrags(off, { mode: "move" }) === true);
+check("offense tap drags in route mode", D.tapDrags(off, { mode: "route" }) === true);
+check("defense tap drags with no mode", D.tapDrags(def, { mode: "move" }) === true);
+check("defense tap drags in route mode", D.tapDrags(def, { mode: "route" }) === true);
+check("erase does not drag", D.tapDrags(off, { mode: "erase" }) === false);
+check("man-assign tap on receiver does not drag", D.tapDrags(off, { mode: "move", pending: "man", sel: def }) === false);
 
 if (fails) {
   console.error(fails + " FAIL");

@@ -16,7 +16,7 @@
     "4x1": "EMPTY_4X1",
     "3x2": "EMPTY_3X2",
   };
-  var PERSONNEL = ["10", "11", "12", "21", "20", "22"];
+  var PERSONNEL = ["00", "10", "11", "12", "13", "20", "21", "22"];
 
   function normTag(s) {
     return String(s == null ? "" : s)
@@ -311,6 +311,42 @@
     return null;
   }
 
+  /**
+   * Playbook formation dropdown: builtins + hydrated mapped raw tags.
+   * Never lists unmapped tags. Exact raw_tag_norm only (no contains-match).
+   * Unhydrated leftover [] does not invent mapped options (v294).
+   */
+  function playbookFormOptions(builtins, opts) {
+    opts = opts || {};
+    var base = (builtins || []).slice();
+    var hydrated = opts.hydrated != null ? !!opts.hydrated : isHydrated();
+    var rows = Array.isArray(opts.rows) ? opts.rows : getCached();
+    var mapped = [];
+    if (!hydrated) {
+      return { forms: base.slice(), mapped: mapped, known: false };
+    }
+    var seen = Object.create(null);
+    base.forEach(function (k) {
+      seen[normTag(k)] = 1;
+    });
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var raw = String(row.raw_tag || "").trim();
+      if (!raw) return;
+      var n = normTag(row.raw_tag_norm || raw);
+      if (seen[n]) return;
+      if (!legalStructure(row.off_structure)) return;
+      if (normTag(row.raw_tag_norm || raw) !== n) return;
+      seen[n] = 1;
+      mapped.push({
+        raw_tag: raw,
+        off_structure: row.off_structure,
+        off_personnel: row.off_personnel || null
+      });
+    });
+    return { forms: base.concat(mapped.map(function (m) { return m.raw_tag; })), mapped: mapped, known: true };
+  }
+
   function formationForStructure(struct) {
     var id = STRUCTURE_IDS[String(struct || "").toLowerCase()];
     var FC = root.OFFGRD_FORMATION_CANON;
@@ -358,6 +394,7 @@
     getCached: getCached,
     cachedTeamId: cachedTeamId,
     resolveMapped: resolveMapped,
+    playbookFormOptions: playbookFormOptions,
     formationForStructure: formationForStructure,
     pullMap: pullMap,
     afterHydrate: afterHydrate,
