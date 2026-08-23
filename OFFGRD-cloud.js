@@ -498,6 +498,42 @@ export const Cloud = {
   async sendInviteEmail(offgrdInviteId) {
     return this._postInviteApi({ offgrdInviteId: offgrdInviteId });
   },
+  async peekInvite(token) {
+    const { data, error } = await sb.rpc("offgrd_peek_invite", { p_token: token });
+    if (error) {
+      const msg = String(error.message || "");
+      if (/expired|not found|invalid/i.test(msg)) return { ok: false, status: "expired" };
+      throw error;
+    }
+    const row = data && typeof data === "object" ? data : {};
+    return {
+      ok: row.ok === true,
+      status: String(row.status || (row.ok ? "ok" : "expired")),
+      team_id: row.team_id || "",
+      team_name: row.team_name || "",
+      role: row.role || "",
+      email: row.email || ""
+    };
+  },
+  async acceptInvite(token) {
+    _invalidateMyTeamsCache();
+    const { data, error } = await sb.rpc("offgrd_accept_invite", { p_token: token });
+    if (error) {
+      const msg = String(error.message || "");
+      if (/expired|not found|invalid/i.test(msg)) return { ok: false, status: "expired" };
+      throw error;
+    }
+    const row = data && typeof data === "object" ? data : {};
+    return {
+      ok: row.ok === true,
+      status: String(row.status || (row.ok ? "joined" : "expired")),
+      team_id: row.team_id || "",
+      team_name: row.team_name || "",
+      role: row.role || "",
+      signed_in_email: row.signed_in_email || "",
+      invite_email: row.invite_email || ""
+    };
+  },
   async sendAddedMemberEmail(teamId, email, role) {
     return this._postInviteApi({
       added: { teamId: teamId, email: email, role: role || "player" }

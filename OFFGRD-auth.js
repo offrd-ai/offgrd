@@ -171,8 +171,17 @@ async function sendResetFromAccount(){
   go.disabled=false;
 }
 
+function hasPendingInvite(){
+  try{ return !!sessionStorage.getItem("offgrd_pending_invite"); }catch(e){ return false; }
+}
+
 async function finishAuth(){
   const go=root.querySelector("#ogaGo");
+  if(hasPendingInvite()){
+    close(); go.disabled=false;
+    if(typeof onOk==="function") onOk();
+    return;
+  }
   let teams=[];
   try{ teams=await Cloud.myTeams(); }catch(e){}
   if(teams && teams.length){
@@ -265,17 +274,29 @@ function bindSubmit(){
   if(sc) sc.onkeydown=submitOnEnter;
 }
 
-export function openAuthModal(onSuccess, startMode){
+export function openAuthModal(onSuccess, startMode, opts){
   ensure(); onOk=onSuccess||null;
   mode = startMode==="signup" ? "signup" : (startMode==="forgot" ? "forgot" : (startMode==="program" ? "program" : "signin"));
   paint();
+  if(opts && opts.teamName && (mode==="signup" || mode==="signin")){
+    const sub=root.querySelector("#ogaSub");
+    if(sub){
+      sub.textContent = mode==="signup"
+        ? ("Create your account to join " + opts.teamName + ".")
+        : ("Sign in to join " + opts.teamName + ".");
+    }
+  }
+  if(opts && opts.email){
+    const emailEl=root.querySelector("#ogaEmail");
+    if(emailEl) emailEl.value = opts.email;
+  }
   bindSubmit();
   root.classList.add("show");
   setTimeout(()=>{
     const el = mode==="program"
       ? root.querySelector("#ogaSchool")
       : (mode==="forgot" || mode==="signin" || mode==="signup"
-        ? root.querySelector("#ogaEmail")
+        ? (opts && opts.email ? root.querySelector("#ogaPw") : root.querySelector("#ogaEmail"))
         : root.querySelector("#ogaPw"));
     if(el && el.focus) el.focus();
   },30);

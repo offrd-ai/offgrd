@@ -8,7 +8,9 @@ import {
   parseInviteCsv,
   parseInviteEmailList,
   describeInvitePreview,
-  invitePreviewSentence
+  invitePreviewSentence,
+  isInviteToken,
+  readInviteToken
 } from "./OFFGRD-invite-parse.js?v=327";
 
 const A = window.OFFGRD_APP || {};
@@ -167,7 +169,16 @@ function assumePlayerChrome(){
   .ogm-note{font-size:12px;color:#5b626e;margin:6px 0 0}
   .ogm-link{background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:12px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
   .ogm-link b{color:#13294B}
-  .ogm-link .ogm-row{margin-top:8px}`;
+  .ogm-link .ogm-row{margin-top:8px}
+  .ogi-ov{position:fixed;inset:0;background:rgba(9,18,34,.62);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:18px;z-index:10001}
+  .ogi-ov.show{display:flex}
+  .ogi-card{background:#fff;color:#16181d;width:100%;max-width:440px;border-radius:18px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.4);font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .ogi-brand{font-weight:900;letter-spacing:2px;color:#13294B;font-size:13px;margin-bottom:10px}
+  .ogi-h{font-size:21px;font-weight:900;color:#13294B;margin:0 0 8px}
+  .ogi-copy{color:#5b626e;font-size:14px;margin:0 0 18px}
+  .ogi-go{width:100%;background:#13294B;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;min-height:48px}
+  .ogi-alt{width:100%;margin-top:10px;background:#fff;color:#13294B;border:1px solid #d7dbe2;border-radius:10px;padding:12px;font-weight:800;font-size:14px;cursor:pointer}
+  .ogi-note{font-size:13px;color:#5b626e;margin:14px 0 0}`;
   document.head.appendChild(s);
 })();
 
@@ -208,6 +219,189 @@ async function doSignOut(){
 function styleBtns(){ [].forEach.call(acct.querySelectorAll(".cbtn"), b => { if(!b.style.padding) b.style.cssText="border:1px solid #e2e5ea;background:#fff;color:#16181d;padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;margin-left:2px"; }); }
 
 function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.session()); }catch(e){} })(); }); }
+
+const INVITE_EXPIRED_COPY = "This invite link has expired \u2014 ask your coach to send a new one.";
+const INVITE_STORE = "offgrd_pending_invite";
+
+function persistInviteToken(token){
+  try{
+    if(token) sessionStorage.setItem(INVITE_STORE, token);
+    else sessionStorage.removeItem(INVITE_STORE);
+  }catch(e){}
+}
+
+function pendingInviteToken(){
+  const fromUrl = readInviteToken(typeof location !== "undefined" ? location.search : "");
+  if(fromUrl){
+    persistInviteToken(fromUrl);
+    return fromUrl;
+  }
+  try{ return sessionStorage.getItem(INVITE_STORE) || ""; }catch(e){ return ""; }
+}
+
+function stripInviteFromUrl(){
+  try{
+    const u = new URL(location.href);
+    if(!u.searchParams.has("invite")) return;
+    u.searchParams.delete("invite");
+    const q = u.searchParams.toString();
+    history.replaceState(null, "", u.pathname + (q ? "?" + q : "") + (u.hash || ""));
+  }catch(e){}
+}
+
+function hideInviteOverlay(){
+  const el = document.getElementById("ogiAccept");
+  if(el) el.classList.remove("show");
+}
+
+function showInviteOverlay(html){
+  try{ if(window.OFFGRD_HIDE_SIGNED_OUT_GATE) window.OFFGRD_HIDE_SIGNED_OUT_GATE(); }catch(e){}
+  let root = document.getElementById("ogiAccept");
+  if(!root){
+    root = document.createElement("div");
+    root.id = "ogiAccept";
+    root.className = "ogi-ov";
+    document.body.appendChild(root);
+  }
+  root.innerHTML = '<div class="ogi-card">'+html+"</div>";
+  root.classList.add("show");
+  return root;
+}
+
+function inviteRoleLabel(role){
+  return roleLabel(role);
+}
+
+function paintInviteExpired(){
+  const root = showInviteOverlay(
+    '<div class="ogi-brand">OFFGRD</div>'+
+    '<div class="ogi-h">Invite expired</div>'+
+    '<p class="ogi-copy">'+esc(INVITE_EXPIRED_COPY)+"</p>"+
+    '<button class="ogi-go" type="button" id="ogiSignin">Sign in to OFFGRD</button>'
+  );
+  const btn = root.querySelector("#ogiSignin");
+  if(btn) btn.onclick = function(){ hideInviteOverlay(); login(); };
+}
+
+function paintInviteJoin(peek, token, sessionEmail){
+  const team = peek.team_name || "your program";
+  const role = inviteRoleLabel(peek.role);
+  const inviteEmail = String(peek.email || "").toLowerCase();
+  const signedIn = String(sessionEmail || "").toLowerCase();
+  const mismatch = !!(signedIn && inviteEmail && signedIn !== inviteEmail);
+  let html = '<div class="ogi-brand">OFFGRD</div>';
+  if(mismatch){
+    html +=
+      '<div class="ogi-h">Wrong account</div>'+
+      '<p class="ogi-copy">You\u2019re signed in as <b>'+esc(signedIn)+"</b>. This invite is for <b>"+esc(inviteEmail)+"</b> to join <b>"+esc(team)+"</b> as "+esc(role)+".</p>"+
+      '<button class="ogi-go" type="button" id="ogiSwitch">Switch accounts</button>'+
+      '<p class="ogi-note">Sign in with the invited email, or ask your coach to send a new invite.</p>';
+  } else {
+    html +=
+      '<div class="ogi-h">Join '+esc(team)+"</div>"+
+      '<p class="ogi-copy">You\u2019ve been invited as <b>'+esc(role)+"</b>"+(inviteEmail ? " \u2014 sign in with <b>"+esc(inviteEmail)+"</b>" : "")+".</p>"+
+      '<button class="ogi-go" type="button" id="ogiGo">'+(signedIn ? "Join "+esc(team) : "Sign in or create account")+"</button>";
+    if(!signedIn){
+      html += '<button class="ogi-alt" type="button" id="ogiCreate">Create account</button>';
+    }
+  }
+  const root = showInviteOverlay(html);
+  const go = root.querySelector("#ogiGo");
+  const create = root.querySelector("#ogiCreate");
+  const sw = root.querySelector("#ogiSwitch");
+  const afterAuth = function(){ runInviteAccept(); };
+  if(go){
+    go.onclick = function(){
+      if(signedIn){ runInviteAccept(); return; }
+      openAuthModal(afterAuth, "signin", { email: inviteEmail, teamName: team });
+    };
+  }
+  if(create){
+    create.onclick = function(){
+      openAuthModal(afterAuth, "signup", { email: inviteEmail, teamName: team });
+    };
+  }
+  if(sw){
+    sw.onclick = async function(){
+      try{ await Cloud.signOut(); }catch(e){}
+      persistInviteToken(token);
+      openAuthModal(afterAuth, "signin", { email: inviteEmail, teamName: team });
+    };
+  }
+}
+
+async function landOnInvitedTeam(teamId, teamName){
+  persistInviteToken("");
+  stripInviteFromUrl();
+  hideInviteOverlay();
+  try{
+    TEAMS = await Cloud.myTeams();
+  }catch(e){ TEAMS = TEAMS || []; }
+  if(teamId){
+    if(!TEAMS.find(function(t){ return t.id === teamId; })){
+      TEAMS = [{ id: teamId, name: teamName || "Program", schedule: [] }].concat(TEAMS);
+    }
+    await setActiveTeam(teamId);
+  }
+  try{ openTeam(); }catch(e){}
+}
+
+async function runInviteAccept(userOpt){
+  const token = pendingInviteToken();
+  if(!token) return false;
+  if(!isInviteToken(token)){
+    persistInviteToken("");
+    stripInviteFromUrl();
+    paintInviteExpired();
+    return true;
+  }
+  let peek;
+  try{ peek = await Cloud.peekInvite(token); }
+  catch(e){ paintInviteExpired(); return true; }
+  if(!peek || peek.status === "expired" || peek.ok === false){
+    persistInviteToken("");
+    stripInviteFromUrl();
+    paintInviteExpired();
+    return true;
+  }
+  persistInviteToken(token);
+  let user = userOpt;
+  if(user === undefined){
+    try{ user = await Cloud.session(); }catch(e){ user = null; }
+  }
+  const email = user && user.email ? String(user.email).toLowerCase() : "";
+  if(!user){
+    paintInviteJoin(peek, token, "");
+    return true;
+  }
+  if(email && peek.email && email !== String(peek.email).toLowerCase()){
+    paintInviteJoin(peek, token, email);
+    return true;
+  }
+  let accepted;
+  try{ accepted = await Cloud.acceptInvite(token); }
+  catch(e){ paintInviteExpired(); return true; }
+  if(!accepted || accepted.status === "expired"){
+    persistInviteToken("");
+    stripInviteFromUrl();
+    paintInviteExpired();
+    return true;
+  }
+  if(accepted.status === "wrong_account"){
+    paintInviteJoin({
+      team_name: accepted.team_name || peek.team_name,
+      role: accepted.role || peek.role,
+      email: accepted.invite_email || peek.email
+    }, token, accepted.signed_in_email || email);
+    return true;
+  }
+  if(accepted.ok && accepted.team_id){
+    await landOnInvitedTeam(accepted.team_id, accepted.team_name);
+    return true;
+  }
+  paintInviteJoin(peek, token, email);
+  return true;
+}
 
 /* ---------- school link (orphan team recovery) ---------- */
 async function refreshCreateEligibility(){
@@ -790,6 +984,9 @@ async function hydrateTeamsFromSession(u, opts){
       scheduleSessionRetry("membership-unauth");
     } else {
       scheduleTeamRetry("no-team");
+      if(pendingInviteToken()){
+        /* Invite accept owns this session — never send them to Name your program. */
+      } else {
       let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
       if(!ob && mem && mem.team_id && mem.is_member === false){
         setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
@@ -797,6 +994,7 @@ async function hydrateTeamsFromSession(u, opts){
         setTimeout(function(){ if(!TEAM) openOnboard(); }, 1200);
       } else if(!ob && !mem){
         setTimeout(function(){ if(!TEAM) openOnboard(); }, 2000);
+      }
       }
     }
   } else {
@@ -873,6 +1071,11 @@ async function onUser(u){
     resetProgramRetries();
     try{ if(window.OFFGRD_CLEAR_PROGRAM_CACHE) window.OFFGRD_CLEAR_PROGRAM_CACHE(); }catch(e){}
     try{ if(window.OFFGRD_RESET_IN_MEMORY_PROGRAM) window.OFFGRD_RESET_IN_MEMORY_PROGRAM(); }catch(e){}
+    if(pendingInviteToken()){
+      publishProgramRole(); bar(null);
+      runInviteAccept(null);
+      return;
+    }
     try{ if(window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
     publishProgramRole(); bar(null); return;
   }
@@ -885,6 +1088,14 @@ async function onUser(u){
   try{ window.OFFGRD_SESSION_GATED = false; }catch(e){}
   if(switchGuard(u)) return;
   try{
+    if(pendingInviteToken()){
+      const handled = await runInviteAccept(u);
+      if(handled){
+        if(TEAM) await finishProgramHydrate(u);
+        else bar(u);
+        return;
+      }
+    }
     await hydrateTeamsFromSession(u, { fromRetry: false });
     await finishProgramHydrate(u);
   }catch(e){ console.error(e); bar(u); }
@@ -2189,6 +2400,7 @@ Cloud.onAuth((u, ev)=>{
 });
 (async()=>{
   try{
+    try{ pendingInviteToken(); }catch(eInv){}
     /* Drop stale auth tokens from other Supabase projects (pre-cutover leftovers). */
     try{ if(Cloud.purgeForeignAuthTokens) Cloud.purgeForeignAuthTokens(); }catch(e){}
     if(!isOffline()){

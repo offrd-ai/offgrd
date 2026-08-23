@@ -1,5 +1,41 @@
-/* Shared invite-list parsing for the Program modal. No network. */
+/* Shared invite-list parsing for the Program modal. No network.
+   Also owns the email Join-button URL contract (gameday accept route). */
 export const PLAYER_IMPORT_CAP = 200;
+export const GAMEDAY_ACCEPT_ORIGIN = "https://getoffrd.com";
+export const GAMEDAY_ACCEPT_PATH = "/gameday/OFFGRD.html";
+
+export function inviteAcceptUrl(token) {
+  const base = GAMEDAY_ACCEPT_ORIGIN + GAMEDAY_ACCEPT_PATH;
+  const t = String(token || "").trim();
+  if (!t) return base;
+  return base + "?invite=" + encodeURIComponent(t);
+}
+
+export function readInviteToken(search) {
+  try {
+    const q = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+    return String(q.get("invite") || "").trim();
+  } catch (e) {
+    return "";
+  }
+}
+
+export function isInviteToken(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || "").trim());
+}
+
+export function isGamedayInviteAcceptUrl(href) {
+  try {
+    const u = new URL(String(href || ""), GAMEDAY_ACCEPT_ORIGIN);
+    if (u.hostname !== "getoffrd.com") return false;
+    if (u.pathname !== GAMEDAY_ACCEPT_PATH) return false;
+    if (/select-role/i.test(u.pathname + u.search + u.hash)) return false;
+    if (u.pathname === "/" || u.pathname === "/auth/select-role") return false;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 export function normalizeInviteEmail(value) {
   return String(value || "").trim().toLowerCase();
