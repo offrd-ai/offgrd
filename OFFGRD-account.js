@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=327";
-import { openAuthModal } from "./OFFGRD-auth.js?v=327";
+import { Cloud } from "./OFFGRD-cloud.js?v=328";
+import { openAuthModal } from "./OFFGRD-auth.js?v=328";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -10,8 +10,10 @@ import {
   describeInvitePreview,
   invitePreviewSentence,
   isInviteToken,
-  readInviteToken
-} from "./OFFGRD-invite-parse.js?v=327";
+  readInviteToken,
+  ROLES
+} from "./OFFGRD-invite-parse.js?v=328";
+void ROLES;
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -234,6 +236,7 @@ function pendingInviteToken(){
   const fromUrl = readInviteToken(typeof location !== "undefined" ? location.search : "");
   if(fromUrl){
     persistInviteToken(fromUrl);
+    stripInviteFromUrl();
     return fromUrl;
   }
   try{ return sessionStorage.getItem(INVITE_STORE) || ""; }catch(e){ return ""; }
@@ -283,23 +286,26 @@ function paintInviteExpired(){
   if(btn) btn.onclick = function(){ hideInviteOverlay(); login(); };
 }
 
-function paintInviteJoin(peek, token, sessionEmail){
+function inviteHint(row){
+  return String((row && (row.email_hint || row.invite_email_hint)) || "").trim();
+}
+
+function paintInviteJoin(peek, token, sessionEmail, mismatch){
   const team = peek.team_name || "your program";
   const role = inviteRoleLabel(peek.role);
-  const inviteEmail = String(peek.email || "").toLowerCase();
+  const hint = inviteHint(peek);
   const signedIn = String(sessionEmail || "").toLowerCase();
-  const mismatch = !!(signedIn && inviteEmail && signedIn !== inviteEmail);
   let html = '<div class="ogi-brand">OFFGRD</div>';
   if(mismatch){
     html +=
       '<div class="ogi-h">Wrong account</div>'+
-      '<p class="ogi-copy">You\u2019re signed in as <b>'+esc(signedIn)+"</b>. This invite is for <b>"+esc(inviteEmail)+"</b> to join <b>"+esc(team)+"</b> as "+esc(role)+".</p>"+
+      '<p class="ogi-copy">You\u2019re signed in as <b>'+esc(signedIn)+"</b>. This invite is for <b>"+esc(hint)+"</b> to join <b>"+esc(team)+"</b> as "+esc(role)+".</p>"+
       '<button class="ogi-go" type="button" id="ogiSwitch">Switch accounts</button>'+
       '<p class="ogi-note">Sign in with the invited email, or ask your coach to send a new invite.</p>';
   } else {
     html +=
       '<div class="ogi-h">Join '+esc(team)+"</div>"+
-      '<p class="ogi-copy">You\u2019ve been invited as <b>'+esc(role)+"</b>"+(inviteEmail ? " \u2014 sign in with <b>"+esc(inviteEmail)+"</b>" : "")+".</p>"+
+      '<p class="ogi-copy">You\u2019ve been invited as <b>'+esc(role)+"</b>"+(hint ? " \u2014 sign in with <b>"+esc(hint)+"</b>" : "")+".</p>"+
       '<button class="ogi-go" type="button" id="ogiGo">'+(signedIn ? "Join "+esc(team) : "Sign in or create account")+"</button>";
     if(!signedIn){
       html += '<button class="ogi-alt" type="button" id="ogiCreate">Create account</button>';
@@ -313,19 +319,19 @@ function paintInviteJoin(peek, token, sessionEmail){
   if(go){
     go.onclick = function(){
       if(signedIn){ runInviteAccept(); return; }
-      openAuthModal(afterAuth, "signin", { email: inviteEmail, teamName: team });
+      openAuthModal(afterAuth, "signin", { teamName: team });
     };
   }
   if(create){
     create.onclick = function(){
-      openAuthModal(afterAuth, "signup", { email: inviteEmail, teamName: team });
+      openAuthModal(afterAuth, "signup", { teamName: team });
     };
   }
   if(sw){
     sw.onclick = async function(){
       try{ await Cloud.signOut(); }catch(e){}
       persistInviteToken(token);
-      openAuthModal(afterAuth, "signin", { email: inviteEmail, teamName: team });
+      openAuthModal(afterAuth, "signin", { teamName: team });
     };
   }
 }
@@ -371,11 +377,7 @@ async function runInviteAccept(userOpt){
   }
   const email = user && user.email ? String(user.email).toLowerCase() : "";
   if(!user){
-    paintInviteJoin(peek, token, "");
-    return true;
-  }
-  if(email && peek.email && email !== String(peek.email).toLowerCase()){
-    paintInviteJoin(peek, token, email);
+    paintInviteJoin(peek, token, "", false);
     return true;
   }
   let accepted;
@@ -391,15 +393,16 @@ async function runInviteAccept(userOpt){
     paintInviteJoin({
       team_name: accepted.team_name || peek.team_name,
       role: accepted.role || peek.role,
-      email: accepted.invite_email || peek.email
-    }, token, accepted.signed_in_email || email);
+      email_hint: accepted.invite_email_hint || peek.email_hint,
+      invite_email_hint: accepted.invite_email_hint
+    }, token, accepted.signed_in_email || email, true);
     return true;
   }
   if(accepted.ok && accepted.team_id){
     await landOnInvitedTeam(accepted.team_id, accepted.team_name);
     return true;
   }
-  paintInviteJoin(peek, token, email);
+  paintInviteJoin(peek, token, email, false);
   return true;
 }
 

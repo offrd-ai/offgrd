@@ -29,7 +29,8 @@ vm.runInNewContext(
     "; this.inviteAcceptUrl = inviteAcceptUrl;" +
     " this.readInviteToken = readInviteToken;" +
     " this.isGamedayInviteAcceptUrl = isGamedayInviteAcceptUrl;" +
-    " this.isInviteToken = isInviteToken;",
+    " this.isInviteToken = isInviteToken;" +
+    " this.isSafeAppRedirect = isSafeAppRedirect;",
   box
 );
 
@@ -78,6 +79,16 @@ check("account invite flow never routes to select-role", !/\/auth\/select-role/.
 check("auth skips Name your program when invite is pending", /hasPendingInvite/.test(auth));
 check("auth signup copy stays on the invited team", /Create your account to join/.test(auth));
 check("cloud has peek + accept", /offgrd_peek_invite/.test(cloud) && /offgrd_accept_invite/.test(cloud));
+check("cloud reads email_hint", /email_hint: row\.email_hint/.test(cloud));
+check("cloud reads invite_email_hint", /invite_email_hint: row\.invite_email_hint/.test(cloud));
+check("account displays email_hint", /email_hint \|\| row\.invite_email_hint/.test(account) || /inviteHint\(/.test(account));
+check("account does not read peek.email", !/peek\.email\b/.test(account) && !/accepted\.invite_email\b/.test(account));
+check("invite query is replaceState-scrubbed", /searchParams\.delete\(["']invite["']\)/.test(account) && /replaceState/.test(account));
+check("safe redirect allowlist exists", /SAFE_REDIRECT_HOSTS/.test(parseSrc) && /function isSafeAppRedirect/.test(parseSrc));
+check("own origin redirect allowed", box.isSafeAppRedirect("https://getoffrd.com/gameday/OFFGRD.html") === true);
+check("relative gameday redirect allowed", box.isSafeAppRedirect("/gameday/OFFGRD.html") === true);
+check("evil absolute redirect rejected", box.isSafeAppRedirect("https://evil.example/phish") === false);
+check("protocol-relative redirect rejected", box.isSafeAppRedirect("//evil.example") === false);
 
 if (fails) {
   console.error(fails + " FAIL");

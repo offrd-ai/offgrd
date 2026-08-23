@@ -512,7 +512,7 @@ export const Cloud = {
       team_id: row.team_id || "",
       team_name: row.team_name || "",
       role: row.role || "",
-      email: row.email || ""
+      email_hint: row.email_hint || ""
     };
   },
   async acceptInvite(token) {
@@ -531,7 +531,7 @@ export const Cloud = {
       team_name: row.team_name || "",
       role: row.role || "",
       signed_in_email: row.signed_in_email || "",
-      invite_email: row.invite_email || ""
+      invite_email_hint: row.invite_email_hint || ""
     };
   },
   async sendAddedMemberEmail(teamId, email, role) {

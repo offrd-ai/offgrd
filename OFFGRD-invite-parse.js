@@ -1,8 +1,31 @@
 /* Shared invite-list parsing for the Program modal. No network.
    Also owns the email Join-button URL contract (gameday accept route). */
 export const PLAYER_IMPORT_CAP = 200;
+export const ROLES = ["owner", "coach_edit", "coach_view", "player"];
 export const GAMEDAY_ACCEPT_ORIGIN = "https://getoffrd.com";
 export const GAMEDAY_ACCEPT_PATH = "/gameday/OFFGRD.html";
+export const SAFE_REDIRECT_HOSTS = ["getoffrd.com", "www.getoffrd.com", "offops.app", "www.offops.app"];
+
+export function isSafeAppRedirect(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return false;
+  if (s.startsWith("/") && !s.startsWith("//") && !s.startsWith("/\\")) {
+    if (s.indexOf("://") >= 0) return false;
+    return true;
+  }
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = String(u.hostname || "").toLowerCase();
+    return SAFE_REDIRECT_HOSTS.indexOf(host) >= 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function safeAppRedirect(raw) {
+  return isSafeAppRedirect(raw) ? String(raw).trim() : null;
+}
 
 export function inviteAcceptUrl(token) {
   const base = GAMEDAY_ACCEPT_ORIGIN + GAMEDAY_ACCEPT_PATH;
