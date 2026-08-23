@@ -6768,7 +6768,7 @@ function ensureMapChipStyles(){
   if(document.getElementById("offgrd-map-chip-css")) return;
   const s=document.createElement("style");
   s.id="offgrd-map-chip-css";
-  s.textContent=".fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fm-chip{border:1px solid #d7dbe2;background:#fff;color:#16181d;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}.fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}.fm-chip.sug:not(.on){border-color:#4B9CD3;color:#13294B}.fm-chip i{font-style:normal;font-size:10px;font-weight:700;opacity:.85}.pm-msg.is-err,.pm-fam-row.is-err .pm-fam-free{color:#a8112b}.pm-fam-row.is-err{outline:2px solid #a8112b;outline-offset:2px;border-radius:10px}";
+  s.textContent=".fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fm-chip{border:1px solid #d7dbe2;background:#fff;color:#16181d;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}html.rd-on .fm-chip,html.rd-on[data-base=\"night\"] .fm-chip,html.rd-on[data-base=\"day\"] .fm-chip{border-color:#d7dbe2;background:#fff;color:#16181d}.fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}html.rd-on .fm-chip.on,html.rd-on[data-base=\"night\"] .fm-chip.on,html.rd-on[data-base=\"day\"] .fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}.fm-chip.sug:not(.on){border-color:#4B9CD3;color:#13294B}.fm-chip i{font-style:normal;font-size:10px;font-weight:700;opacity:.85}.pm-msg.is-err,.pm-fam-row.is-err .pm-fam-free{color:#a8112b}.pm-fam-row.is-err{outline:2px solid #a8112b;outline-offset:2px;border-radius:10px}";
   document.head.appendChild(s);
 }
 function mapPanelSkipRebuild(el, opening){

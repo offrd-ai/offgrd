@@ -327,6 +327,9 @@ check("save uses prepareSave", /M\.prepareSave\(/.test(html) && /typed:\s*free/.
 check("empty save paints inline error", /showFamErr/.test(html) && /pm-fam-row\.is-err/.test(html));
 check("same-play is optional in handler", /play_id:\s*prep\.play_id/.test(html));
 check("shared chip styles helper", /function ensureMapChipStyles/.test(html) && /offgrd-map-chip-css/.test(html));
+check("shared chip sheet pins unselected fg/bg", /\.fm-chip\{[^}]*background:#fff;color:#16181d/.test(html));
+check("shared chip sheet pins rd-on unselected", /html\.rd-on \.fm-chip[\s\S]{0,180}background:#fff;color:#16181d/.test(html));
+check("shared chip sheet does not inherit --ink on chips", !/\.fm-chip\{[^}]*color:var\(--ink\)/.test(html));
 check("play map does not inject .fm-chip.on locally", !/H\+='<style>\.pm-card[\s\S]*\.fm-chip\.on/.test(html));
 check("formations does not inject .fm-chip.on locally", !/H\+='<style>\.fm-panel[\s\S]*\.fm-chip\.on/.test(html));
 check("idle hydrate skips focused input", /mapPanelSkipRebuild/.test(html) && /pmNoteRender/.test(html));

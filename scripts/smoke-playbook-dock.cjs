@@ -74,7 +74,7 @@ check("Motion path label (not Move)", /Motion path/.test(HTML) && /dockBtn\(dock
 check("no dock Move reposition button", !/dockBtn\(dockRow\(host\),"Move"/.test(HTML));
 
 check("family chips host present", /id="m-family-chips"/.test(HTML) && /id="m-family-list"/.test(HTML));
-check("playbook sources family from PLAY_MAP", /offerFamilies/.test(HTML) && /prepareSave/.test(HTML));
+check("playbook sources family from playbookFamilyOffer", /playbookFamilyOffer/.test(HTML) && /prepareSave/.test(HTML));
 check("playbook loads play-map + formation-map", /OFFGRD-play-map\.js/.test(HTML) && /OFFGRD-formation-map\.js/.test(HTML));
 
 const pms = { window: {}, globalThis: {}, console: console, localStorage: { getItem: function () { return null; }, setItem: function () {} } };
@@ -99,11 +99,14 @@ const maps = [
   { raw_call: "DINO", raw_call_norm: "dino", family: "Mesh" }
 ];
 const rows = [{ play: "HOUSTON" }, { play: "HOUSTON" }, { play: "DINO" }];
-const offer = PM.offerFamilies(book, maps, rows);
+check("entrypoint does not offer from leftover []", !/offerFamilies\(LIB\|\|\[\], maps, \[\]\)/.test(HTML));
+const coldOffer = PM.playbookFamilyOffer(book, { hydrated: false, maps: [], playRows: rows });
+check("unhydrated playbook chips stay empty", coldOffer.ready === false && coldOffer.familyChips.length === 0);
 PM.setCache("t", maps);
+const offer = PM.playbookFamilyOffer(book, { playRows: rows });
 const paint = PM.panelPaint(rows, { playbook: book, fetched: maps, hydrating: false });
-check("one family source: offer === panel chips", JSON.stringify(offer.familyChips) === JSON.stringify(paint.familyChips));
-check("one family source: offer === panel families", JSON.stringify(offer.families) === JSON.stringify(paint.families));
+check("one family source: playbook chips === panel chips", JSON.stringify(offer.familyChips) === JSON.stringify(paint.familyChips));
+check("one family source: playbook families === panel families", JSON.stringify(offer.families) === JSON.stringify(paint.families));
 const typed = PM.prepareSave({ typed: "Quick", chip: "", families: offer.families });
 check("typed Quick collapses to Quick Game", !!(typed.ok && typed.family === "Quick Game" && typed.collapsed));
 check("HTML applyPlaybookFamily uses prepareSave", /applyPlaybookFamily/.test(HTML) && /prepareSave/.test(HTML));

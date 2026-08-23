@@ -263,6 +263,46 @@
     };
   }
 
+  /** Ours-side snaps from the shared season store — same rows the Play map panel ranks on. */
+  function seasonOursRows() {
+    try {
+      var store = storage();
+      if (!store) return [];
+      var games = JSON.parse(store.getItem("offgrd_season_v2") || "[]");
+      var out = [];
+      (Array.isArray(games) ? games : []).forEach(function (g) {
+        if (!g || g.side !== "ours") return;
+        (g.rows || []).forEach(function (r) { out.push(r); });
+      });
+      return out;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Playbook FAMILY chips: playbook ∪ map, ranked by mapped snaps.
+   * Never paint from an unhydrated leftover [] (v289/v300 class).
+   */
+  function playbookFamilyOffer(playbook, opts) {
+    opts = opts || {};
+    var hydrated = opts.hydrated != null ? !!opts.hydrated : isHydrated();
+    if (!hydrated) {
+      return { familyChips: [], families: [], groups: [], notices: [], ready: false, known: false };
+    }
+    var maps = Array.isArray(opts.maps) ? opts.maps : (getCached() || []);
+    var playRows = Array.isArray(opts.playRows) ? opts.playRows : seasonOursRows();
+    var offer = offerFamilies(playbook || [], maps, playRows);
+    return {
+      familyChips: offer.familyChips || [],
+      families: offer.families || [],
+      groups: offer.groups || [],
+      notices: offer.notices || [],
+      ready: true,
+      known: true
+    };
+  }
+
   function firstToken(raw) {
     var n = normCall(raw);
     if (!n) return "";
@@ -881,6 +921,8 @@
     prepareSave: prepareSave,
     seedFamilies: seedFamilies,
     offerFamilies: offerFamilies,
+    seasonOursRows: seasonOursRows,
+    playbookFamilyOffer: playbookFamilyOffer,
     findPlaybook: findPlaybook,
     canonicalFamily: canonicalFamily,
     FAMILY_CHIP_LIMIT: FAMILY_CHIP_LIMIT,

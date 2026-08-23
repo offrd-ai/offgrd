@@ -92,8 +92,10 @@
  #pbMetaHold{display:none}
  #pbAssignPin .row{margin-top:8px}
  .fm-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
- .fm-chip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}
- .fm-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+ .fm-chip{border:1px solid #d7dbe2;background:#fff;color:#16181d;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}
+ html.rd-on .fm-chip,html.rd-on[data-base="night"] .fm-chip,html.rd-on[data-base="day"] .fm-chip{border-color:#d7dbe2;background:#fff;color:#16181d}
+ .fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}
+ html.rd-on .fm-chip.on,html.rd-on[data-base="night"] .fm-chip.on,html.rd-on[data-base="day"] .fm-chip.on{background:#13294B;color:#fff;border-color:#13294B}
  @media (min-width:900px){
   body.pb-dock-on #fieldDockWrap{flex-direction:row;align-items:flex-start}
   body.pb-dock-on #pbDock{flex:0 0 280px;width:280px;max-width:280px}
@@ -1607,9 +1609,8 @@ function syncFormSelToState(){
 }
 function familyOffer(){
  const PM=window.OFFGRD_PLAY_MAP;
- if(!PM || typeof PM.offerFamilies!=="function") return { familyChips:[], families:[], groups:[] };
- const maps=(PM.isHydrated && PM.isHydrated() && PM.getCached) ? (PM.getCached()||[]) : [];
- return PM.offerFamilies(LIB||[], maps, []);
+ if(!PM || typeof PM.playbookFamilyOffer!=="function") return { familyChips:[], families:[], groups:[], ready:false };
+ return PM.playbookFamilyOffer(LIB||[]);
 }
 function renderFamilyChips(){
  const host=document.getElementById("m-family-chips");
@@ -1687,6 +1688,7 @@ function offerStarter(opts){
 }
 
 window.askConfirm=askConfirm;
+window.renderFamilyChips=renderFamilyChips;
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 window.loadPlayId=loadPlayId;window.delPlayId=delPlayId;window.dupPlayId=dupPlayId;
 /* Expose the sync bridge IMMEDIATELY ? OFFGRD-account.js (a deferred module) reads

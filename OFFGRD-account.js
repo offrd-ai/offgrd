@@ -75,6 +75,10 @@ function hydrateOfflineTeam(){
     const M = window.OFFGRD_FORMATION_MAP;
     if(M && TEAM && TEAM.id && typeof M.loadCache === "function") M.loadCache(TEAM.id);
   }catch(eM){}
+  try{
+    const P = window.OFFGRD_PLAY_MAP;
+    if(P && TEAM && TEAM.id && typeof P.loadCache === "function") P.loadCache(TEAM.id);
+  }catch(eP){}
   return !!(TEAM && ROLE) || !!persistedShellPin() || isSidelinePinned();
 }
 /** Sync first paint from LS — before any await / RPC. Network may upgrade later. */
@@ -1164,7 +1168,13 @@ async function pull(silent){
     if(!silent && A.kind==="playbook"){
       try{ const el=document.getElementById("syncstat"); if(el){ el.textContent="loaded \u2713"; el.style.color="#1d7a45"; } }catch(e){}
     }
-    try{ if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); await pullFormationMap(TEAM && TEAM.id); await pullPlayMap(TEAM && TEAM.id); } }catch(e){}
+    try{
+      if(A.kind==="scout"){ pullWeek(); pushSchedule(); await refreshScoutSnaps(); }
+      if(A.kind==="scout" || A.kind==="playbook"){
+        await pullFormationMap(TEAM && TEAM.id);
+        await pullPlayMap(TEAM && TEAM.id);
+      }
+    }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
   finally{ _busy=false; }
 }
@@ -2099,6 +2109,7 @@ function pullPlayMap(teamId){
     if(!M || !tid || typeof M.pullMap !== "function") return Promise.resolve([]);
     return M.pullMap(tid).then(function(rows){
       try{ if(typeof window.refreshView === "function") window.refreshView(); }catch(eR){}
+      try{ if(typeof window.renderFamilyChips === "function") window.renderFamilyChips(); }catch(eF){}
       return rows;
     }).catch(function(){ return []; });
   }catch(e){ return Promise.resolve([]); }
