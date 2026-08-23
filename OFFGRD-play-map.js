@@ -135,9 +135,58 @@
     };
   }
 
+  function hasOffenseAssignments(p) {
+    if (!p) return false;
+    return (p.players || []).some(function (pp) {
+      return pp && !pp.ol && (
+        (pp.route && pp.route.length) ||
+        !!pp.rname ||
+        !!pp.runblk ||
+        (pp.motion && pp.motion.length) ||
+        !!(pp.asn && String(pp.asn).trim())
+      );
+    });
+  }
+
+  function hasDefenseContent(p) {
+    if (!p) return false;
+    if (p.def_call || p.type === "defense") return true;
+    if (p.front && p.front !== "none") return true;
+    if (p.coverage && p.coverage !== "none") return true;
+    return !!(p.defs && p.defs.length);
+  }
+
+  /** Infer only. Empty / mixed-without-O-assignments → "" (do not guess). */
+  function inferPlaySide(p) {
+    if (!p) return "";
+    var oAssign = hasOffenseAssignments(p);
+    var oFamily = !!(p.family && String(p.family).trim()) && !hasDefenseContent(p);
+    var d = hasDefenseContent(p);
+    if (oAssign && d) return "offense";
+    if ((oAssign || oFamily) && !d) return "offense";
+    if (d && !oAssign) return "defense";
+    return "";
+  }
+
+  function classifyPlay(p) {
+    if (!p) return { side: "", reason: "empty" };
+    if (p.side === "offense" || p.side === "off") return { side: "offense", reason: "stored" };
+    if (p.side === "defense" || p.side === "def") return { side: "defense", reason: "stored" };
+    if (p.type === "defense" || p.def_call) return { side: "defense", reason: "type" };
+    var inferred = inferPlaySide(p);
+    if (inferred) return { side: inferred, reason: "inferred" };
+    return { side: "", reason: "unknown" };
+  }
+
+  function offensePlaybook(playbook) {
+    return (playbook || []).filter(function (p) {
+      return classifyPlay(p).side === "offense";
+    });
+  }
+
   function seedFamilies(playbook) {
     var raw = [];
-    (playbook || []).forEach(function (p) {
+    offensePlaybook(playbook).forEach(function (p) {
       if (p && p.family) raw.push(p.family);
     });
     return collapseFamilies(raw);
@@ -173,7 +222,7 @@
    */
   function offerFamilies(playbook, maps, playRows) {
     var raw = [];
-    (playbook || []).forEach(function (p) {
+    offensePlaybook(playbook).forEach(function (p) {
       if (p && p.family) raw.push(p.family);
     });
     (maps || []).forEach(function (m) {
@@ -346,8 +395,9 @@
     var n = normCall(raw);
     if (!n) return null;
     var i, p;
-    for (i = 0; i < (playbook || []).length; i++) {
-      p = playbook[i];
+    var book = offensePlaybook(playbook);
+    for (i = 0; i < book.length; i++) {
+      p = book[i];
       if (p && normCall(p.name) === n) return p;
     }
     return null;
@@ -823,11 +873,15 @@
     normCall: normCall,
     isBlank: isBlank,
     canonFamily: canonFamily,
+    classifyPlay: classifyPlay,
+    inferPlaySide: inferPlaySide,
+    offensePlaybook: offensePlaybook,
     collapseFamilies: collapseFamilies,
     resolveTypedFamily: resolveTypedFamily,
     prepareSave: prepareSave,
     seedFamilies: seedFamilies,
     offerFamilies: offerFamilies,
+    findPlaybook: findPlaybook,
     canonicalFamily: canonicalFamily,
     FAMILY_CHIP_LIMIT: FAMILY_CHIP_LIMIT,
     suggestStems: suggestStems,

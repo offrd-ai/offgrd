@@ -354,6 +354,37 @@ const idleRps = extraHydrates / 0.25;
 console.log("idle same-cache hydrate rps=" + idleRps + " extra=" + extraHydrates + " ticks=" + ticks);
 check("idle same-cache rps is 0", extraHydrates === 0);
 
+const pwOffense = [
+  { name: "Stick", family: "Quick Game" },
+  { name: "Hitches", family: "Quick Game" },
+  { name: "Slant-Flat", family: "Quick Game" },
+  { name: "Smash", family: "Dropback" },
+  { name: "Flood Rt", family: "Dropback" },
+  { name: "Mesh", family: "Mesh" },
+  { name: "Four Verts", family: "Dropback" },
+  { name: "Curl-Flat", family: "Dropback" },
+  { name: "RB Screen Rt", family: "Screen" },
+  { name: "Inside Zone Rt", family: "Run" }
+];
+const pwDefense = [
+  { name: "North Base D", front: "4-3", coverage: "Cover 3", defs: [{ lab: "W" }] },
+  { name: "4-3 Cover 2", family: "Cover 2", front: "4-3", coverage: "Cover 2", defs: [{ lab: "W" }] },
+  { name: "3-3 Stack", front: "3-3-5 (Tite)", defs: [{ lab: "W" }] },
+  { name: "Kero 3-4 Cover 4", front: "3-4", coverage: "Cover 4", defs: [{ lab: "W" }] }
+];
+const pwBook = pwOffense.concat(pwDefense);
+check("Parkway West fixture is 14 plays", pwBook.length === 14);
+check("playbook-resolve denominator is 10 offense", M.offensePlaybook(pwBook).length === 10);
+pwDefense.forEach(function (p) {
+  check(p.name + " classified defense", M.classifyPlay(p).side === "defense");
+  check("findPlaybook misses " + p.name, M.findPlaybook(pwBook, p.name) == null);
+});
+pwOffense.forEach(function (p) {
+  check(p.name + " classified offense", M.classifyPlay(p).side === "offense");
+});
+check("unknown play is not guessed", M.classifyPlay({ name: "Untitled" }).side === "" && M.classifyPlay({ name: "Untitled" }).reason === "unknown");
+check("defense Cover 2 family stays out of O chips", M.offerFamilies(pwDefense, [], []).families.indexOf("Cover 2") < 0);
+
 if (fails) {
   console.error(fails + " FAIL");
   process.exit(1);

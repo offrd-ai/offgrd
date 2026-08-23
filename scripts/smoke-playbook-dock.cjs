@@ -64,6 +64,12 @@ check("IP: #pbDock is not overlay", !/position:\s*(fixed|absolute|sticky)/.test(
 check("IP: wrap is flex adjacent", /#fieldDockWrap\{display:flex/.test(HTML));
 check("IP: no float over field", !/#pbDock\{[^}]*(fixed|absolute|sticky)/.test(HTML));
 
+const sideCss = (HTML.match(/#pbSideBar\{[^}]+\}/) || [])[0] || "";
+check("IP: #pbSideBar is relative", /position:\s*relative/.test(sideCss));
+check("IP: #pbSideBar is not overlay", !/position:\s*(fixed|absolute|sticky)/.test(sideCss));
+check("side chips live in #fieldCol above the field", /id="fieldCol"[\s\S]*id="pbSideBar"[\s\S]*id="field"/.test(HTML));
+check("side chooser is not a modal overlay", !/#pbSideBar\{[^}]*(fixed|absolute|sticky)/.test(HTML) && !/id="pbSideBar"[\s\S]{0,200}class="ov"/.test(HTML));
+
 check("Motion path label (not Move)", /Motion path/.test(HTML) && /dockBtn\(dockRow\(host\),"Motion path"/.test(HTML));
 check("no dock Move reposition button", !/dockBtn\(dockRow\(host\),"Move"/.test(HTML));
 

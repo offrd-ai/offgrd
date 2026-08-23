@@ -71,6 +71,11 @@
  /* P1 dock: adjacent panel only — never overlay/float over the field (IP). */
  #fieldDockWrap{display:flex;flex-direction:column;gap:10px}
  #fieldCol{min-width:0;flex:1 1 auto}
+ #pbSideBar{display:flex;align-items:center;gap:8px;margin:0 0 8px;position:relative;flex:0 0 auto}
+ #pbSideBar .pb-side-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+ #pbSideBar .pb-side-seg .btn{border:0;border-radius:0;min-width:108px;padding:6px 12px;font-size:12px}
+ #pbSideBar .pb-side-seg .btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+ body.pb-side-defense #m-family-wrap{display:none!important}
  #pbDock{display:none;position:relative;flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
  #pbDock .row{margin-top:4px}
  body.pb-dock-on #pbDock{display:block}
@@ -95,25 +100,25 @@
  }
 
 </style>
-<script src="OFFGRD-config.js?v=321"></script>
-<script src="OFFGRD-brand-persist.js?v=321"></script>
-<script src="supabase.js?v=321"></script>
-<script src="OFFGRD-cache-gate.js?v=321"></script>
-<script src="OFFGRD-formations-data.js?v=321"></script>
-<script src="OFFGRD-formation-canon.js?v=321"></script>
-<script src="OFFGRD-play-map.js?v=321"></script>
-<script src="OFFGRD-formation-map.js?v=321"></script>
-<script src="OFFGRD-render.js?v=321"></script>
-<script src="OFFGRD-pb-dock.js?v=321"></script>
-<script src="OFFGRD-pos-glossary.js?v=321"></script>
-<script src="OFFGRD-autoderive.js?v=321"></script>
-<script src="OFFGRD-week-autotest.js?v=321"></script>
-<script src="OFFGRD-play-wizard.js?v=321"></script>
-<script src="OFFGRD-opp-shells.js?v=321"></script>
-<script src="OFFGRD-scoutcards.js?v=321"></script>
-<script src="OFFGRD-telestrate.js?v=321"></script>
-<script src="OFFGRD-redesign.js?v=321"></script>
-<script src="OFFGRD-shell.js?v=321"></script>
+<script src="OFFGRD-config.js?v=322"></script>
+<script src="OFFGRD-brand-persist.js?v=322"></script>
+<script src="supabase.js?v=322"></script>
+<script src="OFFGRD-cache-gate.js?v=322"></script>
+<script src="OFFGRD-formations-data.js?v=322"></script>
+<script src="OFFGRD-formation-canon.js?v=322"></script>
+<script src="OFFGRD-play-map.js?v=322"></script>
+<script src="OFFGRD-formation-map.js?v=322"></script>
+<script src="OFFGRD-render.js?v=322"></script>
+<script src="OFFGRD-pb-dock.js?v=322"></script>
+<script src="OFFGRD-pos-glossary.js?v=322"></script>
+<script src="OFFGRD-autoderive.js?v=322"></script>
+<script src="OFFGRD-week-autotest.js?v=322"></script>
+<script src="OFFGRD-play-wizard.js?v=322"></script>
+<script src="OFFGRD-opp-shells.js?v=322"></script>
+<script src="OFFGRD-scoutcards.js?v=322"></script>
+<script src="OFFGRD-telestrate.js?v=322"></script>
+<script src="OFFGRD-redesign.js?v=322"></script>
+<script src="OFFGRD-shell.js?v=322"></script>
 </head>
 <body>
  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
@@ -211,6 +216,13 @@
 <div class="panel" id="fieldPanel" style="padding:6px">
  <div id="fieldDockWrap">
  <div id="fieldCol">
+ <div id="pbSideBar">
+  <span class="lbl">Play</span>
+  <div class="pb-side-seg" role="group" aria-label="Play side">
+   <button type="button" class="btn on" id="pbSideOff" data-side="offense">Offense play</button>
+   <button type="button" class="btn" id="pbSideDef" data-side="defense">Defense play</button>
+  </div>
+ </div>
  <svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
  <div id="pbAssignPin"></div>
  <div class="row" style="justify-content:center;gap:12px;margin-top:8px">
@@ -262,7 +274,7 @@
  <div class="panel">
  <div class="meta">
  <label>Play name<input id="m-name" placeholder="e.g. DINO"></label>
- <label>Family
+ <label id="m-family-wrap">Family
  <div id="m-family-chips" class="fm-row"></div>
  <input id="m-family" list="m-family-list" placeholder="type a family" autocomplete="off">
  <datalist id="m-family-list"></datalist>
@@ -330,6 +342,9 @@ const LOS=380,W=1000,H=640;
 let MODE="move",SEL=null,STATE=null,DRAG=null,ANIM=null,LIB=[];
 let DOCK_VERB=null;
 let UNDO=[],REDO=[];
+const SIDE_KEY="offgrd_pb_edit_side";
+let EDIT_SIDE="offense";
+let _cleanSig="";
 const STORE="offgrd_playbook_v1";
 const DRAFT_KEY="offgrd_pb_draft";
 const UNDO_SS="offgrd_pb_undo";
@@ -486,7 +501,118 @@ function placePersonnel(code){ const c=PERS[code]; if(!c)return; const WR=[{lab:
  STATE.players=arr.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:p.color||null,ol:p.ol||0,blk:null,route:[],motion:[]}));
  STATE.personnel=code; SEL=null;
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",type:"pass",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[]};SEL=null;UNDO=[];REDO=[];syncUndo(); /* no draft write ? blank canvas must not nag on reopen */}
+function canvasSig(st){
+ if(!st) return "";
+ const players=(st.players||[]).map(function(p){
+  return {lab:p.lab,x:p.x,y:p.y,type:p.type,ol:p.ol||0,r:(p.route||[]).length,m:(p.motion||[]).length,rname:p.rname||"",runblk:!!p.runblk,blk:p.blk||"",asn:p.asn||""};
+ });
+ const defs=(st.defs||[]).map(function(d){
+  return {lab:d.lab,x:d.x,y:d.y,role:d.role||"",r:(d.route||[]).length,dx:d.dx,dy:d.dy};
+ });
+ return JSON.stringify({name:st.name||"",family:st.family||"",texts:(st.texts||[]).length,draws:(st.draws||[]).length,players:players,defs:defs,front:st.front||"",coverage:st.coverage||""});
+}
+function markClean(){ _cleanSig=canvasSig(STATE); }
+function canvasDirty(){ return canvasSig(STATE)!==_cleanSig; }
+function readEditSide(){
+ try{ const v=localStorage.getItem(SIDE_KEY); if(v==="defense"||v==="offense") return v; }catch(e){}
+ return "offense";
+}
+function persistEditSide(){ try{ localStorage.setItem(SIDE_KEY, EDIT_SIDE); }catch(e){} }
+function paintSideChips(){
+ const off=document.getElementById("pbSideOff");
+ const def=document.getElementById("pbSideDef");
+ if(off) off.classList.toggle("on", EDIT_SIDE!=="defense");
+ if(def) def.classList.toggle("on", EDIT_SIDE==="defense");
+}
+function paintSideChrome(){
+ const def=EDIT_SIDE==="defense";
+ document.body.classList.toggle("pb-side-defense", def);
+ document.body.classList.toggle("pb-side-offense", !def);
+ try{ renderFamilyChips(); }catch(e){}
+}
+function syncDefSels(){
+ const df=document.getElementById("defFront");
+ const dc=document.getElementById("defCov");
+ const sz=document.getElementById("showZones");
+ if(df && STATE){
+  if(STATE.front && DFRONTS[STATE.front]) df.value=STATE.front;
+  else df.value=(EDIT_SIDE==="defense"?"4-3":"none");
+ }
+ if(dc && STATE) dc.value=STATE.coverage||"none";
+ if(sz && STATE) sz.checked=!!STATE.showZones;
+}
+function fillDefFront(){
+ const el=document.getElementById("defFront");
+ if(!el) return;
+ const keep=el.value||"";
+ el.innerHTML="";
+ const none=document.createElement("option"); none.value="none"; none.textContent="\u2014 front \u2014"; el.appendChild(none);
+ Object.keys(DFRONTS).forEach(function(k){
+  const o=document.createElement("option"); o.value=k; o.textContent=k; el.appendChild(o);
+ });
+ if(keep && [].some.call(el.options, function(o){ return o.value===keep; })) el.value=keep;
+}
+function askConfirm(message, confirmLabel){
+ const yesLab=confirmLabel||"OK";
+ return new Promise(function(resolve){
+  try{
+   let ov=document.getElementById("pbConfirmOv");
+   if(!ov){
+    ov=document.createElement("div");
+    ov.id="pbConfirmOv";
+    ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px";
+    document.body.appendChild(ov);
+   }
+   ov.innerHTML='<div style="background:var(--panel,#fff);color:var(--ink,#13294B);border-radius:12px;padding:16px 18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)">'
+    +'<p style="margin:0 0 14px;font-weight:700;line-height:1.4">'+esc(message)+"</p>"
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button type="button" class="btn" id="pbConfirmNo">Cancel</button>'
+    +'<button type="button" class="btn go" id="pbConfirmYes">'+esc(yesLab)+"</button>"
+    +"</div></div>";
+   ov.style.display="flex";
+   const done=function(val){
+    try{ document.removeEventListener("keydown", onKey); }catch(eK){}
+    ov.style.display="none";
+    ov.innerHTML="";
+    resolve(!!val);
+   };
+   const onKey=function(e){
+    if(e && e.key==="Escape"){ e.preventDefault(); done(false); }
+   };
+   ov.querySelector("#pbConfirmYes").onclick=function(){ done(true); };
+   ov.querySelector("#pbConfirmNo").onclick=function(){ done(false); };
+   ov.onclick=function(e){ if(e.target===ov) done(false); };
+   document.addEventListener("keydown", onKey);
+  }catch(e){ resolve(false); }
+ });
+}
+function seedDefensePlay(opts){
+ opts=opts||{};
+ const front=(opts.front && DFRONTS[opts.front])?opts.front:"4-3";
+ const cov=opts.coverage||"none";
+ STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:"",type:"defense",protection:"",front:front,coverage:cov,showZones:cov!=="none",qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:[],defs:[],texts:[],draws:[],side:"defense"};
+ SEL=null; UNDO=[]; REDO=[]; syncUndo();
+ OFFGRD_RENDER.placeDefenseOn(STATE, front, cov);
+ EDIT_SIDE="defense"; persistEditSide(); markClean(); syncDefSels();
+}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",type:"pass",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[],side:"offense"};SEL=null;UNDO=[];REDO=[];syncUndo(); EDIT_SIDE="offense"; persistEditSide(); markClean(); /* no draft write ? blank canvas must not nag on reopen */}
+function startBlankPlay(){
+ if(EDIT_SIDE==="defense") seedDefensePlay({front:(STATE&&STATE.front&&DFRONTS[STATE.front])?STATE.front:"4-3",coverage:(STATE&&STATE.coverage)||"none"});
+ else newPlay((document.getElementById("formSel")&&document.getElementById("formSel").value)||"2x2 Doubles (Gun)");
+ writeMeta(); paintSideChips(); paintSideChrome(); _dockSelKey=null; renderDock();
+}
+async function chooseSide(next){
+ if(next!=="offense" && next!=="defense") return;
+ if(next===EDIT_SIDE){ paintSideChips(); return; }
+ if(canvasDirty()){
+  const ok=await askConfirm("Switch to "+(next==="defense"?"a defense":"an offense")+" play? This reseeds the field and drops unsaved drawing.","Switch");
+  if(!ok){ paintSideChips(); return; }
+ }
+ EDIT_SIDE=next; persistEditSide();
+ if(next==="defense") seedDefensePlay({front:"4-3"});
+ else newPlay("2x2 Doubles (Gun)");
+ writeMeta(); paintSideChips(); paintSideChrome(); SEL=null; _dockSelKey=null; renderAll(); renderDock();
+}
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
  (STATE.players||[]).forEach(p=>{ p.x=fx(p.x); if(p.blk==="L")p.blk="R"; else if(p.blk==="R")p.blk="L"; if(p.runblk&&typeof p.runblk.dir==="number")p.runblk.dir=-p.runblk.dir; (p.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); (p.motion||[]).forEach(m=>{m.x=fx(m.x);}); });
  (STATE.defs||[]).forEach(d=>{ d.x=fx(d.x); if(d.dx!=null)d.dx=fx(d.dx); (d.route||[]).forEach(a=>{a.x=fx(a.x); if(a.cx!=null)a.cx=fx(a.cx);}); });
@@ -698,6 +824,33 @@ function mountDefenseLook(host){
  const lab=document.getElementById("showZonesLab"); if(lab) row.appendChild(lab);
  dockBtn(dockRow(host),"Add defender",function(){ setMode("def"); });
 }
+function mountSideChips(host){
+ dockLbl(host,"Play side");
+ const row=dockRow(host);
+ const o=dockBtn(row,"Offense play",function(){ chooseSide("offense"); });
+ const d=dockBtn(row,"Defense play",function(){ chooseSide("defense"); });
+ if(EDIT_SIDE==="defense") d.classList.add("on"); else o.classList.add("on");
+}
+function mountOffenseLook(host){
+ dockLbl(host,"Offense look");
+ const row=dockRow(host);
+ const fs=document.getElementById("formSel"); if(fs) row.appendChild(fs);
+ dockBtn(row,"Place offense look",function(){
+  const sel=document.getElementById("formSel");
+  placeOffenseLook(sel&&sel.value);
+ });
+}
+function mountFrontPicker(host){
+ dockLbl(host,"Front");
+ const row=dockRow(host);
+ const el=document.getElementById("defFront"); if(el) row.appendChild(el);
+}
+function mountCoveragePicker(host){
+ dockLbl(host,"Coverage");
+ const row=dockRow(host);
+ const el=document.getElementById("defCov"); if(el) row.appendChild(el);
+ const lab=document.getElementById("showZonesLab"); if(lab) row.appendChild(lab);
+}
 function syncDockFromSel(){
  if(!dockOn()) return;
  const key=SEL?(String(SEL.id)+"|"+(SEL.group||"")+"|"+(SEL.lab||"")):"";
@@ -709,7 +862,7 @@ function syncDockFromSel(){
 function renderDock(){
  const host=document.getElementById("pbDock");
  if(!host||!dockOn()) return;
- const groups=OFFGRD_PB_DOCK.groupsForSelection(SEL);
+ const groups=OFFGRD_PB_DOCK.groupsForSelection(SEL,{ side:EDIT_SIDE });
  parkPlayMeta();
  host.innerHTML="";
  if(SEL){
@@ -719,7 +872,18 @@ function renderDock(){
   head.appendChild(who);
  }
  groups.forEach(function(g){
-  if(g==="formation"||g==="personnel"||g==="protection"){
+  if(g==="side"){
+   mountSideChips(host);
+  } else if(g==="front"){
+   mountFrontPicker(host);
+  } else if(g==="coverage"){
+   mountCoveragePicker(host);
+  } else if(g==="blitz-group"){
+   dockLbl(host,"Blitz / stunt");
+   dockBtn(dockRow(host),"Add defender",function(){ setMode("def"); });
+  } else if(g==="offense-look"){
+   mountOffenseLook(host);
+  } else if(g==="formation"||g==="personnel"||g==="protection"){
    if(!host.querySelector("[data-pb-meta]")){
     const box=document.createElement("div"); box.setAttribute("data-pb-meta","1"); host.appendChild(box); mountPlayMeta(box);
    }
@@ -955,13 +1119,13 @@ function onUp(){DRAG=null;}
 
 /* ---- library ---- */
 function playSide(p){
- if(!p) return "offense";
+ const PM=window.OFFGRD_PLAY_MAP;
+ if(PM && typeof PM.classifyPlay==="function") return PM.classifyPlay(p).side||"";
+ if(!p) return "";
  if(p.side==="defense"||p.side==="def") return "defense";
+ if(p.side==="offense"||p.side==="off") return "offense";
  if(p.type==="defense"||p.def_call) return "defense";
- const hasDefs=(p.defs&&p.defs.length>0);
- const hasSkillRoutes=(p.players||[]).some(pp=>pp&&!pp.ol&&((pp.route&&pp.route.length)||pp.rname||pp.runblk));
- if(hasDefs&&!hasSkillRoutes&&p.front&&p.front!=="none") return "defense";
- return "offense";
+ return "";
 }
 function defCallToPlay(call){
  if(!call||!call.name) return null;
@@ -1005,7 +1169,14 @@ function migrateLib(arr){
  if(!Array.isArray(p.tags)) p.tags=p.tags?[].concat(p.tags):[];
  if(p.group==null) p.group="";
  if(!p.updatedAt) p.updatedAt=0;
- if(!p.side) p.side=playSide(p);
+ if(!p.side){
+  const c=(window.OFFGRD_PLAY_MAP&&OFFGRD_PLAY_MAP.classifyPlay)?OFFGRD_PLAY_MAP.classifyPlay(p):{side:playSide(p),reason:"fallback"};
+  if(c.side) p.side=c.side;
+  else {
+   p.side="";
+   try{ console.warn("[playbook] unclassified play — not guessing side", p.name||p.id, c.reason); }catch(eW){}
+  }
+ }
  p.key=nfKey(p);
  return p;
  };
@@ -1056,7 +1227,7 @@ function set(id,v){
  if(id==="m-prot"){ const el=document.getElementById("protSel"); if(el) el.value=v||"none"; if(STATE) STATE.protection=(!v||v==="none")?"":v; return; }
  const el=document.getElementById(id);if(el)el.value=v||"";
 }
-function readMeta(){if(!STATE)return;STATE.name=val("m-name");const typedFam=val("m-family");STATE.family=typedFam?(applyPlaybookFamily({typed:typedFam})||typedFam):"";STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
+function readMeta(){if(!STATE)return;STATE.name=val("m-name");if(EDIT_SIDE==="defense"){STATE.family="";}else{const typedFam=val("m-family");STATE.family=typedFam?(applyPlaybookFamily({typed:typedFam})||typedFam):"";}STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
 function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();renderFamilyChips();}
 function renderTagChips(){
  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
@@ -1092,7 +1263,10 @@ function savePlay(){
  readMeta();
  if(!STATE.name){msg("Give the play a name first.");return;}
  if(!STATE.id) STATE.id=uuid();
- STATE.side=playSide(STATE);
+ STATE.side=EDIT_SIDE||playSide(STATE);
+ if(!STATE.side){
+  try{ console.warn("[playbook] unclassified play — not guessing side", STATE.name||STATE.id); }catch(eW){}
+ }
  if(STATE.side==="defense") STATE.type=STATE.type||"defense";
  const copy=JSON.parse(JSON.stringify(STATE));
  copy.bg=null; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
@@ -1128,8 +1302,11 @@ function loadPlayId(id){
  STATE=JSON.parse(JSON.stringify(LIB[i]));
  if(!STATE.id) STATE.id=uuid();
  if(!Array.isArray(STATE.tags)) STATE.tags=[];
- SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim(); writeMeta(); renderAll();
+ SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim();
+ EDIT_SIDE=(playSide(STATE)==="defense"||STATE.side==="defense")?"defense":"offense";
+ persistEditSide(); writeMeta(); paintSideChips(); paintSideChrome(); syncDefSels(); renderAll(); _dockSelKey=null; renderDock();
  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ? don't rewrite blank/identical draft */
+ markClean();
  msg("Loaded "+STATE.name+".");
 }
 function loadPlay(i){ if(LIB[i]) loadPlayId(LIB[i].id); }
@@ -1148,7 +1325,10 @@ function delPlayId(id){
 }
 function delPlay(i){ if(LIB[i]) delPlayId(LIB[i].id); }
 function uniqOpts(field){
- const s=new Set(); memberLib().forEach(p=>{ const v=(p[field]||"").trim(); if(v) s.add(v); });
+ const s=new Set(); memberLib().forEach(p=>{
+  if(field==="family" && playSide(p)!=="offense") return;
+  const v=(p[field]||"").trim(); if(v) s.add(v);
+ });
  return Array.from(s).sort((a,b)=>a.localeCompare(b));
 }
 function fillLibFilters(){
@@ -1201,7 +1381,7 @@ function renderLib(){
  const tags=(p.tags&&p.tags.length)?` \u00b7 ${p.tags.slice(0,3).map(esc).join(", ")}`:"";
  const grp=p.group?` \u00b7 ${esc(p.group)}`:"";
  const side=playSide(p);
- const sideBadge=side==="defense"?`<span class="tag" style="color:var(--navy);font-weight:900">Defense</span>`:`<span class="tag">Offense</span>`;
+ const sideBadge=side==="defense"?`<span class="tag" style="color:var(--navy);font-weight:900">Defense</span>`:(side==="offense"?`<span class="tag">Offense</span>`:`<span class="tag"></span>`);
  const meta=side==="defense"?[p.front||p.formation,p.coverage||p.family,p.personnel].filter(Boolean):[p.formation,p.family,p.personnel];
  return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
  }).join("");
@@ -1304,7 +1484,9 @@ function loadOppCardDraftIfPresent(){
   if(!Array.isArray(STATE.players)) STATE.players=[];
   if(!Array.isArray(STATE.defs)) STATE.defs=[];
   if(OFFGRD_OPP_SHELLS.tagOppCard) OFFGRD_OPP_SHELLS.tagOppCard(STATE, STATE.opponent, STATE.shellKey);
-  SEL=null; UNDO=[]; REDO=[]; syncUndo(); writeMeta(); renderAll();
+  SEL=null; UNDO=[]; REDO=[]; syncUndo();
+  EDIT_SIDE=(playSide(STATE)==="defense"||STATE.side==="defense"||STATE.side==="def")?"defense":"offense";
+  persistEditSide(); writeMeta(); paintSideChips(); paintSideChrome(); syncDefSels(); renderAll();
   msg("Editing opponent card"+(STATE.opponent?(" · "+STATE.opponent):"")+". Save returns to the queue.");
   syncFormSelToState();
   return true;
@@ -1374,9 +1556,27 @@ function fillFormSel(){
   if(v) el.value=v;
  }
 }
+function placeOffenseLook(value){
+ if(!STATE) return "";
+ const raw=String(value||"").trim()||"2x2 Doubles (Gun)";
+ snap();
+ const M=window.OFFGRD_FORMATION_MAP;
+ const mapped=M && M.isHydrated && M.isHydrated() && M.resolveMapped && M.resolveMapped(raw);
+ const formKey=mapped?formKeyForMappedStructure(mapped.off_structure):(FORMS[raw]?raw:"2x2 Doubles (Gun)");
+ const f=(FORMS[formKey]||FORMS["2x2 Doubles (Gun)"])();
+ STATE.players=f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]}));
+ STATE.formation=mapped?(mapped.raw_tag||raw):raw;
+ if(mapped && mapped.off_personnel && PERS[mapped.off_personnel]) placePersonnel(mapped.off_personnel);
+ SEL=null;
+ writeMeta();
+ renderAll();
+ msg("Placed offense look: "+STATE.formation);
+ return STATE.formation;
+}
 function applyFormationChoice(value){
  const raw=String(value||"").trim();
  if(!raw) return "";
+ if(EDIT_SIDE==="defense") return placeOffenseLook(raw);
  const M=window.OFFGRD_FORMATION_MAP;
  const mapped=M && M.isHydrated && M.isHydrated() && M.resolveMapped && M.resolveMapped(raw);
  if(mapped){
@@ -1410,6 +1610,11 @@ function renderFamilyChips(){
  const inp=document.getElementById("m-family");
  const list=document.getElementById("m-family-list");
  if(!host || !window.OFFGRD_PLAY_MAP) return;
+ if(EDIT_SIDE==="defense"){
+  host.innerHTML="";
+  if(list) list.innerHTML="";
+  return;
+ }
  const offer=familyOffer();
  const cur=inp ? String(inp.value||"").trim() : "";
  host.innerHTML="";
@@ -1475,6 +1680,7 @@ function offerStarter(opts){
  };
 }
 
+window.askConfirm=askConfirm;
 window.loadPlay=loadPlay;window.delPlay=delPlay;window.dupPlay=dupPlay;
 window.loadPlayId=loadPlayId;window.delPlayId=delPlayId;window.dupPlayId=dupPlayId;
 /* Expose the sync bridge IMMEDIATELY ? OFFGRD-account.js (a deferred module) reads
@@ -1503,15 +1709,23 @@ window.OFFGRD_APP={
  }
 };
 
-document.addEventListener("DOMContentLoaded",()=>{
+ document.addEventListener("DOMContentLoaded",()=>{
  const fs=document.getElementById("formSel");
  fillFormSel();
  fillPersSel();
+ fillDefFront();
+ EDIT_SIDE=readEditSide();
+ paintSideChips();
+ document.getElementById("pbSideOff").onclick=function(){ chooseSide("offense"); };
+ document.getElementById("pbSideDef").onclick=function(){ chooseSide("defense"); };
  try{
   if(window.OFFGRD_FORMATION_MAP && OFFGRD_FORMATION_MAP.onAfterHydrate) OFFGRD_FORMATION_MAP.onAfterHydrate(function(){ fillFormSel(); syncFormSelToState(); });
   if(window.OFFGRD_PLAY_MAP && OFFGRD_PLAY_MAP.onAfterHydrate) OFFGRD_PLAY_MAP.onAfterHydrate(function(){ renderFamilyChips(); });
  }catch(e){}
- loadLib();newPlay("2x2 Doubles (Gun)");writeMeta();buildSwatches();renderAll();refreshLibUI();setMode("route");syncUndo();
+ loadLib();
+ if(EDIT_SIDE==="defense") seedDefensePlay({front:"4-3"});
+ else newPlay("2x2 Doubles (Gun)");
+ writeMeta();paintSideChips();paintSideChrome();syncDefSels();buildSwatches();renderAll();refreshLibUI();setMode("move");syncUndo();
  const oppCard=loadOppCardDraftIfPresent();
  if(!oppCard){ offerStarter(); offerRestoreDraft(); }
  try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
@@ -1571,18 +1785,24 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.querySelectorAll(".btn[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
  const dfFront=document.getElementById("defFront"),dfCov=document.getElementById("defCov"),sz=document.getElementById("showZones");
  document.getElementById("placeDef").onclick=()=>{snap();placeDefense(dfFront.value,dfCov.value);if(STATE.coverage!=="none")sz.checked=STATE.showZones=true;if(dfFront.value!=="none"){setMode("move");SEL=null;}renderAll();msg("Placed "+(dfFront.value==="none"?"(cleared defense)":dfFront.value+" "+(dfCov.value==="none"?"":dfCov.value))+(dfFront.value!=="none"?" - tap a defender to select.":""));};
- dfCov.onchange=()=>{if(STATE.front&&STATE.front!=="none"){snap();placeDefense(STATE.front,dfCov.value);renderAll();}};
+ dfCov.onchange=()=>{
+  const front=(STATE.front&&STATE.front!=="none")?STATE.front:(EDIT_SIDE==="defense"?(dfFront.value==="none"?"4-3":dfFront.value):"");
+  if(!front||front==="none") return;
+  snap(); placeDefense(front,dfCov.value);
+  if(dfCov.value!=="none"){ sz.checked=STATE.showZones=true; }
+  renderAll();
+ };
  dfFront.onchange=()=>{if(dfFront.value!=="none"){snap();placeDefense(dfFront.value,dfCov.value);renderAll();}};
  sz.onchange=()=>{STATE.showZones=sz.checked;renderAll();scheduleDraft();};
  document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;var _u2=document.getElementById("undoBtn2");if(_u2)_u2.onclick=undo;var _rd2=document.getElementById("redoBtn2");if(_rd2)_rd2.onclick=redo;
  const doReset=()=>{cancelAnim();renderAll();};document.getElementById("playBtn").onclick=play;document.getElementById("resetBtn").onclick=doReset;var _p2=document.getElementById("playBtn2");if(_p2)_p2.onclick=play;var _r2=document.getElementById("resetBtn2");if(_r2)_r2.onclick=doReset;
  document.getElementById("clearRoutes").onclick=()=>{snap();STATE.players.forEach(p=>{p.route=[];p.motion=[];p.rname=null;});renderAll();};
- document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){applyFormationChoice(fs.value);renderAll();}};
+ document.getElementById("clearAll").onclick=()=>{if(confirm("Clear the field?")){startBlankPlay();renderAll();}};
  document.getElementById("selLab").oninput=e=>{if(SEL){SEL.lab=e.target.value.toUpperCase().slice(0,3);renderAll();}};
  document.getElementById("selType").onclick=()=>{if(SEL&&!SEL.group){snap();SEL.type=(SEL.type==="block"?"route":"block");if(SEL.type==="block"){SEL.route=[];SEL.rname=null;}renderAll();}};
  document.getElementById("selDel").onclick=()=>{if(SEL){snap();if(SEL.group)STATE.defs=STATE.defs.filter(d=>d!==SEL);else STATE.players=STATE.players.filter(p=>p!==SEL);SEL=null;renderAll();}};
  document.getElementById("saveBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches save plays."); return; } savePlay(); };
- document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches create plays."); return; } applyFormationChoice(fs.value);renderAll();msg("New play."); };
+ document.getElementById("newBtn").onclick=()=>{ if(window.OFFGRD_PLAYER_READONLY){ msg("View only \u00b7 coaches create plays."); return; } startBlankPlay();renderAll();msg("New play."); };
  document.getElementById("pngBtn").onclick=exportPNG;
  document.getElementById("printBtn").onclick=()=>window.print();
  document.getElementById("installBtn").onclick=buildInstall;
@@ -1660,10 +1880,10 @@ document.getElementById("wizBtn").onclick=wizOpen;
  bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=321"></script>
-<script type="module" src="OFFGRD-account.js?v=321"></script>
-<script src="OFFGRD-role-gate.js?v=321"></script>
-<script src="OFFGRD-mobile.js?v=321"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=322"></script>
+<script type="module" src="OFFGRD-account.js?v=322"></script>
+<script src="OFFGRD-role-gate.js?v=322"></script>
+<script src="OFFGRD-mobile.js?v=322"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

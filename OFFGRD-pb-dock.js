@@ -37,7 +37,8 @@
   }
 
   var GROUPS = {
-    play: ["formation", "personnel", "protection", "concepts", "defense-look"],
+    play: ["side", "formation", "personnel", "protection", "concepts", "defense-look"],
+    defensePlay: ["side", "front", "coverage", "blitz-group", "offense-look"],
     wr: ["routes-quick", "routes-inter", "routes-deep", "motion", "block-perim"],
     rb: ["routes-back", "run-path", "motion", "pass-pro"],
     qb: ["qb-drop", "qb-boot", "qb-notes"],
@@ -47,9 +48,10 @@
     db: ["man", "zone-drop", "blitz", "press"]
   };
 
-  function groupsForSelection(sel) {
+  function groupsForSelection(sel, opts) {
+    opts = opts || {};
     var k = kindOfSel(sel);
-    if (!k) return GROUPS.play.slice();
+    if (!k) return (opts.side === "defense" ? GROUPS.defensePlay : GROUPS.play).slice();
     return (GROUPS[k] || GROUPS.play).slice();
   }
 

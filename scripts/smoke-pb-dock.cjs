@@ -46,10 +46,16 @@ check("LB → no press", !has(lb, "press"), lb.join(","));
 check("LB → no routes", !anyRoute(lb), lb.join(","));
 
 const play = D.groupsForSelection(null);
-["formation", "personnel", "protection", "concepts", "defense-look"].forEach(function (id) {
+["side", "formation", "personnel", "protection", "concepts", "defense-look"].forEach(function (id) {
   check("null → " + id, has(play, id), play.join(","));
 });
 check("null → no player verbs", !anyRoute(play) && !anyRun(play) && !has(play, "blitz"), play.join(","));
+
+const dPlay = D.groupsForSelection(null, { side: "defense" });
+["side", "front", "coverage", "blitz-group", "offense-look"].forEach(function (id) {
+  check("defense null → " + id, has(dPlay, id), dPlay.join(","));
+});
+check("defense null → no O family/concepts", !has(dPlay, "concepts") && !has(dPlay, "formation") && !has(dPlay, "defense-look"), dPlay.join(","));
 
 const qb = D.groupsForSelection({ type: "qb", lab: "QB" });
 check("QB → no route group", !anyRoute(qb), qb.join(","));
