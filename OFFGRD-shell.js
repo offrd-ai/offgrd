@@ -46,6 +46,39 @@
     }
   }
 
+  function withFromGameday(url) {
+    try {
+      var u = new URL(url, location.href);
+      u.searchParams.set("from", "gameday");
+      return u.toString();
+    } catch (e) {
+      if (/[?&]from=gameday(?:&|#|$)/.test(url)) return url;
+      var hashIdx = url.indexOf("#");
+      var base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+      var hash = hashIdx >= 0 ? url.slice(hashIdx) : "";
+      return base + (base.indexOf("?") >= 0 ? "&" : "?") + "from=gameday" + hash;
+    }
+  }
+
+  function appendAuthHandOff(url, session) {
+    if (!session || !session.access_token || !session.refresh_token) return url;
+    return String(url).split("#")[0]
+      + "#at=" + encodeURIComponent(session.access_token)
+      + "&rt=" + encodeURIComponent(session.refresh_token);
+  }
+
+  async function goPortal() {
+    rememberGameday();
+    var dest = withFromGameday(targetPortal());
+    try {
+      if (root.Cloud && root.Cloud.sb && root.Cloud.sb.auth) {
+        var cur = await root.Cloud.sb.auth.getSession();
+        dest = appendAuthHandOff(dest, cur && cur.data ? cur.data.session : null);
+      }
+    } catch (e) {}
+    location.href = dest;
+  }
+
   function initialsFrom(label) {
     var s = String(label || "").trim();
     if (!s) return "?";
@@ -190,8 +223,7 @@
     var portalBtn = bar.querySelector('[data-ops="portal"]');
     if (portalBtn) {
       portalBtn.onclick = function () {
-        rememberGameday();
-        location.href = targetPortal();
+        goPortal();
       };
     }
 
@@ -305,6 +337,7 @@
     rememberGameday: rememberGameday,
     portalUrl: portalUrl,
     gamedayHome: gamedayHome,
+    goPortal: goPortal,
     mount: mount,
     openSignIn: openSignIn
   };
