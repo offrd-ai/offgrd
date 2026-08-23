@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Playbook field drag fixture</title>
+<style>
+  html,body{margin:0;background:#111}
+  #field{width:500px;height:320px;touch-action:none;background:#1f7a3d;display:block}
+</style>
+</head>
+<body>
+<!-- Mirrors Playbook: wipe svg.innerHTML on pointerdown (renderAll), capture the stable svg. -->
+<svg id="field" viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" aria-label="play field"></svg>
+<script>
+const W=1000,H=640;
+let DRAG=null;
+const player={id:0,lab:"X",x:200,y:200};
+function render(){
+  const svg=document.getElementById("field");
+  svg.innerHTML='<circle id="tok" cx="'+player.x+'" cy="'+player.y+'" r="18" fill="#c8102e"/>';
+}
+function toSvg(e){
+  const svg=document.getElementById("field"),r=svg.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};
+}
+function captureField(e){
+  const svg=document.getElementById("field");
+  if(!svg||!e||e.pointerId==null) return;
+  try{ svg.setPointerCapture(e.pointerId); }catch(err){}
+}
+function onDown(e){
+  e.preventDefault();
+  const pt=toSvg(e);
+  if((player.x-pt.x)*(player.x-pt.x)+(player.y-pt.y)*(player.y-pt.y)>900) return;
+  DRAG={kind:"obj",o:player};
+  captureField(e);
+  render();
+}
+function onMove(e){
+  if(!DRAG) return;
+  e.preventDefault();
+  const pt=toSvg(e);
+  DRAG.o.x=pt.x; DRAG.o.y=pt.y;
+  render();
+}
+function onUp(){ DRAG=null; }
+const svg=document.getElementById("field");
+svg.addEventListener("pointerdown",onDown,{passive:false});
+window.addEventListener("pointermove",onMove,{passive:false});
+window.addEventListener("pointerup",onUp);
+window.addEventListener("pointercancel",onUp);
+render();
+window.__dragState=function(){ return {x:player.x,y:player.y,drag:!!DRAG}; };
+</script>
+</body>
+</html>

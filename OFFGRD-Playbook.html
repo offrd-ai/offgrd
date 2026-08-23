@@ -100,25 +100,25 @@
  }
 
 </style>
-<script src="OFFGRD-config.js?v=323"></script>
-<script src="OFFGRD-brand-persist.js?v=323"></script>
-<script src="supabase.js?v=323"></script>
-<script src="OFFGRD-cache-gate.js?v=323"></script>
-<script src="OFFGRD-formations-data.js?v=323"></script>
-<script src="OFFGRD-formation-canon.js?v=323"></script>
-<script src="OFFGRD-play-map.js?v=323"></script>
-<script src="OFFGRD-formation-map.js?v=323"></script>
-<script src="OFFGRD-render.js?v=323"></script>
-<script src="OFFGRD-pb-dock.js?v=323"></script>
-<script src="OFFGRD-pos-glossary.js?v=323"></script>
-<script src="OFFGRD-autoderive.js?v=323"></script>
-<script src="OFFGRD-week-autotest.js?v=323"></script>
-<script src="OFFGRD-play-wizard.js?v=323"></script>
-<script src="OFFGRD-opp-shells.js?v=323"></script>
-<script src="OFFGRD-scoutcards.js?v=323"></script>
-<script src="OFFGRD-telestrate.js?v=323"></script>
-<script src="OFFGRD-redesign.js?v=323"></script>
-<script src="OFFGRD-shell.js?v=323"></script>
+<script src="OFFGRD-config.js?v=324"></script>
+<script src="OFFGRD-brand-persist.js?v=324"></script>
+<script src="supabase.js?v=324"></script>
+<script src="OFFGRD-cache-gate.js?v=324"></script>
+<script src="OFFGRD-formations-data.js?v=324"></script>
+<script src="OFFGRD-formation-canon.js?v=324"></script>
+<script src="OFFGRD-play-map.js?v=324"></script>
+<script src="OFFGRD-formation-map.js?v=324"></script>
+<script src="OFFGRD-render.js?v=324"></script>
+<script src="OFFGRD-pb-dock.js?v=324"></script>
+<script src="OFFGRD-pos-glossary.js?v=324"></script>
+<script src="OFFGRD-autoderive.js?v=324"></script>
+<script src="OFFGRD-week-autotest.js?v=324"></script>
+<script src="OFFGRD-play-wizard.js?v=324"></script>
+<script src="OFFGRD-opp-shells.js?v=324"></script>
+<script src="OFFGRD-scoutcards.js?v=324"></script>
+<script src="OFFGRD-telestrate.js?v=324"></script>
+<script src="OFFGRD-redesign.js?v=324"></script>
+<script src="OFFGRD-shell.js?v=324"></script>
 </head>
 <body>
  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
@@ -769,6 +769,12 @@ function offerRestoreDraft(){
 
 /* ---- coords ---- */
 function toSvg(e){const svg=document.getElementById("field"),r=svg.getBoundingClientRect();const cx=e.clientX,cy=e.clientY;return{x:(cx-r.left)/r.width*W,y:(cy-r.top)/r.height*H};}
+function captureField(e){
+ /* #field survives renderAll's innerHTML wipe; the circle under the finger does not. */
+ const svg=document.getElementById("field");
+ if(!svg||!e||e.pointerId==null) return;
+ try{ svg.setPointerCapture(e.pointerId); }catch(err){}
+}
 function near(ax,ay,pt,rad){return (ax-pt.x)**2+(ay-pt.y)**2<=(rad||16)**2;}
 function hitPlayer(pt){let b=null,bd=1e9;STATE.players.forEach(p=>{const d=(p.x-pt.x)**2+(p.y-pt.y)**2;if(d<bd){bd=d;b=p;}});return bd<=900?b:null;}
 function hitDef(pt){let bi=-1,bd=1e9;STATE.defs.forEach((p,i)=>{const d=(p.x-pt.x)**2+(p.y-pt.y)**2;if(d<bd){bd=d;bi=i;}});return bd<=900?bi:-1;}
@@ -1082,10 +1088,10 @@ function nearestDropLand(pt){
 }
 function onDown(e){if(!STATE)return;e.preventDefault();cancelAnim();const pt=toSvg(e);
  const hh=hitHandle(pt);
- if(hh){snap();DRAG={kind:hh.kind,i:hh.i};return;}
- if(MODE==="def"){const di=hitDef(pt);if(di>=0){SEL=STATE.defs[di];snap();DRAG={kind:"obj",o:STATE.defs[di]};}else{snap();STATE.defs.push({x:pt.x,y:pt.y,lab:"D",group:"DB",role:"zone",dx:pt.x,dy:Math.max(150,pt.y-110),manId:null,color:"#13294B",route:[]});}renderAll();return;}
+ if(hh){snap();DRAG={kind:hh.kind,i:hh.i};captureField(e);return;}
+ if(MODE==="def"){const di=hitDef(pt);if(di>=0){SEL=STATE.defs[di];snap();DRAG={kind:"obj",o:STATE.defs[di]};captureField(e);}else{snap();STATE.defs.push({x:pt.x,y:pt.y,lab:"D",group:"DB",role:"zone",dx:pt.x,dy:Math.max(150,pt.y-110),manId:null,color:"#13294B",route:[]});}renderAll();return;}
  if(MODE==="text"){const ti=hitText(pt);if(ti>=0){const nv=prompt("Edit text (blank to delete):",STATE.texts[ti].text);if(nv!==null){snap();if(nv.trim()==="")STATE.texts.splice(ti,1);else STATE.texts[ti].text=nv;}}else{const nv=prompt("Text label:");if(nv&&nv.trim()){snap();STATE.texts.push({x:pt.x,y:pt.y,text:nv.trim(),color:"#13294B",size:18});}}renderAll();return;}
- if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};renderAll();return;}
+ if(MODE==="draw"){snap();const st={pts:[{x:pt.x,y:pt.y}],color:"#c8102e"};STATE.draws.push(st);DRAG={kind:"draw",st:st};captureField(e);renderAll();return;}
  const hit=nearestHit(pt);
  if(MODE==="erase"){if(hit){snap();hit.route=[];hit.rname=null;if(hit.motion)hit.motion=[];}else{const ti=hitText(pt);if(ti>=0){snap();STATE.texts.splice(ti,1);}else{const si=hitStroke(pt);if(si>=0){snap();STATE.draws.splice(si,1);}}}renderAll();return;}
  if(DOCK_VERB==="man" && SEL && SEL.group && hit && !hit.group){
@@ -1102,11 +1108,11 @@ function onDown(e){if(!STATE)return;e.preventDefault();cancelAnim();const pt=toS
   renderAll(); msg((SEL.lab||"D")+": blitz."); return;
  }
  const dragOk = !(window.OFFGRD_PB_DOCK && OFFGRD_PB_DOCK.tapDrags) || OFFGRD_PB_DOCK.tapDrags(hit,{ mode:MODE, pending:DOCK_VERB, sel:SEL });
- if(hit && dragOk){ SEL=hit; snap(); DRAG={kind:"obj",o:hit}; renderAll(); return; }
+ if(hit && dragOk){ SEL=hit; snap(); DRAG={kind:"obj",o:hit}; captureField(e); renderAll(); return; }
  if(MODE==="block"){const pl=hitPlayer(pt);if(pl){snap();pl.type=(pl.type==="block"?"route":"block");pl.route=[];}renderAll();return;}
  if(MODE==="route"){if(hit){SEL=hit;}else if(SEL){snap();if(!SEL.route)SEL.route=[];if(SEL.type==="block")SEL.type="route";SEL.rname=null;SEL.route.push({x:pt.x,y:pt.y,cx:null,cy:null});}renderAll();return;}
- if(MODE==="motion"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
- if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};}else SEL=null;}
+ if(MODE==="motion"){if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};captureField(e);}else if(SEL&&SEL.motion){snap();SEL.motion.push({x:pt.x,y:pt.y});}renderAll();return;}
+ if(hit){SEL=hit;snap();DRAG={kind:"obj",o:hit};captureField(e);}else{const ti=hitText(pt);if(ti>=0){snap();DRAG={kind:"obj",o:STATE.texts[ti]};captureField(e);}else SEL=null;}
  renderAll();
 }
 function onMove(e){if(!DRAG)return;e.preventDefault();const pt=toSvg(e);
@@ -1761,7 +1767,11 @@ window.OFFGRD_APP={
  const rbar=document.getElementById("routeBar");rbar.innerHTML="";RCAT.forEach(function(c){const lab=document.createElement("span");lab.textContent=c[0];lab.style.cssText="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.6px;color:#7a8494;margin:8px 0 2px;text-transform:uppercase";rbar.appendChild(lab);c[1].forEach(function(n){if(!ROUTES[n])return;const b=document.createElement("button");b.className="btn";b.style.minWidth="62px";b.textContent=n;b.onclick=()=>applyRoute(n);rbar.appendChild(b);});});
  const cbar=document.getElementById("conceptBar");CONCEPTS.forEach(n=>{const b=document.createElement("button");b.className="btn nav";b.style.minWidth="78px";b.textContent=n;b.onclick=()=>applyConcept(n);cbar.appendChild(b);});
  const bbar=document.getElementById("blockBar");BLOCKS.forEach(bl=>{const b=document.createElement("button");b.className="btn";b.style.minWidth="58px";b.textContent=bl[0];b.onclick=()=>applyBlock(bl[1],bl[2]);bbar.appendChild(b);});
- const svg=document.getElementById("field");svg.addEventListener("pointerdown",onDown);svg.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
+ const svg=document.getElementById("field");
+ svg.addEventListener("pointerdown",onDown,{passive:false});
+ window.addEventListener("pointermove",onMove,{passive:false});
+ window.addEventListener("pointerup",onUp);
+ window.addEventListener("pointercancel",onUp);
  const loadFormation=()=>{
   if(isOppCardEditSession()&&!confirm("Load "+fs.value+"? This replaces the opponent card on the field.")){ fs.value=formSelValueFor(STATE.formation); if(!fs.value) syncFormSelToState(); return; }
   const loaded=applyFormationChoice(fs.value);
@@ -1880,10 +1890,10 @@ document.getElementById("wizBtn").onclick=wizOpen;
  bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=323"></script>
-<script type="module" src="OFFGRD-account.js?v=323"></script>
-<script src="OFFGRD-role-gate.js?v=323"></script>
-<script src="OFFGRD-mobile.js?v=323"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=324"></script>
+<script type="module" src="OFFGRD-account.js?v=324"></script>
+<script src="OFFGRD-role-gate.js?v=324"></script>
+<script src="OFFGRD-mobile.js?v=324"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>
