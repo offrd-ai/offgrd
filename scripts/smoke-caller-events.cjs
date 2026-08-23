@@ -1,5 +1,5 @@
 /**
- * Multi-device caller event log — fold determinism, idempotency, collisions.
+ * Multi-device caller event log — fold determinism, idempotency, silent union.
  *   node scripts/smoke-caller-events.cjs
  */
 "use strict";
@@ -65,20 +65,21 @@ const merged = C.mergeEvents(base, base.concat([base[0]]));
 if (merged.length !== 3) throw new Error("idempotent merge failed: " + merged.length);
 console.log("OK mergeEvents idempotent (retried sync → 3 unique)");
 
-// 3) Collision: two devices same playIndex — earlier keeps, later superseded, prompt
+// 3) Two devices same playIndex — both snaps survive, zero prompts
 const collide = [
   ev({ eventId: "cA", playIndex: 4, payload: { play: "HOUSTON" }, deviceId: "devA", clientTs: 5000, seq: 1 }),
   ev({ eventId: "cB", playIndex: 4, payload: { play: "SOUTH BEND" }, deviceId: "devB", clientTs: 5100, seq: 1 }),
 ];
 const fc = C.foldCallerEvents(collide);
-if (fc.log.length !== 1 || fc.log[0].play !== "HOUSTON") {
-  throw new Error("collision should keep earlier HOUSTON, got " + JSON.stringify(fc.log));
+if (fc.log.length !== 2) throw new Error("two-device same playIndex must keep both, got " + JSON.stringify(fc.log));
+if (fc.log[0].play !== "HOUSTON" || fc.log[1].play !== "SOUTH BEND") {
+  throw new Error("union order/plays wrong " + JSON.stringify(fc.log.map((x) => x.play)));
 }
-if (!fc.supersededIds["cB"]) throw new Error("later call must be superseded");
-if (!fc.collisions.length) throw new Error("collision must surface for prompt");
-console.log("OK collision: keep HOUSTON, supersede SOUTH BEND, prompt n=" + fc.collisions.length);
+if (fc.supersededIds["cA"] || fc.supersededIds["cB"]) throw new Error("neither device call may be superseded");
+if (fc.collisions.length) throw new Error("call-log union must not prompt, got " + fc.collisions.length);
+console.log("OK two-device same playIndex → both snaps, 0 prompts");
 
-// 4) resolve_collision clears prompt; superseded still excluded
+// 4) legacy resolve_collision still drops the named event (already-answered KEEP)
 const resolved = collide.concat([
   ev({
     eventId: "cR",
@@ -91,9 +92,9 @@ const resolved = collide.concat([
   }),
 ]);
 const fr = C.foldCallerEvents(resolved);
-if (fr.collisions.length) throw new Error("resolved collision should clear prompt");
-if (fr.log.length !== 1 || fr.log[0].play !== "HOUSTON") throw new Error("resolved fold wrong");
-console.log("OK resolve_collision clears prompt; gamesRows fold still 1 call");
+if (fr.collisions.length) throw new Error("resolved collision should stay quiet");
+if (fr.log.length !== 1 || fr.log[0].play !== "HOUSTON") throw new Error("legacy resolve_collision should still drop");
+console.log("OK legacy resolve_collision still honors drop");
 
 // 5) Dual devices converge after merge
 const aOnly = [ev({ eventId: "a1", playIndex: 0, payload: { play: "DINO" }, deviceId: "iPad", clientTs: 1, seq: 1 })];
@@ -413,5 +414,45 @@ if (!fakeInf.inferred || fakeInf.dn !== 1 || fakeInf.db !== "10+" || fakeInf.rea
 }
 if (fakeInf.hash !== "R" || fakeInf.zone !== "PLUS") throw new Error("fake keeps hash/zone from fold entry");
 console.log("OK inferNextSituation on real fold entries: COP for FG-good/miss/punt, 1st&10 for fake, offense advances");
+
+// Drill-2: A online logs 2, B offline logs 2, reconnect → 4 entries, 0 prompts, no dups
+const aOnline = [
+  ev({ eventId: "d2a0", playIndex: 0, payload: { play: "KARATE COMBO" }, deviceId: "iPhone", clientTs: 100, seq: 1 }),
+  ev({ eventId: "d2a0o", type: "observation", playIndex: 0, payload: { front: "4-3" }, deviceId: "iPhone", clientTs: 110, seq: 2 }),
+  ev({ eventId: "d2a1", playIndex: 1, payload: { play: "SMASH 2x2" }, deviceId: "iPhone", clientTs: 200, seq: 3 }),
+  ev({ eventId: "d2a1o", type: "observation", playIndex: 1, payload: { front: "Nickel" }, deviceId: "iPhone", clientTs: 210, seq: 4 }),
+];
+const bOffline = [
+  ev({ eventId: "d2b0", playIndex: 0, payload: { play: "HOUSTON" }, deviceId: "iPad", clientTs: 150, seq: 1 }),
+  ev({ eventId: "d2b0o", type: "observation", playIndex: 0, payload: { front: "6-1" }, deviceId: "iPad", clientTs: 160, seq: 2 }),
+  ev({ eventId: "d2b1", playIndex: 1, payload: { play: "SLAM WEST" }, deviceId: "iPad", clientTs: 250, seq: 3 }),
+  ev({ eventId: "d2b1o", type: "observation", playIndex: 1, payload: { front: "4-2-5" }, deviceId: "iPad", clientTs: 260, seq: 4 }),
+];
+const d2merged = C.mergeEvents(aOnline, bOffline);
+const d2 = C.foldCallerEvents(d2merged);
+if (d2.log.length !== 4) {
+  throw new Error("Drill-2 expected 4 entries, got " + d2.log.length + " " + d2.log.map((x) => x.play).join(","));
+}
+if (d2.collisions.length) throw new Error("Drill-2 must be silent, prompts=" + d2.collisions.length);
+const d2plays = d2.log.map((x) => x.play).slice().sort();
+if (d2plays.join("|") !== "HOUSTON|KARATE COMBO|SLAM WEST|SMASH 2x2") {
+  throw new Error("Drill-2 plays " + d2plays.join(","));
+}
+const karate = d2.log.find((x) => x.play === "KARATE COMBO");
+const houston = d2.log.find((x) => x.play === "HOUSTON");
+if (!karate || karate.front !== "4-3") throw new Error("iPhone look must stay on KARATE COMBO");
+if (!houston || houston.front !== "6-1") throw new Error("iPad look must stay on HOUSTON");
+if (new Set(d2.log.map((x) => x.id)).size !== 4) throw new Error("Drill-2 duplicate event ids");
+console.log("OK Drill-2: 4 entries once each, 0 prompts, looks stay on owner");
+
+const boothGrade = C.foldCallerEvents([
+  ev({ eventId: "bgA", playIndex: 0, payload: { play: "HOUSTON" }, deviceId: "sideline", clientTs: 10, seq: 1 }),
+  ev({ eventId: "bgB", type: "outcome", playIndex: 0, payload: { result: "hit" }, deviceId: "booth", clientTs: 20, seq: 1 }),
+]);
+if (boothGrade.log.length !== 1 || boothGrade.log[0].result !== "hit") {
+  throw new Error("lone playIndex still accepts a booth grade");
+}
+if (boothGrade.collisions.length) throw new Error("booth grade must not prompt");
+console.log("OK booth grade attaches when only one call owns the playIndex");
 
 console.log("ALL PASS");

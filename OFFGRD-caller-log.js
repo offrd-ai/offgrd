@@ -21,7 +21,33 @@
   }
 
   function slotKey(e, foldSide) {
-    return (eventSideOf(e) || foldSide || "_") + ":" + e.playIndex;
+    var side = eventSideOf(e) || foldSide || "_";
+    var dev = (e && e.deviceId) || "_";
+    return side + ":" + dev + ":" + e.playIndex;
+  }
+
+  /**
+   * Calls are device-scoped (append-only union). Looks / grades attach to
+   * that device's snap; if this playIndex has exactly one live call, attach
+   * there so a booth can grade a sideline snap.
+   */
+  function findSlotKey(e, foldSide, byPlay) {
+    var exact = slotKey(e, foldSide);
+    if (byPlay[exact]) return exact;
+    var side = eventSideOf(e) || foldSide || "_";
+    var suffix = ":" + e.playIndex;
+    var matches = [];
+    var keys = Object.keys(byPlay);
+    var i, k, slot;
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      if (k.indexOf(side + ":") !== 0) continue;
+      if (k.slice(k.length - suffix.length) !== suffix) continue;
+      slot = byPlay[k];
+      if (slot && slot.call && !slot.undone) matches.push(k);
+    }
+    if (matches.length === 1) return matches[0];
+    return exact;
   }
 
   function eventGameId(e) {
@@ -214,8 +240,9 @@
    * Deterministic fold. One game at a time — opts.gameId or a single
    * gameId in the input. Two gameIds without a scope throw (never merge).
    * Ordered by clientTs, ties (deviceId, seq).
-   * Dual calls at same playIndex from different devices → keep earlier,
-   * mark later superseded, surface collision until resolve_collision.
+   * Two devices at the same playIndex are two snaps (each device counts
+   * 0,1,2… locally). Union by eventId — never prompt. Same-device re-call
+   * still replaces. Honor existing resolve_collision drops.
    */
   function foldCallerEvents(events, opts) {
     opts = opts || {};
@@ -241,7 +268,7 @@
     var superseded = Object.create(null);
     var collisions = [];
     var resolved = Object.create(null);
-    var i, e, slot, other, keep, drop, c, skey;
+    var i, e, slot, other, keep, drop, skey;
 
     for (i = 0; i < sorted.length; i++) {
       e = sorted[i];
@@ -268,6 +295,7 @@
             if (!ds || !ds.call || ds.undone) continue;
             if (superseded[ds.call.eventId]) continue;
             if (ds.call.eventId === e.eventId) continue;
+            if ((ds.call.deviceId || "_") !== (e.deviceId || "_")) continue;
             var dPlay = ds.call.payload && ds.call.payload.play != null ? String(ds.call.payload.play) : "";
             if (dPlay !== playName) continue;
             if (Math.abs((e.clientTs || 0) - (ds.call.clientTs || 0)) > DEDUP_MS) continue;
@@ -310,28 +338,14 @@
         }
         if (slot.call.eventId === e.eventId) continue;
         other = slot.call;
-        if (other.deviceId === e.deviceId) {
-          /* same device re-call at same playIndex: later wins */
-          superseded[other.eventId] = true;
-          slot.call = e;
-          continue;
-        }
-        /* different devices — keep earlier (already in slot), supersede later */
-        superseded[e.eventId] = true;
-        c = {
-          playIndex: e.playIndex,
-          keep: other,
-          drop: e,
-          resolved: !!(
-            resolved[String(e.playIndex) + "|" + other.eventId + "|" + e.eventId] ||
-            resolved[String(e.playIndex) + "|" + e.eventId + "|" + other.eventId]
-          ),
-        };
-        if (!c.resolved) collisions.push(c);
+        /* same device + same slot: later re-call wins. Different devices
+         * never share a slot (keyed by deviceId), so they cannot land here. */
+        superseded[other.eventId] = true;
+        slot.call = e;
         continue;
       }
       if (e.type === "outcome") {
-        skey = slotKey(e, want);
+        skey = findSlotKey(e, want, byPlay);
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var prevPay = (slot.outcome && slot.outcome.payload) || {};
         var nextPay = mergeOutcomeFields(prevPay, e.payload || {});
@@ -345,7 +359,7 @@
        * Protects a human amend from a later offline sticky-carry sync.
        * correction also LWW-patches call situation/play (dn/db/hash/zone/play) — never mutates events. */
       if (e.type === "observation" || e.type === "correction") {
-        skey = slotKey(e, want);
+        skey = findSlotKey(e, want, byPlay);
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
@@ -416,7 +430,7 @@
         continue;
       }
       if (e.type === "undo") {
-        slot = byPlay[slotKey(e, want)];
+        slot = byPlay[findSlotKey(e, want, byPlay)];
         if (slot) {
           slot.undone = true;
           if (slot.call) superseded[slot.call.eventId] = true;
@@ -433,8 +447,13 @@
     }
 
     var slotKeys = Object.keys(byPlay).sort(function (a, b) {
-      var pa = byPlay[a] && byPlay[a].call ? byPlay[a].call.playIndex : Number(String(a).split(":").pop());
-      var pb = byPlay[b] && byPlay[b].call ? byPlay[b].call.playIndex : Number(String(b).split(":").pop());
+      var ca = byPlay[a] && byPlay[a].call;
+      var cb = byPlay[b] && byPlay[b].call;
+      var ta = ca ? ca.clientTs || 0 : 0;
+      var tb = cb ? cb.clientTs || 0 : 0;
+      if (ta !== tb) return ta - tb;
+      var pa = ca ? ca.playIndex : Number(String(a).split(":").pop());
+      var pb = cb ? cb.playIndex : Number(String(b).split(":").pop());
       if (pa !== pb) return (pa || 0) - (pb || 0);
       return a < b ? -1 : a > b ? 1 : 0;
     });
