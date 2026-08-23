@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "325";
+  const ASSET_V = "326";
 
   function getScoutTool() {
     try {
@@ -570,11 +570,12 @@
       'html.rd-on.rd-player #rdNavBody{flex-direction:column!important;}',
       'html.rd-on.rd-player #rdPhases{',
       'flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;',
-      'align-items:stretch;gap:2px!important;width:auto!important;flex:none!important;',
-      'position:fixed!important;left:0;right:0;bottom:0;top:auto;',
+      'align-items:stretch;gap:2px!important;width:100%!important;flex:none!important;',
+      'position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;',
+      'transform:none!important;filter:none!important;',
       'padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))!important;',
       'border-right:0!important;border-top:1px solid var(--rd-border);',
-      'background:var(--rd-surface);z-index:45;box-shadow:0 -6px 20px rgba(0,0,0,.12);',
+      'background:var(--rd-surface);z-index:80;box-shadow:0 -6px 20px rgba(0,0,0,.12);',
       '}',
       'html.rd-on.rd-player #rdPhases .rd-phase{',
       'flex:1 1 0;min-width:0;min-height:48px;padding:6px 2px!important;font-size:10px!important;',
@@ -618,11 +619,13 @@
       'font-weight:500;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;}',
       '.rd-pill.on{background:var(--rd-accent);color:var(--rd-accent-text);border-color:var(--rd-accent);}',
       '.rd-pill[hidden]{display:none!important;}',
-      '#rdSetup{position:relative;}',
+      '#rdSetup{position:relative;overflow:visible;}',
       '#rdSetupMenu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
-      'box-shadow:0 16px 40px rgba(0,0,0,.35);padding:6px;z-index:60;}',
+      'box-shadow:0 16px 40px rgba(0,0,0,.35);padding:6px;z-index:90;}',
       '#rdSetupMenu.open{display:block;}',
+      '#rdSetupMenu.rd-setup-dock{position:fixed!important;right:auto;margin:0;z-index:120;',
+      'max-width:min(280px, calc(100vw - 16px));overflow:auto;transform:none!important;filter:none!important;}',
       '#rdSetupMenu button,#rdSetupMenu a{display:block;width:100%;text-align:left;border:0;',
       'background:transparent;color:var(--rd-text);padding:10px 12px;border-radius:8px;',
       'font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}',
@@ -646,10 +649,13 @@
       'html.rd-on #rdSetup{flex:0 0 auto;position:relative;}',
       'html.rd-on #rdGear{min-width:44px;min-height:44px;padding:0;width:44px;justify-content:center;}',
       'html.rd-on #rdGear .rd-gear-label{display:none;}',
-      'html.rd-on #rdPhases{flex-direction:row;justify-content:space-around;width:auto;flex:none;',
-      'position:fixed;left:0;right:0;bottom:0;padding:8px 10px;border-right:0;',
+      'html.rd-on #rdPhases,html.rd-on #rdPhases.rd-phase-dock{flex-direction:row;justify-content:space-around;width:100%;flex:none;',
+      'position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;',
+      'transform:none!important;filter:none!important;will-change:auto;',
+      'padding:8px 10px;border-right:0;margin:0;',
       'padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));',
-      'border-top:1px solid var(--rd-border);background:var(--rd-surface);z-index:45;}',
+      'border-top:1px solid var(--rd-border);background:var(--rd-surface);z-index:80;}',
+      'html.rd-on{min-height:100vh;min-height:100dvh;}',
       '.rd-phase{text-align:center;padding:10px 8px;min-height:44px;font-weight:600;}',
       '.rd-phase.on{box-shadow:0 0 0 2px var(--rd-accent);}',
       'html.rd-on #rdTools{flex:1 1 auto;min-width:0;padding:0 28px 0 4px;flex-wrap:nowrap;',
@@ -2579,8 +2585,103 @@
     }
   }
 
+  const PHONE_MQ = "(max-width:820px)";
+  let _phaseDockWired = false;
+  let _setupDocClickWired = false;
+
+  function pinPhaseBarToVisualViewport() {
+    const el = document.getElementById("rdPhases");
+    if (!el || !el.classList.contains("rd-phase-dock") || !window.visualViewport) {
+      if (el && !el.classList.contains("rd-phase-dock")) el.style.bottom = "";
+      return;
+    }
+    const vv = window.visualViewport;
+    const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    el.style.bottom = inset + "px";
+  }
+
+  function dockPhaseBar() {
+    const phases = document.getElementById("rdPhases");
+    const nav = document.getElementById("rdNavBody");
+    if (!phases) return;
+    const phone = typeof window.matchMedia === "function" && window.matchMedia(PHONE_MQ).matches;
+    if (phone) {
+      if (phases.parentNode !== document.body) document.body.appendChild(phases);
+      phases.classList.add("rd-phase-dock");
+      pinPhaseBarToVisualViewport();
+    } else {
+      phases.classList.remove("rd-phase-dock");
+      phases.style.bottom = "";
+      if (nav && phases.parentNode !== nav) nav.insertBefore(phases, nav.firstChild);
+    }
+  }
+
+  function placeSetupMenu() {
+    const gear = document.getElementById("rdGear");
+    const menu = document.getElementById("rdSetupMenu");
+    if (!gear || !menu) return;
+    if (!menu.classList.contains("open")) {
+      menu.style.left = "";
+      menu.style.top = "";
+      menu.style.maxWidth = "";
+      menu.style.maxHeight = "";
+      return;
+    }
+    if (menu.parentNode !== document.body) document.body.appendChild(menu);
+    menu.classList.add("rd-setup-dock");
+    const vv = window.visualViewport;
+    const vw = vv ? vv.width : window.innerWidth;
+    const vh = vv ? vv.height : window.innerHeight;
+    const vLeft = vv ? vv.offsetLeft : 0;
+    const vTop = vv ? vv.offsetTop : 0;
+    const inset = 8;
+    menu.style.maxWidth = Math.min(280, vw - inset * 2) + "px";
+    menu.style.maxHeight = Math.max(120, vh - inset * 2) + "px";
+    const mw = Math.min(menu.offsetWidth || 220, vw - inset * 2);
+    const mh = menu.offsetHeight || 200;
+    const gr = gear.getBoundingClientRect();
+    let left = gr.right - mw;
+    const minL = vLeft + inset;
+    const maxL = vLeft + vw - mw - inset;
+    left = Math.max(minL, Math.min(left, maxL));
+    let top = gr.bottom + 6;
+    if (top + mh > vTop + vh - inset) top = Math.max(vTop + inset, gr.top - mh - 6);
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+  }
+
+  function wirePhaseDock() {
+    if (_phaseDockWired) return;
+    _phaseDockWired = true;
+    try {
+      const mq = window.matchMedia(PHONE_MQ);
+      if (mq.addEventListener) mq.addEventListener("change", function () { dockPhaseBar(); placeSetupMenu(); });
+      else if (mq.addListener) mq.addListener(function () { dockPhaseBar(); placeSetupMenu(); });
+    } catch (e) {}
+    try {
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", function () {
+          pinPhaseBarToVisualViewport();
+          placeSetupMenu();
+        });
+        window.visualViewport.addEventListener("scroll", function () {
+          pinPhaseBarToVisualViewport();
+          placeSetupMenu();
+        });
+      }
+    } catch (e2) {}
+    window.addEventListener("resize", function () {
+      pinPhaseBarToVisualViewport();
+      placeSetupMenu();
+    });
+    window.addEventListener("orientationchange", function () {
+      setTimeout(function () { dockPhaseBar(); placeSetupMenu(); }, 80);
+    });
+  }
+
   function wireShell(shell) {
-    [].forEach.call(shell.querySelectorAll(".rd-phase"), function (b) {
+    const phaseRoot = document.getElementById("rdPhases") || shell;
+    [].forEach.call(phaseRoot.querySelectorAll(".rd-phase"), function (b) {
       if (b.tagName === "A") return; /* href already versioned */
       b.onclick = function () {
         const id = b.getAttribute("data-phase");
@@ -2618,35 +2719,49 @@
         syncPhaseUI();
       };
     });
-    const gear = shell.querySelector("#rdGear");
-    const menu = shell.querySelector("#rdSetupMenu");
+    const gear = shell.querySelector("#rdGear") || document.getElementById("rdGear");
+    const menu = document.getElementById("rdSetupMenu");
     if (gear && menu) {
       gear.onclick = function (e) {
         e.stopPropagation();
         menu.classList.toggle("open");
         refreshSetupBaseLabel();
         refreshBoothLabels();
+        placeSetupMenu();
       };
-      document.addEventListener("click", function (ev) {
-        if (!menu.contains(ev.target) && ev.target !== gear) menu.classList.remove("open");
+      if (!_setupDocClickWired) {
+        _setupDocClickWired = true;
+        document.addEventListener("click", function (ev) {
+          const liveMenu = document.getElementById("rdSetupMenu");
+          const liveGear = document.getElementById("rdGear");
+          if (!liveMenu) return;
+          if (!liveMenu.contains(ev.target) && ev.target !== liveGear) {
+            liveMenu.classList.remove("open");
+            placeSetupMenu();
+          }
+        });
+      }
+    }
+    if (menu) {
+      [].forEach.call(menu.querySelectorAll("[data-action]"), function (btn) {
+        btn.onclick = function (ev) {
+          ev.stopPropagation();
+          const result = runAction(btn.getAttribute("data-action")) || { ok: false, reason: "Can't open that here." };
+          if (result.nav) {
+            goSetup(result.nav);
+            return;
+          }
+          if (result.ok) {
+            setupMenuNote(menu, "");
+            if (!result.stay) menu.classList.remove("open");
+            placeSetupMenu();
+            return;
+          }
+          setupMenuNote(menu, result.reason || "Can't open that here.");
+          placeSetupMenu();
+        };
       });
     }
-    [].forEach.call(shell.querySelectorAll("#rdSetupMenu [data-action]"), function (btn) {
-      btn.onclick = function (ev) {
-        ev.stopPropagation();
-        const result = runAction(btn.getAttribute("data-action")) || { ok: false, reason: "Can't open that here." };
-        if (result.nav) {
-          goSetup(result.nav);
-          return;
-        }
-        if (result.ok) {
-          setupMenuNote(menu, "");
-          if (!result.stay && menu) menu.classList.remove("open");
-          return;
-        }
-        setupMenuNote(menu, result.reason || "Can't open that here.");
-      };
-    });
     const scope = shell.querySelector("#rdScope");
     if (scope) {
       scope.onclick = function () {
@@ -2724,13 +2839,18 @@
     const shell = document.getElementById("rdShell");
     if (!shell || !isRedesign()) return false;
     const role = isPlayerRole() ? "player" : "coach";
-    if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
+    if (_shellRole === role && document.getElementById("rdPhases")) return false;
     _shellRole = role;
     try {
       document.documentElement.classList.toggle("rd-player", role === "player");
     } catch (e) {}
+    ["rdPhases", "rdSetupMenu"].forEach(function (id) {
+      const stray = document.getElementById(id);
+      if (stray && stray.parentNode !== shell) stray.parentNode.removeChild(stray);
+    });
     shell.innerHTML = buildShellHtml();
     wireShell(shell);
+    dockPhaseBar();
     adoptAcct();
     stampVersionedLinks();
     syncCrest();
@@ -2790,6 +2910,8 @@
     } else {
       rebuildShellIfNeeded();
     }
+    wirePhaseDock();
+    dockPhaseBar();
     shell.style.display = "flex";
     adoptAcct();
     stampVersionedLinks();
@@ -2903,6 +3025,8 @@
     SETUP_DISPATCH: SETUP_DISPATCH,
     isPlayerRole: isPlayerRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
+    dockPhaseBar: dockPhaseBar,
+    placeSetupMenu: placeSetupMenu,
     markPlayerLandingDone: markPlayerLandingDone,
     applyBoothLocal: applyBoothLocal,
     toggleBoothLocal: toggleBoothLocal,
