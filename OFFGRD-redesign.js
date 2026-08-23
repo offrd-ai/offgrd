@@ -570,12 +570,11 @@
       'html.rd-on.rd-player #rdNavBody{flex-direction:column!important;}',
       'html.rd-on.rd-player #rdPhases{',
       'flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;',
-      'align-items:stretch;gap:2px!important;width:100%!important;flex:none!important;',
-      'position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;',
-      'transform:none!important;filter:none!important;',
+      'align-items:stretch;gap:2px!important;width:auto!important;flex:none!important;',
+      'position:fixed!important;left:0;right:0;bottom:0;top:auto;',
       'padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))!important;',
       'border-right:0!important;border-top:1px solid var(--rd-border);',
-      'background:var(--rd-surface);z-index:80;box-shadow:0 -6px 20px rgba(0,0,0,.12);',
+      'background:var(--rd-surface);z-index:45;box-shadow:0 -6px 20px rgba(0,0,0,.12);',
       '}',
       'html.rd-on.rd-player #rdPhases .rd-phase{',
       'flex:1 1 0;min-width:0;min-height:48px;padding:6px 2px!important;font-size:10px!important;',
@@ -647,13 +646,10 @@
       'html.rd-on #rdSetup{flex:0 0 auto;position:relative;}',
       'html.rd-on #rdGear{min-width:44px;min-height:44px;padding:0;width:44px;justify-content:center;}',
       'html.rd-on #rdGear .rd-gear-label{display:none;}',
-      'html.rd-on #rdPhases,html.rd-on #rdPhases.rd-phase-dock{flex-direction:row;justify-content:space-around;width:100%;flex:none;',
-      'position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;',
-      'transform:none!important;filter:none!important;will-change:auto;',
-      'padding:8px 10px;border-right:0;margin:0;',
+      'html.rd-on #rdPhases{flex-direction:row;justify-content:space-around;width:auto;flex:none;',
+      'position:fixed;left:0;right:0;bottom:0;padding:8px 10px;border-right:0;',
       'padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));',
-      'border-top:1px solid var(--rd-border);background:var(--rd-surface);z-index:80;}',
-      'html.rd-on{min-height:100vh;min-height:100dvh;}',
+      'border-top:1px solid var(--rd-border);background:var(--rd-surface);z-index:45;}',
       '.rd-phase{text-align:center;padding:10px 8px;min-height:44px;font-weight:600;}',
       '.rd-phase.on{box-shadow:0 0 0 2px var(--rd-accent);}',
       'html.rd-on #rdTools{flex:1 1 auto;min-width:0;padding:0 28px 0 4px;flex-wrap:nowrap;',
@@ -2583,58 +2579,8 @@
     }
   }
 
-  const PHONE_MQ = "(max-width:820px)";
-  let _phaseDockWired = false;
-
-  function pinPhaseBarToVisualViewport() {
-    const el = document.getElementById("rdPhases");
-    if (!el || !el.classList.contains("rd-phase-dock") || !window.visualViewport) {
-      if (el && !el.classList.contains("rd-phase-dock")) el.style.bottom = "";
-      return;
-    }
-    const vv = window.visualViewport;
-    const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    el.style.bottom = inset + "px";
-  }
-
-  function dockPhaseBar() {
-    const phases = document.getElementById("rdPhases");
-    const nav = document.getElementById("rdNavBody");
-    if (!phases) return;
-    const phone = typeof window.matchMedia === "function" && window.matchMedia(PHONE_MQ).matches;
-    if (phone) {
-      if (phases.parentNode !== document.body) document.body.appendChild(phases);
-      phases.classList.add("rd-phase-dock");
-      pinPhaseBarToVisualViewport();
-    } else {
-      phases.classList.remove("rd-phase-dock");
-      phases.style.bottom = "";
-      if (nav && phases.parentNode !== nav) nav.insertBefore(phases, nav.firstChild);
-    }
-  }
-
-  function wirePhaseDock() {
-    if (_phaseDockWired) return;
-    _phaseDockWired = true;
-    try {
-      const mq = window.matchMedia(PHONE_MQ);
-      if (mq.addEventListener) mq.addEventListener("change", dockPhaseBar);
-      else if (mq.addListener) mq.addListener(dockPhaseBar);
-    } catch (e) {}
-    try {
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", pinPhaseBarToVisualViewport);
-        window.visualViewport.addEventListener("scroll", pinPhaseBarToVisualViewport);
-      }
-    } catch (e2) {}
-    window.addEventListener("orientationchange", function () {
-      setTimeout(dockPhaseBar, 80);
-    });
-  }
-
   function wireShell(shell) {
-    const phaseRoot = document.getElementById("rdPhases") || shell;
-    [].forEach.call(phaseRoot.querySelectorAll(".rd-phase"), function (b) {
+    [].forEach.call(shell.querySelectorAll(".rd-phase"), function (b) {
       if (b.tagName === "A") return; /* href already versioned */
       b.onclick = function () {
         const id = b.getAttribute("data-phase");
@@ -2778,16 +2724,13 @@
     const shell = document.getElementById("rdShell");
     if (!shell || !isRedesign()) return false;
     const role = isPlayerRole() ? "player" : "coach";
-    if (_shellRole === role && document.getElementById("rdPhases")) return false;
+    if (_shellRole === role && shell.querySelector("#rdPhases")) return false;
     _shellRole = role;
     try {
       document.documentElement.classList.toggle("rd-player", role === "player");
     } catch (e) {}
-    const stray = document.getElementById("rdPhases");
-    if (stray && stray.parentNode !== shell) stray.parentNode.removeChild(stray);
     shell.innerHTML = buildShellHtml();
     wireShell(shell);
-    dockPhaseBar();
     adoptAcct();
     stampVersionedLinks();
     syncCrest();
@@ -2847,8 +2790,6 @@
     } else {
       rebuildShellIfNeeded();
     }
-    wirePhaseDock();
-    dockPhaseBar();
     shell.style.display = "flex";
     adoptAcct();
     stampVersionedLinks();
@@ -2962,7 +2903,6 @@
     SETUP_DISPATCH: SETUP_DISPATCH,
     isPlayerRole: isPlayerRole,
     rebuildShellIfNeeded: rebuildShellIfNeeded,
-    dockPhaseBar: dockPhaseBar,
     markPlayerLandingDone: markPlayerLandingDone,
     applyBoothLocal: applyBoothLocal,
     toggleBoothLocal: toggleBoothLocal,
