@@ -471,7 +471,7 @@ export const Cloud = {
     const row = Array.isArray(data) ? data[0] : data;
     return row || null;
   },
-  async sendInviteEmail(offgrdInviteId) {
+  async _postInviteApi(body) {
     const { data: sess } = await sb.auth.getSession();
     const tok = sess && sess.session && sess.session.access_token;
     if (!tok) throw new Error("Sign in first.");
@@ -484,7 +484,7 @@ export const Cloud = {
     const r = await fetch(host, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
-      body: JSON.stringify({ offgrdInviteId: offgrdInviteId })
+      body: JSON.stringify(body)
     });
     const out = await r.json().catch(function () { return {}; });
     if (r.status === 403 && (out.error === "trial_expired" || String(out.message || "").indexOf("trial_expired") >= 0)) {
@@ -494,6 +494,14 @@ export const Cloud = {
     }
     if (!r.ok) throw new Error(out.error || out.message || ("Email did not send (" + r.status + ")"));
     return true;
+  },
+  async sendInviteEmail(offgrdInviteId) {
+    return this._postInviteApi({ offgrdInviteId: offgrdInviteId });
+  },
+  async sendAddedMemberEmail(teamId, email, role) {
+    return this._postInviteApi({
+      added: { teamId: teamId, email: email, role: role || "player" }
+    });
   },
   async joinByCode(code) {
     _invalidateMyTeamsCache();

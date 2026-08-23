@@ -1,15 +1,15 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=322";
-import { openAuthModal } from "./OFFGRD-auth.js?v=322";
+import { Cloud } from "./OFFGRD-cloud.js?v=323";
+import { openAuthModal } from "./OFFGRD-auth.js?v=323";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
   parseInviteEmailList,
   describeInvitePreview,
   invitePreviewSentence
-} from "./OFFGRD-invite-parse.js?v=322";
+} from "./OFFGRD-invite-parse.js?v=323";
 
 const A = window.OFFGRD_APP || {};
 const SYNCABLE = ["playbook","scout"].includes(A.kind);
@@ -1408,7 +1408,13 @@ async function renderTeam(){
             }
             stat.textContent=em+" is invited — email sent.";
           } else {
-            stat.textContent=em+" was added now.";
+            try{ await Cloud.sendAddedMemberEmail(TEAM.id, em, rsel.value); }
+            catch(mailErr){
+              if(isTrialExpiredErr(mailErr)){ routeTrialExpired(); return; }
+              stat.textContent=em+" was added, but the email did not send.";
+              email.value=""; renderTeamKeep(stat.textContent); return;
+            }
+            stat.textContent=em+" was added — email sent.";
           }
           email.value="";
           renderTeamKeep(stat.textContent);
@@ -1520,8 +1526,11 @@ async function renderTeam(){
         pstat.textContent="Inviting "+(i+1)+" of "+staged.length+"…";
         try{
           const res=await Cloud.inviteMember(TEAM.id, em, "player");
-          if(res==="added") added++;
-          else {
+          if(res==="added"){
+            added++;
+            try{ await Cloud.sendAddedMemberEmail(TEAM.id, em, "player"); }
+            catch(mailErr){ if(isTrialExpiredErr(mailErr)){ routeTrialExpired(); return; } }
+          } else {
             pending++;
             try{ await sendOffgrdInviteMail(TEAM.id, em, "player"); }
             catch(mailErr){ if(isTrialExpiredErr(mailErr)){ routeTrialExpired(); return; } }
