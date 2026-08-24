@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=330";
-import { openAuthModal } from "./OFFGRD-auth.js?v=330";
+import { Cloud } from "./OFFGRD-cloud.js?v=331";
+import { openAuthModal } from "./OFFGRD-auth.js?v=331";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=330";
+} from "./OFFGRD-invite-parse.js?v=331";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -282,6 +282,16 @@ function showInviteOverlay(html){
 
 function inviteRoleLabel(role){
   return roleLabel(role);
+}
+
+function rosterClassYear(){
+  return new Date().getFullYear();
+}
+function isRosterShelved(m){
+  if (!m || m.role !== "player") return false;
+  if (m.archived_at) return true;
+  const y = Number(m.graduation_year);
+  return !!(y && y <= rosterClassYear());
 }
 
 function rosterDisplayName(m){
@@ -1821,13 +1831,23 @@ async function renderTeam(){
   }
   body.appendChild(players);
 
-  const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+roster.length+' joined · '+invites.length+' pending)</div></div>');
+  const active = roster.filter(function(m){ return !isRosterShelved(m); });
+  const shelved = roster.filter(isRosterShelved);
+  const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+active.length+' joined · '+invites.length+' pending)</div></div>');
   const me = (await Cloud.user()); const myId = me ? me.id : null;
-  roster.forEach(m=>{
+  function appendRosterRow(host, m, archived){
     const shown = rosterDisplayName(m);
     const row=el('<div class="ogm-mem"></div>');
-    row.appendChild(el('<span class="nm">'+esc(shown)+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
-    if(isAdmin() && m.role!=="owner"){
+    const tag = archived
+      ? (m.graduation_year ? 'Class of '+m.graduation_year : 'Archived')
+      : '';
+    row.appendChild(el('<span class="nm">'+esc(shown)+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(tag?' <span class="ogm-note" style="font-weight:600">'+esc(tag)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
+    if(archived){
+      row.appendChild(el('<span class="ogm-badge">Graduated</span>'));
+      if(isAdmin()){
+        const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(e.message);} }; row.appendChild(rm);
+      }
+    } else if(isAdmin() && m.role!=="owner"){
       const rs=document.createElement("select"); rs.className="ogm-sel"; rs.style.minWidth="120px";
       ALL_ROLES.filter(([v])=>v!=="owner").forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===m.role)o.selected=true;rs.appendChild(o);});
       rs.onchange=async()=>{ try{ await Cloud.setMemberRole(TEAM.id,m.user_id,rs.value); }catch(e){ alert(e.message); renderTeam(); } };
@@ -1836,9 +1856,16 @@ async function renderTeam(){
     } else {
       row.appendChild(el('<span class="ogm-badge">'+roleLabel(m.role)+'</span>'));
     }
-    rsec.appendChild(row);
-  });
+    host.appendChild(row);
+  }
+  active.forEach(function(m){ appendRosterRow(rsec, m, false); });
   body.appendChild(rsec);
+
+  if(shelved.length){
+    const asec = el('<div class="ogm-sec"><div class="ogm-lbl">Graduated / archived ('+shelved.length+')</div><p class="ogm-note" style="margin:6px 0 0">Not on Friday\u2019s roster. Records stay here.</p></div>');
+    shelved.forEach(function(m){ appendRosterRow(asec, m, true); });
+    body.appendChild(asec);
+  }
 
   body.appendChild(joinSection());
 }
@@ -2214,7 +2241,7 @@ async function setupState(){
   const s={roster:0,plays:0,games:0,schedule:0,identity:false};
   try{ s.identity=!!localStorage.getItem("offgrd_identity"); }catch(e){}
   if(!TEAM) return s;
-  try{ const r=await Cloud.teamRoster(TEAM.id); s.roster=(r||[]).length; }catch(e){}
+  try{ const r=await Cloud.teamRoster(TEAM.id); s.roster=(r||[]).filter(function(m){ return !isRosterShelved(m); }).length; }catch(e){}
   try{ const p=await Cloud.listPlays(TEAM.id); s.plays=(p||[]).length; }catch(e){}
   try{ const g=await Cloud.listGames(TEAM.id); s.games=(g||[]).length; }catch(e){}
   try{

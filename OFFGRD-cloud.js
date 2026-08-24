@@ -421,7 +421,61 @@ export const Cloud = {
   /* ---------- roster, invites, roles ---------- */
   async teamRoster(teamId) {
     const { data, error } = await sb.rpc("offgrd_team_roster", { t: teamId });
-    if (error) throw error; return data || [];
+    if (error) throw error;
+    return this._stampPlayerArchive(data || []);
+  },
+  async _stampPlayerArchive(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    const need = list.filter(function (r) {
+      return r && r.role === "player" && r.archived_at == null && r.graduation_year == null;
+    });
+    if (!need.length) return list;
+    const ids = need.map(function (r) { return r.user_id; }).filter(Boolean);
+    const emails = need.map(function (r) { return String(r.email || "").toLowerCase(); }).filter(Boolean);
+    const cols = "user_id, email, first_name, last_name, archived_at, graduation_year";
+    let extra = [];
+    try {
+      if (ids.length) {
+        const { data } = await sb.from("players").select(cols).in("user_id", ids);
+        extra = extra.concat(data || []);
+      }
+    } catch (e) {}
+    try {
+      if (emails.length) {
+        const { data } = await sb.from("players").select(cols).in("email", emails);
+        extra = extra.concat(data || []);
+      }
+    } catch (e) {}
+    try {
+      const orParts = need.map(function (r) {
+        const parts = String(r.full_name || "").trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) return "";
+        const first = parts[0].replace(/[,()]/g, "");
+        const last = parts.slice(1).join(" ").replace(/[,()]/g, "");
+        if (!first || !last) return "";
+        return "and(first_name.ilike." + first + ",last_name.ilike." + last + ")";
+      }).filter(Boolean);
+      if (orParts.length) {
+        const { data } = await sb.from("players").select(cols).or(orParts.join(","));
+        extra = extra.concat(data || []);
+      }
+    } catch (e) {}
+    if (!extra.length) return list;
+    return list.map(function (r) {
+      if (!r || r.role !== "player") return r;
+      const shown = String(r.full_name || "").trim().toLowerCase();
+      const hit = extra.find(function (p) {
+        const pname = (String(p.first_name || "").trim() + " " + String(p.last_name || "").trim()).trim().toLowerCase();
+        return (p.user_id && p.user_id === r.user_id) ||
+          (p.email && r.email && String(p.email).toLowerCase() === String(r.email).toLowerCase()) ||
+          (shown && pname && shown === pname);
+      });
+      if (!hit) return r;
+      return Object.assign({}, r, {
+        archived_at: r.archived_at != null ? r.archived_at : hit.archived_at,
+        graduation_year: r.graduation_year != null ? r.graduation_year : hit.graduation_year
+      });
+    });
   },
   async myRole(teamId) {
     try {

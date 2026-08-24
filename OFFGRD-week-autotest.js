@@ -737,6 +737,12 @@
         const team = (teams || []).find(function (t) { return t.id === tid; }) || (teams && teams[0]);
         if (team) {
           if (!roster.length) roster = await root.Cloud.teamRoster(team.id).catch(function () { return []; });
+          roster = (roster || []).filter(function (m) {
+            if (!m || m.role !== "player") return true;
+            if (m.archived_at) return false;
+            var y = Number(m.graduation_year);
+            return !(y && y <= new Date().getFullYear());
+          });
           if (!playbook.length) playbook = await root.Cloud.listPlays(team.id).catch(function () { return []; });
           try {
             let games = await root.Cloud.listGames(team.id).catch(function () { return []; });
