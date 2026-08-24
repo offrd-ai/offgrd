@@ -1,6 +1,6 @@
 /* OFFGRD shared auth modal — sign in / create account / forgot / change password.
    Self-contained (own styles). Used by the apps (via OFFGRD-account.js) and the landing page. */
-import { Cloud } from "./OFFGRD-cloud.js?v=328";
+import { Cloud } from "./OFFGRD-cloud.js?v=329";
 
 let root = null;
 function injectStyles(){
@@ -177,7 +177,7 @@ function hasPendingInvite(){
 
 async function finishAuth(){
   const go=root.querySelector("#ogaGo");
-  if(hasPendingInvite()){
+  if(hasPendingInvite() || (function(){ try{ return localStorage.getItem("offgrd_joined_via_invite")==="1"; }catch(e){ return false; } })()){
     close(); go.disabled=false;
     if(typeof onOk==="function") onOk();
     return;
@@ -205,7 +205,7 @@ async function submit(){
   if(mode==="program"){
     const coachName=(root.querySelector("#ogaCoachName").value||"").trim();
     const schoolName=(root.querySelector("#ogaSchool").value||"").trim();
-    if(!schoolName){ setErr("Enter your school or program name."); return; }
+    if(!schoolName || schoolName.length<3){ setErr("Enter the full school or program name."); return; }
     go.disabled=true; setErr("");
     try{
       try{ if(Cloud.stampHsCoach) await Cloud.stampHsCoach(); }catch(e){}

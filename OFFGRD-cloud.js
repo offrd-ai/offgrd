@@ -338,15 +338,26 @@ export const Cloud = {
     try { console.log("[Cloud.myTeams] schema rows", rows.length); } catch (e) {}
     return rows;
   },
+  _arrivedViaInvite() {
+    try {
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("offgrd_pending_invite")) return true;
+      if (typeof localStorage !== "undefined" && localStorage.getItem("offgrd_joined_via_invite") === "1") return true;
+    } catch (e) {}
+    return false;
+  },
   async createTeam(name) {
+    if (this._arrivedViaInvite()) throw new Error("Join your invite instead of creating a new program");
+    const nm = String(name || "").trim();
+    if (nm.length < 3) throw new Error("Enter the full program name.");
     _invalidateMyTeamsCache();
-    const { data, error } = await sb.rpc("offgrd_create_team", { team_name: name });
+    const { data, error } = await sb.rpc("offgrd_create_team", { team_name: nm });
     if (error) throw error;
     try { await this.linkTeamToSchool(data); } catch (e) {}
     return data; // team id
   },
   /** HS school + coach row (same RPC as getoffrd /onboarding/coach-program). */
   async createOwnedProgram({ schoolName, schoolCity, schoolState, coachName, roleTitle }) {
+    if (this._arrivedViaInvite()) throw new Error("Join your invite instead of creating a new program");
     const { data, error } = await sb.rpc("create_owned_program", {
       p_school_name: String(schoolName || "").trim(),
       p_city: String(schoolCity || "").trim(),
@@ -394,6 +405,7 @@ export const Cloud = {
   // get the user's first team, creating a default one on first login
   async ensureTeam(defaultName) {
     let teams = await this.myTeams();
+    if (!teams.length && this._arrivedViaInvite()) return null;
     if (!teams.length) { await this.createTeam(defaultName || "My Program"); teams = await this.myTeams(); }
     return teams[0];
   },

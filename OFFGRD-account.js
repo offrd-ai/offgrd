@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=328";
-import { openAuthModal } from "./OFFGRD-auth.js?v=328";
+import { Cloud } from "./OFFGRD-cloud.js?v=329";
+import { openAuthModal } from "./OFFGRD-auth.js?v=329";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=328";
+} from "./OFFGRD-invite-parse.js?v=329";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -224,6 +224,15 @@ function login(){ openAuthModal(function(){ (async()=>{ try{ onUser(await Cloud.
 
 const INVITE_EXPIRED_COPY = "This invite link has expired \u2014 ask your coach to send a new one.";
 const INVITE_STORE = "offgrd_pending_invite";
+const JOINED_VIA_INVITE = "offgrd_joined_via_invite";
+
+function joinedViaInvite(){
+  try{ return localStorage.getItem(JOINED_VIA_INVITE) === "1"; }catch(e){ return false; }
+}
+function markJoinedViaInvite(){
+  try{ localStorage.setItem(JOINED_VIA_INVITE, "1"); }catch(e){}
+  try{ localStorage.setItem("offgrd_onboarded", "1"); }catch(e){}
+}
 
 function persistInviteToken(token){
   try{
@@ -337,6 +346,7 @@ function paintInviteJoin(peek, token, sessionEmail, mismatch){
 }
 
 async function landOnInvitedTeam(teamId, teamName){
+  markJoinedViaInvite();
   persistInviteToken("");
   stripInviteFromUrl();
   hideInviteOverlay();
@@ -987,7 +997,7 @@ async function hydrateTeamsFromSession(u, opts){
       scheduleSessionRetry("membership-unauth");
     } else {
       scheduleTeamRetry("no-team");
-      if(pendingInviteToken()){
+      if(pendingInviteToken() || joinedViaInvite()){
         /* Invite accept owns this session — never send them to Name your program. */
       } else {
       let ob=null; try{ ob=localStorage.getItem("offgrd_onboarded"); }catch(e){}
@@ -1537,7 +1547,7 @@ function renderSetup(body){
     const crow=el('<div class="ogm-row"></div>');
     const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
     const cb=el('<button class="ogm-b go">Create</button>');
-    cb.onclick=async()=>{ const n=nm.value.trim()||"My Program"; cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
+    cb.onclick=async()=>{ const n=nm.value.trim(); if(n.length<3){ alert("Enter the full program name."); return; } cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
     crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
   } else {
     body.appendChild(el('<p class="ogm-note">You’re signed in. Enter your team’s join code from your coach — players don’t create programs.</p>'));
@@ -1867,7 +1877,7 @@ function obCoach(){
   const pn=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
   const go=el('<button class="ogm-b go">Create program</button>');
   const stat=el('<p class="ogm-note"></p>');
-  go.onclick=async()=>{ const n=pn.value.trim()||"My Program"; go.disabled=true;
+  go.onclick=async()=>{ const n=pn.value.trim(); if(n.length<3){ stat.textContent="Enter the full program name."; return; } go.disabled=true;
     try{
       if(nm.value.trim()){ try{ await Cloud.setMyName(nm.value.trim()); }catch(e){} }
       if(!CAN_CREATE_TEAM && Cloud.createOwnedProgram){
