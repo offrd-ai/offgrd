@@ -447,10 +447,40 @@ export const Cloud = {
     const { error } = await sb.rpc("offgrd_set_my_positions", { t: teamId, pos: arr });
     if (error) throw error;
   },
+  async myName() {
+    const u = await this.session();
+    if (!u) return "";
+    try {
+      const { data } = await OG.from("profiles").select("full_name").eq("id", u.id).maybeSingle();
+      const n = data && String(data.full_name || "").trim();
+      if (n) return n;
+    } catch (e) {}
+    return "";
+  },
   async setMyName(name) {
-    const u = await this.session(); if (!u) return;
-    const { error } = await OG.from("profiles").update({ full_name: name }).eq("id", u.id);
-    if (error) throw error;
+    const u = await this.session();
+    if (!u) throw new Error("Sign in first");
+    const nm = String(name || "").trim();
+    if (nm.length < 2) throw new Error("Enter your name");
+    const { data, error } = await sb.rpc("offgrd_set_my_name", { n: nm });
+    if (!error) {
+      const row = data && typeof data === "object" ? data : {};
+      if (row.ok === false) {
+        if (row.error === "no_member") throw new Error("Join a program before setting your name");
+        throw new Error("Could not save your name");
+      }
+      return { ok: true, full_name: row.full_name || nm };
+    }
+    const { data: mems } = await OG.from("team_members").select("team_id").eq("user_id", u.id).limit(1);
+    if (!mems || !mems.length) throw new Error("Join a program before setting your name");
+    const { error: upErr } = await OG.from("profiles").upsert({
+      id: u.id,
+      email: u.email || "",
+      full_name: nm,
+    });
+    if (upErr) throw upErr;
+    try { await sb.from("high_school_coaches").update({ name: nm }).eq("user_id", u.id); } catch (e) {}
+    return { ok: true, full_name: nm };
   },
   async setTeamBrand(teamId, brand) {
     const { error } = await sb.rpc("offgrd_set_team_brand", { t: teamId, b: brand });

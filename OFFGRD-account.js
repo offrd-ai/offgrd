@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=329";
-import { openAuthModal } from "./OFFGRD-auth.js?v=329";
+import { Cloud } from "./OFFGRD-cloud.js?v=330";
+import { openAuthModal } from "./OFFGRD-auth.js?v=330";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=329";
+} from "./OFFGRD-invite-parse.js?v=330";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -282,6 +282,18 @@ function showInviteOverlay(html){
 
 function inviteRoleLabel(role){
   return roleLabel(role);
+}
+
+function rosterDisplayName(m){
+  const n = String((m && m.full_name) || "").trim();
+  const role = String((m && m.role) || "");
+  if (n && !(n === "Coach" && role === "player")) return n;
+  const email = String((m && m.email) || "").trim();
+  const local = email.split("@")[0] || "";
+  if (/[._-]/.test(local)) {
+    return local.replace(/[._-]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
+  }
+  return role === "player" ? "Player" : (n || "Coach");
 }
 
 function paintInviteExpired(){
@@ -1812,14 +1824,15 @@ async function renderTeam(){
   const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+roster.length+' joined · '+invites.length+' pending)</div></div>');
   const me = (await Cloud.user()); const myId = me ? me.id : null;
   roster.forEach(m=>{
+    const shown = rosterDisplayName(m);
     const row=el('<div class="ogm-mem"></div>');
-    row.appendChild(el('<span class="nm">'+esc(m.full_name||m.email||"—")+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
+    row.appendChild(el('<span class="nm">'+esc(shown)+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
     if(isAdmin() && m.role!=="owner"){
       const rs=document.createElement("select"); rs.className="ogm-sel"; rs.style.minWidth="120px";
       ALL_ROLES.filter(([v])=>v!=="owner").forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===m.role)o.selected=true;rs.appendChild(o);});
       rs.onchange=async()=>{ try{ await Cloud.setMemberRole(TEAM.id,m.user_id,rs.value); }catch(e){ alert(e.message); renderTeam(); } };
       row.appendChild(rs);
-      const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+(m.full_name||m.email)+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(e.message);} }; row.appendChild(rm);
+      const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(e.message);} }; row.appendChild(rm);
     } else {
       row.appendChild(el('<span class="ogm-badge">'+roleLabel(m.role)+'</span>'));
     }

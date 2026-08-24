@@ -1,6 +1,6 @@
 /* OFFGRD shared auth modal — sign in / create account / forgot / change password.
    Self-contained (own styles). Used by the apps (via OFFGRD-account.js) and the landing page. */
-import { Cloud } from "./OFFGRD-cloud.js?v=329";
+import { Cloud } from "./OFFGRD-cloud.js?v=330";
 
 let root = null;
 function injectStyles(){
@@ -50,6 +50,11 @@ function ensure(){
       <label class="oga-f" for="ogaPw2">Confirm new password</label>
       <input class="oga-in" id="ogaPw2" type="password" autocomplete="new-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022">
     </div>
+    <div id="ogaNameBlock" style="display:none">
+      <label class="oga-f" for="ogaMyName">Your name</label>
+      <input class="oga-in" id="ogaMyName" type="text" autocomplete="name" placeholder="Coach Smith">
+      <button type="button" class="oga-link" id="ogaSaveName" style="margin-top:8px">Save name</button>
+    </div>
     <div id="ogaProgramBlock" style="display:none">
       <label class="oga-f" for="ogaCoachName">Your name</label>
       <input class="oga-in" id="ogaCoachName" type="text" autocomplete="name" placeholder="Coach Smith">
@@ -80,6 +85,7 @@ function paint(){
         alt=root.querySelector("#ogaAlt"), pw=root.querySelector("#ogaPw"),
         pwBlock=root.querySelector("#ogaPwBlock"), pw2Block=root.querySelector("#ogaPw2Block"),
         progBlock=root.querySelector("#ogaProgramBlock"),
+        nameBlock=root.querySelector("#ogaNameBlock"),
         forgotRow=root.querySelector("#ogaForgotRow"), emailEl=root.querySelector("#ogaEmail"),
         emailLbl=root.querySelector("#ogaEmailLbl"),
         pwLbl=root.querySelector("#ogaPwLbl");
@@ -90,6 +96,7 @@ function paint(){
   pw2Block.style.display = "none";
   pwBlock.style.display = "";
   if(progBlock) progBlock.style.display = "none";
+  if(nameBlock) nameBlock.style.display = "none";
   forgotRow.style.display = "none";
 
   const forgotBtn=root.querySelector("#ogaForgot");
@@ -127,8 +134,9 @@ function paint(){
     alt.innerHTML="";
   } else if(mode==="account"){
     t.textContent="Account";
-    sub.textContent="Change your password, or email yourself a reset link.";
+    sub.textContent="Your name is what the staff list shows. Change your password here too.";
     go.textContent="Update password";
+    if(nameBlock) nameBlock.style.display = "";
     pw.autocomplete="new-password";
     pwLbl.textContent="New password";
     pw2Block.style.display="";
@@ -319,8 +327,28 @@ export async function openAccountModal(){
   root.querySelector("#ogaPw").value = "";
   root.querySelector("#ogaPw2").value = "";
   bindSubmit();
+  const nameEl=root.querySelector("#ogaMyName");
+  const saveName=root.querySelector("#ogaSaveName");
+  if(nameEl){
+    nameEl.value="";
+    try{
+      if(Cloud.myName) nameEl.value = await Cloud.myName();
+    }catch(e){}
+  }
+  if(saveName){
+    saveName.onclick=async()=>{
+      const nm=(nameEl && nameEl.value || "").trim();
+      if(!nm || nm.length<2){ setErr("Enter your name."); return; }
+      saveName.disabled=true; setErr("");
+      try{
+        await Cloud.setMyName(nm);
+        setErr("Name saved. The staff list will show "+nm+".", true);
+      }catch(e){ setErr(e.message||"Could not save your name."); }
+      saveName.disabled=false;
+    };
+  }
   root.classList.add("show");
-  setTimeout(()=>root.querySelector("#ogaPw").focus(),30);
+  setTimeout(()=>{ const el=root.querySelector("#ogaMyName")||root.querySelector("#ogaPw"); if(el) el.focus(); },30);
 }
 
 try{ window.openOffgrdAccountModal = openAccountModal; }catch(e){}
