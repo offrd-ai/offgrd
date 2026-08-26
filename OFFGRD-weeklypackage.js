@@ -260,6 +260,8 @@
 
   function playHasDiagram(play) {
     if (!play) return false;
+    if (root.OFFGRD_PLAY_STUBS && OFFGRD_PLAY_STUBS.isTeachable) return !!OFFGRD_PLAY_STUBS.isTeachable(play);
+    if (play.stub || play.needsDiagram) return false;
     if (root.OFFGRD_SCOUTCARDS && OFFGRD_SCOUTCARDS.hasDiagram) return !!OFFGRD_SCOUTCARDS.hasDiagram(play);
     if (play.thumbSvg) return true;
     const st = play.players ? play : (play.data && play.data.players ? play.data : null);
@@ -855,8 +857,12 @@
 
     const si = host.querySelector("#wkpkgScoutInstall");
     if (si && root.OFFGRD_SCOUTCARDS) si.onclick = () => {
+      const rawLib = ctx.playbook || root.PBOOK || [];
+      const installLib = (root.OFFGRD_PLAY_STUBS && root.OFFGRD_PLAY_STUBS.teachablePlays)
+        ? root.OFFGRD_PLAY_STUBS.teachablePlays(rawLib)
+        : rawLib;
       root.OFFGRD_SCOUTCARDS.openModal({
-        installLib: ctx.playbook || root.PBOOK || [],
+        installLib: installLib,
         games: ctx.games || root.GAMES || [],
         opponent: null,
         format: "install"

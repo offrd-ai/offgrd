@@ -74,6 +74,7 @@
       pendingTry: false,
       forTwo: false,
       needReason: null,
+      namedCall: null,
     };
   }
 
@@ -1277,6 +1278,57 @@
     );
   }
 
+  function namedDCalls() {
+    var Stubs = global.OFFGRD_PLAY_STUBS;
+    var book = Array.isArray(global.PBOOK) ? global.PBOOK : [];
+    if (Stubs && Stubs.filterBySide) book = Stubs.filterBySide(book, "defense");
+    if (Stubs && Stubs.shouldHideStarter) {
+      book = book.filter(function (p) { return !Stubs.shouldHideStarter(p, book); });
+    }
+    return book.filter(function (p) { return p && p.name; });
+  }
+
+  function callNamedPlay(name) {
+    var nm = String(name || "").trim();
+    if (!nm) return;
+    if (sit.namedCall === nm) sit.namedCall = null;
+    else {
+      sit.namedCall = nm;
+      var book = namedDCalls();
+      for (var i = 0; i < book.length; i++) {
+        if (String(book[i].name || "").toLowerCase() === nm.toLowerCase()) {
+          if (book[i].front) sit.front = book[i].front;
+          if (book[i].coverage) sit.coverage = book[i].coverage;
+          if (book[i].personnel && book[i].personnel !== "none") sit.pressure = book[i].personnel;
+          break;
+        }
+      }
+    }
+    saveLocal();
+    render();
+  }
+
+  function namedCallHtml() {
+    var book = namedDCalls();
+    if (!book.length) return "";
+    var Stubs = global.OFFGRD_PLAY_STUBS;
+    var h = `<div class="rd-gd-sheet rd-dc-named no-print" style="margin-top:10px">`;
+    h += `<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">Your D calls</span></div>`;
+    h += `<p class="foot" style="margin:4px 0 8px">From your playbook. Names are enough to call — diagrams can wait.</p>`;
+    h += `<div class="rd-gd-sheet-list">`;
+    book.slice(0, 24).forEach(function (p) {
+      var on = sit.namedCall === p.name;
+      var stub = Stubs && Stubs.isStub && Stubs.isStub(p);
+      var escN = String(p.name).replace(/'/g, "");
+      h += `<button type="button" class="rd-gd-sheet-row${on ? " oncall" : ""}" onclick="OFFGRD_DCALLER.callNamed('${escN}')">`;
+      h += `<span class="nm">${esc(p.name)}</span>`;
+      if (stub) h += `<span class="foot">needs diagram</span>`;
+      h += `<span class="cta">${on ? "On call" : "Call"}</span></button>`;
+    });
+    h += `</div></div>`;
+    return h;
+  }
+
   function defBook() {
     try {
       if (typeof callerDefPlaybook === "function") return callerDefPlaybook();
@@ -1676,6 +1728,7 @@
       coverage: sit.coverage || "",
       front: sit.front || "",
       pressure: sit.pressure || "",
+      dCall: sit.namedCall || "",
       opponent: sess.opp,
       date: sessionDate(),
       side: "defense",
@@ -2985,6 +3038,7 @@
           "Front · Coverage · Blitz/Stunt · optional · clears after each snap"
         );
         h += lookHtml();
+        h += namedCallHtml();
         h += stRowHtml();
         h += `</div>`;
       }
@@ -3048,6 +3102,7 @@
     logTry: logTry,
     startTwoPoint: startTwoPoint,
     skipTry: skipTry,
+    callNamed: callNamedPlay,
     jumpResult: function () {
       jump("dcaller-result-anchor", true);
     },

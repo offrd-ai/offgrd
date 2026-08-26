@@ -40,6 +40,8 @@
 
   function hasDiagram(play) {
     if (!play) return false;
+    if (root.OFFGRD_PLAY_STUBS && OFFGRD_PLAY_STUBS.isTeachable) return !!OFFGRD_PLAY_STUBS.isTeachable(play);
+    if (play.stub || play.needsDiagram) return false;
     if (play.thumbSvg) return true;
     if (root.OFFGRD_RENDER && OFFGRD_RENDER.hasPlayData) return OFFGRD_RENDER.hasPlayData(play);
     const st = play.players || play.defs ? play : (play.data && (play.data.players || play.data.defs) ? play.data : null);

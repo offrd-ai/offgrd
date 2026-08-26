@@ -41,6 +41,12 @@
  .plays{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
  .playrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13px}
  .playrow .nm{font-weight:800}.playrow .tag{color:var(--muted);font-size:11px}.playrow .sp{flex:1}
+ .stub-badge{display:inline-block;background:#fff4d6;border:1px solid #e6c86a;color:#7a5b00;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.3px;text-transform:uppercase}
+ #stubPrev{font-size:14px;font-weight:700;color:var(--navy);margin:10px 0 6px;line-height:1.45}
+ #stubList{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:8px}
+ #stubList .stub-row{display:flex;justify-content:space-between;gap:8px;padding:4px 2px;font-size:13px}
+ #stubList .stub-row.exists{color:var(--muted)}
+ #stubSheet{width:100%;min-height:160px;resize:vertical}
  .playrow .th{width:72px;height:46px;flex:0 0 auto;border-radius:6px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
  .playrow .th svg{width:100%;height:100%;display:block;border-radius:0}
  .libtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
@@ -72,9 +78,9 @@
  #fieldDockWrap{display:flex;flex-direction:column;gap:10px}
  #fieldCol{min-width:0;flex:1 1 auto}
  #pbSideBar{display:flex;align-items:center;gap:8px;margin:0 0 8px;position:relative;flex:0 0 auto}
- #pbSideBar .pb-side-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
- #pbSideBar .pb-side-seg .btn{border:0;border-radius:0;min-width:108px;padding:6px 12px;font-size:12px}
- #pbSideBar .pb-side-seg .btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+ #pbSideBar .pb-side-seg,.pb-side-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+ #pbSideBar .pb-side-seg .btn,.pb-side-seg .btn{border:0;border-radius:0;min-width:108px;padding:6px 12px;font-size:12px}
+ #pbSideBar .pb-side-seg .btn.on,.pb-side-seg .btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
  body.pb-side-defense #m-family-wrap{display:none!important}
  #pbDock{display:none;position:relative;flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
  #pbDock .row{margin-top:4px}
@@ -109,6 +115,7 @@
 <script src="OFFGRD-formations-data.js?v=333"></script>
 <script src="OFFGRD-formation-canon.js?v=333"></script>
 <script src="OFFGRD-play-map.js?v=333"></script>
+<script src="OFFGRD-play-stubs.js?v=333"></script>
 <script src="OFFGRD-formation-map.js?v=333"></script>
 <script src="OFFGRD-render.js?v=333"></script>
 <script src="OFFGRD-pb-dock.js?v=333"></script>
@@ -303,7 +310,9 @@
  <button class="btn nav" id="telestrateBtn" title="Draw on film &middot; still-frame telestration">Film</button>
  <button class="btn" id="exportLib">Export playbook</button>
  <button class="btn" id="importLib">Import playbook</button>
+ <button class="btn nav" id="stubSheetBtn" title="Paste names from your existing call sheet">Add plays from your call sheet</button>
  <input type="file" id="libFile" accept=".json" style="display:none">
+ <input type="file" id="stubCsvFile" accept=".csv,text/csv,text/plain" style="display:none">
  </div>
  <p class="hint" id="saveMsg" style="margin-top:8px"></p>
  </div>
@@ -324,6 +333,26 @@
  </div>
 
 <div class="ov" id="installModal"><div class="ovbox"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Install plan</b><div><button class="btn" onclick="window.print()">Print</button> <button class="btn" id="installClose">Close</button></div></div><p class="hint" style="margin:6px 0">Generated from your saved plays, grouped by series, base series first, ~6 installs per day.</p><div id="installBody"></div></div></div>
+<div class="ov" id="stubSheetModal"><div class="ovbox" style="max-width:560px">
+ <div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Add plays from your call sheet</b><button class="btn" id="stubSheetClose">Close</button></div>
+ <p class="hint" style="margin:8px 0 10px">Paste one play per line. A name with a concept word — <b>SMASH, MESH, FLOOD, VERTS, STICK, CURL</b> — ranks in the Caller immediately, no drawing needed. House names (Houston, Mallet, Karate Combo) get the same if you add the concept in the second column: <b>Houston, Flood</b>. That column is concept/family. Free-form tags do nothing here. Diagrams can wait.</p>
+ <div class="row" style="margin-bottom:8px">
+  <span class="lbl" style="margin:0">Side</span>
+  <div class="pb-side-seg" id="stubSideSeg">
+   <button type="button" class="btn on" id="stubSideOff" data-side="offense">Offense</button>
+   <button type="button" class="btn" id="stubSideDef" data-side="defense">Defense</button>
+  </div>
+  <button type="button" class="btn" id="stubCsvBtn">Upload CSV</button>
+ </div>
+ <textarea id="stubSheet" placeholder="12. SMASH 2x2&#10;Mesh&#10;Houston, Flood&#10;Mallet, Stick"></textarea>
+ <p class="hint" style="margin:6px 0 0">CSV columns: play name, then optional <b>concept/family</b>. Never required. Numbers and bullets on the name are fine.</p>
+ <p id="stubPrev"></p>
+ <div id="stubList" hidden></div>
+ <div class="row" style="justify-content:flex-end;margin-top:10px">
+  <button class="btn" id="stubSheetCancel">Cancel</button>
+  <button class="btn go" id="stubSheetCommit" disabled>Add plays</button>
+ </div>
+</div></div>
 
 <div class="ov" id="wizModal"><div class="ovbox" style="max-width:640px">
  <div class="row" style="justify-content:space-between;align-items:center">
@@ -1286,8 +1315,15 @@ function savePlay(){
  if(STATE.side==="defense") STATE.type=STATE.type||"defense";
  const copy=JSON.parse(JSON.stringify(STATE));
  copy.bg=null; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
- copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
- try{ copy.thumbSvg=leanThumb(copy); }catch(e){ copy.thumbSvg=""; }
+ try{ if(window.OFFGRD_PLAY_STUBS&&OFFGRD_PLAY_STUBS.upgradeIfDrawn) OFFGRD_PLAY_STUBS.upgradeIfDrawn(copy); }catch(e){}
+ /* Seeded formation for drawing is not a diagram. Persist name-only until routes/drops exist. */
+ if(window.OFFGRD_PLAY_STUBS&&OFFGRD_PLAY_STUBS.isStub&&OFFGRD_PLAY_STUBS.isStub(copy)){
+  copy.players=[]; copy.defs=[]; copy.draws=[]; copy.thumbSvg="";
+  copy.stub=true; copy.needsDiagram=true;
+ }else{
+  (copy.players||[]).forEach(p=>{p.asnAuto=autoAsn(p)||null;});
+  try{ copy.thumbSvg=leanThumb(copy); }catch(e){ copy.thumbSvg=""; }
+ }
  if(isOppCardPlay(copy)){
   copy.cardStatus="drawn";
   if(window.OFFGRD_OPP_SHELLS&&OFFGRD_OPP_SHELLS.tagOppCard) OFFGRD_OPP_SHELLS.tagOppCard(copy, copy.opponent, copy.shellKey);
@@ -1313,17 +1349,36 @@ function savePlay(){
  saveLib(); refreshLibUI(); clearDraft();
  msg((i>=0?"Updated ":"Saved ")+STATE.name+".");
 }
+function seedStubCanvas(){
+ if(!STATE) return;
+ const stubApi=window.OFFGRD_PLAY_STUBS;
+ const stub=stubApi&&stubApi.isStub&&stubApi.isStub(STATE);
+ if(!stub) return;
+ const hasOff=Array.isArray(STATE.players)&&STATE.players.length;
+ const hasDef=Array.isArray(STATE.defs)&&STATE.defs.length;
+ if(EDIT_SIDE==="defense"){
+  if(!hasDef && window.OFFGRD_RENDER&&OFFGRD_RENDER.placeDefenseOn) OFFGRD_RENDER.placeDefenseOn(STATE, STATE.front||"4-3", STATE.coverage||"none");
+  return;
+ }
+ if(hasOff) return;
+ const form=STATE.formation||"2x2 Doubles (Gun)";
+ const f=(FORMS[form]||FORMS["2x2 Doubles (Gun)"])();
+ STATE.players=f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]}));
+ if(!STATE.formation) STATE.formation=form;
+}
 function loadPlayId(id){
  const i=LIB.findIndex(p=>p.id===id); if(i<0) return;
  STATE=JSON.parse(JSON.stringify(LIB[i]));
  if(!STATE.id) STATE.id=uuid();
  if(!Array.isArray(STATE.tags)) STATE.tags=[];
  SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim();
- EDIT_SIDE=playSide(STATE);
+ EDIT_SIDE=playSide(STATE)||"offense";
+ seedStubCanvas();
  persistEditSide(); writeMeta(); paintSideChips(); paintSideChrome(); syncDefSels(); renderAll(); _dockSelKey=null; renderDock();
  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ? don't rewrite blank/identical draft */
  markClean();
- msg("Loaded "+STATE.name+".");
+ const stubApi=window.OFFGRD_PLAY_STUBS;
+ msg((stubApi&&stubApi.isStub&&stubApi.isStub(LIB[i])?"Loaded "+STATE.name+" — needs a diagram.":"Loaded "+STATE.name+"."));
 }
 function loadPlay(i){ if(LIB[i]) loadPlayId(LIB[i].id); }
 function dupPlayId(id){
@@ -1389,7 +1444,7 @@ function renderLib(){
  const own=memberLib();
  document.getElementById("playCount").textContent=own.length;
  const host=document.getElementById("playList");
- if(!own.length){host.innerHTML='<p class="hint">No plays saved yet. Draw one, name it, and Save.</p>';return;}
+ if(!own.length){host.innerHTML='<p class="hint">No plays saved yet. Paste your call sheet, or draw one, name it, and Save.</p>';return;}
  const list=filteredLib();
  if(!list.length){host.innerHTML='<p class="hint">No plays match your search/filters.</p>';return;}
  host.innerHTML=list.map(p=>{
@@ -1398,16 +1453,80 @@ function renderLib(){
  const grp=p.group?` \u00b7 ${esc(p.group)}`:"";
  const side=playSide(p);
  const sideBadge=side==="defense"?`<span class="tag" style="color:var(--navy);font-weight:900">Defense</span>`:(side==="offense"?`<span class="tag">Offense</span>`:`<span class="tag"></span>`);
+ const stubApi=window.OFFGRD_PLAY_STUBS;
+ const needsDiagram=stubApi&&stubApi.isStub&&stubApi.isStub(p);
+ const stubBadge=needsDiagram?` <span class="stub-badge">Needs diagram</span>`:"";
  const meta=side==="defense"?[p.front||p.formation,p.coverage||p.family,p.personnel].filter(Boolean):[p.formation,p.family,p.personnel];
- return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
+ return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}${stubBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
  }).join("");
  host.querySelectorAll("button[data-act]").forEach(b=>{
  b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
  });
 }
 function refreshLibUI(){ mergeDefCallsFromCache(); fillLibFilters(); renderLib(); }
-function buildInstall(){ if(!memberLib().length){msg("Save some plays first to build an install.");return;}
- const groups={}; memberLib().forEach(p=>{const k=(p.series||p.family||"Unsorted");(groups[k]=groups[k]||[]).push(p);});
+let _stubSide="offense", _stubPreview=null, _stubFromCsv=false;
+function stubApi(){ return window.OFFGRD_PLAY_STUBS||null; }
+function stubSheetSide(){ return _stubSide==="defense"?"defense":"offense"; }
+function paintStubSide(){
+ const off=document.getElementById("stubSideOff"), def=document.getElementById("stubSideDef");
+ if(off) off.classList.toggle("on", _stubSide==="offense");
+ if(def) def.classList.toggle("on", _stubSide==="defense");
+}
+function refreshStubPreview(){
+ const S=stubApi(); const ta=document.getElementById("stubSheet");
+ const prevEl=document.getElementById("stubPrev"); const list=document.getElementById("stubList");
+ const go=document.getElementById("stubSheetCommit");
+ if(!S||!ta||!prevEl) return;
+ const parsed=_stubFromCsv?S.parseCallSheetCsv(ta.value):S.parseCallSheetText(ta.value);
+ _stubPreview=S.previewStubs(parsed, memberLib(), stubSheetSide());
+ prevEl.textContent=S.previewSentence(_stubPreview);
+ if(list){
+  if(!_stubPreview.rows.length){ list.hidden=true; list.innerHTML=""; }
+  else {
+   list.hidden=false;
+   list.innerHTML=_stubPreview.rows.map(function(r){
+    const hint=(r.family?esc(r.family):"");
+    return `<div class="stub-row ${r.status}"><span>${esc(r.name)}${hint?" <span class=\"tag\">concept/family: "+hint+"</span>":""}</span><span class="tag">${r.status==="exists"?"already in book":"will add"}</span></div>`;
+   }).join("");
+  }
+ }
+ if(go) go.disabled=!(_stubPreview.willAdd>0);
+}
+function openStubSheet(){
+ _stubFromCsv=false; _stubPreview=null;
+ const ov=document.getElementById("stubSheetModal"); const ta=document.getElementById("stubSheet");
+ if(ta) ta.value="";
+ paintStubSide(); refreshStubPreview();
+ if(ov) ov.classList.add("show");
+ if(ta) ta.focus();
+}
+function closeStubSheet(){
+ const ov=document.getElementById("stubSheetModal"); if(ov) ov.classList.remove("show");
+}
+function commitStubSheet(){
+ const S=stubApi(); if(!S||!_stubPreview||!_stubPreview.willAdd) return;
+ const side=stubSheetSide();
+ let added=0;
+ _stubPreview.rows.forEach(function(r){
+  if(r.status!=="new") return;
+  const stub=S.makeStub(r.name, side, r.family, uuid());
+  LIB.push(stub); added++;
+ });
+ saveLib(); refreshLibUI(); dismissStarterPrompt();
+ closeStubSheet();
+ msg(S.previewSentence(_stubPreview)+" Saved "+added+".");
+}
+function applyStubCsvText(text){
+ const ta=document.getElementById("stubSheet");
+ if(ta) ta.value=text||"";
+ _stubFromCsv=true;
+ refreshStubPreview();
+}
+function buildInstall(){
+ const stubApi=window.OFFGRD_PLAY_STUBS;
+ const teach=memberLib().filter(function(p){ return stubApi&&stubApi.isTeachable?stubApi.isTeachable(p):true; });
+ if(!teach.length){msg("Draw some plays first to build an install. Name-only stubs stay off the install until they have a diagram.");return;}
+ const groups={}; teach.forEach(p=>{const k=(p.series||p.family||"Unsorted");(groups[k]=groups[k]||[]).push(p);});
  const order=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
  let html="",day=1,count=0;const perDay=6;
  order.forEach(g=>{ html+=`<div class="lbl" style="margin-top:12px">${esc(g)} <span style="color:var(--muted)">(${groups[g].length})</span></div>`;
@@ -1444,6 +1563,7 @@ function starterLib(){
  copy.players.forEach(p=>{p.asnAuto=autoAsn(p)||null;});
  if(!copy.id) copy.id=uuid();
  copy.tags=copy.tags||[]; copy.updatedAt=Date.now(); copy.key=nfKey(copy);
+ copy.starter=true; copy.stub=false; copy.needsDiagram=false;
  try{ copy.thumbSvg=leanThumb(copy); }catch(e){}
  out.push(copy);
  };
@@ -1682,10 +1802,11 @@ function offerStarter(opts){
  if(document.getElementById("pbStarterOv")) return;
  const ov=document.createElement("div"); ov.id="pbStarterOv"; ov.className="ov show"; ov.style.zIndex=9998;
  ov.innerHTML='<div class="ovbox" style="max-width:500px"><b style="font-size:18px;color:var(--navy)">Start with a playbook, not a blank page</b>'
- +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book \u00b7 <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don\u2019t run. If you\u2019re signed in, they sync to your whole program automatically.</p>'
- +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
+ +'<p class="hint" style="margin:8px 0 4px">Load the OFFGRD starter book \u00b7 <b>12 tagged spread-gun plays</b>: quick game, dropback concepts, a screen, and zone &amp; power runs. Rename them to your terminology, delete what you don\u2019t run. Or paste your own call sheet — names first, diagrams later.</p>'
+ +'<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="stSkip">Start blank</button><button class="btn" id="stPaste">Paste call sheet</button><button class="btn go" id="stGo">Load starter playbook</button></div></div>';
  document.body.appendChild(ov);
  ov.querySelector("#stSkip").onclick=function(){ dismissStarterPrompt(); };
+ ov.querySelector("#stPaste").onclick=function(){ dismissStarterPrompt(); openStubSheet(); };
  ov.querySelector("#stGo").onclick=function(){
  if(libraryHasPlays()){ dismissStarterPrompt(); msg("Your team playbook already loaded from the cloud."); return; }
  LIB=starterLib(); saveLib(); refreshLibUI();
@@ -1897,6 +2018,34 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
  document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
+ const stubBtn=document.getElementById("stubSheetBtn");
+ if(stubBtn) stubBtn.onclick=openStubSheet;
+ const stubClose=document.getElementById("stubSheetClose");
+ const stubCancel=document.getElementById("stubSheetCancel");
+ const stubCommit=document.getElementById("stubSheetCommit");
+ const stubOv=document.getElementById("stubSheetModal");
+ const stubTa=document.getElementById("stubSheet");
+ if(stubClose) stubClose.onclick=closeStubSheet;
+ if(stubCancel) stubCancel.onclick=closeStubSheet;
+ if(stubCommit) stubCommit.onclick=commitStubSheet;
+ if(stubOv) stubOv.onclick=function(e){ if(e.target.id==="stubSheetModal") closeStubSheet(); };
+ if(stubTa) stubTa.oninput=function(){ _stubFromCsv=false; refreshStubPreview(); };
+ const stubOff=document.getElementById("stubSideOff");
+ const stubDef=document.getElementById("stubSideDef");
+ if(stubOff) stubOff.onclick=function(){ _stubSide="offense"; paintStubSide(); refreshStubPreview(); };
+ if(stubDef) stubDef.onclick=function(){ _stubSide="defense"; paintStubSide(); refreshStubPreview(); };
+ const stubCsvBtn=document.getElementById("stubCsvBtn");
+ const stubCsvFile=document.getElementById("stubCsvFile");
+ if(stubCsvBtn&&stubCsvFile){
+  stubCsvBtn.onclick=function(){ stubCsvFile.click(); };
+  stubCsvFile.onchange=function(e){
+   const f=e.target.files&&e.target.files[0]; e.target.value="";
+   if(!f) return;
+   const rd=new FileReader();
+   rd.onload=function(){ applyStubCsvText(String(rd.result||"")); };
+   rd.readAsText(f);
+  };
+ }
  bootDock();
 });
 </script>

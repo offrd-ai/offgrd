@@ -170,8 +170,10 @@
   }
 
   function playHasDiagram(play) {
+    if (root.OFFGRD_PLAY_STUBS && OFFGRD_PLAY_STUBS.isTeachable) return !!OFFGRD_PLAY_STUBS.isTeachable(play);
+    if (play && (play.stub || play.needsDiagram)) return false;
     const d = (play && play.data) || play || {};
-    return !!(d && (d.players || d.defs));
+    return !!(d && ((Array.isArray(d.players) && d.players.length) || (Array.isArray(d.defs) && d.defs.length)));
   }
 
   /** Force auto-derive during approve (authored still wins via merge). Persist when Cloud is available. */

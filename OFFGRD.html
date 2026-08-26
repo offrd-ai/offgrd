@@ -410,6 +410,7 @@
 <script src="OFFGRD-opp-shells.js?v=333"></script>
 <script src="OFFGRD-formation-map.js?v=333"></script>
 <script src="OFFGRD-play-map.js?v=333"></script>
+<script src="OFFGRD-play-stubs.js?v=333"></script>
 <script src="OFFGRD-cv-review.js?v=333"></script>
 <script src="OFFGRD-frame-capture.js?v=333"></script>
 <script src="OFFGRD-caller-side.js?v=333"></script>
@@ -5620,7 +5621,28 @@ function callerRankedCalls(){
     widened:!!(ex.resolved&&ex.resolved.widened)||!!ex.widened
   };
   if(!target){
-    return Object.assign({ target:null, cov:ex.cov||null, list:[] }, baseMeta);
+    const Stubs=window.OFFGRD_PLAY_STUBS;
+    let book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+    if(Stubs&&Stubs.filterBySide) book=Stubs.filterBySide(book,"offense");
+    const ours0=(typeof gamesRows==="function")?gamesRows("ours"):[];
+    const evN={};
+    ours0.forEach(function(r){ if(r&&r.play) evN[r.play]=(evN[r.play]||0)+1; });
+    let list=book.filter(function(p){
+      return p&&p.name&&!(Stubs&&Stubs.shouldHideStarter&&Stubs.shouldHideStarter(p,book));
+    }).map(function(p){
+      const n=evN[p.name]||0;
+      const g=Stubs&&Stubs.rankGroup?Stubs.rankGroup(p,n,book):(n>=1?0:2);
+      const stub=!!(Stubs&&Stubs.isStub&&Stubs.isStub(p));
+      return {
+        play:p.name, playObj:p, sr:0, n:n, kind:"Pass", rankGroup:g, stub:stub,
+        basis:g===2?"stub":"on_paper",
+        basisLabel:g===2?"CALL SHEET":"SCHEME MATCH",
+        basisTip:g===2?"Name from your call sheet — no diagram yet. Call it; EV starts here.":null,
+        why:[]
+      };
+    });
+    if(Stubs&&Stubs.sortCallerEntries) list=Stubs.sortCallerEntries(list, book);
+    return Object.assign({}, baseMeta, { target:null, cov:ex.cov||null, list:list, terminal:true });
   }
   const M=window.OFFGRD_MATCHUP;
   if(!M || typeof M.rankPlaysByEv!=="function"){
@@ -5637,11 +5659,15 @@ function callerRankedCalls(){
     ? shrunkDist(g,"coverage",def,5)
     : {arr: ex.cov ? [ex.cov] : []};
   const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
-  const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+  const Stubs=window.OFFGRD_PLAY_STUBS;
+  let book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+  if(Stubs&&Stubs.filterBySide) book=Stubs.filterBySide(book,"offense");
   const byName={};
   book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
   const names=uniq(book.map(p=>p&&p.name).concat(ours.map(r=>r&&r.play)));
-  const candidates=names.map(nm=> byName[nm] || { name:nm });
+  const candidates=names.map(nm=> byName[nm] || { name:nm }).filter(function(p){
+    return !(Stubs&&Stubs.shouldHideStarter&&Stubs.shouldHideStarter(p, book));
+  });
   const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
   const gi=(typeof gameOrderIndex==="function")?gameOrderIndex():null;
   const dbF=callerDbFilter(cs.db, cs.estYards);
@@ -5659,21 +5685,30 @@ function callerRankedCalls(){
     }
   };
   let ranked=[];
-  try{ ranked=M.rankPlaysByEv(candidates, covDist, ours, opts); }catch(e){ ranked=[]; }
-  const list=ranked.map(r=>{
+  try{ ranked=M.rankPlaysByEv(candidates, covDist, ours, Object.assign({}, opts, { limit:200 })); }catch(e){ ranked=[]; }
+  let list=ranked.map(r=>{
     const nm=r.name||(r.play&&r.play.name)||"?";
+    const playObj=r.play||byName[nm]||{ name:nm };
     const kind=(typeof playKind==="function")?playKind(nm):"Pass";
+    const n=r.n||0;
+    const g=Stubs&&Stubs.rankGroup?Stubs.rankGroup(playObj,n,book):((n>=1)?0:1);
+    const stub=!!(Stubs&&Stubs.isStub&&Stubs.isStub(playObj));
     return {
       play:nm,
+      playObj:playObj,
       sr: r.ev,
-      n: r.n||0,
+      n: n,
       kind:kind,
-      basis: r.basis||"on_paper",
-      basisLabel: r.basisLabel||"SCHEME MATCH",
-      basisTip: r.basisTip||null,
+      rankGroup:g,
+      stub:stub,
+      basis: g===2?"stub":(r.basis||"on_paper"),
+      basisLabel: g===2?"CALL SHEET":(r.basisLabel||"SCHEME MATCH"),
+      basisTip: g===2?"Name from your call sheet — no diagram yet. Call it; EV starts here.":(r.basisTip||null),
       why: r.why||[]
     };
-  }).sort((a,b)=>{
+  });
+  if(Stubs&&Stubs.sortCallerEntries) list=Stubs.sortCallerEntries(list, book);
+  else list.sort((a,b)=>{
     const d=(b.sr||0)-(a.sr||0);
     if(Math.abs(d)>0.03) return d;
     const aOk=(a.n||0)>=3, bOk=(b.n||0)>=3;
@@ -5686,6 +5721,9 @@ function callerRankedCalls(){
 function callerCallReason(entry, cov, conf){
   if(!entry) return "";
   const pct=Math.round((entry.sr||0)*100)+"%";
+  if(entry.basis==="stub" || entry.basisLabel==="CALL SHEET"){
+    return entry.n ? `EV ${pct} · from your call sheet` : `From your call sheet · needs diagram`;
+  }
   if(entry.basis==="on_paper" || entry.basisLabel==="SCHEME MATCH"){
     return `EV ${pct} · SCHEME MATCH`;
   }
@@ -5755,9 +5793,17 @@ function callerCallSheetHtml(){
     if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
   } else if(ranked.list.length){
     /* No authored bucket for this down/distance · surface the suggester's ranked list as the sheet. */
-    h+=`<p class="rd-gd-sheet-sub">No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} · best from your reps:</p>`;
+    const stubN=ranked.list.filter(function(r){ return r.stub||r.rankGroup===2; }).length;
+    const sheetSub=stubN&&stubN===ranked.list.length
+      ? "From your call sheet — names are enough to call. Diagrams can wait."
+      : `No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} · best from your reps:`;
+    h+=`<p class="rd-gd-sheet-sub">${sheetSub}</p>`;
     h+=`<div class="rd-gd-sheet-list">`;
-    ranked.list.slice(0,6).forEach((r)=>{
+    const evList=ranked.list.filter(function(r){ return (r.n||0)>=1||r.rankGroup===1; }).slice(0,6);
+    const stubList=ranked.list.filter(function(r){ return r.stub||r.rankGroup===2; }).slice(0,24);
+    const shown=[]; const seen={};
+    evList.concat(stubList).forEach(function(r){ if(r&&r.play&&!seen[r.play]){ seen[r.play]=1; shown.push(r); } });
+    (shown.length?shown:ranked.list.slice(0,12)).forEach((r)=>{
       const nm=r.play; const on=live&&live.play===nm;
       h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>${markFor(r)}<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
@@ -5818,7 +5864,10 @@ function _callerPBBuild(query){
 function _callerPBRenderList(query){
   const list=document.getElementById("callerPBList"); if(!list) return;
   const S=callerSelect();
-  const pbook=Array.isArray(PBOOK)?PBOOK:[];
+  const Stubs=window.OFFGRD_PLAY_STUBS;
+  let pbook=Array.isArray(PBOOK)?PBOOK:[];
+  if(Stubs&&Stubs.filterBySide) pbook=Stubs.filterBySide(pbook,"offense");
+  if(Stubs&&Stubs.shouldHideStarter) pbook=pbook.filter(function(p){ return !Stubs.shouldHideStarter(p, pbook); });
   let items=(S&&S.searchPlaybook)?S.searchPlaybook(pbook,query):pbook.slice();
   if(_callerPBFilter) items=items.filter(p=>String((p&&(p.family||p.type))||"").toLowerCase()===_callerPBFilter.toLowerCase());
   items=items.slice(0,60);

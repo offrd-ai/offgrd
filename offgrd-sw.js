@@ -56,6 +56,7 @@ var PRECACHE = [
   "./OFFGRD-opp-shells.js?v=" + ASSET_V,
   "./OFFGRD-formation-map.js?v=" + ASSET_V,
   "./OFFGRD-play-map.js?v=" + ASSET_V,
+  "./OFFGRD-play-stubs.js?v=" + ASSET_V,
   "./OFFGRD-qb-offline-queue.js?v=" + ASSET_V,
   "./OFFGRD-qb-cloud.js?v=" + ASSET_V,
   "./OFFGRD-role-gate.js?v=" + ASSET_V,

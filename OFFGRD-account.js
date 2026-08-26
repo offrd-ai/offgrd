@@ -2174,12 +2174,17 @@ window.OFFGRD_WEEK_PLAYS=async function(){
       var p=Object.assign({}, r.data||{}, r);
       if(window.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.isOppCardPlay) return !OFFGRD_OPP_SHELLS.isOppCardPlay(p);
       return !(p.shellKey && p.opponent);
-    }).map(r=>({
+    }).map(r=>{
+      var p=Object.assign({}, r.data||{}, r);
+      return {
       id:r.id, name:r.name||"Play", formation:r.formation||"", family:r.family||"",
       personnel:r.personnel||"", protection:r.protection||"",
       data:r.data||null, qb_reads:r.qb_reads||null, ol_keys:r.ol_keys||null,
-      thumbSvg:r.thumbSvg||r.thumb_svg||null
-    }));
+      thumbSvg:r.thumbSvg||r.thumb_svg||null,
+      side:p.side||"", stub:!!p.stub, needsDiagram:!!p.needsDiagram, starter:!!p.starter,
+      tags:Array.isArray(p.tags)?p.tags:[], players:p.players||[], defs:p.defs||[]
+      };
+    });
   }catch(e){ return []; }
 };
 

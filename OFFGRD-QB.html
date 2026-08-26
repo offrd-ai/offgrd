@@ -30,6 +30,7 @@
 <script src="OFFGRD-align-key.js?v=333"></script>
 <script src="OFFGRD-pos-glossary.js?v=333"></script>
 <script src="OFFGRD-autoderive.js?v=333"></script>
+<script src="OFFGRD-play-stubs.js?v=333"></script>
 <script src="OFFGRD-redesign.js?v=333"></script>
 <script src="OFFGRD-shell.js?v=333"></script>
 <style>
@@ -874,6 +875,9 @@ async function loadCustom(){
  if(!(window.QB&&window.QB.ready)) return;
  try{ const rows=await window.QB.plays();
  CUSTOM=(rows||[]).map(r=>{
+ const stubApi=window.OFFGRD_PLAY_STUBS;
+ const play=r.data||r;
+ if(stubApi&&stubApi.isTeachable&&!stubApi.isTeachable(play)) return null;
  let reads=r.qb_reads&&Object.keys(r.qb_reads).length?r.qb_reads:null;
  /* Step 3: session-fill empty reads from the drawn play when flag on (never overwrites authored) */
  if(!reads && window.OFFGRD_AUTODERIVE && OFFGRD_AUTODERIVE.isAutoderive()){
