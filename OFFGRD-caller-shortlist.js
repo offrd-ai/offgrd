@@ -1,8 +1,11 @@
 /**
- * OFFGRD-caller-shortlist.js — at most 5, ≥60%, ≥ MIN_SNAPS, run/pass guarantee.
+ * OFFGRD-caller-shortlist.js — at most 5, history before theory.
  *
- * Floor wins over cap. Thin samples never wear a success badge.
- * Pure, DOM-free, testable. No network.
+ * A play with snaps in the situation surfaces with its real numbers,
+ * good or bad, before any concept match. MIN_SNAPS gates the % badge
+ * only — thin samples still show ("2 snaps · not enough to rank").
+ * SUCCESS_FLOOR is the "best calls" label, not a hide rule.
+ * Concept match is for plays with no record. Pure, DOM-free, no network.
  */
 (function (global) {
   "use strict";
@@ -90,26 +93,49 @@
     return e.name || "";
   }
 
+  function snapN(e) {
+    return +((e && e.n) || 0);
+  }
+
+  function empSr(e) {
+    if (!e) return 0;
+    if (e.empSr != null && e.empSr !== "") return +e.empSr;
+    if (e.success != null && e.success !== "") return +e.success;
+    var lab = String(e.basisLabel || "");
+    var m = lab.match(/SUCCESS\s+(\d+)\s*%/i);
+    if (m) return +m[1] / 100;
+    if (snapN(e) >= 1 && e.basis === "empirical") return +(e.sr || 0);
+    return 0;
+  }
+
+  function hasRecord(e) {
+    return snapN(e) >= 1;
+  }
+
   function isHistoryEligible(e, cfg) {
     cfg = cfg || defaults();
-    var n = +((e && e.n) || 0);
-    var sr = +((e && e.sr) || 0);
-    return n >= cfg.MIN_SNAPS && sr >= cfg.SUCCESS_FLOOR;
+    return snapN(e) >= cfg.MIN_SNAPS && empSr(e) >= cfg.SUCCESS_FLOOR;
   }
 
   function isScheme(e) {
-    if (!e) return false;
+    if (!e || hasRecord(e)) return false;
     if (e.basis === "on_paper" || e.basis === "stub") return true;
     var lab = String(e.basisLabel || "").toUpperCase();
     return lab === "SCHEME MATCH" || lab === "CALL SHEET" || lab === "CONCEPT MATCH";
   }
 
-  function byRank(a, b) {
-    var d = (+(b.sr || 0)) - (+(a.sr || 0));
-    if (Math.abs(d) > 0.0001) return d;
-    var dn = (+(b.n || 0)) - (+(a.n || 0));
-    if (dn) return dn;
-    return String(playName(a)).localeCompare(String(playName(b)));
+  function byRecord(cfg) {
+    var min = (cfg && cfg.MIN_SNAPS) || DEFAULTS.MIN_SNAPS;
+    return function (a, b) {
+      var aEnough = snapN(a) >= min ? 1 : 0;
+      var bEnough = snapN(b) >= min ? 1 : 0;
+      if (aEnough !== bEnough) return bEnough - aEnough;
+      var d = empSr(b) - empSr(a);
+      if (Math.abs(d) > 0.0001) return d;
+      var dn = snapN(b) - snapN(a);
+      if (dn) return dn;
+      return String(playName(a)).localeCompare(String(playName(b)));
+    };
   }
 
   function applyGuarantee(picked, eligible, cfg) {
@@ -135,7 +161,7 @@
       }
       if (out.length >= max) out.pop();
       out.push(add);
-      out.sort(byRank);
+      out.sort(byRecord(cfg));
     }
     displace("run");
     displace("pass");
@@ -144,7 +170,7 @@
 
   function shortlist(entries, cfg) {
     cfg = clampCfg(cfg);
-    var eligible = (entries || []).filter(function (e) { return isHistoryEligible(e, cfg); }).sort(byRank);
+    var eligible = (entries || []).filter(hasRecord).sort(byRecord(cfg));
     var picked = eligible.slice(0, cfg.SHORTLIST_MAX);
     return applyGuarantee(picked, eligible, cfg);
   }
@@ -154,10 +180,13 @@
     used = used || Object.create(null);
     return (entries || []).filter(function (e) {
       var nm = playName(e);
-      if (!nm || used[nm]) return false;
-      if (isHistoryEligible(e, cfg)) return false;
+      if (!nm || used[nm] || hasRecord(e)) return false;
       return isScheme(e) || e.rankGroup === 1 || e.rankGroup === 2;
-    }).sort(byRank);
+    }).sort(function (a, b) {
+      var d = (+(b.sr || b.ev || 0)) - (+(a.sr || a.ev || 0));
+      if (Math.abs(d) > 0.0001) return d;
+      return String(playName(a)).localeCompare(String(playName(b)));
+    });
   }
 
   function buildPanel(entries, cfg, opts) {
@@ -168,15 +197,16 @@
     var used = Object.create(null);
     history.forEach(function (e) { used[playName(e)] = 1; });
     var scheme = [];
-    if (history.length < 2) {
-      var room = cfg.SHORTLIST_MAX - history.length;
-      scheme = schemeCandidates(list, cfg, used).slice(0, room);
-    }
+    var room = cfg.SHORTLIST_MAX - history.length;
+    if (room > 0) scheme = schemeCandidates(list, cfg, used).slice(0, room);
     var shown = history.concat(scheme);
+    var strong = history.filter(function (e) { return isHistoryEligible(e, cfg); });
     var mode = history.length ? (scheme.length ? "mixed" : "history") : (scheme.length ? "scheme" : "empty");
     var cov = opts.coverage ? String(opts.coverage) : "";
     var label = "No read yet — open playbook.";
-    if (mode === "history" || mode === "mixed") label = "Your best calls";
+    if (mode === "history" || mode === "mixed") {
+      label = strong.length ? "Your best calls" : "Your calls here — not enough to rank";
+    }
     if (mode === "scheme") {
       label = cov
         ? "No strong history here — best scheme fits vs " + cov
@@ -195,19 +225,21 @@
 
   function markText(e, cfg, asScheme) {
     cfg = clampCfg(cfg);
-    if (asScheme || (!isHistoryEligible(e, cfg) && isScheme(e) && !(+e.n >= cfg.MIN_SNAPS))) {
-      if (!isHistoryEligible(e, cfg)) return "concept match";
+    if (hasRecord(e)) {
+      var n = snapN(e);
+      if (n < cfg.MIN_SNAPS) {
+        return n + " snap" + (n === 1 ? "" : "s") + " · not enough to rank";
+      }
+      var pct = Math.round(empSr(e) * 100);
+      return pct + "% · " + n + " snap" + (n === 1 ? "" : "s");
     }
-    var n = +((e && e.n) || 0);
-    if (n < cfg.MIN_SNAPS) {
-      return n + " snap" + (n === 1 ? "" : "s") + " · not enough to rank";
-    }
-    var pct = Math.round((+(e.sr || 0)) * 100);
-    return pct + "% · " + n + " snap" + (n === 1 ? "" : "s");
+    if (asScheme || isScheme(e)) return "concept match";
+    return "concept match";
   }
 
   function showPct(e, cfg) {
-    return isHistoryEligible(e, cfg);
+    cfg = cfg || defaults();
+    return hasRecord(e) && snapN(e) >= cfg.MIN_SNAPS;
   }
 
   var API = {
@@ -217,6 +249,8 @@
     saveCfg: saveCfg,
     lane: lane,
     playName: playName,
+    hasRecord: hasRecord,
+    empSr: empSr,
     isHistoryEligible: isHistoryEligible,
     shortlist: shortlist,
     buildPanel: buildPanel,

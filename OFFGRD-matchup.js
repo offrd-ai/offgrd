@@ -661,6 +661,7 @@
       return {
         ev: b0,
         n: emp0.n || 0,
+        empSr: emp0.n > 0 ? emp0.sr : 0,
         basis: emp0.n > 0 ? "empirical" : "on_paper",
         basisLabel: basisLabelFor(emp0, fam0),
         basisTip: basisTipFor(emp0),
@@ -692,6 +693,7 @@
     return {
       ev: evOut,
       n: nMax,
+      empSr: bestEmp && bestEmp.n ? bestEmp.sr : 0,
       basis: nMax > 0 ? "empirical" : "on_paper",
       basisLabel: bestEmp && bestEmp.n ? basisLabelFor(bestEmp, bestEmp.family) : "SCHEME MATCH",
       basisTip: bestEmp && bestEmp.n ? TIP_SUCCESS : TIP_SCHEME,
@@ -733,6 +735,7 @@
           ev: r.ev,
           score: Math.round(r.ev * 100),
           n: r.n,
+          empSr: r.empSr || 0,
           basis: r.basis,
           basisLabel: r.basisLabel,
           basisTip: r.basisTip,
