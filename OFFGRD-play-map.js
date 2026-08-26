@@ -148,6 +148,14 @@
     });
   }
 
+  /** Lined-up offense (Ohio, 2x2, …) — even before routes are drawn. */
+  function hasOffensePersonnel(p) {
+    if (!p) return false;
+    return (p.players || []).some(function (pp) {
+      return pp && !pp.group;
+    });
+  }
+
   function hasDefenseContent(p) {
     if (!p) return false;
     if (p.def_call || p.type === "defense") return true;
@@ -156,15 +164,20 @@
     return !!(p.defs && p.defs.length);
   }
 
-  /** Infer only. Empty / mixed-without-O-assignments → "" (do not guess). */
+  /**
+   * Infer only. Does not read play name.
+   * A teaching D look (front/coverage/defs) on an O formation is still offense.
+   * Defense wins only when there is D content and no O personnel/assignments.
+   */
   function inferPlaySide(p) {
     if (!p) return "";
     var oAssign = hasOffenseAssignments(p);
+    var oPeople = hasOffensePersonnel(p);
     var oFamily = !!(p.family && String(p.family).trim()) && !hasDefenseContent(p);
     var d = hasDefenseContent(p);
-    if (oAssign && d) return "offense";
-    if ((oAssign || oFamily) && !d) return "offense";
-    if (d && !oAssign) return "defense";
+    if ((oAssign || oPeople) && d) return "offense";
+    if ((oAssign || oPeople || oFamily) && !d) return "offense";
+    if (d && !oAssign && !oPeople) return "defense";
     return "";
   }
 

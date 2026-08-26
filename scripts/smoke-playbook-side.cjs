@@ -113,6 +113,32 @@ oPlay.forEach(function (p) {
 });
 const unknown = PM.classifyPlay({ name: "Untitled" });
 check("unclassifiable is logged not guessed", unknown.side === "" && unknown.reason === "unknown");
+const ohioVsLook = PM.classifyPlay({
+  name: "Ohio",
+  formation: "Ohio",
+  players: [
+    { lab: "LT", ol: 1 },
+    { lab: "X" },
+    { lab: "Z" }
+  ],
+  front: "4-3",
+  coverage: "Cover 3",
+  defs: [{ lab: "W", group: "LB" }]
+});
+check(
+  "Ohio formation + teaching D look → offense",
+  ohioVsLook.side === "offense" && ohioVsLook.reason === "inferred",
+  JSON.stringify(ohioVsLook)
+);
+const ohioNameOnly = PM.classifyPlay({ name: "Ohio" });
+check("name Ohio alone is not a side key", ohioNameOnly.side === "" && ohioNameOnly.reason === "unknown");
+const dOnly = PM.classifyPlay({
+  name: "Ohio",
+  front: "4-3",
+  coverage: "Cover 3",
+  defs: [{ lab: "W", group: "LB" }]
+});
+check("D look with no O personnel → defense", dOnly.side === "defense");
 check("Playbook migrate logs unknown", /unclassified play/.test(HTML) && /not guessing side/.test(HTML));
 
 const pw = oPlay.concat(dPlay);

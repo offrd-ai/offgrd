@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=331";
-import { openAuthModal } from "./OFFGRD-auth.js?v=331";
+import { Cloud } from "./OFFGRD-cloud.js?v=332";
+import { openAuthModal } from "./OFFGRD-auth.js?v=332";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=331";
+} from "./OFFGRD-invite-parse.js?v=332";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -132,6 +132,30 @@ function isTrialExpiredErr(e){
   const msg = String((e && (e.message || e.code)) || e || "");
   return msg.indexOf("trial_expired") >= 0;
 }
+function coachFacingError(e){
+  const msg = String((e && (e.message || e.details || e.hint)) || e || "");
+  const code = String((e && (e.code || e.status || e.statusCode)) || "");
+  if(isTrialExpiredErr(e)) return "Your trial has ended. Open billing to continue.";
+  if(code === "409" || code === "23505" || /409|23505|duplicate key|unique constraint|already exists/i.test(msg + " " + code)){
+    return "They're already on this program or already invited.";
+  }
+  if(/Only the admin can invite/i.test(msg)) return "Only the program admin can invite.";
+  if(/Not allowed to invite/i.test(msg)) return "You can't invite that role.";
+  if(/P0001|SQLSTATE|violates |permission denied|row-level security|RLS/i.test(msg)){
+    return "Could not complete that. Try again or ask an admin.";
+  }
+  if(!msg || msg.length > 140 || /column |relation |function /i.test(msg)){
+    return "Could not complete that. Try again.";
+  }
+  return msg;
+}
+function membershipRoleOnRoster(roster, myId){
+  if(!myId || !Array.isArray(roster) || !roster.length) return null;
+  for(let i=0;i<roster.length;i++){
+    if(roster[i] && roster[i].user_id === myId) return roster[i].role || "";
+  }
+  return "";
+}
 function routeTrialExpired(){ try{ location.assign(billingUrl()); }catch(e){} }
 function fmtInviteWhen(iso){
   try{
@@ -164,10 +188,11 @@ function assumePlayerChrome(){
   .ogm-b.dz{color:#b3261e;border-color:#f0c4c0}
   .ogm-in,.ogm-sel{border:1px solid #d7dbe2;border-radius:9px;padding:9px 10px;font-size:14px;min-height:40px;box-sizing:border-box}
   .ogm-in{flex:1;min-width:150px}
+  .ogm-box select.ogm-sel{width:auto;max-width:11rem;flex:0 0 auto;min-width:7.5rem;background:#fff;color:#16181d}
   .ogm-code{font-size:24px;font-weight:900;letter-spacing:3px;color:#13294B;background:#eef3fb;border:1px dashed #b7c6de;border-radius:10px;padding:8px 14px}
   .ogm-badge{font-size:11px;font-weight:800;color:#13294B;background:#dce7f6;border-radius:999px;padding:3px 9px}
   .ogm-mem{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eef0f3}
-  .ogm-mem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+  .ogm-mem .nm{flex:1 1 8rem;min-width:8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:#16181d}
   .ogm-note{font-size:12px;color:#5b626e;margin:6px 0 0}
   .ogm-link{background:#fff8e8;border:1px solid #e8c96a;border-radius:12px;padding:12px 14px;margin-bottom:12px;font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
   .ogm-link b{color:#13294B}
@@ -297,13 +322,15 @@ function isRosterShelved(m){
 function rosterDisplayName(m){
   const n = String((m && m.full_name) || "").trim();
   const role = String((m && m.role) || "");
-  if (n && !(n === "Coach" && role === "player")) return n;
   const email = String((m && m.email) || "").trim();
+  const generic = !n || n === "Coach" || n === "Player";
+  if (!generic) return n;
   const local = email.split("@")[0] || "";
   if (/[._-]/.test(local)) {
     return local.replace(/[._-]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
   }
-  return role === "player" ? "Player" : (n || "Coach");
+  if (email) return email;
+  return role === "player" ? "Player" : "Coach";
 }
 
 function paintInviteExpired(){
@@ -802,7 +829,7 @@ async function linkTeamToSchoolAction(teamId){
     alert("Program linked to your school \u2713 Gameday and your getOFFRD coach portal can now see this program.");
     if(modal && modal.classList.contains("show")) renderTeam();
   }catch(e){
-    alert(e.message || "Could not link program to school.");
+    alert(coachFacingError(e));
   }finally{
     if(btn) btn.disabled = false;
   }
@@ -1569,7 +1596,7 @@ function renderSetup(body){
     const crow=el('<div class="ogm-row"></div>');
     const nm=el('<input class="ogm-in" placeholder="Program name (e.g. Parkway West)">');
     const cb=el('<button class="ogm-b go">Create</button>');
-    cb.onclick=async()=>{ const n=nm.value.trim(); if(n.length<3){ alert("Enter the full program name."); return; } cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(e.message||"Couldn’t create"); cb.disabled=false; } };
+    cb.onclick=async()=>{ const n=nm.value.trim(); if(n.length<3){ alert("Enter the full program name."); return; } cb.disabled=true; try{ const tid=await Cloud.createTeam(n); TEAMS=await Cloud.myTeams(); await setActiveTeam(tid); await refreshLinkStatus(); renderTeam(); }catch(e){ alert(coachFacingError(e)); cb.disabled=false; } };
     crow.appendChild(nm); crow.appendChild(cb); cs.appendChild(crow); body.appendChild(cs);
   } else {
     body.appendChild(el('<p class="ogm-note">You’re signed in. Enter your team’s join code from your coach — players don’t create programs.</p>'));
@@ -1598,7 +1625,13 @@ async function renderTeam(){
   let roster=[], invites=[];
   let writeBlocked=false;
   try{ roster = await Cloud.teamRoster(TEAM.id); }catch(e){}
-  if(isAdmin()){
+  const meUser = await Cloud.user();
+  const myId = meUser ? meUser.id : null;
+  const memRole = membershipRoleOnRoster(roster, myId);
+  if(memRole){ ROLE = memRole; persistRole(ROLE); }
+  const youAre = memRole === "" ? "not on this roster" : roleLabel(memRole || ROLE || "");
+  const adminHere = memRole === "owner" || (memRole == null && isAdmin());
+  if(adminHere){
     try{ invites = await Cloud.listInvites(TEAM.id); }catch(e){}
     try{
       const sub = await Cloud.teamSubscription(TEAM.id);
@@ -1612,7 +1645,7 @@ async function renderTeam(){
   if(linkSec) body.appendChild(linkSec);
 
   const head = el('<div class="ogm-row" style="justify-content:space-between;margin-top:6px"></div>');
-  head.appendChild(el('<div><div style="font-size:17px;font-weight:900;color:#13294B">'+esc(TEAM.name)+'</div><div class="ogm-note">You are: <b>'+roleLabel(ROLE)+'</b></div></div>'));
+  head.appendChild(el('<div><div style="font-size:17px;font-weight:900;color:#13294B">'+esc(TEAM.name)+'</div><div class="ogm-note">You are: <b>'+esc(youAre)+'</b></div></div>'));
   if(TEAMS.length>1){
     const sel=document.createElement("select"); sel.className="ogm-sel";
     TEAMS.forEach(t=>{ const o=document.createElement("option"); o.value=t.id; o.textContent=t.name; if(t.id===TEAM.id)o.selected=true; sel.appendChild(o); });
@@ -1628,7 +1661,7 @@ async function renderTeam(){
   const staffInvites = invites.filter(function(iv){ return iv.role !== "player"; });
   const playerInvites = invites.filter(function(iv){ return iv.role === "player"; });
 
-  if(isAdmin() && writeBlocked){
+  if(adminHere && writeBlocked){
     const bill = el('<div class="ogm-sec"></div>');
     bill.appendChild(el('<p class="ogm-note">Your trial ended — your work is saved. Choose a season plan to invite staff or players.</p>'));
     const go=el('<button class="ogm-b go">Program billing</button>');
@@ -1639,7 +1672,7 @@ async function renderTeam(){
 
   /* STAFF — admin-gated today (invite_member: "Only the admin can invite").
      Coach·Edit inviting players but not staff is a separate product decision. */
-  if(isAdmin()){
+  if(adminHere){
     const staff = el('<div class="ogm-sec"><div class="ogm-lbl">Staff</div></div>');
     staff.appendChild(el('<p class="ogm-note" style="margin-top:0">Invite a coach by email and role. Same send as Collaboration — they get the invite in their inbox.</p>'));
     if(!writeBlocked){
@@ -1676,7 +1709,7 @@ async function renderTeam(){
           renderTeamKeep(stat.textContent);
         }catch(e){
           if(isTrialExpiredErr(e)){ routeTrialExpired(); return; }
-          stat.textContent=e.message||"Invite failed";
+          stat.textContent=coachFacingError(e);
         }
         send.disabled=false;
       };
@@ -1695,13 +1728,13 @@ async function renderTeam(){
           rs.onclick=async()=>{
             rs.disabled=true;
             try{ await Cloud.sendInviteEmail(iv.id); rs.textContent="Sent \u2713"; }
-            catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message||"Resend failed"); }
+            catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(coachFacingError(e)); }
             rs.disabled=false;
           };
           r.appendChild(rs);
         }
         const rv=el('<button class="ogm-b dz">Revoke</button>');
-        rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(e.message);} };
+        rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(coachFacingError(e));} };
         r.appendChild(rv);
         staff.appendChild(r);
       });
@@ -1716,15 +1749,15 @@ async function renderTeam(){
   const copy=el('<button class="ogm-b">Copy</button>');
   copy.onclick=()=>{ try{ navigator.clipboard.writeText(TEAM.join_code||""); copy.textContent="Copied \u2713"; setTimeout(()=>copy.textContent="Copy",1200);}catch(e){} };
   codeRow.appendChild(copy);
-  if(isAdmin() && !writeBlocked){
+  if(adminHere && !writeBlocked){
     const rot=el('<button class="ogm-b">New code</button>');
-    rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message);} };
+    rot.onclick=async()=>{ if(!confirm("Generate a new code? The old one stops working."))return; try{ const c=await Cloud.rotateCode(TEAM.id); TEAM.join_code=c; renderTeam(); }catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(coachFacingError(e));} };
     codeRow.appendChild(rot);
   }
   players.appendChild(codeRow);
   players.appendChild(el('<p class="ogm-note">Locker-room path: players sign up, then enter this code. They join as Player.</p>'));
 
-  if(isAdmin() && !writeBlocked){
+  if(adminHere && !writeBlocked){
     const importWrap = el('<div style="margin-top:12px"></div>');
     importWrap.appendChild(el('<div class="ogm-lbl">Import player list</div>'));
     const ta=el('<textarea class="ogm-in ogm-ta" placeholder="Paste emails — one per line, or comma-separated"></textarea>');
@@ -1807,7 +1840,7 @@ async function renderTeam(){
     players.appendChild(importWrap);
   }
 
-  if(isAdmin() && playerInvites.length){
+  if(adminHere && playerInvites.length){
     players.appendChild(el('<div class="ogm-lbl" style="margin-top:12px">Pending players</div>'));
     playerInvites.forEach(function(iv){
       const r=el('<div class="ogm-mem"></div>');
@@ -1818,13 +1851,13 @@ async function renderTeam(){
         rs.onclick=async()=>{
           rs.disabled=true;
           try{ await Cloud.sendInviteEmail(iv.id); rs.textContent="Sent \u2713"; }
-          catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(e.message||"Resend failed"); }
+          catch(e){ if(isTrialExpiredErr(e)){ routeTrialExpired(); return; } alert(coachFacingError(e)); }
           rs.disabled=false;
         };
         r.appendChild(rs);
       }
       const rv=el('<button class="ogm-b dz">Revoke</button>');
-      rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(e.message);} };
+      rv.onclick=async()=>{ try{ await Cloud.revokeInvite(iv.id); renderTeam(); }catch(e){ alert(coachFacingError(e));} };
       r.appendChild(rv);
       players.appendChild(r);
     });
@@ -1834,7 +1867,6 @@ async function renderTeam(){
   const active = roster.filter(function(m){ return !isRosterShelved(m); });
   const shelved = roster.filter(isRosterShelved);
   const rsec = el('<div class="ogm-sec"><div class="ogm-lbl">Roster ('+active.length+' joined · '+invites.length+' pending)</div></div>');
-  const me = (await Cloud.user()); const myId = me ? me.id : null;
   function appendRosterRow(host, m, archived){
     const shown = rosterDisplayName(m);
     const row=el('<div class="ogm-mem"></div>');
@@ -1844,15 +1876,28 @@ async function renderTeam(){
     row.appendChild(el('<span class="nm">'+esc(shown)+(m.position?' <span class="ogm-badge" style="background:#eef3fb">'+esc(m.position)+'</span>':'')+(tag?' <span class="ogm-note" style="font-weight:600">'+esc(tag)+'</span>':'')+(m.user_id===myId?' <span class="ogm-note" style="font-weight:600">(you)</span>':'')+'</span>'));
     if(archived){
       row.appendChild(el('<span class="ogm-badge">Graduated</span>'));
-      if(isAdmin()){
-        const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(e.message);} }; row.appendChild(rm);
+      if(adminHere){
+        if(m.role==="player"){
+          const un=el('<button class="ogm-b">Restore</button>');
+          un.onclick=async()=>{ try{ await Cloud.archivePlayer(m,false); renderTeam(); }catch(e){ alert(coachFacingError(e));} };
+          row.appendChild(un);
+        }
+        const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(coachFacingError(e));} }; row.appendChild(rm);
       }
-    } else if(isAdmin() && m.role!=="owner"){
-      const rs=document.createElement("select"); rs.className="ogm-sel"; rs.style.minWidth="120px";
+    } else if(adminHere && m.role!=="owner"){
+      const rs=document.createElement("select"); rs.className="ogm-sel"; rs.style.width="auto"; rs.style.minWidth="120px"; rs.style.flex="0 0 auto";
       ALL_ROLES.filter(([v])=>v!=="owner").forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===m.role)o.selected=true;rs.appendChild(o);});
-      rs.onchange=async()=>{ try{ await Cloud.setMemberRole(TEAM.id,m.user_id,rs.value); }catch(e){ alert(e.message); renderTeam(); } };
+      rs.onchange=async()=>{ try{ await Cloud.setMemberRole(TEAM.id,m.user_id,rs.value); }catch(e){ alert(coachFacingError(e)); renderTeam(); } };
       row.appendChild(rs);
-      const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(e.message);} }; row.appendChild(rm);
+      if(m.role==="player"){
+        const ar=el('<button class="ogm-b">Archive</button>');
+        ar.onclick=async()=>{
+          if(!confirm("Archive "+shown+"? They leave Friday\u2019s roster and stay in the record.")) return;
+          try{ await Cloud.archivePlayer(m,true); renderTeam(); }catch(e){ alert(coachFacingError(e));}
+        };
+        row.appendChild(ar);
+      }
+      const rm=el('<button class="ogm-b dz">Remove</button>'); rm.onclick=async()=>{ if(!confirm("Remove "+shown+"?"))return; try{ await Cloud.removeMember(TEAM.id,m.user_id); renderTeam(); }catch(e){ alert(coachFacingError(e));} }; row.appendChild(rm);
     } else {
       row.appendChild(el('<span class="ogm-badge">'+roleLabel(m.role)+'</span>'));
     }

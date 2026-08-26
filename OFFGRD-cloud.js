@@ -424,6 +424,22 @@ export const Cloud = {
     if (error) throw error;
     return this._stampPlayerArchive(data || []);
   },
+  async archivePlayer(member, archived) {
+    const patch = { archived_at: archived ? new Date().toISOString() : null };
+    const userId = member && member.user_id;
+    const email = String((member && member.email) || "").trim();
+    if (userId) {
+      const { data, error } = await sb.from("players").update(patch).eq("user_id", userId).select("id");
+      if (error) throw error;
+      if (data && data.length) return;
+    }
+    if (email) {
+      const { data, error } = await sb.from("players").update(patch).ilike("email", email).select("id");
+      if (error) throw error;
+      if (data && data.length) return;
+    }
+    throw new Error("Could not update archive on that player record");
+  },
   async _stampPlayerArchive(rows) {
     const list = Array.isArray(rows) ? rows : [];
     const need = list.filter(function (r) {
@@ -543,7 +559,15 @@ export const Cloud = {
   async inviteMember(teamId, email, role) {
     // returns 'added' (user existed) or 'pending' (will join on signup)
     const { data, error } = await sb.rpc("offgrd_invite_member", { t: teamId, member_email: email, member_role: role });
-    if (error) throw error; return data;
+    if (error) {
+      const msg = String((error && (error.message || error.details)) || "");
+      const code = String((error && (error.code || error.status)) || "");
+      if (code === "409" || code === "23505" || /409|23505|duplicate key|unique constraint/i.test(msg + " " + code)) {
+        return "pending";
+      }
+      throw error;
+    }
+    return data;
   },
   async listInvites(teamId) {
     const { data, error } = await OG.from("invites").select("*").eq("team_id", teamId).order("created_at");
@@ -1780,8 +1804,8 @@ export const Cloud = {
 
   /**
    * Map offgrd.scout_snaps → shape expected by OFFGRD_TENDENCIES / scopedOppRows.
-   * Pressure: classic bridge stores 0/1; Assist import stores BLITZ label in pressure —
-   * normalize to pressure=0|1 + blitz string so existing blitz-rate math keeps working.
+   * Pressure: Assist + the human bridge store a BLITZ label in pressure
+   * (legacy 0/1 still accepted). Normalize to pressure=0|1 + blitz string.
    */
   scoutSnapToRow(s) {
     if (!s) return null;
@@ -1835,7 +1859,19 @@ export const Cloud = {
       ],
       pass_zone: ["pass zone", "pass zon", "passzone"],
       result: ["result", "play result", "outcome"],
+      blitz: ["blitz", "pressure type", "def blitz", "blitz/stunt", "blitz call"],
     });
+    if (!blitz) {
+      const rawBlitz = String(rawPick.blitz || "").trim();
+      if (
+        rawBlitz &&
+        !/^(no|none|0|-|n)$/i.test(rawBlitz) &&
+        !/no\s*blitz|no\s*pressure/i.test(rawBlitz)
+      ) {
+        pressure = 1;
+        blitz = rawBlitz;
+      }
+    }
     const direction = this._normPlayDir(rawPick.direction);
     const gap = rawPick.gap || "";
     let qtr = null;
