@@ -1312,21 +1312,49 @@
     var book = namedDCalls();
     if (!book.length) return "";
     var Stubs = global.OFFGRD_PLAY_STUBS;
+    var SL = global.OFFGRD_CALLER_SHORTLIST;
+    var entries = book.map(function (p) {
+      var kind = /run|rush|stop|gap/i.test(String(p.type || p.kind || "")) ? "Run" : "Pass";
+      return {
+        play: p.name,
+        playObj: p,
+        n: 0,
+        sr: 0,
+        kind: kind,
+        basis: "on_paper",
+        basisLabel: "SCHEME MATCH",
+        stub: !!(Stubs && Stubs.isStub && Stubs.isStub(p))
+      };
+    });
+    var panel = SL && SL.buildPanel ? SL.buildPanel(entries, SL.cfgFor()) : null;
+    var showAll = !!global._dcallerShowAll;
+    var rows = showAll ? (panel ? panel.full : entries) : (panel ? panel.shown : entries.slice(0, 5));
     var h = `<div class="rd-gd-sheet rd-dc-named no-print" style="margin-top:10px">`;
     h += `<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">Your D calls</span></div>`;
-    h += `<p class="foot" style="margin:4px 0 8px">From your playbook. Names are enough to call — diagrams can wait.</p>`;
+    h += `<p class="foot" style="margin:4px 0 8px">${esc(panel && panel.label ? panel.label : "From your playbook. Names are enough to call — diagrams can wait.")}</p>`;
     h += `<div class="rd-gd-sheet-list">`;
-    book.slice(0, 24).forEach(function (p) {
-      var on = sit.namedCall === p.name;
-      var stub = Stubs && Stubs.isStub && Stubs.isStub(p);
-      var escN = String(p.name).replace(/'/g, "");
+    rows.forEach(function (p) {
+      var nm = p.play || p.name;
+      var on = sit.namedCall === nm;
+      var stub = Stubs && Stubs.isStub && Stubs.isStub(p.playObj || p);
+      var escN = String(nm).replace(/'/g, "");
+      var mark = SL && SL.markText ? SL.markText(p, SL.cfgFor(), true) : (stub ? "needs diagram" : "concept match");
       h += `<button type="button" class="rd-gd-sheet-row${on ? " oncall" : ""}" onclick="OFFGRD_DCALLER.callNamed('${escN}')">`;
-      h += `<span class="nm">${esc(p.name)}</span>`;
-      if (stub) h += `<span class="foot">needs diagram</span>`;
+      h += `<span class="nm">${esc(nm)}</span>`;
+      h += `<span class="foot">${esc(mark)}</span>`;
       h += `<span class="cta">${on ? "On call" : "Call"}</span></button>`;
     });
-    h += `</div></div>`;
+    h += `</div>`;
+    if (panel && panel.full && panel.full.length > (panel.shown || []).length) {
+      h += `<button type="button" class="rd-gd-sheet-all" onclick="OFFGRD_DCALLER.toggleShowAll()">${showAll ? "Hide full list" : "Show all plays"}</button>`;
+    }
+    h += `</div>`;
     return h;
+  }
+
+  function toggleShowAll() {
+    global._dcallerShowAll = !global._dcallerShowAll;
+    render();
   }
 
   function defBook() {
@@ -1538,6 +1566,7 @@
   }
 
   function setSit(key, val) {
+    global._dcallerShowAll = false;
     sit[key] = key === "dn" ? +val : val;
     /* Every manual chip correction writes back to estYards. */
     if (key === "dn" || key === "db" || key === "zone") {
@@ -3103,6 +3132,7 @@
     startTwoPoint: startTwoPoint,
     skipTry: skipTry,
     callNamed: callNamedPlay,
+    toggleShowAll: toggleShowAll,
     jumpResult: function () {
       jump("dcaller-result-anchor", true);
     },

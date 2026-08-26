@@ -412,6 +412,7 @@
 <script src="OFFGRD-play-map.js?v=333"></script>
 <script src="OFFGRD-play-stubs.js?v=333"></script>
 <script src="OFFGRD-play-direction.js?v=333"></script>
+<script src="OFFGRD-caller-shortlist.js?v=333"></script>
 <script src="OFFGRD-cv-review.js?v=333"></script>
 <script src="OFFGRD-frame-capture.js?v=333"></script>
 <script src="OFFGRD-caller-side.js?v=333"></script>
@@ -5770,7 +5771,11 @@ function callerCallSheetHtml(){
   const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel,basisTip:r.basisTip}; });
   const sigMap=callerSignalMap();
   const live=callerLiveCall();
-  const top=ranked.list[0]||null;
+  const SL0=window.OFFGRD_CALLER_SHORTLIST;
+  const slCfg0=SL0&&SL0.cfgFor?SL0.cfgFor():null;
+  const covLbl0=ranked.cov&&(ranked.cov.k||ranked.cov.name||ranked.cov)||"";
+  const sheetPanel=SL0&&SL0.buildPanel?SL0.buildPanel(ranked.list, slCfg0, { coverage: covLbl0 }):null;
+  const top=(sheetPanel&&sheetPanel.shown&&sheetPanel.shown[0])||ranked.list[0]||null;
   const m=(S&&S.matchBucket)?S.matchBucket(buckets,{dn:cs.dn,db:cs.db,zone:cs.zone}):null;
   const bucket=m?m.bucket:null;
   const escN=s=>esc(s).replace(/'/g,"");
@@ -5778,8 +5783,17 @@ function callerCallSheetHtml(){
   const topInBucket= !!(top && bucket && S && S.playInBucket(bucket, top.play));
   const tipScheme=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SCHEME)||"ranked by how this play's design fits the predicted look — no graded reps yet";
   const tipSuccess=(window.OFFGRD_MATCHUP&&OFFGRD_MATCHUP.TIP_SUCCESS)||"your graded results vs this look, blended with scheme fit.";
-  const markFor=r=>{
+  const SL=window.OFFGRD_CALLER_SHORTLIST;
+  const slCfg=SL&&SL.cfgFor?SL.cfgFor():null;
+  const markFor=(r, asScheme)=>{
     if(!r) return `<span class="mark mark-none"></span>`;
+    if(SL&&SL.markText){
+      const txt=SL.markText(r, slCfg, !!asScheme);
+      const show=SL.showPct(r, slCfg);
+      const tip=esc(r.basisTip||(asScheme?tipScheme:(r.basis==="empirical"?tipSuccess:tipScheme)));
+      if(!show) return `<span class="mark-stack" title="${tip}"><span class="mark basis">${esc(txt)}</span></span>`;
+      return `<span class="mark-stack" title="${tip}"><span class="mark ev">${Math.round((r.sr||0)*100)}%</span><span class="mark basis">${esc(txt)}</span></span>`;
+    }
     const tip=esc(r.basisTip||(r.basis==="empirical"?tipSuccess:tipScheme));
     const evPct=Math.round((r.sr||0)*100);
     const basis=r.basisLabel||(r.basis==="on_paper"?"SCHEME MATCH":("SUCCESS "+evPct+"% · "+(r.n||0)+" SNAP"+((r.n||0)===1?"":"S")));
@@ -5795,7 +5809,7 @@ function callerCallSheetHtml(){
   }
   /* Tier 1 · the call sheet (matched bucket) or the best-options fallback. */
   h+=`<div class="rd-gd-sheet">`;
-  h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Best options"}</span><button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button></div>`;
+  h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Your best calls"}</span><button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button></div>`;
   if(bucket && Array.isArray(bucket.plays) && bucket.plays.length){
     h+=`<div class="rd-gd-sheet-list">`;
     bucket.plays.forEach(p=>{
@@ -5812,22 +5826,29 @@ function callerCallSheetHtml(){
     h+=`</div>`;
     if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
   } else if(ranked.list.length){
-    /* No authored bucket for this down/distance · surface the suggester's ranked list as the sheet. */
-    const stubN=ranked.list.filter(function(r){ return r.stub||r.rankGroup===2; }).length;
-    const sheetSub=stubN&&stubN===ranked.list.length
-      ? "From your call sheet — names are enough to call. Diagrams can wait."
+    const panel=sheetPanel;
+    const showAll=!!window._callerShowAll;
+    const rows=showAll?(panel?panel.full:ranked.list):(panel?panel.shown:ranked.list.slice(0,5));
+    const schemeSet={};
+    if(panel) (panel.scheme||[]).forEach(function(r){ if(r&&r.play) schemeSet[r.play]=1; });
+    const sheetSub=panel
+      ? esc(panel.label)
       : `No call sheet for ${esc(ordinal(+cs.dn))} &amp; ${esc(cs.db)} · best from your reps:`;
     h+=`<p class="rd-gd-sheet-sub">${sheetSub}</p>`;
-    h+=`<div class="rd-gd-sheet-list">`;
-    const evList=ranked.list.filter(function(r){ return (r.n||0)>=1||r.rankGroup===1; }).slice(0,6);
-    const stubList=ranked.list.filter(function(r){ return r.stub||r.rankGroup===2; }).slice(0,24);
-    const shown=[]; const seen={};
-    evList.concat(stubList).forEach(function(r){ if(r&&r.play&&!seen[r.play]){ seen[r.play]=1; shown.push(r); } });
-    (shown.length?shown:ranked.list.slice(0,12)).forEach((r)=>{
-      const nm=r.play; const on=live&&live.play===nm;
-      h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>${markFor(r)}<span class="cta">${on?"On call":"Call"}</span></button>`;
-    });
-    h+=`</div>`;
+    if(panel&&panel.mode==="empty"){
+      h+=`<p class="rd-gd-sheet-sub">No read yet — open playbook.</p>`;
+    } else {
+      h+=`<div class="rd-gd-sheet-list">`;
+      rows.forEach((r)=>{
+        const nm=r.play; if(!nm) return;
+        const on=live&&live.play===nm;
+        h+=`<button type="button" class="rd-gd-sheet-row${on?" oncall":""}${schemeSet[nm]?" concept":""}" onclick="callerLog('${escN(nm)}')">${sigTag(nm)}<span class="nm">${esc(nm)}</span>${markFor(r, !!schemeSet[nm])}<span class="cta">${on?"On call":"Call"}</span></button>`;
+      });
+      h+=`</div>`;
+    }
+    if(panel&&panel.full&&panel.full.length>(panel.shown||[]).length){
+      h+=`<button type="button" class="rd-gd-sheet-all" onclick="callerToggleShowAll()">${showAll?"Hide full list":"Show all plays"}</button>`;
+    }
   } else {
     const termMsg=ranked.terminal
       ? (ranked.badge||"No reps logged — from your call sheet, not their tendencies.")
@@ -5920,8 +5941,13 @@ function renderCaller(){
   const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
   const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
   const dbF=callerDbFilter(cs.db, cs.estYards);
-  const cRuns=target?bestCallsFor(target,+cs.dn,dbF,"Run").slice(0,2):[];
-  const cPass=target?bestCallsFor(target,+cs.dn,dbF,"Pass").slice(0,2):[];
+  const SL=window.OFFGRD_CALLER_SHORTLIST;
+  const rankedCalls=callerRankedCalls();
+  const covLbl=rankedCalls.cov&&(rankedCalls.cov.k||rankedCalls.cov.name||rankedCalls.cov)||"";
+  const panel=SL&&SL.buildPanel?SL.buildPanel(rankedCalls.list, SL.cfgFor(), { coverage: covLbl }):null;
+  const shortShown=panel?panel.shown:(target?bestCallsFor(target,+cs.dn,dbF).slice(0,5):[]);
+  const cRuns=shortShown.filter(function(c){ return (c.kind||"").toLowerCase()==="run"||(SL&&SL.lane&&SL.lane(c)==="run"); });
+  const cPass=shortShown.filter(function(c){ return !cRuns.some(function(x){ return x.play===c.play; }); });
   /* Live count for the expect strip — snaps in the *resolved* (possibly widened) set. */
   const liveM=g.filter(r=>r.date==="live"||r.source==="live");
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
@@ -6032,9 +6058,13 @@ function renderCaller(){
   const liveClassic=callerLiveCall();
   const cline=c=>{
     const on=liveClassic&&liveClassic.play===c.play;
-    return `<div class="callitem${on?" callitem-oncall":""}"><div class="cn">${esc(c.play)}</div><div class="track" style="flex:1"><div class="fill cov" style="width:${Math.max(3,Math.round(c.sr*100))}%">${Math.round(c.sr*100)}%</div></div><button class="ghost" style="padding:4px 12px${on?";background:#0B3D24;color:#2DBE6C;font-weight:800;border:2px solid #2DBE6C":""}" onclick="callerLog('${esc(c.play).replace(/'/g,"")}')">${on?"On call":"Call"}</button></div>`;
+    const mark=SL&&SL.markText?SL.markText(c, SL.cfgFor()):(Math.round((c.sr||0)*100)+"%");
+    const show=!(SL&&SL.showPct)||SL.showPct(c, SL.cfgFor());
+    const bar=show?`<div class="track" style="flex:1"><div class="fill cov" style="width:${Math.max(3,Math.round((c.sr||0)*100))}%">${esc(mark)}</div></div>`:`<div class="foot" style="flex:1">${esc(mark)}</div>`;
+    return `<div class="callitem${on?" callitem-oncall":""}"><div class="cn">${esc(c.play)}</div>${bar}<button class="ghost" style="padding:4px 12px${on?";background:#0B3D24;color:#2DBE6C;font-weight:800;border:2px solid #2DBE6C":""}" onclick="callerLog('${esc(c.play).replace(/'/g,"")}')">${on?"On call":"Call"}</button></div>`;
   };
-  if(cRuns.length||cPass.length){ h+=`<div class="lbl" style="margin-top:8px">Your best calls</div>`; if(cRuns.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+cRuns.map(cline).join(""); } if(cPass.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:4px">PASS</div>`+cPass.map(cline).join(""); } }
+  if(panel&&panel.mode==="empty"){ h+=`<p class="foot" style="margin-top:8px">${esc(panel.label)}</p>`; }
+  else if(cRuns.length||cPass.length){ h+=`<div class="lbl" style="margin-top:8px">${esc(panel&&panel.label||"Your best calls")}</div>`; if(cRuns.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800">RUN</div>`+cRuns.map(cline).join(""); } if(cPass.length){ h+=`<div class="foot" style="color:var(--accent);font-weight:800;margin-top:4px">PASS</div>`+cPass.map(cline).join(""); } if(panel&&panel.full&&panel.full.length>(panel.shown||[]).length){ h+=`<button type="button" class="ghost" style="margin-top:8px" onclick="callerToggleShowAll()">${window._callerShowAll?"Hide full list":"Show all plays"}</button>`; if(window._callerShowAll){ h+=panel.full.map(cline).join(""); } } }
   h+=`</div>`;
   h+=callerStRowHtml();
   h+=`<div class="panel no-print" data-acc-skip><div class="lbl">They showed &mdash; log it</div><div class="seg covlog" style="flex-wrap:wrap">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button onclick="liveLog('${cv}')">${cv}</button>`).join("")+`</div>`;
@@ -6053,7 +6083,12 @@ function renderCaller(){
   h+=`</div>`;
   host.innerHTML=h;
 }
+function callerToggleShowAll(){
+  window._callerShowAll=!window._callerShowAll;
+  renderCaller();
+}
 function callerSet(k,v){
+  window._callerShowAll=false;
   callerSit[k]=v;
   /* Every manual chip correction writes back to estYards (exact / band midpoint). */
   if(k==="dn"||k==="db"||k==="zone"){
