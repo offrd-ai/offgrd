@@ -11,14 +11,11 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const account = fs.readFileSync(path.join(ROOT, "OFFGRD-account.js"), "utf8");
 const cloud = fs.readFileSync(path.join(ROOT, "OFFGRD-cloud.js"), "utf8");
-const apply = path.join(
-  ROOT,
-  "..",
-  "OFFRD FILES 25",
-  "docs",
-  "security",
-  "apply-offgrd-roster-archive-flags.sql"
-);
+const apply = [
+  path.join(ROOT, "scripts", "fixtures", "apply-offgrd-roster-archive-flags.sql"),
+  path.join(ROOT, "..", "OFFRD FILES 25", "docs", "security", "apply-offgrd-roster-archive-flags.sql"),
+].find(function (p) { return fs.existsSync(p); }) || "";
+if (!apply) throw new Error("no roster-archive SQL fixture found");
 const sql = fs.readFileSync(apply, "utf8");
 
 let fails = 0;
