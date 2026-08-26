@@ -411,6 +411,7 @@
 <script src="OFFGRD-formation-map.js?v=333"></script>
 <script src="OFFGRD-play-map.js?v=333"></script>
 <script src="OFFGRD-play-stubs.js?v=333"></script>
+<script src="OFFGRD-play-direction.js?v=333"></script>
 <script src="OFFGRD-cv-review.js?v=333"></script>
 <script src="OFFGRD-frame-capture.js?v=333"></script>
 <script src="OFFGRD-caller-side.js?v=333"></script>
@@ -5624,7 +5625,9 @@ function callerRankedCalls(){
     const Stubs=window.OFFGRD_PLAY_STUBS;
     let book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
     if(Stubs&&Stubs.filterBySide) book=Stubs.filterBySide(book,"offense");
-    const ours0=(typeof gamesRows==="function")?gamesRows("ours"):[];
+    const Dir=window.OFFGRD_PLAY_DIRECTION;
+    if(Dir&&Dir.hideMirrors) book=Dir.hideMirrors(book);
+    const ours0=Dir&&Dir.foldRows?Dir.foldRows((typeof gamesRows==="function")?gamesRows("ours"):[], book):((typeof gamesRows==="function")?gamesRows("ours"):[]);
     const evN={};
     ours0.forEach(function(r){ if(r&&r.play) evN[r.play]=(evN[r.play]||0)+1; });
     let list=book.filter(function(p){
@@ -5658,10 +5661,12 @@ function callerRankedCalls(){
   const covDist=(typeof shrunkDist==="function" && g.length)
     ? shrunkDist(g,"coverage",def,5)
     : {arr: ex.cov ? [ex.cov] : []};
-  const ours=(typeof gamesRows==="function")?gamesRows("ours"):[];
   const Stubs=window.OFFGRD_PLAY_STUBS;
   let book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
   if(Stubs&&Stubs.filterBySide) book=Stubs.filterBySide(book,"offense");
+  const Dir=window.OFFGRD_PLAY_DIRECTION;
+  if(Dir&&Dir.hideMirrors) book=Dir.hideMirrors(book);
+  const ours=Dir&&Dir.foldRows?Dir.foldRows((typeof gamesRows==="function")?gamesRows("ours"):[], book):((typeof gamesRows==="function")?gamesRows("ours"):[]);
   const byName={};
   book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
   const names=uniq(book.map(p=>p&&p.name).concat(ours.map(r=>r&&r.play)));
@@ -5718,17 +5723,31 @@ function callerRankedCalls(){
   return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
 }
 /** Soft-headline: SCHEME MATCH (structural) or SUCCESS n% · snaps (graded). */
+function callerDirSplitLabel(entry){
+  const Dir=window.OFFGRD_PLAY_DIRECTION;
+  if(!Dir||!Dir.directionSplit||!entry||!entry.play) return "";
+  try{
+    const book=(typeof PBOOK!=="undefined"&&Array.isArray(PBOOK))?PBOOK:[];
+    const ours=Dir.foldRows((typeof gamesRows==="function")?gamesRows("ours"):[], book);
+    const split=Dir.directionSplit(ours, entry.play, {
+      getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null
+    });
+    return split&&split.show&&split.label?split.label:"";
+  }catch(e){ return ""; }
+}
 function callerCallReason(entry, cov, conf){
   if(!entry) return "";
   const pct=Math.round((entry.sr||0)*100)+"%";
+  const dirCut=callerDirSplitLabel(entry);
   if(entry.basis==="stub" || entry.basisLabel==="CALL SHEET"){
-    return entry.n ? `EV ${pct} · from your call sheet` : `From your call sheet · needs diagram`;
+    const base=entry.n ? `EV ${pct} · from your call sheet` : `From your call sheet · needs diagram`;
+    return dirCut?base+" · "+dirCut:base;
   }
   if(entry.basis==="on_paper" || entry.basisLabel==="SCHEME MATCH"){
-    return `EV ${pct} · SCHEME MATCH`;
+    return dirCut?`EV ${pct} · SCHEME MATCH · `+dirCut:`EV ${pct} · SCHEME MATCH`;
   }
   if(entry.basisLabel){
-    return `EV ${pct} · ${entry.basisLabel}`;
+    return dirCut?`EV ${pct} · ${entry.basisLabel} · `+dirCut:`EV ${pct} · ${entry.basisLabel}`;
   }
   const n=+entry.n||0;
   const level=conf&&conf.level?String(conf.level).toUpperCase():"";
@@ -5737,7 +5756,8 @@ function callerCallReason(entry, cov, conf){
     if(cov) return `lean vs ${cov.k} · ${pct} on ${n} (small sample)`;
     return `${pct} on ${n} (small sample)`;
   }
-  return cov ? `EV vs ${cov.k} · ${pct} on ${n}` : `${pct} on ${n}`;
+  const tail=cov ? `EV vs ${cov.k} · ${pct} on ${n}` : `${pct} on ${n}`;
+  return dirCut?tail+" · "+dirCut:tail;
 }
 /* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
    in his order, with the suggester woven in as marks · not a competing screen.
@@ -6060,6 +6080,16 @@ function callerSet(k,v){
 function callerLog(play){
   const E=callerEngine();
   callerEnsureSession();
+  let playDir=null;
+  try{
+    const Dir=window.OFFGRD_PLAY_DIRECTION;
+    const book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
+    if(Dir&&Dir.foldName){
+      const folded=Dir.foldName(play, book, (callerSit&&callerSit.playDir)||null);
+      if(folded&&folded.name) play=folded.name;
+      if(folded&&folded.dir) playDir=folded.dir;
+    }
+  }catch(eFold){}
   /* Silent de-dup: same play within window already on the sheet · re-confirm, do not append. */
   if(E&&E.wouldDedupCall){
     const hit=E.wouldDedupCall(CALLER_LOG, play, Date.now());
@@ -6082,6 +6112,7 @@ function callerLog(play){
   callerAppend("call", playIndex, {
     sitTxt: isTwo?"2-pt":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:"")),
     play: play,
+    playDir: playDir,
     dn: +cs.dn,
     db: cs.db,
     estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),

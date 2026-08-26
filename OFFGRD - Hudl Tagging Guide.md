@@ -43,6 +43,8 @@ OFFGRD understands all of these and normalizes them automatically:
 **Layered approach:** Start with `Man` / `Zone` where you're unsure — OFFGRD still predicts at that level and gets sharper automatically as you fill in specific shells.
 
 > Already auto-tagged by Hudl Assist (no work for you): DN, DIST, YARD LN, HASH, OFF FORM, BACKFIELD, PLAY TYPE, PLAY DIR, GN/LS.
+>
+> Name the play. Put direction in **PLAY DIR** — exactly as Parkway West already charts. Do not put WEST / EAST / LEFT / RIGHT on the play name.
 
 ---
 

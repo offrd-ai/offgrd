@@ -2166,6 +2166,12 @@ window.OFFGRD_WEEKLY_PACKAGE_GEN=async function(force, payload, signal){
 };
 /* Allow weeklypackage schedulePullWeek to refresh without importing account internals. */
 window.OFFGRD_WEEK_PULL=function(){ return pullWeek(); };
+window.OFFGRD_DELETE_PLAYS=async function(ids){
+  const list=(ids||[]).filter(Boolean);
+  for(let i=0;i<list.length;i++){
+    try{ await Cloud.deletePlay(list[i]); }catch(e){}
+  }
+};
 window.OFFGRD_WEEK_PLAYS=async function(){
   if(!TEAM) return [];
   try{ const rows=await Cloud.listPlays(TEAM.id);

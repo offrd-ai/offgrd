@@ -596,6 +596,32 @@
       snapIndex++;
     });
 
+    try {
+      var Dir = root.OFFGRD_PLAY_DIRECTION;
+      if (Dir && Dir.foldName) {
+        var book = Array.isArray(root.PBOOK) ? root.PBOOK.slice() : [];
+        snaps.forEach(function (s) {
+          if (!s || !s.play) return;
+          if (!Dir.peekTrailing || !Dir.peekTrailing(s.play)) {
+            book.push({ name: s.play, side: side === "def" ? "defense" : "offense" });
+          }
+        });
+        var mergedImport = 0;
+        snaps.forEach(function (s) {
+          if (!s || !s.play) return;
+          var folded = Dir.foldName(s.play, book, s.play_dir);
+          if (folded && folded.stripped) {
+            s.play = folded.name;
+            if (!s.play_dir && folded.dir) s.play_dir = folded.dir;
+            mergedImport++;
+          }
+        });
+        if (mergedImport) {
+          snaps._dirMerged = mergedImport;
+        }
+      }
+    } catch (eDir) {}
+
     var unmatchedList = Object.keys(unmatchedForms)
       .map(function (k) {
         return { form: k, n: unmatchedForms[k] };
@@ -609,6 +635,7 @@
       stats: {
         sourceRows: parsed.rows.length,
         kept: snaps.length,
+        dirMerged: snaps._dirMerged || 0,
         droppedOdk: droppedOdk,
         odkHist: odkHist,
         odkKeep: autoKeep || "ALL",
@@ -776,7 +803,11 @@
       st.sourceRows +
       " · dropped by ODK filter <b>" +
       st.droppedOdk +
-      "</b> (never silent)</p>";
+      "</b> (never silent)" +
+      (st.dirMerged
+        ? " · merged " + st.dirMerged + " mirrored play name" + (st.dirMerged === 1 ? "" : "s")
+        : "") +
+      "</p>";
     if (st.odkHist) {
       H +=
         '<p style="font-size:13px;margin:2px 0">ODK histogram: ' +

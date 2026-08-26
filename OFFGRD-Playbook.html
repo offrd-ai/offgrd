@@ -116,6 +116,7 @@
 <script src="OFFGRD-formation-canon.js?v=333"></script>
 <script src="OFFGRD-play-map.js?v=333"></script>
 <script src="OFFGRD-play-stubs.js?v=333"></script>
+<script src="OFFGRD-play-direction.js?v=333"></script>
 <script src="OFFGRD-formation-map.js?v=333"></script>
 <script src="OFFGRD-render.js?v=333"></script>
 <script src="OFFGRD-pb-dock.js?v=333"></script>
@@ -311,6 +312,7 @@
  <button class="btn" id="exportLib">Export playbook</button>
  <button class="btn" id="importLib">Import playbook</button>
  <button class="btn nav" id="stubSheetBtn" title="Paste names from your existing call sheet">Add plays from your call sheet</button>
+ <button class="btn nav" id="mirrorMergeBtn" title="Fold HOUSTON WEST into HOUSTON">Merge mirrored plays</button>
  <input type="file" id="libFile" accept=".json" style="display:none">
  <input type="file" id="stubCsvFile" accept=".csv,text/csv,text/plain" style="display:none">
  </div>
@@ -354,6 +356,18 @@
  </div>
 </div></div>
 
+<div class="ov" id="mirrorMergeModal"><div class="ovbox" style="max-width:560px">
+ <div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Merge mirrored plays</b><button class="btn" id="mirrorMergeClose">Close</button></div>
+ <p class="hint" style="margin:8px 0 10px">Same play both ways is one call. A trailing direction word (WEST, EAST, LEFT, RIGHT, LT, RT) folds into the unmarked name. Direction stays on the snap. A play actually named WEST is left alone.</p>
+ <label class="lbl" for="mirrorTokens">Direction words this program uses</label>
+ <input id="mirrorTokens" class="in" style="width:100%;margin:4px 0 10px" value="WEST=L, EAST=R, LEFT=L, RIGHT=R, WST=L, EST=R, LT=L, RT=R, L=L, R=R">
+ <p id="mirrorPrev"></p>
+ <div id="mirrorList"></div>
+ <div class="row" style="justify-content:flex-end;margin-top:10px">
+  <button class="btn" id="mirrorMergeCancel">Cancel</button>
+  <button class="btn go" id="mirrorMergeCommit" disabled>Merge plays</button>
+ </div>
+</div></div>
 <div class="ov" id="wizModal"><div class="ovbox" style="max-width:640px">
  <div class="row" style="justify-content:space-between;align-items:center">
  <b style="font-size:18px;color:var(--navy)">Build a Play</b>
@@ -1463,7 +1477,83 @@ function renderLib(){
  b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
  });
 }
-function refreshLibUI(){ mergeDefCallsFromCache(); fillLibFilters(); renderLib(); }
+function refreshLibUI(){ mergeDefCallsFromCache(); fillLibFilters(); renderLib(); paintMirrorMergeBtn(); }
+function dirApi(){ return window.OFFGRD_PLAY_DIRECTION||null; }
+function mirrorTokens(){
+ const D=dirApi();
+ const inp=document.getElementById("mirrorTokens");
+ if(inp&&inp.value.trim()&&D&&D.parseTokenList) return D.parseTokenList(inp.value);
+ return D&&D.tokensFor?D.tokensFor():null;
+}
+function paintMirrorMergeBtn(){
+ const btn=document.getElementById("mirrorMergeBtn");
+ const D=dirApi();
+ if(!btn||!D||!D.findPairs) return;
+ const toks=mirrorTokens();
+ const pairs=D.findPairs(LIB, toks);
+ const misses=D.findNearMisses?D.findNearMisses(LIB, toks):[];
+ btn.hidden=!(pairs.length||misses.length);
+}
+let _mirrorPreview=null;
+function refreshMirrorPreview(){
+ const D=dirApi();
+ const prevEl=document.getElementById("mirrorPrev");
+ const list=document.getElementById("mirrorList");
+ const go=document.getElementById("mirrorMergeCommit");
+ if(!D||!prevEl) return;
+ _mirrorPreview=D.previewMerge(LIB, mirrorTokens());
+ prevEl.textContent=D.previewSentence(_mirrorPreview);
+ if(list){
+  const pairs=_mirrorPreview.pairs||[];
+  const misses=_mirrorPreview.nearMisses||[];
+  if(!pairs.length&&!misses.length) list.innerHTML='<p class="hint">No trailing WEST / EAST / LEFT / RIGHT names in this book.</p>';
+  else {
+   var html=pairs.map(function(p){
+    return `<div class="stub-row merge"><span>${esc(p.dropName)} → ${esc(p.keepName)}</span><span class="tag">${esc(p.dir)}</span></div>`;
+   }).join("");
+   if(misses.length){
+    html+='<p class="hint" style="margin-top:10px">Not merging — no unmarked twin</p>';
+    html+=misses.map(function(m){
+     return `<div class="stub-row"><span>${esc(m.name)}</span><span class="tag">needs ${esc(m.base)}</span></div>`;
+    }).join("");
+   }
+   list.innerHTML=html;
+  }
+ }
+ if(go) go.disabled=!(_mirrorPreview.pairs&&_mirrorPreview.pairs.length);
+}
+function openMirrorMerge(){
+ const D=dirApi();
+ const ov=document.getElementById("mirrorMergeModal");
+ const inp=document.getElementById("mirrorTokens");
+ if(D&&inp&&!inp.dataset.ready){
+  const toks=(D.tokensFor&&D.tokensFor())||D.DEFAULT_TOKENS||[];
+  inp.value=toks.map(function(t){ return t.token+"="+t.dir; }).join(", ");
+  inp.dataset.ready="1";
+ }
+ refreshMirrorPreview();
+ if(ov) ov.classList.add("show");
+}
+function closeMirrorMerge(){
+ const ov=document.getElementById("mirrorMergeModal"); if(ov) ov.classList.remove("show");
+}
+function commitMirrorMerge(){
+ const D=dirApi();
+ if(!D||!_mirrorPreview||!_mirrorPreview.pairs.length) return;
+ const applied=D.applyMerge(LIB, _mirrorPreview.pairs);
+ LIB=applied.plays;
+ try{
+  const teamId=window.OFFGRD_CALLER_BRIDGE&&OFFGRD_CALLER_BRIDGE.getTeamId&&OFFGRD_CALLER_BRIDGE.getTeamId();
+  if(D.saveTokens) D.saveTokens(teamId, mirrorTokens());
+ }catch(eT){}
+ saveLib();
+ if(applied.droppedIds&&applied.droppedIds.length&&window.OFFGRD_DELETE_PLAYS){
+  Promise.resolve(window.OFFGRD_DELETE_PLAYS(applied.droppedIds)).catch(function(){});
+ }
+ refreshLibUI();
+ closeMirrorMerge();
+ msg(D.previewSentence(_mirrorPreview));
+}
 let _stubSide="offense", _stubPreview=null, _stubFromCsv=false;
 function stubApi(){ return window.OFFGRD_PLAY_STUBS||null; }
 function stubSheetSide(){ return _stubSide==="defense"?"defense":"offense"; }
@@ -1479,14 +1569,18 @@ function refreshStubPreview(){
  if(!S||!ta||!prevEl) return;
  const parsed=_stubFromCsv?S.parseCallSheetCsv(ta.value):S.parseCallSheetText(ta.value);
  _stubPreview=S.previewStubs(parsed, memberLib(), stubSheetSide());
- prevEl.textContent=S.previewSentence(_stubPreview);
+ const D=window.OFFGRD_PLAY_DIRECTION;
+ if(D&&D.annotateStubPreview) _stubPreview=D.annotateStubPreview(_stubPreview, memberLib(), mirrorTokens());
+ const sentence=S.previewSentence(_stubPreview);
+ prevEl.textContent=D&&D.stubPreviewSentence?D.stubPreviewSentence(_stubPreview, sentence):sentence;
  if(list){
   if(!_stubPreview.rows.length){ list.hidden=true; list.innerHTML=""; }
   else {
    list.hidden=false;
    list.innerHTML=_stubPreview.rows.map(function(r){
     const hint=(r.family?esc(r.family):"");
-    return `<div class="stub-row ${r.status}"><span>${esc(r.name)}${hint?" <span class=\"tag\">concept/family: "+hint+"</span>":""}</span><span class="tag">${r.status==="exists"?"already in book":"will add"}</span></div>`;
+    const st=r.status==="exists"?"already in book":(r.status==="merge"?"folds into "+esc(r.mergeInto)+" · "+esc(r.dir):(r.nearMiss?"will add · no unmarked twin":"will add"));
+    return `<div class="stub-row ${r.status}"><span>${esc(r.name)}${hint?" <span class=\"tag\">concept/family: "+hint+"</span>":""}</span><span class="tag">${st}</span></div>`;
    }).join("");
   }
  }
@@ -2020,6 +2114,18 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
  const stubBtn=document.getElementById("stubSheetBtn");
  if(stubBtn) stubBtn.onclick=openStubSheet;
+ const mirrorBtn=document.getElementById("mirrorMergeBtn");
+ if(mirrorBtn) mirrorBtn.onclick=openMirrorMerge;
+ const mirrorClose=document.getElementById("mirrorMergeClose");
+ const mirrorCancel=document.getElementById("mirrorMergeCancel");
+ const mirrorCommit=document.getElementById("mirrorMergeCommit");
+ const mirrorOv=document.getElementById("mirrorMergeModal");
+ const mirrorTok=document.getElementById("mirrorTokens");
+ if(mirrorClose) mirrorClose.onclick=closeMirrorMerge;
+ if(mirrorCancel) mirrorCancel.onclick=closeMirrorMerge;
+ if(mirrorCommit) mirrorCommit.onclick=commitMirrorMerge;
+ if(mirrorOv) mirrorOv.onclick=function(e){ if(e.target.id==="mirrorMergeModal") closeMirrorMerge(); };
+ if(mirrorTok) mirrorTok.oninput=refreshMirrorPreview;
  const stubClose=document.getElementById("stubSheetClose");
  const stubCancel=document.getElementById("stubSheetCancel");
  const stubCommit=document.getElementById("stubSheetCommit");
