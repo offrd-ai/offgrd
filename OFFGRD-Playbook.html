@@ -102,25 +102,25 @@
  }
 
 </style>
-<script src="OFFGRD-config.js?v=332"></script>
-<script src="OFFGRD-brand-persist.js?v=332"></script>
-<script src="supabase.js?v=332"></script>
-<script src="OFFGRD-cache-gate.js?v=332"></script>
-<script src="OFFGRD-formations-data.js?v=332"></script>
-<script src="OFFGRD-formation-canon.js?v=332"></script>
-<script src="OFFGRD-play-map.js?v=332"></script>
-<script src="OFFGRD-formation-map.js?v=332"></script>
-<script src="OFFGRD-render.js?v=332"></script>
-<script src="OFFGRD-pb-dock.js?v=332"></script>
-<script src="OFFGRD-pos-glossary.js?v=332"></script>
-<script src="OFFGRD-autoderive.js?v=332"></script>
-<script src="OFFGRD-week-autotest.js?v=332"></script>
-<script src="OFFGRD-play-wizard.js?v=332"></script>
-<script src="OFFGRD-opp-shells.js?v=332"></script>
-<script src="OFFGRD-scoutcards.js?v=332"></script>
-<script src="OFFGRD-telestrate.js?v=332"></script>
-<script src="OFFGRD-redesign.js?v=332"></script>
-<script src="OFFGRD-shell.js?v=332"></script>
+<script src="OFFGRD-config.js?v=333"></script>
+<script src="OFFGRD-brand-persist.js?v=333"></script>
+<script src="supabase.js?v=333"></script>
+<script src="OFFGRD-cache-gate.js?v=333"></script>
+<script src="OFFGRD-formations-data.js?v=333"></script>
+<script src="OFFGRD-formation-canon.js?v=333"></script>
+<script src="OFFGRD-play-map.js?v=333"></script>
+<script src="OFFGRD-formation-map.js?v=333"></script>
+<script src="OFFGRD-render.js?v=333"></script>
+<script src="OFFGRD-pb-dock.js?v=333"></script>
+<script src="OFFGRD-pos-glossary.js?v=333"></script>
+<script src="OFFGRD-autoderive.js?v=333"></script>
+<script src="OFFGRD-week-autotest.js?v=333"></script>
+<script src="OFFGRD-play-wizard.js?v=333"></script>
+<script src="OFFGRD-opp-shells.js?v=333"></script>
+<script src="OFFGRD-scoutcards.js?v=333"></script>
+<script src="OFFGRD-telestrate.js?v=333"></script>
+<script src="OFFGRD-redesign.js?v=333"></script>
+<script src="OFFGRD-shell.js?v=333"></script>
 </head>
 <body>
  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
@@ -523,7 +523,7 @@ function persistEditSide(){ try{ localStorage.setItem(SIDE_KEY, EDIT_SIDE); }cat
 function paintSideChips(){
  const off=document.getElementById("pbSideOff");
  const def=document.getElementById("pbSideDef");
- if(off) off.classList.toggle("on", EDIT_SIDE!=="defense");
+ if(off) off.classList.toggle("on", EDIT_SIDE==="offense");
  if(def) def.classList.toggle("on", EDIT_SIDE==="defense");
 }
 function paintSideChrome(){
@@ -606,13 +606,20 @@ function startBlankPlay(){
 async function chooseSide(next){
  if(next!=="offense" && next!=="defense") return;
  if(next===EDIT_SIDE){ paintSideChips(); return; }
- if(canvasDirty()){
-  const ok=await askConfirm("Switch to "+(next==="defense"?"a defense":"an offense")+" play? This reseeds the field and drops unsaved drawing.","Switch");
-  if(!ok){ paintSideChips(); return; }
+ const committed=EDIT_SIDE==="offense"||EDIT_SIDE==="defense";
+ if(committed){
+  if(canvasDirty()){
+   const ok=await askConfirm("Switch to "+(next==="defense"?"a defense":"an offense")+" play? This reseeds the field and drops unsaved drawing.","Switch");
+   if(!ok){ paintSideChips(); return; }
+  }
+  EDIT_SIDE=next; persistEditSide();
+  if(next==="defense") seedDefensePlay({front:"4-3"});
+  else newPlay("2x2 Doubles (Gun)");
+ }else{
+  EDIT_SIDE=next;
+  if(STATE) STATE.side=next;
+  persistEditSide();
  }
- EDIT_SIDE=next; persistEditSide();
- if(next==="defense") seedDefensePlay({front:"4-3"});
- else newPlay("2x2 Doubles (Gun)");
  writeMeta(); paintSideChips(); paintSideChrome(); SEL=null; _dockSelKey=null; renderAll(); renderDock();
 }
 function flipPlay(){ if(!STATE)return; snap(); const fx=v=>W-v;
@@ -837,7 +844,8 @@ function mountSideChips(host){
  const row=dockRow(host);
  const o=dockBtn(row,"Offense play",function(){ chooseSide("offense"); });
  const d=dockBtn(row,"Defense play",function(){ chooseSide("defense"); });
- if(EDIT_SIDE==="defense") d.classList.add("on"); else o.classList.add("on");
+ if(EDIT_SIDE==="defense") d.classList.add("on");
+ else if(EDIT_SIDE==="offense") o.classList.add("on");
 }
 function mountOffenseLook(host){
  dockLbl(host,"Offense look");
@@ -1311,7 +1319,7 @@ function loadPlayId(id){
  if(!STATE.id) STATE.id=uuid();
  if(!Array.isArray(STATE.tags)) STATE.tags=[];
  SEL=null; UNDO=[]; REDO=[]; syncUndo(); cancelAnim();
- EDIT_SIDE=(playSide(STATE)==="defense"||STATE.side==="defense")?"defense":"offense";
+ EDIT_SIDE=playSide(STATE);
  persistEditSide(); writeMeta(); paintSideChips(); paintSideChrome(); syncDefSels(); renderAll(); _dockSelKey=null; renderDock();
  restoreUndoSession(STATE.id); clearDraft(); /* opening a saved play clears draft ? don't rewrite blank/identical draft */
  markClean();
@@ -1493,7 +1501,7 @@ function loadOppCardDraftIfPresent(){
   if(!Array.isArray(STATE.defs)) STATE.defs=[];
   if(OFFGRD_OPP_SHELLS.tagOppCard) OFFGRD_OPP_SHELLS.tagOppCard(STATE, STATE.opponent, STATE.shellKey);
   SEL=null; UNDO=[]; REDO=[]; syncUndo();
-  EDIT_SIDE=(playSide(STATE)==="defense"||STATE.side==="defense"||STATE.side==="def")?"defense":"offense";
+  EDIT_SIDE=playSide(STATE);
   persistEditSide(); writeMeta(); paintSideChips(); paintSideChrome(); syncDefSels(); renderAll();
   msg("Editing opponent card"+(STATE.opponent?(" · "+STATE.opponent):"")+". Save returns to the queue.");
   syncFormSelToState();
@@ -1892,10 +1900,10 @@ document.getElementById("wizBtn").onclick=wizOpen;
  bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=332"></script>
-<script type="module" src="OFFGRD-account.js?v=332"></script>
-<script src="OFFGRD-role-gate.js?v=332"></script>
-<script src="OFFGRD-mobile.js?v=332"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=333"></script>
+<script type="module" src="OFFGRD-account.js?v=333"></script>
+<script src="OFFGRD-role-gate.js?v=333"></script>
+<script src="OFFGRD-mobile.js?v=333"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

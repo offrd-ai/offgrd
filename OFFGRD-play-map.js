@@ -165,8 +165,8 @@
   }
 
   /**
-   * Infer only. Does not read play name.
-   * A teaching D look (front/coverage/defs) on an O formation is still offense.
+   * Infer only. Does not read play name. Never writes a stored side.
+   * Offense personnel + a teaching D look is ambiguous — leave unset.
    * Defense wins only when there is D content and no O personnel/assignments.
    */
   function inferPlaySide(p) {
@@ -175,7 +175,8 @@
     var oPeople = hasOffensePersonnel(p);
     var oFamily = !!(p.family && String(p.family).trim()) && !hasDefenseContent(p);
     var d = hasDefenseContent(p);
-    if ((oAssign || oPeople) && d) return "offense";
+    if (oPeople && d && !oAssign) return "";
+    if (oAssign && d) return "offense";
     if ((oAssign || oPeople || oFamily) && !d) return "offense";
     if (d && !oAssign && !oPeople) return "defense";
     return "";

@@ -113,7 +113,7 @@ oPlay.forEach(function (p) {
 });
 const unknown = PM.classifyPlay({ name: "Untitled" });
 check("unclassifiable is logged not guessed", unknown.side === "" && unknown.reason === "unknown");
-const ohioVsLook = PM.classifyPlay({
+const ohioCanvas = {
   name: "Ohio",
   formation: "Ohio",
   players: [
@@ -124,11 +124,46 @@ const ohioVsLook = PM.classifyPlay({
   front: "4-3",
   coverage: "Cover 3",
   defs: [{ lab: "W", group: "LB" }]
+};
+const ohioVsLook = PM.classifyPlay(ohioCanvas);
+check(
+  "O personnel + teaching D look stays unclassified",
+  ohioVsLook.side === "" && ohioVsLook.reason === "unknown",
+  JSON.stringify(ohioVsLook)
+);
+check(
+  "inferPlaySide does not resolve the mixed canvas",
+  PM.inferPlaySide(ohioCanvas) === ""
+);
+const storedOffOnD = PM.classifyPlay(Object.assign({}, ohioCanvas, { side: "offense" }));
+check(
+  "stored offense beats D canvas",
+  storedOffOnD.side === "offense" && storedOffOnD.reason === "stored",
+  JSON.stringify(storedOffOnD)
+);
+const storedDefOnO = PM.classifyPlay({
+  side: "defense",
+  family: "Mesh",
+  players: [{ lab: "X", route: [{ x: 1, y: 1 }] }]
 });
 check(
-  "Ohio formation + teaching D look → offense",
-  ohioVsLook.side === "offense" && ohioVsLook.reason === "inferred",
-  JSON.stringify(ohioVsLook)
+  "stored defense beats O canvas",
+  storedDefOnO.side === "defense" && storedDefOnO.reason === "stored"
+);
+const storedOffAlias = PM.classifyPlay(Object.assign({}, ohioCanvas, { side: "off" }));
+check(
+  "stored off alias beats D canvas",
+  storedOffAlias.side === "offense" && storedOffAlias.reason === "stored"
+);
+const fillsNull = PM.classifyPlay({ family: "Mesh" });
+check(
+  "inference fills a null side only",
+  fillsNull.side === "offense" && fillsNull.reason === "inferred"
+);
+const emptyStored = PM.classifyPlay({ side: "", family: "Mesh" });
+check(
+  "empty stored side is treated as null",
+  emptyStored.side === "offense" && emptyStored.reason === "inferred"
 );
 const ohioNameOnly = PM.classifyPlay({ name: "Ohio" });
 check("name Ohio alone is not a side key", ohioNameOnly.side === "" && ohioNameOnly.reason === "unknown");
@@ -140,6 +175,20 @@ const dOnly = PM.classifyPlay({
 });
 check("D look with no O personnel → defense", dOnly.side === "defense");
 check("Playbook migrate logs unknown", /unclassified play/.test(HTML) && /not guessing side/.test(HTML));
+check(
+  "unclassified load does not default to offense",
+  /function loadPlayId[\s\S]*?EDIT_SIDE=playSide\(STATE\)/.test(HTML) &&
+    !/EDIT_SIDE=\(playSide\(STATE\)==="defense"/.test(HTML)
+);
+check(
+  "unset side chips stay off",
+  /off\.classList\.toggle\("on", EDIT_SIDE==="offense"\)/.test(HTML)
+);
+check(
+  "chooseSide assigns unset side without reseed",
+  /const committed=EDIT_SIDE==="offense"\|\|EDIT_SIDE==="defense"/.test(HTML) &&
+    /if\(STATE\) STATE\.side=next/.test(HTML)
+);
 
 const pw = oPlay.concat(dPlay);
 check("Parkway West 14 → 10 offense join", pw.length === 14 && PM.offensePlaybook(pw).length === 10);
