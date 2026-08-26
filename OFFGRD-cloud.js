@@ -699,9 +699,19 @@ export const Cloud = {
     // play.id optional; data holds the full play state from the designer
     const payload = play.data || play;
     const formation = play.formation || (payload && payload.formation) || "";
+    /* plays_personnel_domain: NULL or two-digit 00–22. "" / "11 pers" must not go up. */
+    const rawPers = play.personnel != null ? play.personnel : (payload && payload.personnel);
+    const pers = (function (v) {
+      if (v == null) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      if (/^\d{2}$/.test(s) && +s >= 0 && +s <= 22) return s;
+      const m = s.match(/^(\d{2})/);
+      return (m && +m[1] >= 0 && +m[1] <= 22) ? m[1] : null;
+    })(rawPers);
     const row = {
       team_id: teamId, name: play.name, family: play.family, series: play.series,
-      personnel: play.personnel, formation: play.formation, protection: play.protection,
+      personnel: pers, formation: play.formation, protection: play.protection,
       data: payload
     };
     /* Resolve formation_id on write — same trailing-(...) strip as SQL backfill

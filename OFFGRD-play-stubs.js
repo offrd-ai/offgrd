@@ -330,7 +330,7 @@
       family: fam,
       concept: fam,
       series: "",
-      personnel: "",
+      personnel: null,
       formation: "",
       protection: "",
       stub: true,
