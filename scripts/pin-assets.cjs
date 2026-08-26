@@ -80,7 +80,7 @@ write("OFFGRD-qb-cloud.js", (s) => s.replace(/\?v=\d+/g, "?v=" + V));
 /* SW re-key is mandatory every pin — CACHE + ASSET_V + every ?v= in PRECACHE strings */
 write("offgrd-sw.js", (s) =>
   s
-    .replace(/offgrd-gameday-v\d+/g, "offgrd-gameday-v" + V)
+    .replace(/offgrd-gameday-v\d+(?:\.\d+)*/g, "offgrd-gameday-v" + V)
     .replace(/ASSET_V = "\d+"/g, 'ASSET_V = "' + V + '"')
     .replace(/\?v=\d+/g, "?v=" + V)
 );

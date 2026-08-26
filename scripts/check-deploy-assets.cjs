@@ -33,6 +33,9 @@ const REQUIRED = [
   "OFFGRD-redesign.js",
   "OFFGRD-cloud.js",
   "OFFGRD.html",
+  "OFFGRD-play-stubs.js",
+  "OFFGRD-play-direction.js",
+  "OFFGRD-caller-shortlist.js",
 ];
 
 let missing = 0;
