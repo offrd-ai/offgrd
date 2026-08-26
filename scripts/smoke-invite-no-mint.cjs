@@ -8,14 +8,11 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const APPLY = path.join(
-  ROOT,
-  "..",
-  "OFFRD FILES 25",
-  "docs",
-  "security",
-  "apply-offgrd-invite-attach-school.sql"
-);
+const APPLY = [
+  path.join(ROOT, "scripts", "fixtures", "apply-offgrd-invite-attach-school.sql"),
+  path.join(ROOT, "..", "OFFRD FILES 25", "docs", "security", "apply-offgrd-invite-attach-school.sql"),
+].find(function (p) { return fs.existsSync(p); }) || "";
+if (!APPLY) throw new Error("no invite-attach SQL fixture found");
 const account = fs.readFileSync(path.join(ROOT, "OFFGRD-account.js"), "utf8");
 const auth = fs.readFileSync(path.join(ROOT, "OFFGRD-auth.js"), "utf8");
 const cloud = fs.readFileSync(path.join(ROOT, "OFFGRD-cloud.js"), "utf8");
