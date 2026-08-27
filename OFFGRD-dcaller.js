@@ -1308,25 +1308,66 @@
     render();
   }
 
+  function namedSitRows() {
+    var Out = O();
+    return logForUi()
+      .filter(function (l) {
+        return l && l.dCall && l.result;
+      })
+      .map(function (l) {
+        var suc = null;
+        if (Out && Out.learningSuccess) suc = Out.learningSuccess(l);
+        else if (l.success != null) suc = l.success;
+        return {
+          play: l.dCall,
+          down: +l.dn,
+          distance: dbNum(l.db),
+          gain: l.gain,
+          success: suc
+        };
+      });
+  }
+
   function namedCallHtml() {
     var book = namedDCalls();
     if (!book.length) return "";
     var Stubs = global.OFFGRD_PLAY_STUBS;
     var SL = global.OFFGRD_CALLER_SHORTLIST;
+    var slCfg = SL && SL.cfgFor ? SL.cfgFor() : null;
+    var dbF = sit.db;
+    try {
+      if (typeof callerDbFilter === "function") dbF = callerDbFilter(sit.db, sit.estYards);
+    } catch (eDb) {}
+    var stats = SL && SL.sitStatsFromRows
+      ? SL.sitStatsFromRows(namedSitRows(), {
+          cfg: slCfg,
+          down: +sit.dn,
+          distBucket: dbF,
+          distBucketOf: distB,
+          getSuccess: function (r) {
+            return r && r.success != null && r.success !== "" ? r.success : null;
+          }
+        })
+      : {};
     var entries = book.map(function (p) {
       var kind = /run|rush|stop|gap/i.test(String(p.type || p.kind || "")) ? "Run" : "Pass";
+      var st = stats[p.name] || null;
+      var n = st && st.n ? st.n : 0;
       return {
         play: p.name,
         playObj: p,
-        n: 0,
-        sr: 0,
+        n: n,
+        sr: n ? st.sr : 0,
+        empSr: n ? st.sr : 0,
+        avg: st && st.avg != null ? st.avg : null,
+        chunks: st && st.chunks ? st.chunks : 0,
         kind: kind,
-        basis: "on_paper",
-        basisLabel: "SCHEME MATCH",
+        basis: n >= 1 ? "empirical" : "on_paper",
+        basisLabel: n >= 1 ? "empirical" : "SCHEME MATCH",
         stub: !!(Stubs && Stubs.isStub && Stubs.isStub(p))
       };
     });
-    var panel = SL && SL.buildPanel ? SL.buildPanel(entries, SL.cfgFor()) : null;
+    var panel = SL && SL.buildPanel ? SL.buildPanel(entries, slCfg) : null;
     var showAll = !!global._dcallerShowAll;
     var rows = showAll ? (panel ? panel.full : entries) : (panel ? panel.shown : entries.slice(0, 5));
     var h = `<div class="rd-gd-sheet rd-dc-named no-print" style="margin-top:10px">`;
@@ -1338,7 +1379,7 @@
       var on = sit.namedCall === nm;
       var stub = Stubs && Stubs.isStub && Stubs.isStub(p.playObj || p);
       var escN = String(nm).replace(/'/g, "");
-      var mark = SL && SL.markText ? SL.markText(p, SL.cfgFor(), true) : (stub ? "needs diagram" : "concept match");
+      var mark = SL && SL.markText ? SL.markText(p, slCfg) : (stub ? "needs diagram" : "concept match");
       h += `<button type="button" class="rd-gd-sheet-row${on ? " oncall" : ""}" onclick="OFFGRD_DCALLER.callNamed('${escN}')">`;
       h += `<span class="nm">${esc(nm)}</span>`;
       h += `<span class="foot">${esc(mark)}</span>`;

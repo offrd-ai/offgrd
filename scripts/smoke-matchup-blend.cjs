@@ -78,6 +78,8 @@ const cell = M.empiricalCell(M.FIXTURES.mesh, "C1", rows, {
 });
 assert(cell.n === 8, "mesh C1 n=8 (sack excluded), got " + cell.n);
 assert(approx(cell.w, 8 / 12), "mesh C1 w=8/12, got " + cell.w);
+assert(approx(cell.avg, (6 * 6 + 1 + 1) / 8), "mesh C1 avg from the same 8 snaps, got " + cell.avg);
+assert(cell.chunks === 0, "mesh C1 no chunk");
 assert(approx(cell.sr, 0.75), "mesh C1 sr=0.75, got " + cell.sr);
 assert(cell.basis === "empirical", "empirical basis");
 

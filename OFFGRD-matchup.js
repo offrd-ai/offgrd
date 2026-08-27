@@ -508,6 +508,8 @@
       sr: 0,
       n: 0,
       w: 0,
+      avg: null,
+      chunks: 0,
       family: fam,
       basis: "on_paper",
       key: key
@@ -552,6 +554,14 @@
     var wSum = 0;
     var sSum = 0;
     var nEff = 0;
+    var yards = 0;
+    var yardsN = 0;
+    var chunks = 0;
+    var chunkThr = 15;
+    try {
+      var SL = root.OFFGRD_CALLER_SHORTLIST;
+      if (SL && SL.cfgFor) chunkThr = +(SL.cfgFor().CHUNK_YARDS || 15);
+    } catch (eCh) {}
     for (var i = 0; i < pool.length; i++) {
       var r = pool[i];
       var sw = sampleWeight(r, opts);
@@ -561,6 +571,12 @@
       wSum += sw;
       sSum += sw * (suc ? 1 : 0);
       nEff += 1;
+      var g = r && r.gain != null && r.gain !== "" ? +r.gain : NaN;
+      if (!isNaN(g)) {
+        yards += g;
+        yardsN += 1;
+        if (g >= chunkThr) chunks += 1;
+      }
     }
     if (nEff <= 0 || wSum <= 0) return empty;
     var sr = sSum / wSum;
@@ -569,6 +585,8 @@
       sr: sr,
       n: nEff,
       w: w,
+      avg: yardsN ? yards / yardsN : null,
+      chunks: chunks,
       family: fam,
       basis: "empirical",
       key: key
@@ -662,6 +680,8 @@
         ev: b0,
         n: emp0.n || 0,
         empSr: emp0.n > 0 ? emp0.sr : 0,
+        avg: emp0.n > 0 ? emp0.avg : null,
+        chunks: emp0.chunks || 0,
         basis: emp0.n > 0 ? "empirical" : "on_paper",
         basisLabel: basisLabelFor(emp0, fam0),
         basisTip: basisTipFor(emp0),
@@ -694,6 +714,8 @@
       ev: evOut,
       n: nMax,
       empSr: bestEmp && bestEmp.n ? bestEmp.sr : 0,
+      avg: bestEmp && bestEmp.n ? bestEmp.avg : null,
+      chunks: bestEmp && bestEmp.n ? bestEmp.chunks || 0 : 0,
       basis: nMax > 0 ? "empirical" : "on_paper",
       basisLabel: bestEmp && bestEmp.n ? basisLabelFor(bestEmp, bestEmp.family) : "SCHEME MATCH",
       basisTip: bestEmp && bestEmp.n ? TIP_SUCCESS : TIP_SCHEME,
@@ -736,6 +758,8 @@
           score: Math.round(r.ev * 100),
           n: r.n,
           empSr: r.empSr || 0,
+          avg: r.avg,
+          chunks: r.chunks || 0,
           basis: r.basis,
           basisLabel: r.basisLabel,
           basisTip: r.basisTip,
@@ -789,6 +813,9 @@
           basisLabel: basisLabelFor(emp, fam),
           basisTip: basisTipFor(emp),
           n: emp.n || 0,
+          empSr: emp.n > 0 ? emp.sr : 0,
+          avg: emp.n > 0 ? emp.avg : null,
+          chunks: emp.chunks || 0,
           rules_v: STRUCT_RULES_V
         });
       } catch (e) {}

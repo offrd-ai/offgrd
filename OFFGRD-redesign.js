@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "335";
+  const ASSET_V = "336";
 
   function getScoutTool() {
     try {
@@ -2042,6 +2042,9 @@
       'html.rd-on #view-caller .rd-gd-bestnow-lbl{font-size:var(--fs-micro);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#FFD24A;margin-bottom:6px;line-height:1.35;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 12px;background:var(--rd-surface-2);border:1px solid var(--rd-border);border-radius:var(--radius-ctl);color:var(--rd-text);font-weight:800;font-size:18px;cursor:pointer;text-align:left;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row .nm{flex:1;}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:72px;line-height:1.15;flex:0 0 auto;}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack .mark.ev{font-size:15px;font-weight:800;color:var(--rd-text);min-width:auto;text-align:right;}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack .mark.basis{font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--rd-muted);min-width:auto;white-space:nowrap;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row .cta{font-size:14px;font-weight:800;color:#0E1116;background:#FFD24A;border-radius:8px;padding:6px 12px;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row.oncall{border-color:#FFD24A;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row.oncall .cta{background:#13294B;color:#FFD24A;}',
@@ -2084,6 +2087,9 @@
       'html.rd-on #view-caller .rd-gd-bestnow-row .nm{',
       'flex:1 1 calc(100% - 46px);min-width:12ch;overflow:visible;white-space:normal;word-break:break-word;',
       '}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack{flex:0 0 auto;min-width:auto;}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack .mark.ev{font-size:13px;}',
+      'html.rd-on #view-caller .rd-gd-bestnow-row .mark-stack .mark.basis{font-size:9px;padding:0;white-space:nowrap;}',
       'html.rd-on #view-caller .rd-gd-bestnow-row .cta{flex:0 0 auto;margin-left:auto;}',
       '}',
       'html.rd-on #view-caller .rd-gd-why.sheet-why{margin:8px 0 0;}',

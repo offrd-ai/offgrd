@@ -3,9 +3,11 @@
  *
  * A play with snaps in the situation surfaces with its real numbers,
  * good or bad, before any concept match. MIN_SNAPS gates the % badge
- * only — thin samples still show ("2 snaps · not enough to rank").
- * SUCCESS_FLOOR is the "best calls" label, not a hide rule.
- * Concept match is for plays with no record. Pure, DOM-free, no network.
+ * and the avg — thin samples still show ("2 snaps · not enough to rank").
+ * Avg is the mean GN/LS of the same in-situation snaps as the success %.
+ * CHUNK_YARDS flags explosive skew on the mean. SUCCESS_FLOOR is the
+ * "best calls" label, not a hide rule. Concept match is for plays with
+ * no record. Pure, DOM-free, no network.
  */
 (function (global) {
   "use strict";
@@ -14,7 +16,8 @@
     SHORTLIST_MAX: 5,
     SUCCESS_FLOOR: 0.6,
     MIN_SNAPS: 4,
-    DIRECTIONAL_SPLIT_MIN: 8
+    DIRECTIONAL_SPLIT_MIN: 8,
+    CHUNK_YARDS: 15
   };
   var STORE = "offgrd_shortlist_cfg_";
 
@@ -23,7 +26,8 @@
       SHORTLIST_MAX: DEFAULTS.SHORTLIST_MAX,
       SUCCESS_FLOOR: DEFAULTS.SUCCESS_FLOOR,
       MIN_SNAPS: DEFAULTS.MIN_SNAPS,
-      DIRECTIONAL_SPLIT_MIN: DEFAULTS.DIRECTIONAL_SPLIT_MIN
+      DIRECTIONAL_SPLIT_MIN: DEFAULTS.DIRECTIONAL_SPLIT_MIN,
+      CHUNK_YARDS: DEFAULTS.CHUNK_YARDS
     };
   }
 
@@ -34,10 +38,12 @@
     var floor = +c.SUCCESS_FLOOR;
     var min = +c.MIN_SNAPS;
     var split = +c.DIRECTIONAL_SPLIT_MIN;
+    var chunk = +c.CHUNK_YARDS;
     if (max >= 1 && max <= 12) d.SHORTLIST_MAX = Math.round(max);
     if (floor >= 0 && floor <= 1) d.SUCCESS_FLOOR = floor;
     if (min >= 1 && min <= 20) d.MIN_SNAPS = Math.round(min);
     if (split >= 1 && split <= 40) d.DIRECTIONAL_SPLIT_MIN = Math.round(split);
+    if (chunk >= 8 && chunk <= 40) d.CHUNK_YARDS = Math.round(chunk);
     return d;
   }
 
@@ -106,6 +112,113 @@
     if (m) return +m[1] / 100;
     if (snapN(e) >= 1 && e.basis === "empirical") return +(e.sr || 0);
     return 0;
+  }
+
+  function empAvg(e) {
+    if (!e) return null;
+    if (e.avg != null && e.avg !== "") {
+      var a = +e.avg;
+      return isNaN(a) ? null : a;
+    }
+    if (e.avgYds != null && e.avgYds !== "") {
+      var b = +e.avgYds;
+      return isNaN(b) ? null : b;
+    }
+    return null;
+  }
+
+  function chunkN(e) {
+    return +((e && e.chunks) || 0);
+  }
+
+  function rowGain(row) {
+    if (!row || row.gain == null || row.gain === "") return null;
+    var g = +row.gain;
+    return isNaN(g) ? null : g;
+  }
+
+  function emptyAcc() {
+    return { n: 0, hit: 0, yards: 0, yardsN: 0, chunks: 0 };
+  }
+
+  function addSnap(acc, row, opts) {
+    opts = opts || {};
+    acc = acc || emptyAcc();
+    var hit = opts.hit;
+    if (hit == null) hit = row && +row.success ? 1 : 0;
+    acc.n += 1;
+    acc.hit += hit ? 1 : 0;
+    var g = rowGain(row);
+    if (g != null) {
+      acc.yards += g;
+      acc.yardsN += 1;
+      if (g >= +(opts.chunkYards != null ? opts.chunkYards : DEFAULTS.CHUNK_YARDS)) acc.chunks += 1;
+    }
+    return acc;
+  }
+
+  function finishAcc(acc) {
+    acc = acc || emptyAcc();
+    return {
+      n: acc.n,
+      hit: acc.hit,
+      yards: acc.yards,
+      yardsN: acc.yardsN,
+      chunks: acc.chunks,
+      sr: acc.n ? acc.hit / acc.n : 0,
+      avg: acc.yardsN ? acc.yards / acc.yardsN : null
+    };
+  }
+
+  function sitStatsFromRows(rows, opts) {
+    opts = opts || {};
+    var cfg = clampCfg(opts.cfg);
+    var dn = opts.down;
+    var db = opts.distBucket;
+    var distOf = typeof opts.distBucketOf === "function" ? opts.distBucketOf : null;
+    var getSuccess = typeof opts.getSuccess === "function" ? opts.getSuccess : function (r) {
+      return r && r.success != null && r.success !== "" ? r.success : null;
+    };
+    var playOf = typeof opts.playOf === "function" ? opts.playOf : function (r) {
+      return r && r.play ? r.play : "";
+    };
+    var out = Object.create(null);
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var k = playOf(row);
+      if (!k) return;
+      if (dn != null && dn !== "ANY" && row.down != null && +row.down !== +dn) return;
+      if (db && db !== "ANY") {
+        if (row.distance == null || (distOf && distOf(row.distance) !== db)) return;
+      }
+      var suc = getSuccess(row);
+      if (suc == null) return;
+      if (!out[k]) out[k] = emptyAcc();
+      addSnap(out[k], row, { hit: +suc ? 1 : 0, chunkYards: cfg.CHUNK_YARDS });
+    });
+    var done = Object.create(null);
+    Object.keys(out).forEach(function (k) {
+      done[k] = finishAcc(out[k]);
+    });
+    return done;
+  }
+
+  function fmtAvg(avg) {
+    if (avg == null || isNaN(+avg)) return "";
+    var n = +avg;
+    var t = (n >= 0 ? 1 : -1) * Math.round(Math.abs(n) * 10) / 10;
+    if (t === 0) t = 0;
+    if (Math.abs(t - Math.round(t)) < 0.05) return String(Math.round(t));
+    return t.toFixed(1);
+  }
+
+  function avgTail(e, cfg) {
+    var avg = empAvg(e);
+    if (avg == null) return "";
+    var bits = [fmtAvg(avg) + " avg"];
+    var ch = chunkN(e);
+    if (ch >= 1) bits.push("incl. " + ch + " chunk" + (ch === 1 ? "" : "s"));
+    return bits.join(" · ");
   }
 
   function hasRecord(e) {
@@ -223,18 +336,27 @@
     };
   }
 
-  function markText(e, cfg, asScheme) {
+  function markParts(e, cfg, asScheme) {
     cfg = clampCfg(cfg);
     if (hasRecord(e)) {
       var n = snapN(e);
       if (n < cfg.MIN_SNAPS) {
-        return n + " snap" + (n === 1 ? "" : "s") + " · not enough to rank";
+        var thin = n + " snap" + (n === 1 ? "" : "s") + " · not enough to rank";
+        return { showPct: false, pct: null, tail: thin, text: thin };
       }
       var pct = Math.round(empSr(e) * 100);
-      return pct + "% · " + n + " snap" + (n === 1 ? "" : "s");
+      var tail = n + " snap" + (n === 1 ? "" : "s");
+      var extra = avgTail(e, cfg);
+      if (extra) tail += " · " + extra;
+      return { showPct: true, pct: pct, tail: tail, text: pct + "% · " + tail };
     }
-    if (asScheme || isScheme(e)) return "concept match";
-    return "concept match";
+    var scheme = "concept match";
+    if (asScheme || isScheme(e)) return { showPct: false, pct: null, tail: scheme, text: scheme };
+    return { showPct: false, pct: null, tail: scheme, text: scheme };
+  }
+
+  function markText(e, cfg, asScheme) {
+    return markParts(e, cfg, asScheme).text;
   }
 
   function showPct(e, cfg) {
@@ -251,9 +373,13 @@
     playName: playName,
     hasRecord: hasRecord,
     empSr: empSr,
+    empAvg: empAvg,
+    fmtAvg: fmtAvg,
+    sitStatsFromRows: sitStatsFromRows,
     isHistoryEligible: isHistoryEligible,
     shortlist: shortlist,
     buildPanel: buildPanel,
+    markParts: markParts,
     markText: markText,
     showPct: showPct
   };

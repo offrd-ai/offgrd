@@ -535,6 +535,7 @@
         coverage: p.coverage,
         playType: p.playType,
         theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,
+        dCall: p.dCall != null && p.dCall !== "" ? p.dCall : "",
         opponent: p.opponent,
         date: p.date,
         signal: hasOwn(p, "signal") ? (p.signal == null || p.signal === "" ? null : p.signal) : p.signal,

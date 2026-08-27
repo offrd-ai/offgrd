@@ -455,4 +455,28 @@ if (boothGrade.log.length !== 1 || boothGrade.log[0].result !== "hit") {
 if (boothGrade.collisions.length) throw new Error("booth grade must not prompt");
 console.log("OK booth grade attaches when only one call owns the playIndex");
 
+const dCallFold = C.foldCallerEvents([
+  ev({
+    eventId: "dc1",
+    playIndex: 0,
+    payload: { play: "Run Left", dn: 2, db: "10+", dCall: "COVER 4 BUZZ", side: "defense" },
+    deviceId: "dPad",
+    clientTs: 30,
+    seq: 1
+  }),
+  ev({
+    eventId: "dc2",
+    type: "outcome",
+    playIndex: 0,
+    payload: { result: "short", gain: 4 },
+    deviceId: "dPad",
+    clientTs: 40,
+    seq: 2
+  })
+]);
+if (!dCallFold.log[0] || dCallFold.log[0].dCall !== "COVER 4 BUZZ") {
+  throw new Error("D named call must survive fold: " + JSON.stringify(dCallFold.log[0]));
+}
+console.log("OK dCall survives fold");
+
 console.log("ALL PASS");
