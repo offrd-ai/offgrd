@@ -5,9 +5,10 @@
  * good or bad, before any concept match. MIN_SNAPS gates the % badge
  * and the avg — thin samples still show ("2 snaps · not enough to rank").
  * Avg is the mean GN/LS of the same in-situation snaps as the success %.
- * CHUNK_YARDS flags explosive skew on the mean. SUCCESS_FLOOR is the
- * "best calls" label, not a hide rule. Concept match is for plays with
- * no record. Pure, DOM-free, no network.
+ * Chunk flags explosive skew on the mean: ≥CHUNK_YARDS_RUN on a run,
+ * ≥CHUNK_YARDS_PASS on a pass (coaching-standard explosive). SUCCESS_FLOOR
+ * is the "best calls" label, not a hide rule. Concept match is for plays
+ * with no record. Pure, DOM-free, no network.
  */
 (function (global) {
   "use strict";
@@ -17,7 +18,9 @@
     SUCCESS_FLOOR: 0.6,
     MIN_SNAPS: 4,
     DIRECTIONAL_SPLIT_MIN: 8,
-    CHUNK_YARDS: 15
+    CHUNK_YARDS: 15,
+    CHUNK_YARDS_RUN: 10,
+    CHUNK_YARDS_PASS: 15
   };
   var STORE = "offgrd_shortlist_cfg_";
 
@@ -27,7 +30,9 @@
       SUCCESS_FLOOR: DEFAULTS.SUCCESS_FLOOR,
       MIN_SNAPS: DEFAULTS.MIN_SNAPS,
       DIRECTIONAL_SPLIT_MIN: DEFAULTS.DIRECTIONAL_SPLIT_MIN,
-      CHUNK_YARDS: DEFAULTS.CHUNK_YARDS
+      CHUNK_YARDS: DEFAULTS.CHUNK_YARDS,
+      CHUNK_YARDS_RUN: DEFAULTS.CHUNK_YARDS_RUN,
+      CHUNK_YARDS_PASS: DEFAULTS.CHUNK_YARDS_PASS
     };
   }
 
@@ -39,11 +44,24 @@
     var min = +c.MIN_SNAPS;
     var split = +c.DIRECTIONAL_SPLIT_MIN;
     var chunk = +c.CHUNK_YARDS;
+    var runY = +c.CHUNK_YARDS_RUN;
+    var passY = +c.CHUNK_YARDS_PASS;
+    var hasRun = c.CHUNK_YARDS_RUN != null && c.CHUNK_YARDS_RUN !== "";
+    var hasPass = c.CHUNK_YARDS_PASS != null && c.CHUNK_YARDS_PASS !== "";
+    var hasFlat = c.CHUNK_YARDS != null && c.CHUNK_YARDS !== "";
     if (max >= 1 && max <= 12) d.SHORTLIST_MAX = Math.round(max);
     if (floor >= 0 && floor <= 1) d.SUCCESS_FLOOR = floor;
     if (min >= 1 && min <= 20) d.MIN_SNAPS = Math.round(min);
     if (split >= 1 && split <= 40) d.DIRECTIONAL_SPLIT_MIN = Math.round(split);
-    if (chunk >= 8 && chunk <= 40) d.CHUNK_YARDS = Math.round(chunk);
+    if (hasFlat && chunk >= 8 && chunk <= 40 && !hasRun && !hasPass) {
+      d.CHUNK_YARDS = Math.round(chunk);
+      d.CHUNK_YARDS_RUN = d.CHUNK_YARDS;
+      d.CHUNK_YARDS_PASS = d.CHUNK_YARDS;
+    } else {
+      if (hasRun && runY >= 8 && runY <= 40) d.CHUNK_YARDS_RUN = Math.round(runY);
+      if (hasPass && passY >= 8 && passY <= 40) d.CHUNK_YARDS_PASS = Math.round(passY);
+      d.CHUNK_YARDS = d.CHUNK_YARDS_PASS;
+    }
     return d;
   }
 
@@ -131,6 +149,25 @@
     return +((e && e.chunks) || 0);
   }
 
+  function chunkYardsFor(row, cfg) {
+    cfg = clampCfg(cfg);
+    if (lane(row) === "run") return cfg.CHUNK_YARDS_RUN;
+    return cfg.CHUNK_YARDS_PASS;
+  }
+
+  function chunkDefTip(cfg, n) {
+    cfg = clampCfg(cfg);
+    var def =
+      "Chunk = " +
+      cfg.CHUNK_YARDS_RUN +
+      "+ yd run or " +
+      cfg.CHUNK_YARDS_PASS +
+      "+ yd pass";
+    if (+n === 1) return def + " — one of these is pulling this average up.";
+    if (+n > 1) return def + " — these snaps are pulling this average up.";
+    return def + ".";
+  }
+
   function rowGain(row) {
     if (!row || row.gain == null || row.gain === "") return null;
     var g = +row.gain;
@@ -194,7 +231,7 @@
       var suc = getSuccess(row);
       if (suc == null) return;
       if (!out[k]) out[k] = emptyAcc();
-      addSnap(out[k], row, { hit: +suc ? 1 : 0, chunkYards: cfg.CHUNK_YARDS });
+      addSnap(out[k], row, { hit: +suc ? 1 : 0, chunkYards: chunkYardsFor(row, cfg) });
     });
     var done = Object.create(null);
     Object.keys(out).forEach(function (k) {
@@ -212,13 +249,16 @@
     return t.toFixed(1);
   }
 
-  function avgTail(e, cfg) {
+  function avgTail(e) {
     var avg = empAvg(e);
     if (avg == null) return "";
-    var bits = [fmtAvg(avg) + " avg"];
+    return fmtAvg(avg) + " avg";
+  }
+
+  function chunkLabelOf(e) {
     var ch = chunkN(e);
-    if (ch >= 1) bits.push("incl. " + ch + " chunk" + (ch === 1 ? "" : "s"));
-    return bits.join(" · ");
+    if (ch < 1) return "";
+    return "incl. " + ch + " chunk" + (ch === 1 ? "" : "s");
   }
 
   function hasRecord(e) {
@@ -342,17 +382,29 @@
       var n = snapN(e);
       if (n < cfg.MIN_SNAPS) {
         var thin = n + " snap" + (n === 1 ? "" : "s") + " · not enough to rank";
-        return { showPct: false, pct: null, tail: thin, text: thin };
+        return { showPct: false, pct: null, tail: thin, tailCore: thin, chunkLabel: "", chunkTip: "", text: thin };
       }
       var pct = Math.round(empSr(e) * 100);
-      var tail = n + " snap" + (n === 1 ? "" : "s");
-      var extra = avgTail(e, cfg);
-      if (extra) tail += " · " + extra;
-      return { showPct: true, pct: pct, tail: tail, text: pct + "% · " + tail };
+      var tailCore = n + " snap" + (n === 1 ? "" : "s");
+      var extra = avgTail(e);
+      if (extra) tailCore += " · " + extra;
+      var chunkLabel = chunkLabelOf(e);
+      var tail = chunkLabel ? tailCore + " · " + chunkLabel : tailCore;
+      return {
+        showPct: true,
+        pct: pct,
+        tail: tail,
+        tailCore: tailCore,
+        chunkLabel: chunkLabel,
+        chunkTip: chunkLabel ? chunkDefTip(cfg, chunkN(e)) : "",
+        text: pct + "% · " + tail
+      };
     }
     var scheme = "concept match";
-    if (asScheme || isScheme(e)) return { showPct: false, pct: null, tail: scheme, text: scheme };
-    return { showPct: false, pct: null, tail: scheme, text: scheme };
+    if (asScheme || isScheme(e)) {
+      return { showPct: false, pct: null, tail: scheme, tailCore: scheme, chunkLabel: "", chunkTip: "", text: scheme };
+    }
+    return { showPct: false, pct: null, tail: scheme, tailCore: scheme, chunkLabel: "", chunkTip: "", text: scheme };
   }
 
   function markText(e, cfg, asScheme) {
@@ -376,6 +428,8 @@
     empAvg: empAvg,
     fmtAvg: fmtAvg,
     sitStatsFromRows: sitStatsFromRows,
+    chunkYardsFor: chunkYardsFor,
+    chunkDefTip: chunkDefTip,
     isHistoryEligible: isHistoryEligible,
     shortlist: shortlist,
     buildPanel: buildPanel,

@@ -1323,6 +1323,7 @@
           down: +l.dn,
           distance: dbNum(l.db),
           gain: l.gain,
+          playType: l.playType || l.theirPlayType || "",
           success: suc
         };
       });
@@ -1379,10 +1380,21 @@
       var on = sit.namedCall === nm;
       var stub = Stubs && Stubs.isStub && Stubs.isStub(p.playObj || p);
       var escN = String(nm).replace(/'/g, "");
-      var mark = SL && SL.markText ? SL.markText(p, slCfg) : (stub ? "needs diagram" : "concept match");
+      var mark = stub ? "needs diagram" : "concept match";
+      if (SL && SL.markParts) {
+        var parts = SL.markParts(p, slCfg);
+        mark = esc(parts.showPct ? parts.pct + "% · " + (parts.tailCore || parts.tail) : parts.text);
+        if (parts.chunkLabel) {
+          mark += ` · <span class="mark-chunk" title="${esc(parts.chunkTip)}">${esc(parts.chunkLabel)}</span>`;
+        }
+      } else if (SL && SL.markText) {
+        mark = esc(SL.markText(p, slCfg));
+      } else {
+        mark = esc(mark);
+      }
       h += `<button type="button" class="rd-gd-sheet-row${on ? " oncall" : ""}" onclick="OFFGRD_DCALLER.callNamed('${escN}')">`;
       h += `<span class="nm">${esc(nm)}</span>`;
-      h += `<span class="foot">${esc(mark)}</span>`;
+      h += `<span class="foot">${mark}</span>`;
       h += `<span class="cta">${on ? "On call" : "Call"}</span></button>`;
     });
     h += `</div>`;

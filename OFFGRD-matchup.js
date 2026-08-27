@@ -557,10 +557,10 @@
     var yards = 0;
     var yardsN = 0;
     var chunks = 0;
-    var chunkThr = 15;
+    var chunkCfg = null;
     try {
       var SL = root.OFFGRD_CALLER_SHORTLIST;
-      if (SL && SL.cfgFor) chunkThr = +(SL.cfgFor().CHUNK_YARDS || 15);
+      if (SL && SL.cfgFor) chunkCfg = SL.cfgFor();
     } catch (eCh) {}
     for (var i = 0; i < pool.length; i++) {
       var r = pool[i];
@@ -575,6 +575,15 @@
       if (!isNaN(g)) {
         yards += g;
         yardsN += 1;
+        var chunkThr = 15;
+        try {
+          if (root.OFFGRD_CALLER_SHORTLIST && root.OFFGRD_CALLER_SHORTLIST.chunkYardsFor) {
+            chunkThr = +root.OFFGRD_CALLER_SHORTLIST.chunkYardsFor(r, chunkCfg);
+          } else {
+            var pt = String((r && r.playType) || "").toLowerCase();
+            chunkThr = /run|rush/.test(pt) && !/pass/.test(pt) ? 10 : 15;
+          }
+        } catch (eThr) {}
         if (g >= chunkThr) chunks += 1;
       }
     }

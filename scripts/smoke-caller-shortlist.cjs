@@ -21,11 +21,14 @@ function ok(cond, msg) {
 }
 
 const cfg = S.defaults();
-ok(cfg.SHORTLIST_MAX === 5 && cfg.SUCCESS_FLOOR === 0.6 && cfg.MIN_SNAPS === 4 && cfg.CHUNK_YARDS === 15, "defaults");
+ok(cfg.SHORTLIST_MAX === 5 && cfg.SUCCESS_FLOOR === 0.6 && cfg.MIN_SNAPS === 4, "defaults");
+ok(cfg.CHUNK_YARDS_RUN === 10 && cfg.CHUNK_YARDS_PASS === 15, "chunk split defaults 10 run / 15 pass");
 const cfgChunk = S.cfgFor({ cfg: { CHUNK_YARDS: 12 } });
-ok(cfgChunk.CHUNK_YARDS === 12, "CHUNK_YARDS configurable");
+ok(cfgChunk.CHUNK_YARDS_RUN === 12 && cfgChunk.CHUNK_YARDS_PASS === 12, "legacy flat CHUNK_YARDS still overrides both");
+const cfgSplit = S.cfgFor({ cfg: { CHUNK_YARDS_RUN: 8, CHUNK_YARDS_PASS: 20 } });
+ok(cfgSplit.CHUNK_YARDS_RUN === 8 && cfgSplit.CHUNK_YARDS_PASS === 20, "run/pass thresholds configurable per program");
 const cfgBad = S.cfgFor({ cfg: { CHUNK_YARDS: 3 } });
-ok(cfgBad.CHUNK_YARDS === 15, "CHUNK_YARDS rejects out-of-range");
+ok(cfgBad.CHUNK_YARDS_RUN === 10 && cfgBad.CHUNK_YARDS_PASS === 15, "out-of-range flat chunk keeps split defaults");
 
 function E(play, sr, snaps, kind, extra) {
   return Object.assign({ play: play, empSr: sr, sr: sr, n: snaps, kind: kind }, extra || {});
@@ -126,7 +129,7 @@ const hawkSit = S.sitStatsFromRows(hawkRows, {
 });
 ok(hawkSit.HAWK && hawkSit.HAWK.n === 7, "avg pool == success pool (7 in-sit snaps)");
 ok(Math.abs(hawkSit.HAWK.avg - (6 + 5 + 7 - 2 + 6 + 45 + 4) / 7) < 1e-9, "sacks/losses pull the mean; no zero-floor");
-ok(hawkSit.HAWK.chunks === 1, "one snap ≥ CHUNK_YARDS");
+ok(hawkSit.HAWK.chunks === 1, "45-yd pass is a chunk at pass ≥15");
 ok(hawkSit.HAWK.sr === 2 / 7, "success from the same 7 snaps");
 const hawkMark = S.markText({
   play: "HAWK",
@@ -152,5 +155,29 @@ ok(/3 snaps · not enough to rank/.test(thinAvg) && !/%/.test(thinAvg) && !/avg/
 
 const parts = S.markParts({ play: "HAWK", n: 7, empSr: 2 / 7, avg: 10.142, chunks: 1 }, cfg);
 ok(parts.showPct && parts.pct === 29 && /7 snaps · 10.1 avg · incl. 1 chunk/.test(parts.tail), "markParts splits ev / tail");
+ok(/10\+ yd run or 15\+ yd pass/.test(parts.chunkTip) && /pulling this average/.test(parts.chunkTip), "chunk tooltip states the definition: " + parts.chunkTip);
+
+const splitRows = [
+  { play: "ISO", down: 2, distance: 10, gain: 12, success: 1, playType: "Run" },
+  { play: "ISO", down: 2, distance: 10, gain: 8, success: 0, playType: "Run" },
+  { play: "ISO", down: 2, distance: 10, gain: 4, success: 0, playType: "Run" },
+  { play: "ISO", down: 2, distance: 10, gain: 3, success: 0, playType: "Run" },
+  { play: "HAWK", down: 2, distance: 10, gain: 12, success: 1, playType: "Pass" },
+  { play: "HAWK", down: 2, distance: 10, gain: 8, success: 0, playType: "Pass" },
+  { play: "HAWK", down: 2, distance: 10, gain: 6, success: 0, playType: "Pass" },
+  { play: "HAWK", down: 2, distance: 10, gain: 4, success: 0, playType: "Pass" }
+];
+const splitSit = S.sitStatsFromRows(splitRows, {
+  down: 2,
+  distBucket: "10+",
+  distBucketOf: distOf,
+  getSuccess: function (r) { return r.success; }
+});
+ok(splitSit.ISO.chunks === 1, "12-yd run is a chunk (run ≥10)");
+ok(splitSit.HAWK.chunks === 0, "12-yd pass is not a chunk (pass ≥15)");
+ok(S.chunkYardsFor({ playType: "Run" }, cfg) === 10 && S.chunkYardsFor({ playType: "Pass" }, cfg) === 15, "chunkYardsFor splits by play type");
+
+ok(/mark-chunk/.test(HOME) && /chunkDefTip/.test(HOME), "O Caller + scout surface the chunk definition");
+ok(/mark-chunk/.test(DC), "D Caller chunk marker carries the definition tooltip");
 
 console.log("ok", n, "caller-shortlist checks");
