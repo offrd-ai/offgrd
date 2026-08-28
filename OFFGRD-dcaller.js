@@ -3032,6 +3032,7 @@
     h += `<span class="rd-gd-chip">D CALLER</span>`;
     var snapEng = E();
     h += `<span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapEng && snapEng.snapCount ? snapEng.snapCount(log) : log.length}</span>`;
+    h += `<span class="rd-gd-chip rd-gd-build">${esc((typeof window !== "undefined" && window.OFFGRD_BUILD_LABEL) || ("v" + ((typeof window !== "undefined" && window.OFFGRD_ASSET_V) || "?")))}</span>`;
     try {
       if (typeof callerOdToggleHtml === "function") h += callerOdToggleHtml("d");
     } catch (eOd) {}
