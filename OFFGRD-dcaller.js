@@ -58,6 +58,8 @@
   var lastShiftSig = "";
   var lastDriveFeedPi = null;
   var _stopStreak = 0;
+  /** Dual-call-on-same-index is a bug; surface it when the guard recovers. */
+  var snapGuard = null;
 
   function sitDefaults() {
     return {
@@ -168,7 +170,7 @@
         side: "defense",
       };
     }
-    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session)) {
+    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events)) {
       var stamped = Side.restampStaleSession(session, events, null, mint());
       session = stamped.session;
       session.side = "defense";
@@ -1093,7 +1095,9 @@
 
   function foldOpts() {
     var sess = ensureSession();
-    return { side: "defense", gameId: sess && sess.gameId };
+    var eng = E();
+    var gid = eng && eng.foldGameId ? eng.foldGameId(sess, events) : sess && sess.gameId;
+    return { side: "defense", gameId: gid };
   }
 
   function refold() {
@@ -1777,18 +1781,14 @@
     }
   }
 
-  /** Happy path tap 1: what they ran (creates call). */
+  /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
   function logTheirPlay(playType, direction) {
-    var live = liveCall();
-    if (live && !live.result) {
-      /* Replace ungraded look — undo last then re-log */
-      append("undo", live.playIndex, {});
-    }
     var eng = E();
-    var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
-    if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events, foldOpts());
-      if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
+    var nextPi = eng && eng.allocatePlayIndex ? eng.allocatePlayIndex(events, foldOpts()) : (log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0);
+    if (eng && eng.guardCallIndex) {
+      var guarded = eng.guardCallIndex(events, nextPi, eng.deviceId ? eng.deviceId() : "dev", foldOpts());
+      nextPi = guarded.playIndex;
+      if (guarded.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
     }
     var dir = direction || pendingDir || null;
     pendingDir = null;
@@ -1901,6 +1901,7 @@
   /**
    * Live Sit advance — possession ends use the SAME possessionEnd() as deriveDrives
    * (no parallel 4th-down rules). Within-drive chains still use inferNextSituation.
+   * Outcome stays the trigger for situation carry-forward. It must never gate snap identity.
    */
   function maybeAdvance(playIndex) {
     var Out = O();
@@ -1992,13 +1993,12 @@
    */
   function logST(kind) {
     if (kind !== "fg" && kind !== "punt" && kind !== "xp") return;
-    var live = liveCall();
-    if (live && !live.result) append("undo", live.playIndex, {});
     var eng = E();
-    var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
-    if (eng && eng.foldCallerEvents) {
-      var folded = eng.foldCallerEvents(events, foldOpts());
-      if (folded && typeof folded.nextPlayIndex === "number") nextPi = folded.nextPlayIndex;
+    var nextPi = eng && eng.allocatePlayIndex ? eng.allocatePlayIndex(events, foldOpts()) : (log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0);
+    if (eng && eng.guardCallIndex) {
+      var guarded = eng.guardCallIndex(events, nextPi, eng.deviceId ? eng.deviceId() : "dev", foldOpts());
+      nextPi = guarded.playIndex;
+      if (guarded.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
     }
     var sess = ensureSession();
     var play = kind === "fg" ? "Kick" : kind === "punt" ? "Punt" : "PAT";
@@ -2170,23 +2170,26 @@
     var n = log.length;
     var eng = Sync();
     var st = eng && eng.getSyncHeaderState
-      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing())
+      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing(), ensureSession())
       : { label: "All synced", pending: 0, syncing: false };
     var cls = st.held || st.pending ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
-    var backupNote = lastUploadAt ? " · backup saved" : "";
-    /* Export tucked away — cloud sync is the real path; JSON is emergency only. */
+    var action = "";
+    if (st.held && st.reason === "session-mismatch") {
+      action =
+        `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.resolveHeld()">Resolve session</button>`;
+    }
+    var guardLine = snapGuard
+      ? `<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(snapGuard)}</p>`
+      : "";
     return (
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
-      `<span><b>${esc(st.label)}</b> · ${n} snap${n === 1 ? "" : "s"}${esc(backupNote)}</span>` +
+      `<span><b>${esc(st.label)}</b>${st.detail ? " · " + esc(st.detail) : ""}</span>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.syncNow()">Sync now</button>` +
-      `<details class="rd-dc-backup no-print">` +
-      `<summary class="rd-dc-backup-sum">Backup</summary>` +
-      `<div class="rd-dc-backup-body">` +
-      `<p class="foot">Emergency only — if sync can’t reach the cloud all game.</p>` +
-      `<button type="button" class="ghost rd-dc-backup-btn" onclick="OFFGRD_DCALLER.upload()">Download JSON</button>` +
-      `</div></details>` +
-      `</div>`
+      `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.upload()">Export</button>` +
+      action +
+      `</div>` +
+      guardLine
     );
   }
 
@@ -2194,6 +2197,24 @@
     ensureSyncBound();
     var eng = Sync();
     if (eng && eng.flush) return eng.flush(syncOpts());
+  }
+
+  /** Session mismatch: point this device back at the game the events already belong to, then flush. */
+  function resolveHeld() {
+    var eng = E();
+    var gid = eng && eng.foldGameId ? eng.foldGameId(session, events) : null;
+    if (gid && session && String(session.gameId) !== String(gid)) {
+      session.gameId = gid;
+      var ev = (events || []).find(function (e) {
+        return e && String(e.gameId) === String(gid) && e.payload && e.payload.date;
+      });
+      if (ev && ev.payload && ev.payload.date) {
+        session.game_date = String(ev.payload.date).slice(0, 10);
+        session.week = "Live " + session.game_date;
+      }
+      saveLocal();
+    }
+    return syncNow();
   }
 
   /**
@@ -3003,6 +3024,7 @@
     var h = `<div class="rd-gd rd-dc" data-acc-skip id="dcaller-top-anchor">`;
     h += `<div class="rd-gd-top">${crestHtml}<b>${esc(oName !== "ANY" ? oName : "opponent")}</b>`;
     h += `<span class="rd-gd-chip">D CALLER</span>`;
+    h += `<span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${log.length}</span>`;
     try {
       if (typeof callerOdToggleHtml === "function") h += callerOdToggleHtml("d");
     } catch (eOd) {}
@@ -3193,6 +3215,7 @@
     toggleFlag: toggleFlag,
     clear: clearLog,
     syncNow: syncNow,
+    resolveHeld: resolveHeld,
     upload: upload,
     openEditLast: openEditLast,
     openEdit: openEdit,

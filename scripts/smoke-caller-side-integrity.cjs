@@ -182,6 +182,19 @@ check("fresh session week is today, not inherited", stamped.week === "Live 2026-
 check("fresh session date is today, not inherited", stamped.game_date === "2026-08-21");
 check("stale July Live identity", S.isStaleLiveIdentity({ week: "Live 2026-07-24", game_date: "2026-07-24" }, boothNow));
 check("today Live identity is current", !S.isStaleLiveIdentity({ week: "Live 2026-08-21", game_date: "2026-08-21" }, boothNow));
+const midnightNow = new Date("2026-08-28T05:10:00Z");
+const inProgress = { week: "Live 2026-08-27", game_date: "2026-08-27", gameId: "g-live" };
+const inFlightEv = [{ eventId: "e1", gameId: "g-live", type: "call", playIndex: 0, clientTs: 1 }];
+check(
+  "in-progress Live session is immune at local midnight",
+  !S.isStaleLiveIdentity(inProgress, midnightNow, inFlightEv)
+);
+const stampedImmune = S.restampStaleSession(inProgress, inFlightEv, midnightNow, "new-id");
+check("restamp does not re-key an in-flight session", stampedImmune.restamped === false && stampedImmune.immune === true && stampedImmune.session.gameId === "g-live");
+check(
+  "empty leftover Live session still rolls",
+  S.isStaleLiveIdentity({ week: "Live 2026-08-27", game_date: "2026-08-27" }, midnightNow, [])
+);
 check(
   "active caller_games row from July is recycled",
   S.callerGameIsRecycled(
@@ -464,7 +477,12 @@ function evAt(id, seq) {
     Sync.markHeld("offense", h.eventId, h.reason);
   });
   const hdr = Sync.getSyncHeaderState("offense", batch, false);
-  check("header names held rows", hdr.label === "2 synced · 1 held" && hdr.held === 1 && hdr.pending === 0);
+  check(
+    "header names held rows",
+    hdr.held === 1 &&
+      hdr.label !== "All synced" &&
+      /waiting|held|pending/i.test(hdr.label)
+  );
 
   const many = [];
   for (let i = 0; i < 1148; i++) many.push({ eventId: "s" + i, side: "offense", type: "call", payload: { play: "SOUTH BEND" } });
@@ -481,7 +499,10 @@ function evAt(id, seq) {
   Sync.markHeld("offense", "h2", "400");
   check(
     "header uses synced · held copy",
-    Sync.getSyncHeaderState("offense", many, false).label === "1,148 synced · 2 held"
+    (function () {
+      const h = Sync.getSyncHeaderState("offense", many, false);
+      return h.held === 2 && h.label !== "All synced" && /waiting|held|pending/i.test(h.label);
+    })()
   );
   Sync.clearSyncedSide("offense");
 

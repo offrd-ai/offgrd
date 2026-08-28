@@ -428,59 +428,101 @@
     return pendingEvents(side, events).length;
   }
 
-  /** Same language as Daily Check getSyncHeaderState. Held rows never look like "All synced". */
-  function getSyncHeaderState(side, events, syncing) {
+  function classifyHeldReason(raw, e, sess) {
+    var msg = String(raw || "");
+    if (e && sess && e.gameId && sess.gameId && String(e.gameId) !== String(sess.gameId)) {
+      return "session-mismatch";
+    }
+    if (/23503|foreign key|game_id|session-mismatch|session mismatch/i.test(msg)) return "session-mismatch";
+    if (/no-side/.test(msg)) return "no-side";
+    return raw || "upsert-failed";
+  }
+
+  function heldFault(side, events, sess) {
+    var held = loadHeldMap()[side] || {};
+    var mismatch = 0;
+    var sid = sess && sess.gameId;
+    Object.keys(held).forEach(function (id) {
+      var rec = held[id];
+      var reason = classifyHeldReason(rec && rec.reason, null, sess);
+      if (reason === "session-mismatch") mismatch += 1;
+    });
+    (events || []).forEach(function (e) {
+      if (!e || !e.gameId || !sid) return;
+      if (String(e.gameId) !== String(sid) && !isSynced(side, e.eventId)) mismatch += 1;
+    });
+    if (mismatch) {
+      return {
+        reason: "session-mismatch",
+        detail: formatN(mismatch) + " events waiting — session mismatch, tap to resolve",
+      };
+    }
+    if (!isOnline()) {
+      return { reason: "no-network", detail: "no network" };
+    }
+    return { reason: "held", detail: "tap Sync now" };
+  }
+
+  /** Synced means the server acknowledged the event id. Local queue never reads as synced. */
+  function getSyncHeaderState(side, events, syncing, sess) {
     var online = isOnline();
     var pending = pendingCount(side, events);
     var held = heldCount(side, events);
     var syncedN = syncedCount(side, events);
     var sync = syncing != null ? !!syncing : _syncing;
-    var heldLabel = held > 0 ? formatN(syncedN) + " synced · " + formatN(held) + " held" : null;
+    var unsynced = 0;
+    (events || []).forEach(function (e) {
+      if (e && e.eventId && !isSynced(side, e.eventId)) unsynced += 1;
+    });
+    if (unsynced > pending + held) pending = unsynced - held;
+    var fault = held || mismatchHint(events, sess) ? heldFault(side, events, sess) : null;
+    function pack(label, extra) {
+      extra = extra || {};
+      return {
+        online: online,
+        pending: pending,
+        held: held,
+        synced: syncedN,
+        syncing: sync,
+        reason: extra.reason || (fault && fault.reason) || null,
+        detail: extra.detail || (fault && fault.detail) || null,
+        label: label,
+      };
+    }
     if (sync) {
-      return {
-        online: online,
-        pending: pending,
-        held: held,
-        synced: syncedN,
-        syncing: true,
-        label: pending ? pending + " pending · syncing…" : heldLabel || "Syncing…",
-      };
+      return pack(pending ? pending + " pending · syncing…" : "Syncing…");
     }
-    if (!online && pending > 0) {
-      return {
-        online: online,
-        pending: pending,
-        held: held,
-        synced: syncedN,
-        syncing: false,
-        label: held
-          ? "Offline · " + pending + " pending · " + formatN(held) + " held"
+    if (!online && (pending > 0 || unsynced > 0)) {
+      return pack(
+        held
+          ? formatN(held) + " events waiting — no network"
           : "Offline · " + pending + " pending",
-      };
+        { reason: "no-network", detail: "no network" }
+      );
     }
-    if (pending > 0) {
-      return {
-        online: online,
-        pending: pending,
-        held: held,
-        synced: syncedN,
-        syncing: false,
-        label: held
-          ? pending + " pending · " + formatN(held) + " held"
-          : pending + " pending · will sync",
-      };
+    if (pending > 0 || unsynced > 0) {
+      if (fault && fault.reason === "session-mismatch") {
+        return pack(fault.detail, fault);
+      }
+      return pack(
+        held
+          ? formatN(held) + " events waiting — " + ((fault && fault.detail) || "tap Sync now")
+          : pending + " pending · will sync"
+      );
     }
     if (held > 0) {
-      return {
-        online: online,
-        pending: 0,
-        held: held,
-        synced: syncedN,
-        syncing: false,
-        label: heldLabel,
-      };
+      if (fault && fault.reason === "session-mismatch") return pack(fault.detail, fault);
+      return pack(formatN(held) + " events waiting — " + ((fault && fault.detail) || "tap Sync now"), fault);
     }
-    return { online: online, pending: 0, held: 0, synced: syncedN, syncing: false, label: "All synced" };
+    return pack("All synced");
+  }
+
+  function mismatchHint(events, sess) {
+    var sid = sess && sess.gameId;
+    if (!sid) return false;
+    return (events || []).some(function (e) {
+      return e && e.gameId && String(e.gameId) !== String(sid);
+    });
   }
 
   function clearBackoff() {
@@ -593,6 +635,7 @@
         game_date: sess.game_date || null,
         created_by: (b.getActorId && b.getActorId()) || null,
         side: side,
+        inFlight: !!(events && events.length),
       });
     }
 
@@ -619,6 +662,41 @@
 
     var gameId = sess.gameId;
     if (!gameId) return { ok: false, reason: "no-game" };
+
+    if (cloud.ensureCallerGameRow && events.length) {
+      var orphanIds = Object.create(null);
+      events.forEach(function (e) {
+        if (e && e.gameId && String(e.gameId) !== String(gameId)) orphanIds[e.gameId] = 1;
+      });
+      var oids = Object.keys(orphanIds);
+      for (var oi = 0; oi < oids.length; oi++) {
+        var ogid = oids[oi];
+        var sample = events.find(function (e) {
+          return e && String(e.gameId) === String(ogid);
+        });
+        var evDate = sample && sample.payload && sample.payload.date ? String(sample.payload.date).slice(0, 10) : null;
+        try {
+          await cloud.ensureCallerGameRow(teamId, {
+            id: ogid,
+            opponent: (sample && sample.payload && sample.payload.opponent) || sess.opp || null,
+            week: evDate ? "Live " + evDate : sess.week || null,
+            game_date: evDate || sess.game_date || null,
+            created_by: (b.getActorId && b.getActorId()) || null,
+            side: side,
+            status: "archived",
+          });
+        } catch (eOrphan) {
+          try {
+            console.warn("[caller-sync] ensure orphan game", ogid, eOrphan && eOrphan.message);
+          } catch (eO2) {}
+          events.forEach(function (e) {
+            if (e && String(e.gameId) === String(ogid)) {
+              markHeld(side, e.eventId, "session-mismatch");
+            }
+          });
+        }
+      }
+    }
 
     var localAll = allLocalCallerEvents(events);
     var gameIds = Object.create(null);
@@ -721,7 +799,10 @@
       );
       markSynced(side, isolated.synced);
       (isolated.held || []).forEach(function (h) {
-        markHeld(side, h.eventId, h.reason);
+        var ev = (events || []).find(function (e) {
+          return e && e.eventId === h.eventId;
+        });
+        markHeld(side, h.eventId, classifyHeldReason(h.reason, ev, sess));
       });
       pushed = isolated.synced.length;
       heldN = (isolated.held || []).length + heldStragglers;

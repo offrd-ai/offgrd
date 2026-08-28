@@ -47,6 +47,14 @@
       if (slot && slot.call && !slot.undone) matches.push(k);
     }
     if (matches.length === 1) return matches[0];
+    if (matches.length > 1) {
+      matches.sort(function (a, b) {
+        var ta = byPlay[a] && byPlay[a].call ? byPlay[a].call.clientTs || 0 : 0;
+        var tb = byPlay[b] && byPlay[b].call ? byPlay[b].call.clientTs || 0 : 0;
+        return tb - ta;
+      });
+      return matches[0];
+    }
     return exact;
   }
 
@@ -237,12 +245,32 @@
   }
 
   /**
+   * Undo: revert exactly one event. A call-undo drops that snap only when
+   * no later call exists at the same playIndex+device (a real "undo last").
+   * An undo followed by more calls at that index is overwrite bookkeeping
+   * from the old outcome-gated writer — every call stays a snap.
+   * An outcome-undo only clears the grade; it does not move the pointer.
+   */
+  function laterCallAtIndex(sorted, u) {
+    var i, ev;
+    for (i = 0; i < (sorted || []).length; i++) {
+      ev = sorted[i];
+      if (!ev || ev.type !== "call") continue;
+      if (ev.playIndex !== u.playIndex) continue;
+      if ((ev.deviceId || "_") !== (u.deviceId || "_")) continue;
+      if ((ev.clientTs || 0) > (u.clientTs || 0)) return true;
+    }
+    return false;
+  }
+
+  /**
    * Deterministic fold. One game at a time — opts.gameId or a single
    * gameId in the input. Two gameIds without a scope throw (never merge).
    * Ordered by clientTs, ties (deviceId, seq).
    * Two devices at the same playIndex are two snaps (each device counts
-   * 0,1,2… locally). Union by eventId — never prompt. Same-device re-call
-   * still replaces. Honor existing resolve_collision drops.
+   * 0,1,2… locally). Union by eventId — never prompt. Same-device second
+   * call on an occupied index is a new snap (never silent replace).
+   * Honor existing resolve_collision drops.
    */
   function foldCallerEvents(events, opts) {
     opts = opts || {};
@@ -268,7 +296,8 @@
     var superseded = Object.create(null);
     var collisions = [];
     var resolved = Object.create(null);
-    var i, e, slot, other, keep, drop, skey;
+    var pendingUndos = [];
+    var i, e, slot, keep, drop, skey;
 
     for (i = 0; i < sorted.length; i++) {
       e = sorted[i];
@@ -286,7 +315,12 @@
          * (double-tap / unregistered first tap). Keep earlier; supersede later.
          * Outside the window, genuine repeats log normally. */
         var playName = e.payload && e.payload.play != null ? String(e.payload.play) : "";
-        if (playName) {
+        var playSide = eventSideOf(e) || want;
+        var genericType = /^(run|pass|run [lmr]|kick|punt|pat|field goal|extra point)$/i.test(
+          String(playName).replace(/\s+/g, " ").trim()
+        );
+        /* Named-play fat-finger only. Defense Run/Pass repeats are new snaps. */
+        if (playName && playSide !== "defense" && !genericType) {
           var dedupEarlier = null;
           var piKeys = Object.keys(byPlay);
           var di;
@@ -327,21 +361,36 @@
 
         skey = slotKey(e, want);
         slot = byPlay[skey];
-        if (!slot || !slot.call) {
+        if (!slot || !slot.call || slot.undone) {
           byPlay[skey] = {
             call: e,
-            outcome: slot && slot.outcome ? slot.outcome : null,
-            obs: slot && slot.obs ? slot.obs : null,
+            outcome: slot && !slot.undone && slot.outcome ? slot.outcome : null,
+            obs: slot && !slot.undone && slot.obs ? slot.obs : null,
             undone: false,
           };
           continue;
         }
         if (slot.call.eventId === e.eventId) continue;
-        other = slot.call;
-        /* same device + same slot: later re-call wins. Different devices
-         * never share a slot (keyed by deviceId), so they cannot land here. */
-        superseded[other.eventId] = true;
-        slot.call = e;
+        /* Occupied snap. A second call is a new snap — never overwrite. */
+        try {
+          if (typeof console !== "undefined" && console.warn) {
+            console.warn(
+              "[foldCallerEvents] two calls on playIndex " +
+                e.playIndex +
+                " device " +
+                (e.deviceId || "_") +
+                "; keeping both"
+            );
+          }
+        } catch (eWarn) {}
+        skey = skey + ":" + e.eventId;
+        byPlay[skey] = {
+          call: e,
+          outcome: null,
+          obs: null,
+          sitPatch: null,
+          undone: false,
+        };
         continue;
       }
       if (e.type === "outcome") {
@@ -430,13 +479,18 @@
         continue;
       }
       if (e.type === "undo") {
-        slot = byPlay[findSlotKey(e, want, byPlay)];
-        if (slot) {
-          slot.undone = true;
-          if (slot.call) superseded[slot.call.eventId] = true;
-        }
+        pendingUndos.push(e);
       }
     }
+
+    pendingUndos.forEach(function (u) {
+      if (laterCallAtIndex(sorted, u)) return;
+      slot = byPlay[findSlotKey(u, want, byPlay)];
+      if (slot) {
+        slot.undone = true;
+        if (slot.call) superseded[slot.call.eventId] = true;
+      }
+    });
 
     /* apply resolve_collision supersedes that arrived before the drop call in rare reorder */
     for (i = 0; i < sorted.length; i++) {
@@ -570,13 +624,24 @@
       return true;
     });
 
+    var allCallIndexes = [];
+    sorted.forEach(function (evn) {
+      if (evn && evn.type === "call" && typeof evn.playIndex === "number" && !isNaN(evn.playIndex)) {
+        allCallIndexes.push(evn.playIndex);
+      }
+    });
+    var nextFrom =
+      allCallIndexes.length ? Math.max.apply(null, allCallIndexes) + 1
+      : indexNums.length ? Math.max.apply(null, indexNums) + 1
+      : 0;
+
     return {
       log: log,
       rowsMeta: log,
       collisions: collisions,
       supersededIds: superseded,
       activity: activity,
-      nextPlayIndex: indexNums.length ? Math.max.apply(null, indexNums) + 1 : 0,
+      nextPlayIndex: nextFrom,
       sorted: sorted,
     };
   }
@@ -681,6 +746,53 @@
   }
 
   /** Last active (non-undone) call from a fold log — selection / ON CALL source of truth. */
+  /** Game id the folder should use: session if it still has events, else the sole id in the store. */
+  function foldGameId(session, events) {
+    var sid = session && session.gameId != null && session.gameId !== "" ? String(session.gameId) : null;
+    var list = events || [];
+    if (sid && list.some(function (e) { return e && String(e.gameId) === sid; })) return sid;
+    var ids = distinctGameIds(list);
+    if (ids.length === 1) return ids[0];
+    return sid;
+  }
+
+  function allocatePlayIndex(events, opts) {
+    var folded = foldCallerEvents(events, opts || {});
+    return typeof folded.nextPlayIndex === "number" ? folded.nextPlayIndex : 0;
+  }
+
+  /** True when two live call events already share this playIndex on this device. */
+  function hasDuplicateCallIndex(events, playIndex, deviceId) {
+    var n = 0;
+    (events || []).forEach(function (e) {
+      if (!e || e.type !== "call") return;
+      if (e.playIndex !== playIndex) return;
+      if ((e.deviceId || "_") !== (deviceId || "_")) return;
+      n += 1;
+    });
+    return n > 1;
+  }
+
+  /**
+   * Writer guard: a call on an index that already has a call is a bug.
+   * Bump to nextPlayIndex so we never overwrite. Surfaces via returned.warn.
+   */
+  function guardCallIndex(events, playIndex, deviceId, opts) {
+    var taken = false;
+    (events || []).forEach(function (e) {
+      if (e && e.type === "call" && e.playIndex === playIndex && (e.deviceId || "_") === (deviceId || "_")) {
+        taken = true;
+      }
+    });
+    if (!taken) return { playIndex: playIndex, warn: false };
+    try {
+      if (typeof console !== "undefined" && console.error) {
+        console.error("[caller] BUG: two calls on playIndex " + playIndex + " — opening a new snap");
+      }
+    } catch (eG) {}
+    return { playIndex: allocatePlayIndex(events, opts), warn: true };
+  }
+
   function onCallFromLog(log) {
     if (!log || !log.length) return null;
     return log[log.length - 1] || null;
@@ -713,6 +825,10 @@
     sortEvents: sortEvents,
     foldCallerEvents: foldCallerEvents,
     foldEachGame: foldEachGame,
+    foldGameId: foldGameId,
+    allocatePlayIndex: allocatePlayIndex,
+    hasDuplicateCallIndex: hasDuplicateCallIndex,
+    guardCallIndex: guardCallIndex,
     distinctGameIds: distinctGameIds,
     scopeEventsToGame: scopeEventsToGame,
     buildEvent: buildEvent,

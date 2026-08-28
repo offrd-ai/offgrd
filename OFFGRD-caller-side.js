@@ -418,8 +418,15 @@
     return "Live " + liveDateISO(now);
   }
 
-  /** Live YYYY-MM-DD whose day is not today, or game_date not today. */
-  function isStaleLiveIdentity(sess, now) {
+  /** Local events mean a game is in progress or un-flushed. Never re-key those. */
+  function hasInFlightCallerEvents(sess, events) {
+    return !!(events && events.length);
+  }
+
+  /** Live YYYY-MM-DD whose day is not today, or game_date not today.
+   *  A session with events is immune — Friday 18:13 through 23:30 is one game. */
+  function isStaleLiveIdentity(sess, now, events) {
+    if (hasInFlightCallerEvents(sess, events)) return false;
     if (!sess) return true;
     var today = liveDateISO(now);
     var week = String(sess.week || "");
@@ -449,6 +456,9 @@
    * Only retarget events whose clientTs is today so July test snaps stay off the new key.
    */
   function restampStaleSession(sess, events, now, newId) {
+    if (hasInFlightCallerEvents(sess, events)) {
+      return { session: sess, events: events || [], restamped: false, immune: true };
+    }
     if (!isStaleLiveIdentity(sess, now)) {
       return { session: sess, events: events || [], restamped: false };
     }
@@ -464,8 +474,10 @@
     return { session: next, events: list, restamped: true, fromGameId: oldId };
   }
 
-  /** Active caller_games row is a previous day's Live session. */
+  /** Active caller_games row is a previous day's Live session.
+   *  inFlight (local events still on the device) makes the row immune. */
   function callerGameIsRecycled(existing, meta) {
+    if (meta && meta.inFlight) return false;
     if (!existing) return false;
     var wantDate = meta && meta.game_date != null && meta.game_date !== ""
       ? String(meta.game_date).slice(0, 10)
@@ -572,6 +584,7 @@
     liveDateISO: liveDateISO,
     liveWeekLabel: liveWeekLabel,
     isStaleLiveIdentity: isStaleLiveIdentity,
+    hasInFlightCallerEvents: hasInFlightCallerEvents,
     stampFreshLiveSession: stampFreshLiveSession,
     restampStaleSession: restampStaleSession,
     callerGameIsRecycled: callerGameIsRecycled,

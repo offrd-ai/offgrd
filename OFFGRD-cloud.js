@@ -1052,6 +1052,28 @@ export const Cloud = {
     }
     return data;
   },
+  /** Insert a specific caller_games id if missing. Used for held events whose gameId has no row.
+   *  Does not steal the one-active-per-side slot — defaults to archived. */
+  async ensureCallerGameRow(teamId, meta) {
+    if (!OG || !teamId || !meta || !meta.id) return null;
+    const existing = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
+    if (existing.error) throw existing.error;
+    if (existing.data) return existing.data;
+    const side = (meta.side === "defense") ? "defense" : "offense";
+    const row = {
+      id: meta.id,
+      team_id: teamId,
+      opponent: meta.opponent || null,
+      week: meta.week || null,
+      game_date: meta.game_date || null,
+      status: meta.status === "active" ? "active" : "archived",
+      created_by: meta.created_by || null,
+      side: side,
+    };
+    const { data, error } = await OG.from("caller_games").insert(row).select().single();
+    if (error) throw error;
+    return data;
+  },
   async archiveCallerGame(gameId) {
     if (!OG || !gameId) return;
     const { error } = await OG.from("caller_games").update({ status: "archived" }).eq("id", gameId);

@@ -2214,6 +2214,7 @@ let CALLER_BOOTH_ASK=null; /* Tier-2: { status, question, lines, thin, message, 
 let CALLER_ROLLUP={ axis:null, qtr:"ANY", zone:"ANY", dn:"ANY", db:"ANY", level:"family" };
 /** playIndex being edited via Edit last play (correction), or null */
 let CALLER_EDIT_PI=null;
+let CALLER_SNAP_GUARD=null;
 function callerGetMode(){
   try{
     const v=localStorage.getItem("offgrd_caller_mode");
@@ -3268,7 +3269,7 @@ function callerEnsureSession(){
   if(!CALLER_SESSION){
     CALLER_SESSION={ opp:callerSessionOppRaw(), week:callerSessionWeekRaw(), game_date:callerSessionDate(), gameId:mint() };
   }
-  if(S&&S.isStaleLiveIdentity&&S.isStaleLiveIdentity(CALLER_SESSION)){
+  if(S&&S.isStaleLiveIdentity&&S.isStaleLiveIdentity(CALLER_SESSION, null, CALLER_EVENTS)){
     const stamped=S.restampStaleSession(CALLER_SESSION, CALLER_EVENTS, null, mint());
     CALLER_SESSION=stamped.session;
     if(Array.isArray(stamped.events)) CALLER_EVENTS=stamped.events;
@@ -4407,7 +4408,9 @@ function callerAnalysisMarksHtml(){
 }
 function callerFoldOpts(extra){
   const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
-  return Object.assign({ side: "offense", gameId: sess && sess.gameId }, extra||{});
+  const E=callerEngine();
+  const gid=E&&E.foldGameId?E.foldGameId(sess, CALLER_EVENTS):sess&&sess.gameId;
+  return Object.assign({ side: "offense", gameId: gid }, extra||{});
 }
 function callerRefold(opts){
   const E=callerEngine();
@@ -5565,10 +5568,61 @@ function callerSyncHeaderHtml(){
   try{
     const eng=window.OFFGRD_CALLER_SYNC_ENGINE;
     if(!eng||!eng.getSyncHeaderState) return "";
-    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing());
+    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession());
     const cls=st.held||st.pending?"is-pending":(st.syncing?"is-syncing":"is-up");
-    return `<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(st.label)}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button></div>`;
+    let extra="";
+    if(st.held&&st.reason==="session-mismatch"){
+      extra=`<button type="button" class="rd-dc-upload" onclick="callerResolveHeld()">Resolve session</button>`;
+    }
+    const guard=CALLER_SNAP_GUARD?`<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(CALLER_SNAP_GUARD)}</p>`:"";
+    return `<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(st.label)}${st.detail?" · "+esc(st.detail):""}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button><button type="button" class="rd-dc-upload" onclick="callerExport()">Export</button>${extra}</div>`+guard;
   }catch(e){ return ""; }
+}
+function callerResolveHeld(){
+  const E=callerEngine();
+  const sess=callerEnsureSession();
+  const gid=E&&E.foldGameId?E.foldGameId(sess, CALLER_EVENTS):null;
+  if(gid&&sess&&String(sess.gameId)!==String(gid)){
+    sess.gameId=gid;
+    const ev=(CALLER_EVENTS||[]).find(function(e){ return e&&String(e.gameId)===String(gid)&&e.payload&&e.payload.date; });
+    if(ev&&ev.payload&&ev.payload.date){
+      sess.game_date=String(ev.payload.date).slice(0,10);
+      sess.week="Live "+sess.game_date;
+    }
+    callerSaveLocal();
+  }
+  if(window.OFFGRD_CALLER_SYNC) return window.OFFGRD_CALLER_SYNC();
+}
+function callerExport(){
+  const sess=callerEnsureSession();
+  const payload={
+    kind:"offgrd_ocaller_export",
+    side:"offense",
+    exportedAt:new Date().toISOString(),
+    session:sess,
+    sit:callerSit,
+    events:CALLER_EVENTS,
+    log:CALLER_LOG,
+    snapCount:CALLER_LOG.length,
+    eventCount:(CALLER_EVENTS||[]).length,
+    schemaVersion:1
+  };
+  const json=JSON.stringify(payload, null, 2);
+  try{
+    localStorage.setItem("offgrd_ocaller_export_"+(sess.gameId||"latest"), json);
+    localStorage.setItem("offgrd_ocaller_export_latest", json);
+  }catch(e){}
+  try{
+    const blob=new Blob([json], { type:"application/json" });
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="offgrd-ocaller-"+(sess.opp||"game").replace(/\s+/g,"-")+"-"+callerSessionDate()+".json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(e2){} }, 500);
+  }catch(e3){
+    try{ prompt("Copy O Caller export JSON:", json); }catch(e4){}
+  }
 }
 function callerUiChrome(){
   let h="";
@@ -6019,7 +6073,7 @@ function renderCaller(){
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
     let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     const mode=callerGetMode();
-    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${CALLER_LOG.length}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     if(CALLER_TOMBSTONE_REFUSAL&&CALLER_TOMBSTONE_REFUSAL.message){
       h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
     }
@@ -6198,8 +6252,12 @@ function callerLog(play){
   let signal=null;
   try{ const m=callerSignalMap(); if(m&&m[play]!=null) signal=m[play]; }catch(e){}
   const actor=callerActor();
-  const folded=E?E.foldCallerEvents(CALLER_EVENTS, callerFoldOpts()):{ nextPlayIndex:CALLER_LOG.length };
-  const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
+  let playIndex=E&&E.allocatePlayIndex?E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts()):CALLER_LOG.length;
+  if(E&&E.guardCallIndex){
+    const g=E.guardCallIndex(CALLER_EVENTS, playIndex, callerDeviceId(), callerFoldOpts());
+    playIndex=g.playIndex;
+    if(g.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  }
   const isTwo=!!cs.forTwo;
   callerAppend("call", playIndex, {
     sitTxt: isTwo?"2-pt":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:"")),
@@ -6267,8 +6325,12 @@ function callerLogST(kind){
   }
   const cs=callerSit;
   const actor=callerActor();
-  const folded=E?E.foldCallerEvents(CALLER_EVENTS, callerFoldOpts()):{ nextPlayIndex:CALLER_LOG.length };
-  const playIndex=typeof folded.nextPlayIndex==="number"?folded.nextPlayIndex:CALLER_LOG.length;
+  let playIndex=E&&E.allocatePlayIndex?E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts()):CALLER_LOG.length;
+  if(E&&E.guardCallIndex){
+    const g=E.guardCallIndex(CALLER_EVENTS, playIndex, callerDeviceId(), callerFoldOpts());
+    playIndex=g.playIndex;
+    if(g.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  }
   const sitLabel=kind==="xp"?"After TD":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""));
   callerAppend("call", playIndex, {
     sitTxt: sitLabel,
