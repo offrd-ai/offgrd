@@ -1,5 +1,7 @@
 -- Re-key + merge Friday 2026-08-27 Parkway North live games.
--- REVIEW ONLY. Do not apply until v339 is on every device that opens a caller.
+-- REVIEW ONLY. Order: v339 on every device → refuse-shrink trigger → this
+-- dry-run → read the counts → uncomment writes → unique index last.
+-- Recovery does not shrink rows[]. The trigger must already be in.
 -- The previous version of this file rebuilt 39+37 snaps. That is obsolete —
 -- defense already holds 39 through the fixed fold. This file only re-keys and
 -- collapses the duplicate ours row.

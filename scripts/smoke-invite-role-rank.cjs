@@ -48,7 +48,11 @@ sqlPaths.forEach(function (sqlPath) {
   check(label + " has no invented admin rank", !/WHEN 'admin' THEN/.test(sql));
   check(label + " has no invented coach rank", !/WHEN 'coach' THEN/.test(sql));
   if (/apply-offgrd-accept-invite/.test(sqlPath)) {
-    check(label + " defines role_rank", /CREATE OR REPLACE FUNCTION offgrd\.role_rank\s*\(\s*r\s+text\s*\)/.test(sql));
+    /* Live snapshot uses p_role (prod 2026-08-23). The tiny fixture uses CASE r. */
+    check(
+      label + " defines role_rank",
+      /CREATE OR REPLACE FUNCTION offgrd\.role_rank\s*\(\s*\w+\s+text\s*\)/.test(sql)
+    );
     check(label + " invite_member calls can_mint_invite(uuid, text)", /can_mint_invite\s*\(\s*t\s*,\s*member_role\s*\)/.test(sql));
   }
 });

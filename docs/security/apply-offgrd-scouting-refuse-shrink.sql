@@ -1,9 +1,10 @@
 -- Belt: reject a scouting_games write that shrinks rows[] or relabels week.
 -- Client bugs must not be able to delete a coach's season.
 --
--- REVIEW-BEFORE-APPLY. Run AFTER the Parkway North re-key/merge recovery
--- (apply-offgrd-recover-2026-08-27-parkway-north.sql) so the unique index
--- is not blocked by c3a18c94 / 0ba6a21b.
+-- REVIEW-BEFORE-APPLY. Apply THIS trigger before the Parkway North
+-- re-key/merge recovery. Recovery does not shrink rows[]; the trigger is
+-- the belt against a leftover v338 device writing into the restore.
+-- Unique index stays in the recovery file, after the duplicate is deleted.
 --
 -- Escape hatch (session-local, recovery only):
 --   SELECT set_config('offgrd.allow_shrink', 'on', true);
