@@ -117,11 +117,46 @@ function requireGameNaturalArgs(game, fnName) {
   return { opponent, week, side };
 }
 
+/**
+ * Content equality for scouting_games.rows — not JSON.stringify.
+ * PostgREST/jsonb parse and localStorage parse rebuild the same snaps with
+ * different key insertion order. stringify then disagrees and the "identical"
+ * no-op falls through to upsert, which restamps updated_at.
+ *
+ * Sort object keys only. Never sort arrays — rows[] is snap sequence.
+ * Recurse into array elements and nested objects so inner key order
+ * cannot miss. undefined is dropped; null is kept (null ≠ missing).
+ */
+function canonScouting(v) {
+  if (v === undefined) return undefined;
+  if (v === null || typeof v !== "object") return v;
+  if (Array.isArray(v)) return v.map(canonScouting);
+  const o = {};
+  Object.keys(v)
+    .sort()
+    .forEach(function (k) {
+      const c = canonScouting(v[k]);
+      if (c !== undefined) o[k] = c;
+    });
+  return o;
+}
+function stableScoutingJson(v) {
+  return JSON.stringify(canonScouting(v));
+}
+function scoutingRowsEqual(a, b) {
+  try {
+    return stableScoutingJson(a) === stableScoutingJson(b);
+  } catch (e) {
+    return false;
+  }
+}
+
 export const Cloud = {
   ready: !!(createClient && cfg.url && cfg.anonKey),
   sb,
   expectedProjectRef: EXPECTED_REF,
   projectRefFromJwt,
+  scoutingRowsEqual: scoutingRowsEqual,
   purgeForeignAuthTokens: function () { return purgeForeignAuthTokens(EXPECTED_REF); },
 
   /* ---------- auth ---------- */
@@ -879,7 +914,11 @@ export const Cloud = {
      * since this client last pulled (baseUpdatedAt), or when an old client with no
      * base tries to shrink a larger cloud blob (St Mary's 61→44 clobber class).
      * Intentional shrink after a fresh pull still works — base matches server.
+     *
+     * v340: identical-content no-op is canonical (sorted keys), not JSON.stringify.
+     * A CAS lookup error must not fall through to upsert — that restamps updated_at.
      */
+    let cur = null;
     try {
       let curQ = OG.from("scouting_games")
         .select("id, updated_at, rows, week")
@@ -893,7 +932,9 @@ export const Cloud = {
           .order("updated_at", { ascending: false })
           .limit(1);
       }
-      const { data: cur } = await curQ.maybeSingle();
+      const { data: curData, error: curErr } = await curQ.maybeSingle();
+      if (curErr) throw curErr;
+      cur = curData;
       if (cur) {
         if (!row.id) row.id = cur.id;
         const serverN = Array.isArray(cur.rows) ? cur.rows.length : 0;
@@ -904,6 +945,28 @@ export const Cloud = {
         const serverNewer =
           Number.isFinite(serverT) && Number.isFinite(baseT) && serverT > baseT + 750;
         const blindShrink = !Number.isFinite(baseT) && serverN > localN;
+        if (cur.week && game.week && String(cur.week) !== String(game.week)) {
+          const err = new Error(
+            "scouting_game week immutable: " + cur.week + " → " + game.week
+          );
+          err.code = "REFUSE_WEEK_MUTATION";
+          err.server = { id: cur.id, week: cur.week, n: serverN };
+          throw err;
+        }
+        if (!game.allowShrink && localN < serverN) {
+          const err = new Error(
+            "scouting_game refuse shrink: " + nk + " (server " + serverN + " → local " + localN + ")"
+          );
+          err.code = "REFUSE_SHRINK";
+          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
+          throw err;
+        }
+        if (
+          String(cur.week || "") === String(game.week || "") &&
+          scoutingRowsEqual(cur.rows || [], game.rows || [])
+        ) {
+          return cur;
+        }
         if (serverNewer || blindShrink) {
           const err = new Error(
             "scouting_game stale write: " +
@@ -918,34 +981,11 @@ export const Cloud = {
           err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
           throw err;
         }
-        if (!game.allowShrink && localN < serverN) {
-          const err = new Error(
-            "scouting_game refuse shrink: " + nk + " (server " + serverN + " → local " + localN + ")"
-          );
-          err.code = "REFUSE_SHRINK";
-          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
-          throw err;
-        }
-        if (cur.week && game.week && String(cur.week) !== String(game.week)) {
-          const err = new Error(
-            "scouting_game week immutable: " + cur.week + " → " + game.week
-          );
-          err.code = "REFUSE_WEEK_MUTATION";
-          err.server = { id: cur.id, week: cur.week, n: serverN };
-          throw err;
-        }
-        try {
-          if (
-            String(cur.week || "") === String(game.week || "") &&
-            JSON.stringify(cur.rows || []) === JSON.stringify(game.rows || [])
-          ) {
-            return cur;
-          }
-        } catch (eSame) {}
       }
     } catch (eCas) {
       if (eCas && (eCas.code === "STALE_WRITE" || eCas.code === "REFUSE_SHRINK" || eCas.code === "REFUSE_WEEK_MUTATION")) throw eCas;
-      /* CAS lookup failed — fall through to upsert (prefer availability). */
+      /* Have a server row and lookup/compare failed — do not blind-upsert. */
+      if (cur) return cur;
     }
 
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();

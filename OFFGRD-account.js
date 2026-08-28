@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=339";
-import { openAuthModal } from "./OFFGRD-auth.js?v=339";
+import { Cloud } from "./OFFGRD-cloud.js?v=340";
+import { openAuthModal } from "./OFFGRD-auth.js?v=340";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=339";
+} from "./OFFGRD-invite-parse.js?v=340";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1434,7 +1434,9 @@ async function pull(silent){
       if(!silent && A.kind!=="playbook") alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
-      if(local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
+      /* Scout: opening / focus / pull must not write scouting_games.
+         Empty-cloud auto-push was a full-library upsert (22:49 restamp class). */
+      if(A.kind!=="scout" && local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
       else if(!silent) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
@@ -2354,8 +2356,8 @@ function renderChecklist(s){
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
-let _syncT=null;
-window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; push(true); }, 1500); };
+let _syncT=null, _busy=false;
+window.OFFGRD_SYNC=function(){ if(!(TEAM && SYNCABLE && canEdit())) return; if(_busy) return; clearTimeout(_syncT); _syncT=setTimeout(()=>{ _syncT=null; if(_busy) return; push(true); }, 1500); };
 /** Awaitable push for Commit-to-season — returns {ok, rejected, error} (never silent on failure). */
 window.OFFGRD_PUSH=async function(silent){
   try{
@@ -2456,7 +2458,7 @@ function pullFormationMap(teamId){
 }
 
 /* ---------- auto-sync: pull fresh team data every 45s and on window focus ---------- */
-let _busy=false, _lastPull=0, _autoT=null;
+let _lastPull=0, _autoT=null;
 function syncStamp(){ try{ const el=document.getElementById("syncstat"); if(!el) return; const d=new Date(); el.textContent="synced "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")+" \u2713"; el.title="Auto-sync is on — time of last successful sync"; }catch(e){} }
 function maybePull(){
   if(!TEAM || !SYNCABLE) return;
