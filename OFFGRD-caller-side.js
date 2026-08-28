@@ -530,6 +530,8 @@
       log: log,
       logProvided: logProvided,
       sync: opts.sync,
+      fromCall: !!opts.fromCall,
+      allowShrink: !!opts.allowShrink,
     };
   }
 
@@ -551,6 +553,254 @@
       };
     }
     return { ok: true, key: k };
+  }
+
+  var LIBRARY_SHRINK_REFUSAL =
+    "Local fold is thinner than the stored game — write refused. Friday's calls stay. Export a backup.";
+  var LIBRARY_WEEK_REFUSAL =
+    "Stored week is locked — this session will not relabel that game.";
+
+  function rowCallId(r) {
+    if (!r) return "";
+    return String(r.callId || r.id || r.eventId || "").trim();
+  }
+
+  function playDate(r) {
+    if (!r || r.date == null || r.date === "") return null;
+    return String(r.date).slice(0, 10);
+  }
+
+  function logicalGameKey(opp, week, side) {
+    return (
+      String(opp || "").trim().toLowerCase() +
+      "|" +
+      String(week || "").trim().toLowerCase() +
+      "|" +
+      String(side || "")
+    );
+  }
+
+  /** Union by callId. Incoming date wins only when the play itself carries one. */
+  function mergeRowsByCallId(existing, incoming) {
+    existing = Array.isArray(existing) ? existing : [];
+    incoming = Array.isArray(incoming) ? incoming : [];
+    var by = Object.create(null);
+    var order = [];
+    function absorb(r) {
+      if (!r) return;
+      var id = rowCallId(r);
+      if (!id) {
+        order.push({ kind: "anon", row: r });
+        return;
+      }
+      if (by[id]) {
+        var prev = by[id];
+        var merged = Object.assign({}, prev, r);
+        merged.date = playDate(r) || playDate(prev) || prev.date || r.date || null;
+        if (prev.gameWeek && !r.gameWeek) merged.gameWeek = prev.gameWeek;
+        by[id] = merged;
+      } else {
+        by[id] = r;
+        order.push({ kind: "id", id: id });
+      }
+    }
+    existing.forEach(absorb);
+    incoming.forEach(absorb);
+    return order.map(function (item) {
+      return item.kind === "id" ? by[item.id] : item.row;
+    });
+  }
+
+  function findExactLive(games, opp, week, side) {
+    var want = logicalGameKey(opp, week, side);
+    var hits = [];
+    (games || []).forEach(function (g) {
+      if (!g || g.source !== "live_call") return;
+      if (logicalGameKey(g.opponent, g.week, g.side) === want) hits.push(g);
+    });
+    return hits;
+  }
+
+  function assertUniqueLogicalKeys(games) {
+    var seen = Object.create(null);
+    var duplicates = [];
+    (games || []).forEach(function (g) {
+      if (!g) return;
+      var k = logicalGameKey(g.opponent, g.week, g.side);
+      if (seen[k]) duplicates.push(k);
+      else seen[k] = 1;
+    });
+    return { ok: duplicates.length === 0, duplicates: duplicates };
+  }
+
+  /**
+   * One write path for live library promotion.
+   * Opening a caller (fromCall false) is a no-op.
+   * Never fuzzy-matches a different Live week. Never shrinks rows.
+   * Never restamps play date from the session.
+   */
+  function planLiveLibraryWrite(input) {
+    input = input && typeof input === "object" ? input : {};
+    var games = Array.isArray(input.games) ? input.games.slice() : [];
+    var incoming = Array.isArray(input.incomingRows) ? input.incomingRows : [];
+    var sess = input.session && typeof input.session === "object" ? input.session : {};
+    var dest = input.dest || "";
+    var fromCall = !!input.fromCall;
+    var allowShrink = !!input.allowShrink;
+    var opp = sess.opp != null ? String(sess.opp) : "";
+    var week = sess.week != null ? String(sess.week) : "";
+    var key = logicalGameKey(opp, week, dest);
+
+    if (!fromCall) {
+      return {
+        ok: true,
+        skipped: "open-is-readonly",
+        reason: "open-is-readonly",
+        wrote: false,
+        games: games,
+        key: key,
+      };
+    }
+
+    var exactHits = findExactLive(games, opp, week, dest);
+    if (exactHits.length > 1) {
+      return {
+        ok: false,
+        reason: "duplicate-logical-key",
+        wrote: false,
+        games: games,
+        key: key,
+        count: exactHits.length,
+        message: "Two library rows share " + key + " — write refused.",
+      };
+    }
+    var prev = exactHits[0] || null;
+    var storedN = prev && Array.isArray(prev.rows) ? prev.rows.length : 0;
+
+    if (prev && String(prev.week || "") !== week) {
+      return {
+        ok: false,
+        reason: "week-immutable",
+        wrote: false,
+        games: games,
+        storedWeek: prev.week,
+        sessionWeek: week,
+        message: LIBRARY_WEEK_REFUSAL,
+      };
+    }
+
+    if (!incoming.length) {
+      if (storedN && !allowShrink) {
+        return {
+          ok: false,
+          reason: "refuse-shrink",
+          wrote: false,
+          games: games,
+          stored: storedN,
+          incoming: 0,
+          message: LIBRARY_SHRINK_REFUSAL,
+        };
+      }
+      return {
+        ok: true,
+        skipped: "empty-fold-no-row",
+        wrote: false,
+        games: games,
+        key: key,
+      };
+    }
+
+    if (prev) {
+      if (incoming.length < storedN && !allowShrink) {
+        return {
+          ok: false,
+          reason: "refuse-shrink",
+          wrote: false,
+          games: games,
+          stored: storedN,
+          incoming: incoming.length,
+          message: LIBRARY_SHRINK_REFUSAL,
+        };
+      }
+      var merged = mergeRowsByCallId(prev.rows, incoming);
+      if (merged.length < storedN && !allowShrink) {
+        return {
+          ok: false,
+          reason: "refuse-shrink",
+          wrote: false,
+          games: games,
+          stored: storedN,
+          incoming: incoming.length,
+          merged: merged.length,
+          message: LIBRARY_SHRINK_REFUSAL,
+        };
+      }
+      var nextGames = games.map(function (g) {
+        if (g !== prev) return g;
+        return Object.assign({}, g, {
+          rows: merged,
+          source: "live_call",
+          opponent: prev.opponent,
+          week: prev.week,
+          side: prev.side,
+          key: g.key || key,
+        });
+      });
+      var uniq = assertUniqueLogicalKeys(nextGames);
+      if (!uniq.ok) {
+        return {
+          ok: false,
+          reason: "duplicate-logical-key",
+          wrote: false,
+          games: games,
+          key: key,
+          duplicates: uniq.duplicates,
+          message: "Two library rows share a key — write refused.",
+        };
+      }
+      return {
+        ok: true,
+        wrote: true,
+        action: "merge",
+        games: nextGames,
+        rows: merged,
+        key: key,
+        stored: storedN,
+        incoming: incoming.length,
+      };
+    }
+
+    var created = {
+      key: key,
+      opponent: opp,
+      week: week,
+      side: dest,
+      source: "live_call",
+      rows: incoming.slice(),
+      cid: null,
+    };
+    var inserted = games.concat([created]);
+    var uniqInsert = assertUniqueLogicalKeys(inserted);
+    if (!uniqInsert.ok) {
+      return {
+        ok: false,
+        reason: "duplicate-logical-key",
+        wrote: false,
+        games: games,
+        key: key,
+        duplicates: uniqInsert.duplicates,
+        message: "Two library rows share a key — write refused.",
+      };
+    }
+    return {
+      ok: true,
+      wrote: true,
+      action: "insert",
+      games: inserted,
+      rows: created.rows,
+      key: key,
+      incoming: incoming.length,
+    };
   }
 
   function applySeasonPurge(seasonGames, plan) {
@@ -614,5 +864,14 @@
     TOMBSTONE_REFUSAL: TOMBSTONE_REFUSAL,
     normalizePromoteOpts: normalizePromoteOpts,
     refuseTombstonedKey: refuseTombstonedKey,
+    rowCallId: rowCallId,
+    playDate: playDate,
+    logicalGameKey: logicalGameKey,
+    mergeRowsByCallId: mergeRowsByCallId,
+    findExactLive: findExactLive,
+    assertUniqueLogicalKeys: assertUniqueLogicalKeys,
+    planLiveLibraryWrite: planLiveLibraryWrite,
+    LIBRARY_SHRINK_REFUSAL: LIBRARY_SHRINK_REFUSAL,
+    LIBRARY_WEEK_REFUSAL: LIBRARY_WEEK_REFUSAL,
   };
 })(typeof window !== "undefined" ? window : globalThis);

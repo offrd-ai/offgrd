@@ -1100,7 +1100,7 @@
     return { side: "defense", gameId: gid };
   }
 
-  function refold() {
+  function refold(opts) {
     var eng = E();
     if (!eng || !eng.foldCallerEvents) return;
     var folded = eng.foldCallerEvents(events, foldOpts());
@@ -1108,9 +1108,15 @@
     try {
       if (global.OFFGRD_BOOTHPACK && OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate();
     } catch (e) {}
+    if (!(opts && opts.fromCall)) return;
     try {
       if (typeof callerSyncToGames === "function") {
-        callerSyncToGames({ side: "defense", log: log, session: ensureSession() });
+        callerSyncToGames({
+          side: "defense",
+          log: log,
+          session: ensureSession(),
+          fromCall: true,
+        });
       }
     } catch (eSync) {
       try {
@@ -1180,7 +1186,7 @@
     events.push(ev);
     var SideMark = global.OFFGRD_CALLER_SIDE;
     if (SideMark && SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
-    refold();
+    refold({ fromCall: true });
     saveLocal();
     scheduleSync();
     return ev;
@@ -3041,6 +3047,9 @@
     try {
       if (global.CALLER_TOMBSTONE_REFUSAL && CALLER_TOMBSTONE_REFUSAL.message) {
         h += `<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
+      }
+      if (global.CALLER_LIBRARY_REFUSAL && CALLER_LIBRARY_REFUSAL.message) {
+        h += `<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_LIBRARY_REFUSAL.message)}</p>`;
       }
     } catch (eTomb) {}
     h += syncStateHtml();

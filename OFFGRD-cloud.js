@@ -882,7 +882,7 @@ export const Cloud = {
      */
     try {
       let curQ = OG.from("scouting_games")
-        .select("id, updated_at, rows")
+        .select("id, updated_at, rows, week")
         .eq("team_id", teamId);
       if (row.id) curQ = curQ.eq("id", row.id);
       else {
@@ -918,14 +918,51 @@ export const Cloud = {
           err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
           throw err;
         }
+        if (!game.allowShrink && localN < serverN) {
+          const err = new Error(
+            "scouting_game refuse shrink: " + nk + " (server " + serverN + " → local " + localN + ")"
+          );
+          err.code = "REFUSE_SHRINK";
+          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
+          throw err;
+        }
+        if (cur.week && game.week && String(cur.week) !== String(game.week)) {
+          const err = new Error(
+            "scouting_game week immutable: " + cur.week + " → " + game.week
+          );
+          err.code = "REFUSE_WEEK_MUTATION";
+          err.server = { id: cur.id, week: cur.week, n: serverN };
+          throw err;
+        }
+        try {
+          if (
+            String(cur.week || "") === String(game.week || "") &&
+            JSON.stringify(cur.rows || []) === JSON.stringify(game.rows || [])
+          ) {
+            return cur;
+          }
+        } catch (eSame) {}
       }
     } catch (eCas) {
-      if (eCas && eCas.code === "STALE_WRITE") throw eCas;
+      if (eCas && (eCas.code === "STALE_WRITE" || eCas.code === "REFUSE_SHRINK" || eCas.code === "REFUSE_WEEK_MUTATION")) throw eCas;
       /* CAS lookup failed — fall through to upsert (prefer availability). */
     }
 
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
     if (error) {
+      const trigMsg = String(error.message || error.details || error.hint || "");
+      if (/refuse shrink/i.test(trigMsg)) {
+        const err = new Error(trigMsg);
+        err.code = "REFUSE_SHRINK";
+        err.cause = error;
+        throw err;
+      }
+      if (/week immutable/i.test(trigMsg)) {
+        const err = new Error(trigMsg);
+        err.code = "REFUSE_WEEK_MUTATION";
+        err.cause = error;
+        throw err;
+      }
       /* Trigger path (stale v211 / tombs not loaded): map to TOMBSTONED — never retry-storm. */
       if (this._isTombstoneError(error)) {
         const err = new Error(error.message || ("scouting_game tombstoned: " + nk));

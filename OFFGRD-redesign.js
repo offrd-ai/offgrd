@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "338";
+  const ASSET_V = "339";
 
   function getScoutTool() {
     try {
@@ -339,6 +339,11 @@
       if (/OFFGRD-Playbook\.html/i.test(p)) return "playbook";
     } catch (e) {}
     return "scout";
+  }
+
+  function isSecondary() {
+    const k = appKind();
+    return k === "qb" || k === "playbook";
   }
 
   function assetV() {
@@ -639,6 +644,7 @@
       'padding:4px 8px;min-height:48px;}',
       'html.rd-on #rdContext,html.rd-on #rdNavBody{display:contents;}',
       'html.rd-on #rdMark,html.rd-on #rdAcctHost,html.rd-on #rdContext .rd-spacer{display:none!important;}',
+      'html.rd-on.rd-secondary #rdMark{display:inline-flex!important;min-height:44px;padding:0 10px;font-weight:800;}',
       'html.rd-on #rdCrest{flex:0 0 auto;}',
       'html.rd-on #rdScope{flex:0 1 auto;max-width:38vw;min-height:44px;padding:8px 10px;',
       'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
@@ -2425,7 +2431,7 @@
 
     return ''
       + '<div id="rdContext">'
-      + '<a id="rdMark" href="' + esc(withV("OFFGRD.html")) + '" title="OFFGRD home"><img src="icon.svg" alt=""><span>OFF<span style="opacity:.85">GRD</span></span></a>'
+      + '<a id="rdMark" href="' + esc(withV("OFFGRD.html")) + '" title="' + (isSecondary() ? "Back to Gameday" : "OFFGRD home") + '"><img src="icon.svg" alt=""><span>' + (isSecondary() ? "\u2190 Gameday" : "OFF<span style=\"opacity:.85\">GRD</span>") + "</span></a>"
       + '<span id="rdCrest"></span>'
       + '<button type="button" id="rdScope" title="Opponent / scope">Scope</button>'
       + '<span id="rdSync">SYNC</span>'
@@ -2446,7 +2452,8 @@
       const gameday = isRedesign() && phaseForView(currentView()) === "gameday";
       document.documentElement.classList.toggle("rd-gameday", gameday);
       const kind = appKind();
-      const secondary = kind === "qb" || kind === "playbook";
+      const secondary = isSecondary();
+      try { document.documentElement.classList.toggle("rd-secondary", secondary); } catch (eSec) {}
       /* Booth is gameday-only on the main app. On Playbook/QB it stays a
          display-in-place mode — do not strip the class those pages just applied. */
       if (!gameday && !secondary) {
@@ -2900,6 +2907,7 @@
     document.documentElement.classList.add("rd-on");
     try {
       document.documentElement.classList.toggle("rd-player", isPlayerRole());
+      document.documentElement.classList.toggle("rd-secondary", isSecondary());
     } catch (e) {}
     ensureCss();
     patchApplyTeamColors();
