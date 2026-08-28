@@ -192,7 +192,22 @@ const emptyStale = S.isStaleLiveIdentity(
   []
 );
 if (!emptyStale) fail("smoke4 empty leftover session must still roll");
-console.log("ok  4 session identity: midnight does not re-key an in-flight game");
+const flushedSess = {
+  gameId: sess.gameId,
+  week: sess.week,
+  game_date: sess.game_date,
+  opp: sess.opp,
+  inProgress: true,
+  ended: false,
+};
+if (S.isStaleLiveIdentity(flushedSess, afterMidnight, [])) {
+  fail("smoke4 flushed in-progress session flagged stale at midnight");
+}
+const flushedStamp = S.restampStaleSession(flushedSess, [], afterMidnight, "new-game-id");
+if (flushedStamp.restamped || flushedStamp.session.gameId !== sess.gameId) {
+  fail("smoke4 flushed session re-keyed at midnight to " + (flushedStamp.session && flushedStamp.session.gameId));
+}
+console.log("ok  4 session identity: midnight does not re-key an open game (events or flushed)");
 
 /* 5) Friday 2026-08-27 Parkway North export — 39 calls must fold to 39 snaps, not 5. */
 const fixturePath = path.join(__dirname, "fixtures", "offgrd-dcaller-parkway-north-2026-08-27.json");
@@ -321,7 +336,7 @@ if (oParityFold.log.length !== callCount - undoCount) {
   fail("smoke7 expected " + (callCount - undoCount) + " snaps, got " + oParityFold.log.length);
 }
 console.log(
-  "ok  7 cross-caller parity: indexes [" +
+  "ok  7 cross-caller parity: 8 calls + 1 undo → indexes [" +
     oPi.join(",") +
     "] snaps " +
     oParityFold.log.length

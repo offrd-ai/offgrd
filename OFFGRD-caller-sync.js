@@ -635,7 +635,9 @@
         game_date: sess.game_date || null,
         created_by: (b.getActorId && b.getActorId()) || null,
         side: side,
-        inFlight: !!(events && events.length),
+        inFlight: Side && Side.sessionIsOpen ? Side.sessionIsOpen(sess, events) : !!(events && events.length),
+        inProgress: !!(sess && sess.inProgress),
+        sessionOpen: Side && Side.sessionIsOpen ? Side.sessionIsOpen(sess, events) : !!(events && events.length),
       });
     }
 

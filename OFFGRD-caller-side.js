@@ -418,15 +418,34 @@
     return "Live " + liveDateISO(now);
   }
 
-  /** Local events mean a game is in progress or un-flushed. Never re-key those. */
+  /** Local ledger present. Sync/ack does not clear this array. */
   function hasInFlightCallerEvents(sess, events) {
     return !!(events && events.length);
   }
 
+  /**
+   * Game is still open: coach has not hit Clear.
+   * Flush/ack must not decide identity — a fully synced 18:13–23:30 game
+   * is the same game at midnight. inProgress is set on first append and
+   * persisted; events.length covers builds that predate the flag.
+   */
+  function sessionIsOpen(sess, events) {
+    if (sess && sess.ended) return false;
+    if (sess && sess.inProgress) return true;
+    return hasInFlightCallerEvents(sess, events);
+  }
+
+  function markSessionInProgress(sess) {
+    if (!sess) return sess;
+    sess.inProgress = true;
+    sess.ended = false;
+    return sess;
+  }
+
   /** Live YYYY-MM-DD whose day is not today, or game_date not today.
-   *  A session with events is immune — Friday 18:13 through 23:30 is one game. */
+   *  An open session is immune — Friday 18:13 through 23:30 is one game. */
   function isStaleLiveIdentity(sess, now, events) {
-    if (hasInFlightCallerEvents(sess, events)) return false;
+    if (sessionIsOpen(sess, events)) return false;
     if (!sess) return true;
     var today = liveDateISO(now);
     var week = String(sess.week || "");
@@ -441,6 +460,8 @@
     out.week = liveWeekLabel(now);
     out.game_date = liveDateISO(now);
     if (newId) out.gameId = newId;
+    out.inProgress = false;
+    out.ended = false;
     return out;
   }
 
@@ -456,7 +477,7 @@
    * Only retarget events whose clientTs is today so July test snaps stay off the new key.
    */
   function restampStaleSession(sess, events, now, newId) {
-    if (hasInFlightCallerEvents(sess, events)) {
+    if (sessionIsOpen(sess, events)) {
       return { session: sess, events: events || [], restamped: false, immune: true };
     }
     if (!isStaleLiveIdentity(sess, now)) {
@@ -475,9 +496,9 @@
   }
 
   /** Active caller_games row is a previous day's Live session.
-   *  inFlight (local events still on the device) makes the row immune. */
+   *  An open session (inProgress / inFlight) makes the row immune. */
   function callerGameIsRecycled(existing, meta) {
-    if (meta && meta.inFlight) return false;
+    if (meta && (meta.inFlight || meta.inProgress || meta.sessionOpen)) return false;
     if (!existing) return false;
     var wantDate = meta && meta.game_date != null && meta.game_date !== ""
       ? String(meta.game_date).slice(0, 10)
@@ -585,6 +606,8 @@
     liveWeekLabel: liveWeekLabel,
     isStaleLiveIdentity: isStaleLiveIdentity,
     hasInFlightCallerEvents: hasInFlightCallerEvents,
+    sessionIsOpen: sessionIsOpen,
+    markSessionInProgress: markSessionInProgress,
     stampFreshLiveSession: stampFreshLiveSession,
     restampStaleSession: restampStaleSession,
     callerGameIsRecycled: callerGameIsRecycled,

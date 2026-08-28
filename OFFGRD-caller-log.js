@@ -858,6 +858,9 @@
     saveStore: saveStore,
     migrateV1Log: migrateV1Log,
     entryToGamesRow: entryToGamesRow,
+    snapCount: function (log) {
+      return log && log.length ? log.length : 0;
+    },
     onCallFromLog: onCallFromLog,
     wouldDedupCall: wouldDedupCall,
   };

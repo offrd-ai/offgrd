@@ -4553,6 +4553,8 @@ function callerAppend(type, playIndex, payload){
     return null;
   }
   CALLER_EVENTS.push(ev);
+  const SideMark=window.OFFGRD_CALLER_SIDE;
+  if(SideMark&&SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
   callerRefold();
   callerSaveLocal();
   callerScheduleSync();
@@ -6062,6 +6064,8 @@ function renderCaller(){
   /* Live count for the expect strip — snaps in the *resolved* (possibly widened) set. */
   const liveM=g.filter(r=>r.date==="live"||r.source==="live");
   const liveAll=LIVE_SNAPS.filter(r=>sit.opp==="ANY"||r.opponent===sit.opp);
+  const EnSnap=callerEngine();
+  const snapN=EnSnap&&EnSnap.snapCount?EnSnap.snapCount(CALLER_LOG):CALLER_LOG.length;
 
   if(rd){
     const hashLbl=cs.hash==="L"?"Left hash":cs.hash==="R"?"Right hash":cs.hash==="M"?"Middle hash":"";
@@ -6073,7 +6077,7 @@ function renderCaller(){
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
     let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     const mode=callerGetMode();
-    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${CALLER_LOG.length}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+    h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapN}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     if(CALLER_TOMBSTONE_REFUSAL&&CALLER_TOMBSTONE_REFUSAL.message){
       h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
     }

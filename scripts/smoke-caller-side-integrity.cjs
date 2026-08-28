@@ -196,6 +196,14 @@ check(
   S.isStaleLiveIdentity({ week: "Live 2026-08-27", game_date: "2026-08-27" }, midnightNow, [])
 );
 check(
+  "flushed in-progress session is immune at midnight",
+  !S.isStaleLiveIdentity(
+    { week: "Live 2026-08-27", game_date: "2026-08-27", gameId: "g-live", inProgress: true },
+    midnightNow,
+    []
+  )
+);
+check(
   "active caller_games row from July is recycled",
   S.callerGameIsRecycled(
     { week: "Live 2026-07-24", game_date: "2026-07-24" },

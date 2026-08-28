@@ -1178,6 +1178,8 @@
       return null;
     }
     events.push(ev);
+    var SideMark = global.OFFGRD_CALLER_SIDE;
+    if (SideMark && SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
     refold();
     saveLocal();
     scheduleSync();
@@ -3028,7 +3030,8 @@
     var h = `<div class="rd-gd rd-dc" data-acc-skip id="dcaller-top-anchor">`;
     h += `<div class="rd-gd-top">${crestHtml}<b>${esc(oName !== "ANY" ? oName : "opponent")}</b>`;
     h += `<span class="rd-gd-chip">D CALLER</span>`;
-    h += `<span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${log.length}</span>`;
+    var snapEng = E();
+    h += `<span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapEng && snapEng.snapCount ? snapEng.snapCount(log) : log.length}</span>`;
     try {
       if (typeof callerOdToggleHtml === "function") h += callerOdToggleHtml("d");
     } catch (eOd) {}
