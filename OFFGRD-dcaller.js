@@ -1784,11 +1784,13 @@
   /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
   function logTheirPlay(playType, direction) {
     var eng = E();
-    var nextPi = eng && eng.allocatePlayIndex ? eng.allocatePlayIndex(events, foldOpts()) : (log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0);
-    if (eng && eng.guardCallIndex) {
-      var guarded = eng.guardCallIndex(events, nextPi, eng.deviceId ? eng.deviceId() : "dev", foldOpts());
-      nextPi = guarded.playIndex;
-      if (guarded.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
+    var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
+    if (eng && eng.openSnap) {
+      var opened = eng.openSnap(events, Object.assign({ deviceId: eng.deviceId ? eng.deviceId() : "dev" }, foldOpts()));
+      nextPi = opened.playIndex;
+      if (opened.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
+    } else if (eng && eng.allocatePlayIndex) {
+      nextPi = eng.allocatePlayIndex(events, foldOpts());
     }
     var dir = direction || pendingDir || null;
     pendingDir = null;
@@ -1994,11 +1996,13 @@
   function logST(kind) {
     if (kind !== "fg" && kind !== "punt" && kind !== "xp") return;
     var eng = E();
-    var nextPi = eng && eng.allocatePlayIndex ? eng.allocatePlayIndex(events, foldOpts()) : (log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0);
-    if (eng && eng.guardCallIndex) {
-      var guarded = eng.guardCallIndex(events, nextPi, eng.deviceId ? eng.deviceId() : "dev", foldOpts());
-      nextPi = guarded.playIndex;
-      if (guarded.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
+    var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
+    if (eng && eng.openSnap) {
+      var opened = eng.openSnap(events, Object.assign({ deviceId: eng.deviceId ? eng.deviceId() : "dev" }, foldOpts()));
+      nextPi = opened.playIndex;
+      if (opened.warn) snapGuard = "Snap index collision — recovered. Export a backup.";
+    } else if (eng && eng.allocatePlayIndex) {
+      nextPi = eng.allocatePlayIndex(events, foldOpts());
     }
     var sess = ensureSession();
     var play = kind === "fg" ? "Kick" : kind === "punt" ? "Punt" : "PAT";

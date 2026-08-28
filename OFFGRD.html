@@ -6252,11 +6252,13 @@ function callerLog(play){
   let signal=null;
   try{ const m=callerSignalMap(); if(m&&m[play]!=null) signal=m[play]; }catch(e){}
   const actor=callerActor();
-  let playIndex=E&&E.allocatePlayIndex?E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts()):CALLER_LOG.length;
-  if(E&&E.guardCallIndex){
-    const g=E.guardCallIndex(CALLER_EVENTS, playIndex, callerDeviceId(), callerFoldOpts());
-    playIndex=g.playIndex;
-    if(g.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  let playIndex=CALLER_LOG.length;
+  if(E&&E.openSnap){
+    const opened=E.openSnap(CALLER_EVENTS, Object.assign({ deviceId: callerDeviceId() }, callerFoldOpts()));
+    playIndex=opened.playIndex;
+    if(opened.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  }else if(E&&E.allocatePlayIndex){
+    playIndex=E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts());
   }
   const isTwo=!!cs.forTwo;
   callerAppend("call", playIndex, {
@@ -6325,11 +6327,13 @@ function callerLogST(kind){
   }
   const cs=callerSit;
   const actor=callerActor();
-  let playIndex=E&&E.allocatePlayIndex?E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts()):CALLER_LOG.length;
-  if(E&&E.guardCallIndex){
-    const g=E.guardCallIndex(CALLER_EVENTS, playIndex, callerDeviceId(), callerFoldOpts());
-    playIndex=g.playIndex;
-    if(g.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  let playIndex=CALLER_LOG.length;
+  if(E&&E.openSnap){
+    const opened=E.openSnap(CALLER_EVENTS, Object.assign({ deviceId: callerDeviceId() }, callerFoldOpts()));
+    playIndex=opened.playIndex;
+    if(opened.warn) CALLER_SNAP_GUARD="Snap index collision — recovered. Export a backup.";
+  }else if(E&&E.allocatePlayIndex){
+    playIndex=E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts());
   }
   const sitLabel=kind==="xp"?"After TD":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""));
   callerAppend("call", playIndex, {

@@ -761,6 +761,26 @@
     return typeof folded.nextPlayIndex === "number" ? folded.nextPlayIndex : 0;
   }
 
+  /**
+   * Shared snap engine — BOTH callers open snaps through this.
+   * Do not allocate playIndex in OFFGRD.html or OFFGRD-dcaller.js.
+   *
+   * Event vocabulary (one meaning, both callers):
+   *   call         — opens a snap; this is what advances playIndex
+   *   outcome      — attaches to the most recent snap; never advances
+   *   observation  — front / coverage / pressure about the snap; never advances
+   *   correction   — coach chose Edit; LWW-patches the existing snap; never removes it
+   *   undo         — coach chose Undo; removes exactly one snap
+   *
+   * undo and correction are different operations, not a rename.
+   * Never emit undo to "replace" an ungraded call. That is what destroyed Friday.
+   */
+  function openSnap(events, opts) {
+    opts = opts || {};
+    var playIndex = allocatePlayIndex(events, opts);
+    return guardCallIndex(events, playIndex, opts.deviceId, opts);
+  }
+
   /** True when two live call events already share this playIndex on this device. */
   function hasDuplicateCallIndex(events, playIndex, deviceId) {
     var n = 0;
@@ -827,6 +847,7 @@
     foldEachGame: foldEachGame,
     foldGameId: foldGameId,
     allocatePlayIndex: allocatePlayIndex,
+    openSnap: openSnap,
     hasDuplicateCallIndex: hasDuplicateCallIndex,
     guardCallIndex: guardCallIndex,
     distinctGameIds: distinctGameIds,

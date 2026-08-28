@@ -85,13 +85,12 @@ function simulateCalls(n, opts) {
     );
   }
   for (let i = 0; i < n; i++) {
-    const nextPi = C.allocatePlayIndex(events, foldOpts);
-    const guarded = C.guardCallIndex(events, nextPi, deviceId, foldOpts);
+    const opened = C.openSnap(events, Object.assign({ deviceId: deviceId }, foldOpts));
     if (opts.outcomes && i > 0 && i % 2 === 0) {
       const last = events.filter((e) => e.type === "call").pop();
       append("outcome", last.playIndex, { result: "short" }, 1000 + seq * 4000 + 50);
     }
-    append("call", guarded.playIndex, { play: "Run " + i, playType: "Run" });
+    append("call", opened.playIndex, { play: "Run " + i, playType: "Run" });
   }
   return events;
 }
@@ -216,11 +215,123 @@ if (fixtureFold.log.length !== 39) {
 }
 console.log("ok  5 Friday fixture: 45 events → 39 snaps (not 5)");
 
+/* 6) Offense replay — 110 events in aa12f347 fold to 37 snaps.
+ *    Passes on today's fold; pins O so a shared engine cannot regress it. */
+const oPath = path.join(__dirname, "fixtures", "offgrd-ocaller-parkway-north-2026-08-27.json");
+const oFix = JSON.parse(fs.readFileSync(oPath, "utf8"));
+if (oFix.kind !== "offgrd_ocaller_cloud") fail("smoke6 fixture kind");
+if (oFix.gameId !== "aa12f347-02a0-40af-b2e4-16f982c00f38") fail("smoke6 gameId");
+const oCalls = (oFix.events || []).filter((e) => e.type === "call");
+const oOut = (oFix.events || []).filter((e) => e.type === "outcome");
+const oObs = (oFix.events || []).filter((e) => e.type === "observation");
+const oCorr = (oFix.events || []).filter((e) => e.type === "correction");
+if (oFix.events.length !== 110 || oCalls.length !== 37 || oOut.length !== 31 || oObs.length !== 41 || oCorr.length !== 1) {
+  fail(
+    "smoke6 census " +
+      oFix.events.length +
+      "/" +
+      oCalls.length +
+      "/" +
+      oOut.length +
+      "/" +
+      oObs.length +
+      "/" +
+      oCorr.length
+  );
+}
+const oFold = C.foldCallerEvents(oFix.events, { side: "offense", gameId: oFix.gameId });
+if (oFold.log.length !== 37) fail("smoke6 expected 37 snaps, got " + oFold.log.length);
+const oIdx = oCalls.map((e) => e.playIndex);
+if (new Set(oIdx).size !== 37) fail("smoke6 call indexes collapsed to " + new Set(oIdx).size);
+console.log("ok  6 offense fixture: 110 events → 37 snaps");
+
+/* 7) Cross-caller parity — same sequence through both writers' openSnap + fold.
+ *    This is the analogue of the ROLES-vs-SQL-rank smoke. */
+function writeSequence(side, steps) {
+  const events = [];
+  let seq = 0;
+  const gameId = "parity";
+  const deviceId = "devP";
+  const foldOpts = { side: side, gameId: gameId };
+  function append(type, playIndex, payload, ts) {
+    seq += 1;
+    events.push(
+      ev({
+        type: type,
+        playIndex: playIndex,
+        payload: payload,
+        clientTs: ts != null ? ts : 50000 + seq * 4000,
+        seq: seq,
+        deviceId: deviceId,
+        gameId: gameId,
+        side: side,
+        eventId: side + "-" + seq,
+      })
+    );
+  }
+  steps.forEach(function (step, i) {
+    if (step === "call") {
+      const opened = C.openSnap(events, Object.assign({ deviceId: deviceId }, foldOpts));
+      append("call", opened.playIndex, { play: "SNAP " + i, playType: "Run" });
+    } else if (step === "outcome") {
+      const last = events.filter((e) => e.type === "call").pop();
+      if (!last) fail("smoke7 outcome with no call");
+      append("outcome", last.playIndex, { result: "short" });
+    } else if (step === "undo") {
+      const last = events.filter((e) => e.type === "call").pop();
+      if (!last) fail("smoke7 undo with no call");
+      append("undo", last.playIndex, {});
+    } else if (step === "correction") {
+      const last = events.filter((e) => e.type === "call").pop();
+      if (!last) fail("smoke7 correction with no call");
+      append("correction", last.playIndex, { play: "SNAP " + i + " EDIT" });
+    }
+  });
+  return events;
+}
+const paritySteps = [
+  "call",
+  "call",
+  "outcome",
+  "call",
+  "call",
+  "call",
+  "undo",
+  "call",
+  "correction",
+  "call",
+  "outcome",
+  "call",
+];
+const oSeq = writeSequence("offense", paritySteps);
+const dSeq = writeSequence("defense", paritySteps);
+const oPi = oSeq.filter((e) => e.type === "call").map((e) => e.playIndex);
+const dPi = dSeq.filter((e) => e.type === "call").map((e) => e.playIndex);
+if (oPi.join(",") !== dPi.join(",")) {
+  fail("smoke7 playIndex sequences diverged O=" + oPi.join(",") + " D=" + dPi.join(","));
+}
+const oParityFold = C.foldCallerEvents(oSeq, { side: "offense", gameId: "parity" });
+const dParityFold = C.foldCallerEvents(dSeq, { side: "defense", gameId: "parity" });
+if (oParityFold.log.length !== dParityFold.log.length) {
+  fail("smoke7 snap counts diverged O=" + oParityFold.log.length + " D=" + dParityFold.log.length);
+}
+const callCount = paritySteps.filter((s) => s === "call").length;
+const undoCount = paritySteps.filter((s) => s === "undo").length;
+if (oParityFold.log.length !== callCount - undoCount) {
+  fail("smoke7 expected " + (callCount - undoCount) + " snaps, got " + oParityFold.log.length);
+}
+console.log(
+  "ok  7 cross-caller parity: indexes [" +
+    oPi.join(",") +
+    "] snaps " +
+    oParityFold.log.length
+);
+
 /* Honest sync header: unsynced local events never read as All synced. */
 const pendingEvents = twenty.slice(0, 3);
 const st = Sync.getSyncHeaderState("defense", pendingEvents, false, { gameId: "g1" });
-if (st.label === "All synced") fail("smoke6 header lied: All synced with unsynced local events");
-if (!st.pending && !st.held) fail("smoke6 header must show pending or held");
-console.log("ok  6 sync header does not say All synced for a local queue");
+if (st.label === "All synced") fail("smoke8 header lied: All synced with unsynced local events");
+if (!st.pending && !st.held) fail("smoke8 header must show pending or held");
+console.log("ok  8 sync header does not say All synced for a local queue");
 
 console.log("smoke-caller-snap-advance: all ok");
