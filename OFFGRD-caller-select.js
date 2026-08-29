@@ -108,7 +108,8 @@
     return bucket.plays.some(function (p) { return p && norm(p.name) === nm; });
   }
 
-  /** Tier 3 search — substring over name / family / formation. Empty query = all. */
+  /** Tier 3 search — substring over name / family / formation. Empty query = all.
+   *  Pure local filter. Never fetches. Offline is the same path as online. */
   function searchPlaybook(pbook, query) {
     pbook = Array.isArray(pbook) ? pbook : [];
     var s = norm(query);
@@ -117,6 +118,80 @@
       if (!p) return false;
       return ((p.name || "") + " " + (p.family || p.type || "") + " " + (p.formation || "")).toLowerCase().indexOf(s) >= 0;
     });
+  }
+
+  /**
+   * Why a search rendered zero rows. Never return a blank list without this.
+   * opts: { query, filter, bookN }
+   */
+  function searchEmptyReason(opts) {
+    opts = opts || {};
+    var query = String(opts.query || "").trim();
+    var filter = String(opts.filter || "").trim();
+    var bookN = +opts.bookN || 0;
+    if (!bookN) {
+      return {
+        kind: "no-book",
+        text: "No playbook cached on this device — connect once to save your plays, then search works in airplane mode.",
+      };
+    }
+    var q = query ? "'" + query + "'" : "";
+    if (query && filter) {
+      return {
+        kind: "query+filter",
+        text: "No plays match " + q + " in " + filter + " — clear filters",
+      };
+    }
+    if (query) {
+      return { kind: "query", text: "No plays match " + q };
+    }
+    if (filter) {
+      return { kind: "filter", text: "No plays in " + filter + " — clear filters" };
+    }
+    return { kind: "none", text: "No matches." };
+  }
+
+  /** Cached book for airplane mode. Slim caller cache first, then the playbook page store. */
+  var CALLER_PBOOK_CACHE_KEY = "offgrd_caller_pbook_v1";
+  var PLAYBOOK_STORE_KEY = "offgrd_playbook_v1";
+
+  function readCachedPlaybook(getItem) {
+    getItem =
+      getItem ||
+      function (k) {
+        try {
+          return localStorage.getItem(k);
+        } catch (e) {
+          return null;
+        }
+      };
+    var keys = [CALLER_PBOOK_CACHE_KEY, PLAYBOOK_STORE_KEY];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = JSON.parse(getItem(keys[i]) || "[]");
+        if (Array.isArray(raw) && raw.length) return raw;
+      } catch (eRead) {}
+    }
+    return [];
+  }
+
+  function writeCallerPlaybookCache(rows, setItem) {
+    if (!Array.isArray(rows) || !rows.length) return false;
+    setItem =
+      setItem ||
+      function (k, v) {
+        try {
+          localStorage.setItem(k, v);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+    try {
+      return !!setItem(CALLER_PBOOK_CACHE_KEY, JSON.stringify(rows));
+    } catch (eWrite) {
+      return false;
+    }
   }
 
   /** Distinct families/types present in the playbook (for filter chips). */
@@ -141,6 +216,10 @@
     playFamily: playFamily,
     playInBucket: playInBucket,
     searchPlaybook: searchPlaybook,
+    searchEmptyReason: searchEmptyReason,
+    readCachedPlaybook: readCachedPlaybook,
+    writeCallerPlaybookCache: writeCallerPlaybookCache,
+    CALLER_PBOOK_CACHE_KEY: CALLER_PBOOK_CACHE_KEY,
     families: families,
   };
 

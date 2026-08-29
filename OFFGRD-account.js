@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=340";
-import { openAuthModal } from "./OFFGRD-auth.js?v=340";
+import { Cloud } from "./OFFGRD-cloud.js?v=341";
+import { openAuthModal } from "./OFFGRD-auth.js?v=341";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=340";
+} from "./OFFGRD-invite-parse.js?v=341";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -2181,8 +2181,11 @@ window.OFFGRD_DELETE_PLAYS=async function(ids){
 };
 window.OFFGRD_WEEK_PLAYS=async function(){
   if(!TEAM) return [];
-  try{ const rows=await Cloud.listPlays(TEAM.id);
-    /* Keep diagram + Step-3 fields so Package Install can match calls and derive reads. */
+  const S=window.OFFGRD_CALLER_SELECT;
+  const cached=function(){
+    return (S&&S.readCachedPlaybook)?S.readCachedPlaybook():[];
+  };
+  const mapRows=function(rows){
     return (rows||[]).filter(function(r){
       var p=Object.assign({}, r.data||{}, r);
       if(window.OFFGRD_OPP_SHELLS && OFFGRD_OPP_SHELLS.isOppCardPlay) return !OFFGRD_OPP_SHELLS.isOppCardPlay(p);
@@ -2198,7 +2201,20 @@ window.OFFGRD_WEEK_PLAYS=async function(){
       tags:Array.isArray(p.tags)?p.tags:[], players:p.players||[], defs:p.defs||[]
       };
     });
-  }catch(e){ return []; }
+  };
+  try{
+    const rows=await Cloud.listPlays(TEAM.id);
+    const mapped=mapRows(rows);
+    if(mapped.length){
+      try{ if(S&&S.writeCallerPlaybookCache) S.writeCallerPlaybookCache(mapped); }catch(eCache){}
+      return mapped;
+    }
+    const fallback=cached();
+    return fallback.length?fallback:mapped;
+  }catch(e){
+    /* Airplane / failed fetch must not wipe a book that is already on the device. */
+    return cached();
+  }
 };
 
 function obPlayer(){

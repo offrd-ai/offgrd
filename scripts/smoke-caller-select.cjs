@@ -92,4 +92,9 @@ ok(S.searchPlaybook(pbook, "").length === pbook.length, "empty query → whole b
 const fams = S.families(pbook);
 ok(fams.indexOf("Run") >= 0 && fams.indexOf("Pass") >= 0 && fams.indexOf("Screen") >= 0 && fams.indexOf("Shot") >= 0, "families lists Run/Pass/Screen/Shot");
 
+const emptyChip = S.searchEmptyReason({ query: "dino", filter: "Inside Run", bookN: 12 });
+ok(emptyChip.text === "No plays match 'dino' in Inside Run — clear filters", "zero results name query + chip");
+ok(S.searchEmptyReason({ query: "dino", filter: "", bookN: 12 }).kind === "query", "query-only empty names the query");
+ok(S.searchEmptyReason({ query: "", filter: "", bookN: 0 }).kind === "no-book", "empty book is not a silent list");
+
 console.log(`smoke-caller-select: ${n} checks passed`);
