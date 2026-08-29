@@ -19,6 +19,28 @@ if (!sb && createClient) {
    project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
 const OG = sb ? sb.schema("offgrd") : null;
 
+/** Stamp list.confirmedEmpty from PostgREST exact count — never from "[] and no throw". */
+function stampConfirmedEmpty(rows, count) {
+  const list = Array.isArray(rows) ? rows : [];
+  const Empty =
+    (typeof window !== "undefined" && window.OFFGRD_EMPTY_UNKNOWN) ||
+    (typeof globalThis !== "undefined" && globalThis.OFFGRD_EMPTY_UNKNOWN) ||
+    null;
+  const confirmedEmpty = Empty && Empty.fromExactCount
+    ? Empty.fromExactCount(list, count)
+    : list.length === 0 && count === 0;
+  try {
+    Object.defineProperty(list, "confirmedEmpty", {
+      value: !!confirmedEmpty,
+      enumerable: false,
+      configurable: true,
+    });
+  } catch (eStamp) {
+    list.confirmedEmpty = !!confirmedEmpty;
+  }
+  return list;
+}
+
 function projectRefFromUrl(url) {
   const m = String(url || "").match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i);
   return m ? m[1] : "";
@@ -727,8 +749,12 @@ export const Cloud = {
 
   /* ---------- plays (playbook) ---------- */
   async listPlays(teamId) {
-    const { data, error } = await OG.from("plays").select("*").eq("team_id", teamId).order("updated_at", { ascending: false });
-    if (error) throw error; return data || [];
+    const { data, error, count } = await OG.from("plays")
+      .select("*", { count: "exact" })
+      .eq("team_id", teamId)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return stampConfirmedEmpty(data || [], count);
   },
   async savePlay(teamId, play) {
     // play.id optional; data holds the full play state from the designer
@@ -1902,13 +1928,26 @@ export const Cloud = {
    * public.offgrd_scout_snaps_for_team — needs_review=false + review_hold=false.
    */
   async listScoutSnaps(teamId) {
-    if (!sb || !teamId) return [];
+    if (!sb || !teamId) return stampConfirmedEmpty([], null);
     const { data, error } = await sb.rpc("offgrd_scout_snaps_for_team", { t: teamId });
     if (error) {
       console.warn("[Cloud.listScoutSnaps]", error.message);
       throw error;
     }
-    return data || [];
+    const rows = data || [];
+    if (rows.length > 0) return stampConfirmedEmpty(rows, rows.length);
+    /* RPC [] is unknown until a matching head count says 0. Same gates as the RPC. */
+    if (!OG) return stampConfirmedEmpty(rows, null);
+    const counted = await OG.from("scout_snaps")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId)
+      .eq("review_hold", false)
+      .eq("needs_review", false);
+    if (counted.error) {
+      console.warn("[Cloud.listScoutSnaps] count", counted.error.message);
+      return stampConfirmedEmpty(rows, null);
+    }
+    return stampConfirmedEmpty(rows, counted.count);
   },
 
   /**

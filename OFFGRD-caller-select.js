@@ -175,8 +175,10 @@
     return [];
   }
 
-  function writeCallerPlaybookCache(rows, setItem) {
-    if (!Array.isArray(rows) || !rows.length) return false;
+  function writeCallerPlaybookCache(rows, setItem, opts) {
+    opts = opts || {};
+    if (!Array.isArray(rows)) return false;
+    if (!rows.length && !opts.confirmedEmpty) return false;
     setItem =
       setItem ||
       function (k, v) {

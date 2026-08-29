@@ -97,4 +97,14 @@ ok(emptyChip.text === "No plays match 'dino' in Inside Run — clear filters", "
 ok(S.searchEmptyReason({ query: "dino", filter: "", bookN: 12 }).kind === "query", "query-only empty names the query");
 ok(S.searchEmptyReason({ query: "", filter: "", bookN: 0 }).kind === "no-book", "empty book is not a silent list");
 
+const cacheStore = {};
+function cacheSet(k, v) {
+  cacheStore[k] = v;
+  return true;
+}
+ok(S.writeCallerPlaybookCache([], cacheSet) === false, "unconfirmed [] does not wipe the cache");
+ok(!cacheStore.offgrd_caller_pbook_v1, "unconfirmed write left the store alone");
+ok(S.writeCallerPlaybookCache([], cacheSet, { confirmedEmpty: true }) === true, "confirmed empty writes []");
+ok(cacheStore.offgrd_caller_pbook_v1 === "[]", "confirmed empty is a real empty book");
+
 console.log(`smoke-caller-select: ${n} checks passed`);

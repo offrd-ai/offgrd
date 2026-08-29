@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=341";
-import { openAuthModal } from "./OFFGRD-auth.js?v=341";
+import { Cloud } from "./OFFGRD-cloud.js?v=342";
+import { openAuthModal } from "./OFFGRD-auth.js?v=342";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=341";
+} from "./OFFGRD-invite-parse.js?v=342";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1434,10 +1434,20 @@ async function pull(silent){
       if(!silent && A.kind!=="playbook") alert("Loaded "+TEAM.name+".");
     } else {
       const local = A.get();
+      const Empty=window.OFFGRD_EMPTY_UNKNOWN;
+      const confirmed=!!(rows&&rows.confirmedEmpty);
+      const unknown=!Empty||Empty.isUnknownEmpty(rows||[], { confirmedEmpty:confirmed });
       /* Scout: opening / focus / pull must not write scouting_games.
          Empty-cloud auto-push was a full-library upsert (22:49 restamp class). */
-      if(A.kind!=="scout" && local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
-      else if(!silent) alert(TEAM.name+" has no saved data yet.");
+      if(A.kind==="playbook" && confirmed){
+        /* Exact count 0 — desktop deleted the book. Do not push local back up. */
+        if(local && local.length){
+          if(typeof A.touch==="function") A.touch([]);
+          else A.set([]);
+        }
+        if(!silent) alert(TEAM.name+" has no saved data yet.");
+      } else if(A.kind!=="scout" && local && local.length && canEdit()){ await push(true); if(!silent) alert("This device’s data is now backed up to "+TEAM.name+"."); }
+      else if(!silent && !(unknown && local && local.length)) alert(TEAM.name+" has no saved data yet.");
     }
     syncStamp();
     if(!silent && A.kind==="playbook"){
@@ -2205,12 +2215,13 @@ window.OFFGRD_WEEK_PLAYS=async function(){
   try{
     const rows=await Cloud.listPlays(TEAM.id);
     const mapped=mapRows(rows);
-    if(mapped.length){
-      try{ if(S&&S.writeCallerPlaybookCache) S.writeCallerPlaybookCache(mapped); }catch(eCache){}
-      return mapped;
+    const Empty=window.OFFGRD_EMPTY_UNKNOWN;
+    const confirmedEmpty=!!(rows&&rows.confirmedEmpty);
+    const kept=(Empty&&Empty.adoptRemoteList)?Empty.adoptRemoteList(mapped, cached(), { confirmedEmpty:confirmedEmpty }):(mapped.length||confirmedEmpty?mapped:cached());
+    if(confirmedEmpty||kept.length){
+      try{ if(S&&S.writeCallerPlaybookCache) S.writeCallerPlaybookCache(kept, null, { confirmedEmpty:confirmedEmpty }); }catch(eCache){}
     }
-    const fallback=cached();
-    return fallback.length?fallback:mapped;
+    return kept;
   }catch(e){
     /* Airplane / failed fetch must not wipe a book that is already on the device. */
     return cached();
@@ -2415,6 +2426,13 @@ async function refreshScoutSnaps(){
   if(isOffline()) return;
   try{
     const raw = await Cloud.listScoutSnaps(TEAM.id);
+    const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
+    const Empty=window.OFFGRD_EMPTY_UNKNOWN;
+    const confirmedEmpty=!!(raw&&raw.confirmedEmpty);
+    if(Empty&&Empty.isUnknownEmpty(mapped, { confirmedEmpty:confirmedEmpty })){
+      /* [] is unknown — do not flip SNAP_CORPUS_READY or stamp this empty as the corpus. */
+      return;
+    }
     const fp = scoutCorpusFp(raw);
     const sameTeam = _lastScoutCorpusTeam === (TEAM.id || "");
     if(sameTeam && _scoutCorpusHydrated && fp === _lastScoutCorpusFp){
@@ -2424,16 +2442,15 @@ async function refreshScoutSnaps(){
     _lastScoutCorpusFp = fp;
     _lastScoutCorpusTeam = TEAM.id || "";
     _scoutCorpusHydrated = true;
-    const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
     try{
       if(window.OFFGRD_OPP_SHELLS && typeof window.OFFGRD_OPP_SHELLS.clearCache === "function"){
         window.OFFGRD_OPP_SHELLS.clearCache();
       }
     }catch(eC){}
     if(typeof window.OFFGRD_SET_SNAP_CORPUS === "function"){
-      window.OFFGRD_SET_SNAP_CORPUS(mapped);
+      window.OFFGRD_SET_SNAP_CORPUS(mapped, { confirmedEmpty:confirmedEmpty });
     } else if(window.OFFGRD_APP && typeof window.OFFGRD_APP.setSnapCorpus === "function"){
-      window.OFFGRD_APP.setSnapCorpus(mapped);
+      window.OFFGRD_APP.setSnapCorpus(mapped, { confirmedEmpty:confirmedEmpty });
     }
     try{ if(typeof window.refreshView === "function") window.refreshView(); }catch(eR){}
     try{ if(typeof window.buildControls === "function") window.buildControls(); }catch(eB){}
