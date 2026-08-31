@@ -103,4 +103,16 @@ ok(/coachSheetTitle/.test(HOME) && /callerSpeakSitTxt/.test(HOME), "game screen 
 ok(/if\(!callerIsGuided\(\)\) h\+=callerSyncHeaderHtml/.test(HOME), "sync/export chrome is not on the game header");
 ok(/isEntryPaint/.test(HOME) && /CALLER_ENTRY_MS/.test(HOME), "footer ms is the last entry-scope paint");
 
+ok(/CALLER_REPICK/.test(HOME) && /callerIsGuided\(\)&&CALLER_REPICK/.test(HOME), "re-pick only after Back from After-snap");
+ok(/callerSitCallFields/.test(HOME) && /Object\.assign\(\{ play:play \}, callerSitCallFields\(\)\)/.test(HOME), "re-pick writes the banner sit");
+ok(/function callerGameStripLook/.test(HOME) && /callerGameSkip\(\)\{[\s\S]*callerGameStripLook/.test(HOME), "Skip strips look");
+ok(/if\(!callerIsGuided\(\)\) callerAttachStickyObs/.test(HOME), "Guided does not attach sticky at call time");
+ok(/coverage: callerIsGuided\(\)\?null/.test(HOME), "Guided call writes no Expect coverage");
+ok(/function callerGameCommitSticky/.test(HOME) && /callerGameDone\(\)\{[\s\S]*callerGameCommitSticky/.test(HOME), "Done may commit untouched sticky");
+ok(/class=\\"is-prefill\\"/.test(HOME) && /propFront/.test(HOME), "Screen B sticky look is proposed, not on");
+ok(/rd-gd-look-seg button\.is-prefill/.test(CSS), "proposed look chips are dashed");
+ok(G.sitFieldsEqual({ dn: 3, db: "10+", hash: "L", zone: "REDZONE" }, { dn: 3, db: "10+", hash: "L", zone: "REDZONE" }), "sitFieldsEqual same banner");
+ok(!G.sitFieldsEqual({ dn: 3, db: "10+", hash: "L", zone: "REDZONE" }, { dn: 2, db: "7-9", hash: "L", zone: "ANY" }), "sitFieldsEqual rejects auto-computed sit");
+ok(G.looksBare({ play: "DINO" }) && !G.looksBare({ play: "DINO", front: "3-4" }), "looksBare is Skip's recorded shape");
+
 console.log("ok", n, "caller-game-mode checks");

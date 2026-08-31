@@ -99,6 +99,27 @@
     return "b";
   }
 
+  function sitFields(cs) {
+    cs = cs || {};
+    return {
+      dn: +cs.dn || 1,
+      db: cs.db || "10+",
+      hash: cs.hash && cs.hash !== "" ? String(cs.hash) : "ANY",
+      zone: cs.zone || "ANY",
+    };
+  }
+
+  function sitFieldsEqual(a, b) {
+    var x = sitFields(a);
+    var y = sitFields(b);
+    return x.dn === y.dn && x.db === y.db && x.hash === y.hash && x.zone === y.zone;
+  }
+
+  function looksBare(entry) {
+    if (!entry) return true;
+    return !entry.front && !entry.coverage && !entry.pressure;
+  }
+
   function covShort(k) {
     if (!k) return "";
     var s = String(k).replace(/\s+/g, " ").trim();
@@ -242,6 +263,9 @@
     speakSitTxt: speakSitTxt,
     pendingNeedLabel: pendingNeedLabel,
     nextScreenAfterCall: nextScreenAfterCall,
+    sitFields: sitFields,
+    sitFieldsEqual: sitFieldsEqual,
+    looksBare: looksBare,
     coachSheetTitle: coachSheetTitle,
     isEntryPaint: isEntryPaint,
     covShort: covShort,

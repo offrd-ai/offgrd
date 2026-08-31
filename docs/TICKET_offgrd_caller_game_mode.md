@@ -106,6 +106,8 @@ enrichment, not gate steps.
 - [x] v2 wizard: Call banner → Situation editor → After-snap (auto after every call)
 - [x] Skip / Done both return to Call; skipped result flags the banner `?`
 - [x] Back on every screen; sit editor shows all four rows; taps delegated / in-place
+- [x] Banner sit is the sit of record on the call (Screen-S edit is not overwritten)
+- [x] Skip = bare snap (no sticky / Expect look); sticky commits on Done only
 
 ## Field test follow-up (v342, Aug 30)
 
@@ -119,3 +121,17 @@ without repeating the glance. Sit chips captioned DOWN · DIST · HASH · ZONE.
 BEST NOW folded into the list. Sheet title is `Best for 3rd & 4-6`. Last Play
 says `1st & 10`. Empty Caught up gone. Sync/Export/Clear in More → Tools.
 More bar is a full-width button.
+
+## Field test follow-up (v344, Aug 31)
+
+Wizard loop passed. Two data bugs (v345):
+
+1. Call recorded the auto-computed sit (`2nd & 7-9`) instead of the banner
+   (`3rd & 10 · L · RZ`). Cause: Skip left an ungraded snap, and the next
+   play tap was treated as a re-pick (play name only). Re-pick is now
+   Back-from-B only, and it writes `callerSitCallFields()`. Same-play
+   de-dup is sit-aware (banner sit mismatch = new snap).
+2. Skip committed sticky look (`3-4 · Cover 2 · No blitz`). Guided no
+   longer attaches sticky or Expect coverage at call time. Screen B shows
+   sticky as dashed proposed. Skip strips look. Done may commit untouched
+   sticky.

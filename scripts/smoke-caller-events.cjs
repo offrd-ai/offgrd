@@ -261,6 +261,41 @@ if (fdR.log.length !== 1 || fdR.log[0].eventId !== "d1") {
 }
 console.log("OK de-dup: same play <", dedupMs, "ms → once; later repeat OK");
 
+const twoSits = [
+  ev({
+    eventId: "sit1",
+    playIndex: 0,
+    payload: { play: "DINO", dn: 2, db: "7-9", hash: "L", zone: "ANY" },
+    deviceId: "devA",
+    clientTs: 40000,
+    seq: 1,
+  }),
+  ev({
+    eventId: "sit2",
+    playIndex: 1,
+    payload: { play: "DINO", dn: 3, db: "10+", hash: "L", zone: "REDZONE" },
+    deviceId: "devA",
+    clientTs: 40050,
+    seq: 2,
+  }),
+];
+const fSits = C.foldCallerEvents(twoSits);
+if (fSits.log.length !== 2 || fSits.supersededIds["sit2"]) {
+  throw new Error("same play at a different sit must not de-dup: " + JSON.stringify(fSits.log));
+}
+const sitHit = C.wouldDedupCall(fSits.log, "DINO", 40100, { dn: 2, db: "7-9", hash: "L", zone: "ANY" });
+if (!sitHit || sitHit.eventId !== "sit1") throw new Error("wouldDedupCall same sit should hit");
+const sitMiss = C.wouldDedupCall(fSits.log, "DINO", 40100, { dn: 3, db: "10+", hash: "L", zone: "REDZONE" });
+if (!sitMiss || sitMiss.eventId !== "sit2") throw new Error("wouldDedupCall should match the banner sit, not the other DINO");
+const sitNew = C.wouldDedupCall(
+  fSits.log.filter((x) => x.eventId === "sit1"),
+  "DINO",
+  40100,
+  { dn: 3, db: "10+", hash: "L", zone: "REDZONE" }
+);
+if (sitNew) throw new Error("wouldDedupCall different sit must miss");
+console.log("OK de-dup: same play at a different sit is a new snap");
+
 // 10) onCallFromLog / wouldDedupCall helpers
 const oc = C.onCallFromLog(fg.log);
 if (!oc || oc.play !== "HOUSTON") throw new Error("onCallFromLog failed");

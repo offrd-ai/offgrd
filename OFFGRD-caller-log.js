@@ -333,6 +333,9 @@
             var dPlay = ds.call.payload && ds.call.payload.play != null ? String(ds.call.payload.play) : "";
             if (dPlay !== playName) continue;
             if (Math.abs((e.clientTs || 0) - (ds.call.clientTs || 0)) > DEDUP_MS) continue;
+            var sitA = sitKeyOf(ds.call);
+            var sitB = sitKeyOf(e);
+            if (sitA && sitB && sitA !== sitB) continue;
             if (!dedupEarlier || (ds.call.clientTs || 0) < (dedupEarlier.clientTs || 0)) {
               dedupEarlier = ds.call;
             }
@@ -822,15 +825,25 @@
    * Would a new call for `play` at clientTs be de-duped against folded log?
    * Client may short-circuit; fold remains authority across devices.
    */
-  function wouldDedupCall(log, play, clientTs) {
+  function sitKeyOf(obj) {
+    if (!obj) return null;
+    var src = obj.payload || obj;
+    if (src.dn == null && src.db == null && src.hash == null && src.zone == null) return null;
+    return [src.dn != null ? +src.dn : "", src.db || "", src.hash || "", src.zone || ""].join("|");
+  }
+
+  function wouldDedupCall(log, play, clientTs, sit) {
     if (!play || !log || !log.length) return null;
     var ts = clientTs != null ? clientTs : Date.now();
+    var wantSit = sit ? sitKeyOf(sit) : null;
     var i, e;
     for (i = log.length - 1; i >= 0; i--) {
       e = log[i];
       if (!e) continue;
       if (Math.abs(ts - (e.ts || 0)) > DEDUP_MS) break;
-      if (e.play === play) return e;
+      if (e.play !== play) continue;
+      if (wantSit && sitKeyOf(e) && sitKeyOf(e) !== wantSit) continue;
+      return e;
     }
     return null;
   }

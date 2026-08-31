@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "344";
+  const ASSET_V = "345";
 
   function getScoutTool() {
     try {
@@ -2153,6 +2153,10 @@
       'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;cursor:pointer;',
       '}',
       'html.rd-on #view-caller .rd-gd-game .rd-gd-look-seg button{min-height:44px;min-width:44px;}',
+      'html.rd-on #view-caller .rd-gd-game .rd-gd-look-seg button.is-prefill{',
+      'border-style:dashed!important;border-width:2px!important;border-color:#13294B!important;',
+      'background:rgba(255,210,74,.28)!important;',
+      '}',
       'html.rd-on #view-caller .rd-gd-sit-chips{padding:8px 10px;}',
       'html.rd-on #view-caller .rd-gd-sit-caps{',
       'display:flex;gap:8px;padding:0 2px 2px;',
