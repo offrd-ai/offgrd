@@ -34,6 +34,42 @@
     return c.dn + " · " + c.db + " · " + c.hash + " · " + c.zone;
   }
 
+  var DN_SPEAK = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+
+  /** Coach-spoken sit: "1st & 10", never "1st & 10+". */
+  function sitSpeak(sit) {
+    sit = sit || {};
+    var dn = DN_SPEAK[+sit.dn] || String(sit.dn || "1st");
+    var db = sit.db || "10+";
+    var dist = db === "10+" ? "10" : db === "GOAL" ? "GOAL" : db;
+    return dn + " & " + dist;
+  }
+
+  /**
+   * Sheet title. Internal pool codes (EXACT / DOWN ONLY / DISTANCE x/y)
+   * stay off the game screen.
+   */
+  function coachSheetTitle(cs, meta) {
+    meta = meta || {};
+    var speak = sitSpeak(cs);
+    var n = meta.n != null ? +meta.n : 0;
+    var nBit = n > 0 ? " (" + n + ")" : "";
+    var badge = String(meta.badge || meta.widenLabel || "");
+    var downOnly = meta.rung === 4 || /down only/i.test(badge);
+    if (meta.widened) {
+      var dnWord = DN_SPEAK[+cs.dn] || "this";
+      if (downOnly) {
+        return "Not enough exact snaps — showing all " + dnWord + " down" + nBit;
+      }
+      return "Not enough exact snaps — showing a wider " + speak + " pool" + nBit;
+    }
+    return "Best for " + speak;
+  }
+
+  function isEntryPaint(label) {
+    return label === "entry" || label === "sit" || label === "expect";
+  }
+
   function covShort(k) {
     if (!k) return "";
     var s = String(k).replace(/\s+/g, " ").trim();
@@ -172,6 +208,9 @@
     isGuided: isGuided,
     sitChipLabels: sitChipLabels,
     sitChipLine: sitChipLine,
+    sitSpeak: sitSpeak,
+    coachSheetTitle: coachSheetTitle,
+    isEntryPaint: isEntryPaint,
     covShort: covShort,
     frontShort: frontShort,
     expectGlance: expectGlance,

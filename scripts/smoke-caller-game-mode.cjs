@@ -67,4 +67,31 @@ ok(/rd-gd-sit-grid/.test(HOME), "Advanced sit grid still exists");
 ok(/min-height:44px/.test(CSS) && /rd-gd-sit-chip/.test(CSS) && /rd-gd-expect-line/.test(CSS), "game-mode 44pt targets");
 ok(/rd-gd-del-toast/.test(CSS), "delete undo toast styled");
 
+ok(G.sitSpeak({ dn: 1, db: "10+" }) === "1st & 10", "sitSpeak drops 10+ bucket leak");
+ok(G.sitSpeak({ dn: 3, db: "4-6" }) === "3rd & 4-6", "sitSpeak keeps a real band");
+ok(G.coachSheetTitle({ dn: 3, db: "4-6" }, {}) === "Best for 3rd & 4-6", "sheet title is coach copy");
+ok(
+  /showing all 3rd down \(12\)/.test(G.coachSheetTitle({ dn: 3, db: "4-6" }, { widened: true, rung: 4, n: 12, badge: "down only" })),
+  "widened title has no EXACT / DOWN ONLY"
+);
+ok(!/EXACT|DOWN ONLY|DISTANCE/.test(G.coachSheetTitle({ dn: 3, db: "4-6" }, { widened: true, rung: 4, n: 12, badge: "down only" })), "no pool codes in coach title");
+ok(G.isEntryPaint("entry") && G.isEntryPaint("sit") && !G.isEntryPaint("full"), "footer only counts entry-scope paints");
+
+ok(/CALLER_HOLD_FULL/.test(HOME) && /callerHoldFull/.test(HOME) && /callerMaybeRender/.test(HOME), "entry tap holds full paints");
+ok(/CALLER_HOLD_FULL&&!opts\.force\) return/.test(HOME), "renderCaller no-ops while held");
+ok(/callerMaybeRender\(\)/.test(HOME) && /OFFGRD_CALLER_SYNC_ENGINE\.subscribe/.test(HOME), "sync/presence use maybe-render");
+ok(/rd-gd-vs/.test(HOME) && /vs "\+opp/.test(HOME), "opponent is labeled vs, not us");
+ok(/rd-gd-sit-caps/.test(HOME) && /<span>Down<\/span>/.test(HOME) && /aria-label="\$\{cap\}/.test(HOME), "sit chips have Down Dist Hash Zone captions");
+ok(/is-hide/.test(HOME) && /<span class="body">Hide<\/span>/.test(HOME), "expanded Expect hides the glance line");
+ok(/<button type="button" class="rd-gd-more-sum"/.test(HOME), "More bar is a full-width button");
+ok(/rd-gd-tools/.test(HOME) && /Clear game/.test(HOME), "Clear lives in Tools");
+ok(
+  /<b>Call log<\/b><\/span><\/div>/.test(HOME) && /onclick="callerClear\(\)">Clear game/.test(HOME),
+  "Guided log has no Clear; Tools has Clear game"
+);
+ok(/!topInBucket && !game/.test(HOME), "game mode folds BEST NOW into the list");
+ok(/coachSheetTitle/.test(HOME) && /callerSpeakSitTxt/.test(HOME), "game screen uses coach sit copy");
+ok(/if\(!callerIsGuided\(\)\) h\+=callerSyncHeaderHtml/.test(HOME), "sync/export chrome is not on the game header");
+ok(/isEntryPaint/.test(HOME) && /CALLER_ENTRY_MS/.test(HOME), "footer ms is the last entry-scope paint");
+
 console.log("ok", n, "caller-game-mode checks");

@@ -98,3 +98,21 @@ enrichment, not gate steps.
       target <100ms on entry-panel taps; no full-column re-render per tap
       (readout lives in More · `console` `[caller-paint]`)
 - [x] Guided mode IS the new layout (no separate toggle); Advanced unchanged
+- [x] Zero `full` paints after an entry tap (hold-full; sync/presence/flash skip)
+- [x] Footer ms = entry-scope paint (matches `[caller-paint] entry` / sit / expect)
+- [x] Mode controls appear exactly once; Booth state readable in page chrome
+- [x] No internal pool codes (EXACT / DOWN ONLY / DISTANCE x/y) in coach copy
+- [x] Every header chip has a plain-language label or is gone
+
+## Field test follow-up (v342, Aug 30)
+
+P1: entry patches were fast; each tap still scheduled a deferred `full`.
+`CALLER_HOLD_FULL` after sit/entry/expect. `renderCaller` no-ops while held
+unless `{force:true}` / `callerRenderFull`. Background sync, presence, and
+flash use `callerMaybeRender`.
+
+P2: Guided header is `vs Opponent` + Guided/Advanced + Exit. Expect expands
+without repeating the glance. Sit chips captioned DOWN · DIST · HASH · ZONE.
+BEST NOW folded into the list. Sheet title is `Best for 3rd & 4-6`. Last Play
+says `1st & 10`. Empty Caught up gone. Sync/Export/Clear in More → Tools.
+More bar is a full-width button.

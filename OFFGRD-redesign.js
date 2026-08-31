@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "342";
+  const ASSET_V = "343";
 
   function getScoutTool() {
     try {
@@ -2105,6 +2105,13 @@
       'html.rd-on #view-caller .rd-gd-game{display:flex;flex-direction:column;gap:10px;}',
       'html.rd-on #view-caller .rd-gd-entry{display:flex;flex-direction:column;gap:10px;}',
       'html.rd-on #view-caller .rd-gd-sit-chips{padding:8px 10px;}',
+      'html.rd-on #view-caller .rd-gd-sit-caps{',
+      'display:flex;gap:8px;padding:0 2px 2px;',
+      '}',
+      'html.rd-on #view-caller .rd-gd-sit-caps span{',
+      'flex:1;text-align:center;font-size:10px;font-weight:800;letter-spacing:.06em;',
+      'text-transform:uppercase;color:var(--rd-muted);',
+      '}',
       'html.rd-on #view-caller .rd-gd-sit-chiprow{display:flex;gap:8px;align-items:stretch;}',
       'html.rd-on #view-caller .rd-gd-sit-chip{',
       'flex:1;min-height:44px;min-width:44px;padding:8px 6px;font-weight:800;font-size:15px;',
@@ -2155,10 +2162,18 @@
       'margin-top:2px;padding:0;border-top:1px solid var(--rd-border);',
       '}',
       'html.rd-on #view-caller .rd-gd-more-sum{',
-      'cursor:pointer;list-style:none;padding:12px 14px;min-height:44px;display:flex;align-items:center;',
-      'font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--rd-muted);',
+      'appearance:none;display:flex;align-items:center;width:100%;box-sizing:border-box;',
+      'cursor:pointer;list-style:none;padding:12px 14px;min-height:44px;border:0;',
+      'background:transparent;font-weight:800;font-size:13px;letter-spacing:.04em;',
+      'text-transform:uppercase;color:var(--rd-muted);text-align:left;',
       '}',
       'html.rd-on #view-caller .rd-gd-more-sum::-webkit-details-marker{display:none;}',
+      'html.rd-on #view-caller .rd-gd-tools-row{display:flex;flex-wrap:wrap;gap:8px;}',
+      'html.rd-on #view-caller .rd-gd-tool-btn{',
+      'flex:1;min-height:44px;min-width:44px;padding:8px 12px;font-weight:800;',
+      'background:var(--rd-surface)!important;border:1px solid var(--rd-border)!important;',
+      'color:var(--rd-text)!important;border-radius:var(--radius-ctl)!important;cursor:pointer;',
+      '}',
       'html.rd-on #view-caller .rd-gd-more-body{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px;}',
       'html.rd-on #view-caller .rd-gd-del-toast{',
       'position:sticky;bottom:8px;z-index:40;display:flex;align-items:center;gap:10px;',
