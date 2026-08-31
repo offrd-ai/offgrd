@@ -103,6 +103,9 @@ enrichment, not gate steps.
 - [x] Mode controls appear exactly once; Booth state readable in page chrome
 - [x] No internal pool codes (EXACT / DOWN ONLY / DISTANCE x/y) in coach copy
 - [x] Every header chip has a plain-language label or is gone
+- [x] v2 wizard: Call banner → Situation editor → After-snap (auto after every call)
+- [x] Skip / Done both return to Call; skipped result flags the banner `?`
+- [x] Back on every screen; sit editor shows all four rows; taps delegated / in-place
 
 ## Field test follow-up (v342, Aug 30)
 

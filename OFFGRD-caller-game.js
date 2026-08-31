@@ -1,7 +1,7 @@
 /**
  * O Caller Guided = game mode. Layout helpers only — no ranking.
  *
- * Sit chips, one-line Expect, 5s delete-undo, tap-to-paint mark.
+ * Sit banner + 4-row editor, after-snap copy, 5s delete-undo, tap-to-paint mark.
  * Pure. DOM-free except optional paint logger.
  *
  *   window.OFFGRD_CALLER_GAME
@@ -67,7 +67,36 @@
   }
 
   function isEntryPaint(label) {
-    return label === "entry" || label === "sit" || label === "expect";
+    return (
+      label === "entry" ||
+      label === "sit" ||
+      label === "expect" ||
+      label === "screen"
+    );
+  }
+
+  /** Screen A banner: "2nd & 7 · L · OWN" — never "10+". */
+  function sitBannerLine(cs) {
+    cs = cs || {};
+    var bits = [sitSpeak(cs)];
+    if (cs.hash && cs.hash !== "ANY") bits.push(String(cs.hash));
+    var z = ZONE_LBL[cs.zone];
+    if (cs.zone && cs.zone !== "ANY") bits.push(z || String(cs.zone));
+    return bits.join(" · ");
+  }
+
+  function speakSitTxt(txt) {
+    return String(txt || "").replace(/\b10\+/g, "10");
+  }
+
+  function pendingNeedLabel(n) {
+    n = +n || 0;
+    if (n === 1) return "1 older play needs results";
+    return n + " older plays need results";
+  }
+
+  function nextScreenAfterCall() {
+    return "b";
   }
 
   function covShort(k) {
@@ -209,6 +238,10 @@
     sitChipLabels: sitChipLabels,
     sitChipLine: sitChipLine,
     sitSpeak: sitSpeak,
+    sitBannerLine: sitBannerLine,
+    speakSitTxt: speakSitTxt,
+    pendingNeedLabel: pendingNeedLabel,
+    nextScreenAfterCall: nextScreenAfterCall,
     coachSheetTitle: coachSheetTitle,
     isEntryPaint: isEntryPaint,
     covShort: covShort,

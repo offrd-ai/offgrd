@@ -55,20 +55,29 @@ ok(committed && committed.playIndex === 7, "timeout commits undo");
 ok(/OFFGRD-caller-game\.js/.test(HOME), "O Caller loads game-mode helper");
 ok(/OFFGRD-caller-game\.js/.test(SW), "SW precaches game-mode helper for airplane-mode iPad");
 ok(/data-caller-game/.test(HOME) && /callerGuidedEntryHtml/.test(HOME), "guided paints the game entry panel");
-ok(/callerOpenSitDim/.test(HOME) && /rd-gd-sit-chip/.test(HOME), "sit is compact chips");
+ok(/CALLER_GAME_SCREEN/.test(HOME) && /callerGameShow/.test(HOME) && /callerGameAfterCall/.test(HOME), "three-screen wizard a/s/b");
+ok(/rd-gd-sit-banner/.test(HOME) && /data-caller-act="sit-open"/.test(HOME), "screen A sit is a banner");
+ok(/rd-gd-sit-editor/.test(HOME) && /data-caller-act="sit-set"/.test(HOME) && /data-caller-act="sit-done"/.test(HOME), "screen S shows all four sit rows");
+ok(/callerGuidedAfterHtml/.test(HOME) && /data-caller-act="skip"/.test(HOME) && /data-caller-act="done"/.test(HOME), "screen B has Skip and Done");
+ok(/rd-gd-wiz-back/.test(HOME) && /data-caller-act="back"/.test(HOME), "Back is on every wizard screen");
+ok(/callerEnsureDelegate/.test(HOME) && /data-caller-act/.test(HOME) && /callerPaintSitGridOn/.test(HOME), "taps are delegated; sit paints in place");
 ok(/callerToggleExpect/.test(HOME) && /rd-gd-expect-line/.test(HOME), "expect is one glance line");
 ok(/caller-more/.test(HOME) && /More · log · marks · tools/.test(HOME), "non-integral panels sit in More");
 ok(/callerDeleteSnap/.test(HOME) && /caller-del-row/.test(HOME) && /callerCancelDelete/.test(HOME), "log rows carry Delete + undo");
-ok(/callerPatchEntry/.test(HOME) && /callerPatchSit/.test(HOME), "sit tap patches entry, not the full column");
-ok(/CALLER_LOOK_OPEN=false/.test(HOME) && /if\(!callerIsGuided\(\)\)/.test(HOME), "guided does not jump to look/result after call");
+ok(/callerPatchEntry/.test(HOME), "screen swaps patch entry, not the full column");
 ok(/callerCallSheetHtml\(\{ game:true \}\)/.test(HOME), "guided shortlist hides Playbook / full list");
 ok(/Search all plays/.test(HOME) && /Show all plays/.test(HOME), "Search is game; Show all stays on Advanced");
 ok(/rd-gd-sit-grid/.test(HOME), "Advanced sit grid still exists");
-ok(/min-height:44px/.test(CSS) && /rd-gd-sit-chip/.test(CSS) && /rd-gd-expect-line/.test(CSS), "game-mode 44pt targets");
+ok(/min-height:44px/.test(CSS) && /rd-gd-sit-banner/.test(CSS) && /rd-gd-wiz-back/.test(CSS), "game-mode 44pt targets");
 ok(/rd-gd-del-toast/.test(CSS), "delete undo toast styled");
 
 ok(G.sitSpeak({ dn: 1, db: "10+" }) === "1st & 10", "sitSpeak drops 10+ bucket leak");
 ok(G.sitSpeak({ dn: 3, db: "4-6" }) === "3rd & 4-6", "sitSpeak keeps a real band");
+ok(G.sitBannerLine({ dn: 2, db: "7-9", hash: "L", zone: "OWN" }) === "2nd & 7-9 · L · OWN", "sit banner line");
+ok(G.speakSitTxt("3rd & 10+ L") === "3rd & 10 L", "backfill sitTxt drops 10+");
+ok(G.pendingNeedLabel(1) === "1 older play needs results", "pending singular needs");
+ok(G.pendingNeedLabel(2) === "2 older plays need results", "pending plural need");
+ok(G.nextScreenAfterCall() === "b", "call auto-advances to after-snap");
 ok(G.coachSheetTitle({ dn: 3, db: "4-6" }, {}) === "Best for 3rd & 4-6", "sheet title is coach copy");
 ok(
   /showing all 3rd down \(12\)/.test(G.coachSheetTitle({ dn: 3, db: "4-6" }, { widened: true, rung: 4, n: 12, badge: "down only" })),
@@ -81,7 +90,7 @@ ok(/CALLER_HOLD_FULL/.test(HOME) && /callerHoldFull/.test(HOME) && /callerMaybeR
 ok(/CALLER_HOLD_FULL&&!opts\.force\) return/.test(HOME), "renderCaller no-ops while held");
 ok(/callerMaybeRender\(\)/.test(HOME) && /OFFGRD_CALLER_SYNC_ENGINE\.subscribe/.test(HOME), "sync/presence use maybe-render");
 ok(/rd-gd-vs/.test(HOME) && /vs "\+opp/.test(HOME), "opponent is labeled vs, not us");
-ok(/rd-gd-sit-caps/.test(HOME) && /<span>Down<\/span>/.test(HOME) && /aria-label="\$\{cap\}/.test(HOME), "sit chips have Down Dist Hash Zone captions");
+ok(/<div class="lbl">Down<\/div>/.test(HOME) && /<div class="lbl">Dist<\/div>/.test(HOME) && /<div class="lbl">Hash<\/div>/.test(HOME) && /<div class="lbl">Zone<\/div>/.test(HOME), "sit editor labels all four dimensions");
 ok(/is-hide/.test(HOME) && /<span class="body">Hide<\/span>/.test(HOME), "expanded Expect hides the glance line");
 ok(/<button type="button" class="rd-gd-more-sum"/.test(HOME), "More bar is a full-width button");
 ok(/rd-gd-tools/.test(HOME) && /Clear game/.test(HOME), "Clear lives in Tools");
