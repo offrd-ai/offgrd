@@ -413,6 +413,7 @@
 <script src="OFFGRD-play-stubs.js?v=342"></script>
 <script src="OFFGRD-play-direction.js?v=342"></script>
 <script src="OFFGRD-caller-shortlist.js?v=342"></script>
+<script src="OFFGRD-caller-game.js?v=342"></script>
 <script src="OFFGRD-cv-review.js?v=342"></script>
 <script src="OFFGRD-frame-capture.js?v=342"></script>
 <script src="OFFGRD-caller-side.js?v=342"></script>
@@ -2221,6 +2222,17 @@ let CALLER_ROLLUP={ axis:null, qtr:"ANY", zone:"ANY", dn:"ANY", db:"ANY", level:
 /** playIndex being edited via Edit last play (correction), or null */
 let CALLER_EDIT_PI=null;
 let CALLER_SNAP_GUARD=null;
+/** Guided (game mode) UI state — layout only; Advanced ignores these. */
+let CALLER_SIT_OPEN=null;
+let CALLER_EXPECT_OPEN=false;
+let CALLER_MORE_OPEN=false;
+let CALLER_LOOK_OPEN=false;
+function callerGame(){ return window.OFFGRD_CALLER_GAME||null; }
+function callerIsGuided(){
+  const G=callerGame();
+  if(G&&G.isGuided) return G.isGuided(callerGetMode());
+  return callerGetMode()!=="advanced";
+}
 function callerGetMode(){
   try{
     const v=localStorage.getItem("offgrd_caller_mode");
@@ -4757,14 +4769,21 @@ function callerAgo(ts){
 /** Coach-facing O log — offense snaps only. Defense rows are a defect here. */
 function callerLogForUi(){
   const S=window.OFFGRD_CALLER_SIDE;
-  if(S&&S.filterLogBySide) return S.filterLogBySide(CALLER_LOG, "offense");
-  return (CALLER_LOG||[]).filter(function(l){ return l&&l.side!=="defense"&&l.side!=="def"; });
+  let list=S&&S.filterLogBySide?S.filterLogBySide(CALLER_LOG, "offense"):(CALLER_LOG||[]).filter(function(l){ return l&&l.side!=="defense"&&l.side!=="def"; });
+  const G=callerGame();
+  if(G&&G.filterHidden) list=G.filterHidden(list);
+  return list;
 }
 /** Selection / ON CALL · always from folded CALLER_LOG (survives refresh + multi-device). */
 function callerOnCall(){
   const E=callerEngine();
-  if(E&&E.onCallFromLog) return E.onCallFromLog(CALLER_LOG);
-  return CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1]:null;
+  let on=E&&E.onCallFromLog?E.onCallFromLog(CALLER_LOG):(CALLER_LOG.length?CALLER_LOG[CALLER_LOG.length-1]:null);
+  const G=callerGame();
+  if(on&&G&&G.isHiddenPlayIndex&&G.isHiddenPlayIndex(on.playIndex)){
+    const ui=callerLogForUi();
+    on=ui.length?ui[ui.length-1]:null;
+  }
+  return on;
 }
 /** Live snap only (ungraded). Graded last entry is history — not the selected call. */
 function callerLiveCall(){
@@ -4819,6 +4838,7 @@ function callerConfirmSit(){
   callerSit.forTwo=false;
   callerSit.needReason=null;
   callerSaveLocal();
+  if(callerIsGuided()&&callerPatchEntry()) return;
   renderCaller();
 }
 /** One-tap conversion / series reset — writes exact estYards (10 or GOAL clamp). */
@@ -5466,6 +5486,16 @@ function callerStickyBarHtml(sitTxt){
   const on=callerOnCall();
   const O=callerOut();
   const pending=O?O.pendingEntries(CALLER_LOG).length:CALLER_LOG.filter(l=>!l.result).length;
+  if(callerIsGuided()){
+    let h=`<div class="rd-gd-sticky rd-gd-sticky-game no-print">`;
+    if(pending>0){
+      h+=`<button type="button" class="rd-gd-sticky-pending" onclick="callerJumpPending()">${pending} need${pending===1?"s":""} results</button>`;
+    } else {
+      h+=`<span class="rd-gd-sticky-caught foot">Caught up</span>`;
+    }
+    h+=`</div>`;
+    return h;
+  }
   let h=`<div class="rd-gd-sticky no-print">`;
   h+=`<button type="button" class="rd-gd-sticky-sit" onclick="callerJumpTop()" title="Next call situation"><span class="rd-gd-sticky-kicker">Next</span> ${esc(sitTxt||"situation")}</button>`;
   if(on&&on.play&&!on.result){
@@ -5501,7 +5531,14 @@ function callerScrollTo(id, instant){
     try{ window.scrollTo({top:Math.max(0, window.scrollY + el.getBoundingClientRect().top - 8), behavior:beh}); }catch(e3){}
   }catch(e){}
 }
-function callerJumpPending(){ callerScrollTo("caller-pending-anchor"); }
+function callerJumpPending(){
+  if(callerIsGuided()&&!CALLER_MORE_OPEN){
+    CALLER_MORE_OPEN=true;
+    const more=document.getElementById("caller-more");
+    if(more) more.open=true;
+  }
+  callerScrollTo("caller-pending-anchor");
+}
 function callerJumpThisPlay(){ callerScrollTo("caller-thisplay-anchor"); }
 function callerJumpTop(instant){
   const id=document.getElementById("caller-top-anchor")?"caller-top-anchor":"caller-sit-anchor";
@@ -5579,9 +5616,12 @@ function callerCallItemHtml(l, i, opts){
   const lookBits=callerLookBits(l);
   const look=lookBits.length?`<span class="foot caller-look-meta"> · ${lookBits.map(esc).join(" · ")}</span>`:"";
   const editBtn=l.playIndex!=null
-    ?`<button type="button" class="ghost caller-edit-row no-print" style="padding:6px 10px;min-height:40px;font-weight:700" onclick="callerOpenEdit(${l.playIndex})" title="Edit this play">Edit</button>`
+    ?`<button type="button" class="ghost caller-edit-row no-print" style="padding:6px 10px;min-height:44px;font-weight:700" onclick="callerOpenEdit(${l.playIndex})" title="Edit this play">Edit</button>`
     :"";
-  return `<div class="${cls}" data-event-id="${esc(l.eventId||l.id||"")}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:${wt}">${esc(l.play)} ${meta}${look}</div>${editBtn}</div>`;
+  const delBtn=l.playIndex!=null
+    ?`<button type="button" class="ghost caller-del-row no-print" style="padding:6px 10px;min-height:44px;font-weight:700" onclick="callerDeleteSnap(${l.playIndex})" title="Delete this play">Delete</button>`
+    :"";
+  return `<div class="${cls}" data-event-id="${esc(l.eventId||l.id||"")}" data-play-index="${l.playIndex!=null?l.playIndex:""}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:${wt}">${esc(l.play)} ${meta}${look}</div>${editBtn}${delBtn}</div>`;
 }
 function callerSyncHeaderHtml(){
   try{
@@ -5646,7 +5686,7 @@ function callerExport(){
 function callerUiChrome(){
   let h="";
   h+=callerSyncHeaderHtml();
-  h+=callerOnCallBarHtml();
+  if(!callerIsGuided()) h+=callerOnCallBarHtml();
   h+=callerEditPanelHtml();
   if(CALLER_PEERS.length){
     h+=`<p class="foot caller-presence no-print" style="margin:0 0 8px">${CALLER_PEERS.map(p=>esc(p.label||"Coach")+" · active").join(" · ")}</p>`;
@@ -5883,7 +5923,9 @@ function callerCallReason(entry, cov, conf){
 /* Tier 1 (call sheet) + Tier 2 (best-now / inline marks). The coach's own bucket,
    in his order, with the suggester woven in as marks · not a competing screen.
    Every tap here flows into callerLog() ? the identical ON CALL / outcome path. */
-function callerCallSheetHtml(){
+function callerCallSheetHtml(opts){
+  opts=opts||{};
+  const game=!!opts.game;
   const S=callerSelect();
   const cs=callerSit;
   const buckets=(typeof planBuckets==="function")?planBuckets():[];
@@ -5939,7 +5981,10 @@ function callerCallSheetHtml(){
   }
   /* Tier 1 · the call sheet (matched bucket) or the best-options fallback. */
   h+=`<div class="rd-gd-sheet">`;
-  h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Your best calls"}</span><button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button></div>`;
+  h+=`<div class="rd-gd-sheet-head"><span class="rd-gd-sheet-name">${bucket?esc(bucket.name||"Call sheet"):"Your best calls"}</span>`;
+  if(game) h+=`<button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Search</button>`;
+  else h+=`<button type="button" class="rd-gd-sheet-book" onclick="callerOpenPlaybook()">Playbook</button>`;
+  h+=`</div>`;
   if(bucket && Array.isArray(bucket.plays) && bucket.plays.length){
     h+=`<div class="rd-gd-sheet-list">`;
     bucket.plays.forEach(p=>{
@@ -5957,7 +6002,7 @@ function callerCallSheetHtml(){
     if(top && topInBucket) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
   } else if(ranked.list.length){
     const panel=sheetPanel;
-    const showAll=!!window._callerShowAll;
+    const showAll=!game&&!!window._callerShowAll;
     const rows=showAll?(panel?panel.full:ranked.list):(panel?panel.shown:ranked.list.slice(0,5));
     const schemeSet={};
     if(panel) (panel.scheme||[]).forEach(function(r){ if(r&&r.play) schemeSet[r.play]=1; });
@@ -5977,7 +6022,8 @@ function callerCallSheetHtml(){
       h+=`</div>`;
     }
     if(panel&&panel.full&&panel.full.length>(panel.shown||[]).length){
-      h+=`<button type="button" class="rd-gd-sheet-all" onclick="callerToggleShowAll()">${showAll?"Hide full list":"Show all plays"}</button>`;
+      if(game) h+=`<button type="button" class="rd-gd-sheet-all" onclick="callerOpenPlaybook()">Search all plays</button>`;
+      else h+=`<button type="button" class="rd-gd-sheet-all" onclick="callerToggleShowAll()">${showAll?"Hide full list":"Show all plays"}</button>`;
     }
   } else {
     const termMsg=ranked.terminal
@@ -6067,7 +6113,268 @@ function _callerPBRenderList(query){
   list.innerHTML=h;
 }
 
+function callerMarkPaint(label, t0){
+  const G=callerGame();
+  const finish=function(){
+    const now=function(){ return (typeof performance!=="undefined"&&performance.now)?performance.now():Date.now(); };
+    const ms=G&&G.markPaint?G.markPaint(label, t0, now):now()-t0;
+    const el=document.getElementById("caller-paint-ms");
+    if(el) el.textContent=Math.round(ms)+"ms";
+  };
+  try{
+    requestAnimationFrame(function(){ requestAnimationFrame(finish); });
+  }catch(e){ finish(); }
+}
+function callerGuidedCtx(){
+  const cs=callerSit;
+  const expect=callerExpectSample();
+  const g=expect.g||[];
+  const cov=expect.cov;
+  const fr=weightedDist(g.filter(r=>r.front),"front",false).arr[0];
+  const pr=g.length?g.filter(r=>+r.pressure===1).length/g.length:0;
+  const liveM=g.filter(r=>r.date==="live"||r.source==="live");
+  const G=callerGame();
+  const glance=G&&G.expectGlance?G.expectGlance({
+    cov:cov&&(cov.k||cov.name)||"",
+    covPct:cov?cov.pct:null,
+    front:fr&&(fr.k||fr.name)||"",
+    pr:pr,
+    n:g.length,
+    terminal:!!expect.terminal
+  }):{ text:"", empty:true };
+  const hashLbl=cs.hash==="L"?"Left hash":cs.hash==="R"?"Right hash":cs.hash==="M"?"Middle hash":"";
+  const zoneLbl=cs.zone==="REDZONE"?"RZ":cs.zone==="OWN"?"Own":cs.zone==="PLUS"?"Plus":"";
+  const sitBits=[(ordinal(+cs.dn)+"").toUpperCase()+" & "+cs.db];
+  if(zoneLbl) sitBits.push(zoneLbl);
+  if(hashLbl) sitBits.push(hashLbl);
+  return { cs:cs, expect:expect, g:g, cov:cov, fr:fr, pr:pr, liveM:liveM, glance:glance, sitTxt:sitBits.join(" · ") };
+}
+function callerOpenSitDim(dim){
+  CALLER_SIT_OPEN=CALLER_SIT_OPEN===dim?null:dim;
+  if(!callerPatchSit()) renderCaller();
+}
+function callerToggleExpect(){
+  CALLER_EXPECT_OPEN=!CALLER_EXPECT_OPEN;
+  if(!callerPatchExpect()) renderCaller();
+}
+function callerToggleMore(){
+  CALLER_MORE_OPEN=!CALLER_MORE_OPEN;
+  const el=document.getElementById("caller-more");
+  if(el) el.open=CALLER_MORE_OPEN;
+  else renderCaller();
+}
+function callerToggleLook(){
+  CALLER_LOOK_OPEN=!CALLER_LOOK_OPEN;
+  if(!callerPatchThisPlay()) renderCaller();
+}
+function callerGuidedSitHtml(ctx){
+  ctx=ctx||callerGuidedCtx();
+  const cs=ctx.cs;
+  const G=callerGame();
+  const chips=G&&G.sitChipLabels?G.sitChipLabels(cs):{ dn:"1ST", db:cs.db||"10+", hash:cs.hash||"ANY", zone:cs.zone==="REDZONE"?"RZ":(cs.zone||"ANY") };
+  const sitInf=!!cs.inferred;
+  const sitNeed=!!cs.needsInput;
+  const sitTry=!!cs.pendingTry;
+  const sitTwo=!!cs.forTwo;
+  const open=CALLER_SIT_OPEN;
+  let h=`<div id="caller-sit-anchor" class="rd-gd-sit rd-gd-sit-chips${sitInf?" rd-gd-sit-inferred":""}${sitNeed||sitTry||sitTwo?" rd-gd-sit-needs":""}">`;
+  h+=`<div class="rd-gd-sit-chiprow" role="group" aria-label="Situation">`;
+  [["dn",chips.dn],["db",chips.db],["hash",chips.hash],["zone",chips.zone]].forEach(function(pair){
+    const dim=pair[0], lab=pair[1];
+    h+=`<button type="button" class="rd-gd-sit-chip${open===dim?" on":""}${sitInf?" is-prefill":""}" onclick="callerOpenSitDim('${dim}')">${esc(lab)}</button>`;
+  });
+  h+=`</div>`;
+  if(sitInf||sitNeed||sitTry||sitTwo){
+    h+=`<div class="rd-gd-sit-infer-bar"><span class="foot">${esc(callerSitNeedMsg())}</span>`;
+    if(!sitTry&&!sitTwo){
+      h+=`<button type="button" class="rd-gd-sit-confirm" onclick="callerConfirmSit()">Confirm ${esc(callerSitLabel(cs))}</button>`;
+      h+=`<button type="button" class="rd-gd-sit-reset" onclick="callerResetFirstDown()">${esc(callerResetFirstDownLabel(cs))}</button>`;
+    }
+    h+=`</div>`;
+  }
+  if(open==="dn"){
+    h+=`<div class="rd-gd-sit-picker" role="group" aria-label="Down">`+[1,2,3,4].map(function(o,i){
+      return `<button type="button" class="rd-gd-sit-pick${+cs.dn===o?" on":""}" onclick="callerSet('dn','${o}')">${["1ST","2ND","3RD","4TH"][i]}</button>`;
+    }).join("")+`</div>`;
+  }else if(open==="db"){
+    h+=`<div class="rd-gd-sit-picker" role="group" aria-label="Distance">`+["1-3","4-6","7-9","10+","GOAL"].map(function(o){
+      return `<button type="button" class="rd-gd-sit-pick${cs.db===o?" on":""}" onclick="callerSet('db','${o}')">${o}</button>`;
+    }).join("")+`</div>`;
+  }else if(open==="hash"){
+    h+=`<div class="rd-gd-sit-picker" role="group" aria-label="Hash">`+[["ANY","ANY"],["L","L"],["M","M"],["R","R"]].map(function(p){
+      return `<button type="button" class="rd-gd-sit-pick${cs.hash===p[0]?" on":""}" onclick="callerSet('hash','${p[0]}')">${p[1]}</button>`;
+    }).join("")+`</div>`;
+  }else if(open==="zone"){
+    h+=`<div class="rd-gd-sit-picker" role="group" aria-label="Field">`+[["ANY","ANY"],["OWN","OWN"],["PLUS","PLUS"],["REDZONE","RZ"]].map(function(p){
+      return `<button type="button" class="rd-gd-sit-pick${cs.zone===p[0]?" on":""}" onclick="callerSet('zone','${p[0]}')">${p[1]}</button>`;
+    }).join("")+`</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerGuidedExpectHtml(ctx){
+  ctx=ctx||callerGuidedCtx();
+  const open=!!CALLER_EXPECT_OPEN;
+  const gl=ctx.glance||{ text:"No sample", empty:true };
+  let h=`<div id="caller-expect-anchor" class="rd-gd-expect-glance${open?" is-open":""}${ctx.expect&&ctx.expect.widened?" is-widened":""}">`;
+  h+=`<button type="button" class="rd-gd-expect-line" onclick="callerToggleExpect()" aria-expanded="${open?"true":"false"}">`;
+  h+=`<span class="lbl">Expect</span><span class="body">${esc(gl.text)}</span>`;
+  h+=`<span class="rd-gd-expect-chev" aria-hidden="true">${open?"▾":"▸"}</span></button>`;
+  if(open){
+    h+=callerExpectStripHtml(ctx.expect, ctx.fr, ctx.pr, ctx.liveM);
+    h+=callerBlitzAlertHtml(ctx.pr, ctx.g);
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerGuidedThisPlayHtml(){
+  const on=callerOnCall();
+  if(!on||!on.play){
+    return `<div id="caller-thisplay-anchor" class="rd-gd-thisplay rd-gd-thisplay-game no-print">${callerOnCallBarHtml()}</div>`;
+  }
+  const graded=!!on.result;
+  let h=`<div id="caller-thisplay-anchor" class="rd-gd-thisplay rd-gd-thisplay-game${graded?" is-graded":""} no-print">`;
+  h+=callerOnCallBarHtml();
+  if(!graded){
+    h+=`<button type="button" class="rd-gd-look-toggle" onclick="callerToggleLook()">${CALLER_LOOK_OPEN?"Hide look · result":"Add look · result"} <span class="foot">optional</span></button>`;
+    if(CALLER_LOOK_OPEN){
+      const idx=CALLER_LOG.findIndex(l=>l.playIndex===on.playIndex);
+      if(!callerIsST(on)){
+        h+=`<div class="rd-gd-section rd-gd-section-look">`;
+        h+=callerLookChipsHtml(on, on.playIndex);
+        h+=`</div>`;
+      }
+      h+=`<div class="rd-gd-section rd-gd-section-result">`;
+      h+=callerResultChipsHtml(on, idx, {});
+      h+=`</div>`;
+    }
+  }
+  h+=`</div>`;
+  return h;
+}
+function callerGuidedEntryHtml(){
+  const ctx=callerGuidedCtx();
+  const cs=ctx.cs;
+  const sitTry=!!cs.pendingTry;
+  const sitTwo=!!cs.forTwo;
+  let h=`<div id="caller-entry" class="rd-gd-entry" data-caller-scope="entry">`;
+  h+=callerGuidedSitHtml(ctx);
+  h+=callerTryBarHtml();
+  h+=callerGuidedExpectHtml(ctx);
+  h+=`<div id="caller-call-anchor">`;
+  if(!sitTry||sitTwo){
+    h+=`<div class="rd-gd-section rd-gd-section-call">`;
+    h+=callerCallSheetHtml({ game:true });
+    if(!sitTwo) h+=callerStRowHtml();
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  h+=callerGuidedThisPlayHtml();
+  h+=callerDriveOverHtml();
+  h+=callerDriveToastHtml();
+  h+=`</div>`;
+  return h;
+}
+function callerDeleteToastHtml(){
+  const G=callerGame();
+  const p=G&&G.pendingDelete?G.pendingDelete():null;
+  if(!p) return "";
+  return `<div id="caller-del-toast" class="rd-gd-del-toast no-print" role="status">Deleted ${esc(p.play||"play")} · <button type="button" class="rd-gd-del-undo" onclick="callerCancelDelete()">Undo</button></div>`;
+}
+function callerGuidedMoreHtml(){
+  const onCall=callerOnCall();
+  const thisPlayPi=onCall&&onCall.playIndex!=null?onCall.playIndex:null;
+  let h=`<details id="caller-more" class="rd-gd-more no-print"${CALLER_MORE_OPEN?" open":""}>`;
+  h+=`<summary class="rd-gd-more-sum" onclick="event.preventDefault();callerToggleMore()">More · log · marks · tools</summary>`;
+  h+=`<div class="rd-gd-more-body">`;
+  h+=`<div id="caller-pending-anchor">`+callerPendingQueueHtml({skipPlayIndex:thisPlayPi})+`</div>`;
+  if(CALLER_LOG.length){
+    h+=`<div class="rd-gd-calllog" id="caller-log-anchor"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto;min-height:44px" onclick="callerClear()">Clear</button></div>`;
+    h+=`<p class="foot">${callerLogForUi().length} calls \u00b7 Edit or Delete</p>`;
+    h+=callerLogForUi().map((l,i)=>callerCallItemHtml(l,i,{})).join("");
+    h+=`</div>`;
+  }
+  h+=`<div class="rd-gd-panel"><div class="lbl">Game</div>`;
+  h+=callerAnalysisMarksHtml();
+  h+=callerRatesHtml();
+  h+=callerStStatsHtml();
+  h+=callerComebackHtml();
+  h+=`</div>`;
+  h+=callerLivePanelHtml();
+  h+=callerPlayRollupHtml();
+  h+=callerHalftimeHtml();
+  h+=`<details class="rd-gd-ref no-print"><summary class="rd-gd-ref-sum">Advanced \u00b7 sticky look \u00b7 live sample</summary><div class="rd-gd-ref-body">`;
+  h+=`<p class="foot" style="margin:0 0 4px">Sticky chips apply to the <b>next</b> Call. To fix the last snap, use This play or Edit.</p>`;
+  h+=callerObsChipHtml();
+  h+=`<div class="rd-gd-panel no-print"><div class="lbl">Live coverage sample</div><div class="seg covlog" style="flex-wrap:wrap;display:flex">`+["Cover 0","Cover 1","Cover 2","Cover 3","Cover 4","2-man","Zone","Man"].map(cv=>`<button type="button" onclick="callerLogShowed('${cv}')">${cv}</button>`).join("")+`</div></div>`;
+  h+=`</div></details>`;
+  h+=`<p class="foot caller-paint-readout">Entry tap <span id="caller-paint-ms">—</span> · field-measure on the game iPad</p>`;
+  h+=`</div></details>`;
+  return h;
+}
+function callerReplaceId(id, html){
+  const el=document.getElementById(id);
+  if(!el) return false;
+  const wrap=document.createElement("div");
+  wrap.innerHTML=html.trim();
+  const next=wrap.firstElementChild;
+  if(!next){ el.outerHTML=html; return true; }
+  el.replaceWith(next);
+  return true;
+}
+function callerPatchSit(){
+  const t0=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
+  if(!document.getElementById("caller-sit-anchor")) return false;
+  const ok=callerReplaceId("caller-sit-anchor", callerGuidedSitHtml());
+  if(ok) callerMarkPaint("sit", t0);
+  return ok;
+}
+function callerPatchExpect(){
+  const t0=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
+  if(!document.getElementById("caller-expect-anchor")) return false;
+  const ok=callerReplaceId("caller-expect-anchor", callerGuidedExpectHtml());
+  if(ok) callerMarkPaint("expect", t0);
+  return ok;
+}
+function callerPatchThisPlay(){
+  if(!document.getElementById("caller-thisplay-anchor")) return false;
+  return callerReplaceId("caller-thisplay-anchor", callerGuidedThisPlayHtml());
+}
+function callerPatchEntry(){
+  const t0=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
+  const el=document.getElementById("caller-entry");
+  if(!el) return false;
+  const wrap=document.createElement("div");
+  wrap.innerHTML=callerGuidedEntryHtml();
+  const next=wrap.firstElementChild;
+  if(!next) return false;
+  el.replaceWith(next);
+  callerMarkPaint("entry", t0);
+  return true;
+}
+function callerDeleteSnap(playIndex){
+  if(playIndex==null) return;
+  const entry=CALLER_LOG.find(function(l){ return l&&l.playIndex===playIndex; });
+  if(!entry) return;
+  const G=callerGame();
+  if(CALLER_EDIT_PI===playIndex) CALLER_EDIT_PI=null;
+  if(G&&G.queueDelete){
+    G.queueDelete({ playIndex:playIndex, play:entry.play||"" }, function(p){
+      callerAppend("undo", p.playIndex, {});
+      renderCaller();
+    });
+  }else{
+    callerAppend("undo", playIndex, {});
+  }
+  renderCaller();
+}
+function callerCancelDelete(){
+  const G=callerGame();
+  if(G&&G.cancelDelete) G.cancelDelete();
+  renderCaller();
+}
 function renderCaller(){
+  const _paintT0=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
   const host=document.getElementById("view-caller"); if(!host)return;
   const opp=sit.opp, cs=callerSit;
   const rd=window.OFFGRD_REDESIGN&&OFFGRD_REDESIGN.isRedesign&&OFFGRD_REDESIGN.isRedesign();
@@ -6097,8 +6404,27 @@ function renderCaller(){
     if(hashLbl) sitBits.push(hashLbl);
     const sitTxt=sitBits.join(" · ");
     const chipTxt=(typeof weekCountdown==="function"&&weekCountdown())||(liveAll.length?liveAll.length+" live":"LIVE");
-    let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     const mode=callerGetMode();
+    if(mode!=="advanced"){
+      let h=`<div class="rd-gd rd-gd-game" data-acc-skip data-caller-game="1" id="caller-top-anchor">`;
+      h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapN}</span><span class="rd-gd-chip rd-gd-build">${esc(window.OFFGRD_BUILD_LABEL||("v"+(window.OFFGRD_ASSET_V||"?")))}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
+      if(CALLER_TOMBSTONE_REFUSAL&&CALLER_TOMBSTONE_REFUSAL.message){
+        h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
+      }
+      if(CALLER_LIBRARY_REFUSAL&&CALLER_LIBRARY_REFUSAL.message){
+        h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_LIBRARY_REFUSAL.message)}</p>`;
+      }
+      h+=callerUiChrome();
+      h+=callerStickyBarHtml(sitTxt);
+      h+=callerGuidedEntryHtml();
+      h+=callerGuidedMoreHtml();
+      h+=callerDeleteToastHtml();
+      h+=`</div>`;
+      host.innerHTML=h;
+      callerMarkPaint("full", _paintT0);
+      return;
+    }
+    let h=`<div class="rd-gd" data-acc-skip id="caller-top-anchor">`;
     h+=`<div class="rd-gd-top">${crest(opp!=="ANY"?opp:"",28)}<b>${esc(opp!=="ANY"?opp:"opponent")}</b><span class="rd-gd-chip">${esc(chipTxt)}</span><span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapN}</span><span class="rd-gd-chip rd-gd-build">${esc(window.OFFGRD_BUILD_LABEL||("v"+(window.OFFGRD_ASSET_V||"?")))}</span>${callerOdToggleHtml("o")}${callerModeToggleHtml()}<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth")?"Booth on":"Booth"}</button><button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     if(CALLER_TOMBSTONE_REFUSAL&&CALLER_TOMBSTONE_REFUSAL.message){
       h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
@@ -6248,8 +6574,10 @@ function callerSet(k,v){
     callerSit.pendingTry=false;
     callerSit.forTwo=false;
     callerSit.needReason=null;
+    CALLER_SIT_OPEN=null;
   }
   callerSaveLocal();
+  if(callerIsGuided()&&callerPatchEntry()) return;
   renderCaller();
 }
 function callerLog(play){
@@ -6340,9 +6668,12 @@ function callerLog(play){
   } else if(on){
     callerMarkPersisted(on.eventId);
   }
+  if(callerIsGuided()) CALLER_LOOK_OPEN=false;
   renderCaller();
-  /* Guided loop step 3: after Call, jump to Look / Result. */
-  try{ setTimeout(function(){ callerJumpThisPlay(); }, 80); }catch(e){}
+  /* Guided: stay on sit/call — look/result are optional. Advanced still jumps to This play. */
+  if(!callerIsGuided()){
+    try{ setTimeout(function(){ callerJumpThisPlay(); }, 80); }catch(e){}
+  }
 }
 /** Special-teams call (Punt / Field Goal / XP) · 2-pt uses playbook via callerStartTwoPoint. */
 function callerLogST(kind){
@@ -6389,8 +6720,11 @@ function callerLogST(kind){
   callerSaveLocal();
   const on=callerOnCall();
   if(on&&on.play===play) callerMarkPersisted(on.eventId);
+  if(callerIsGuided()) CALLER_LOOK_OPEN=false;
   renderCaller();
-  try{ setTimeout(function(){ callerJumpThisPlay(); }, 80); }catch(e){}
+  if(!callerIsGuided()){
+    try{ setTimeout(function(){ callerJumpThisPlay(); }, 80); }catch(e){}
+  }
 }
 /** After TD · go for 2 → pick a playbook play (feeds algo). */
 function callerStartTwoPoint(){
