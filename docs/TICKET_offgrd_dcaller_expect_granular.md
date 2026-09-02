@@ -93,3 +93,5 @@ split before film arrives. No Middle.
       corpus rows when the server omits them (v351). Production
       `offgrd_scout_snaps_for_team` still ships dirTagged 0 — server
       carry is `docs/TICKET_offgrd_scout_snaps_play_dir.md` (after Friday).
+- [x] Sit fingerprint drops side + hash (v352). v351 keys missed 44/44:
+      corpus `…|off|…|18|` vs season `…||…|18|R`.

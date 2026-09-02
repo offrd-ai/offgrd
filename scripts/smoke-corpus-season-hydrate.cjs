@@ -60,6 +60,40 @@ ok(already[0].direction === "R", "does not overwrite a corpus direction");
 const emptySeason = H(corpus, []);
 ok(emptySeason[0].direction === "" && emptySeason[1].direction === "", "empty season is unknown — keep corpus");
 
+/* Live v351 miss: corpus has side + empty hash; season has hash + empty side. */
+const liveCorpus = {
+  opponent: "Parkway South",
+  side: "off",
+  down: 1,
+  distance: 10,
+  playType: "Run",
+  formation: "Unbal Trey",
+  gain: 18,
+  hash: "",
+  direction: "",
+  tag_source: "autoscout",
+};
+const liveSeason = {
+  opponent: "Parkway South",
+  down: 1,
+  distance: 10,
+  playType: "Run",
+  formation: "Unbal Trey",
+  gain: 18,
+  hash: "R",
+  direction: "L",
+};
+ok(
+  sandbox.corpusSitKey(liveCorpus) === sandbox.corpusSitKey(liveSeason),
+  "sit key ignores side/hash: " + sandbox.corpusSitKey(liveCorpus)
+);
+ok(
+  sandbox.corpusSitKey(liveCorpus) === "parkway south|1|10|run|unbal trey|18",
+  "sit key shape: " + sandbox.corpusSitKey(liveCorpus)
+);
+const liveHit = H([liveCorpus], [liveSeason]);
+ok(liveHit[0].direction === "L", "v351 live pair hydrates: " + liveHit[0].direction);
+
 /* South-shaped: 12 Pass + 7 RunL + 3 RunR, corpus strips direction */
 function southSeason() {
   const rows = [];

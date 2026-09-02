@@ -1,6 +1,6 @@
 /* OFFGRD shared auth modal — sign in / create account / forgot / change password.
    Self-contained (own styles). Used by the apps (via OFFGRD-account.js) and the landing page. */
-import { Cloud } from "./OFFGRD-cloud.js?v=351";
+import { Cloud } from "./OFFGRD-cloud.js?v=352";
 
 let root = null;
 function injectStyles(){
