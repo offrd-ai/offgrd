@@ -82,3 +82,7 @@ split before film arrives. No Middle.
       runs n ≥ 8 → `Pass 55% · runs go L 70% (n=10)` (v348). v347 coupled
       dir to `typedRows(ctx, lean)`, so South (pass-lean everywhere) showed
       no direction line.
+- [x] Panel paints `paint(build()).html` as the Expect hero (v349). v348
+      loaded the module but `expectHtml` still rendered the old PASS/pct
+      hero and hid `grain.text` when `tier === "parent"`. Smoke now asserts
+      the painted markup, not just `build().text`.

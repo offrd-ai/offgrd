@@ -120,8 +120,14 @@ const passLeanDir = X.build(southish(12));
 ok(passLeanDir.lean === "pass", "12P+10R lean is pass");
 ok(passLeanDir.dir && passLeanDir.dir.k === "L", "run-dir still renders on pass lean");
 ok(passLeanDir.text === "Pass 55% · runs go L 70% (n=10)", "South 1st/10+ line: " + passLeanDir.text);
+const paintedSouth = X.paint(passLeanDir);
+ok(paintedSouth.html.indexOf("Pass 55% · runs go L 70% (n=10)") >= 0, "paint() embeds South line");
+ok(/rd-dc-expect-grain/.test(paintedSouth.html), "paint() uses grain class");
+ok(paintedSouth.low === false, "22-snap South sit is not LOW");
 const runLeanDir = X.build(southish(8));
 ok(runLeanDir.text === "Run 56% · runs go L 70% (n=10)", "same runs + 8 pass: " + runLeanDir.text);
+const paintedRun = X.paint(runLeanDir);
+ok(paintedRun.html.indexOf("Run 56% · runs go L 70% (n=10)") >= 0, "paint() embeds run-lean line");
 
 /* --- M is not a lean --- */
 const withM = many(10, { direction: "M" }).concat(many(3, { direction: "R" }));
@@ -237,7 +243,11 @@ console.log("PROOF P South-shaped:", ps.text, "· tier", ps.tier, "· n", ps.n);
 const dc = fs.readFileSync(path.join(ROOT, "OFFGRD-dcaller.js"), "utf8");
 ok(/\[\"L\", \"R\"\]/.test(dc) || /\["L", "R"\]/.test(dc), "live dir is L/R only");
 ok(!/Mid/.test(dc), "no Mid promise on D Caller");
+ok(/OFFGRD_DCALLER_EXPECT/.test(dc), "dcaller references the expect module");
 ok(/expectGrain/.test(dc), "dcaller wires expectGrain");
+ok(/X\.build\(/.test(dc), "dcaller calls module build()");
+ok(/expectPaint/.test(dc) && /painted\.html/.test(dc), "expectHtml paints paint().html");
+ok(!/grain\.tier !== ["']parent["']/.test(dc), "parent-tier grain is not hidden");
 ok(/After-snap, never a gate/.test(dc), "L/R skippable copy");
 
 const html = fs.readFileSync(path.join(ROOT, "OFFGRD.html"), "utf8");

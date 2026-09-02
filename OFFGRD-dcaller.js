@@ -1585,6 +1585,17 @@
     return X.build(rows, opts || {});
   }
 
+  function expectPaint(grain) {
+    var X = global.OFFGRD_DCALLER_EXPECT;
+    if (X && typeof X.paint === "function") return X.paint(grain);
+    if (!grain || !grain.text) return { text: "", low: false, html: "" };
+    return {
+      text: grain.text,
+      low: !!grain.low,
+      html: '<div class="rd-dc-expect-grain">' + esc(grain.text) + "</div>",
+    };
+  }
+
   function topForms(rows) {
     var X = global.OFFGRD_DCALLER_EXPECT;
     if (X && typeof X.formCounts === "function") {
@@ -2729,10 +2740,11 @@
     var runW = Math.max(4, Math.round(runPct * 100));
     var passW = Math.max(4, 100 - runW);
     var grain = expectGrain(all);
+    var painted = expectPaint(grain);
     var mot = motionRate(all);
     var confLevel = (conf && conf.level) || (thin ? "THIN" : "");
     var confTone = (conf && conf.tone) || (thin ? "bad" : "good");
-    if (grain && grain.low && !confLevel) {
+    if (painted.low) {
       confLevel = "LOW";
       confTone = "bad";
     }
@@ -2741,10 +2753,15 @@
     h += `<div class="rd-dc-expect-hero">`;
     h += `<div class="rd-dc-expect-hero-copy">`;
     h += `<div class="rd-dc-expect-kicker">${lean === "PASS" ? "They'll pass" : lean === "RUN" ? "They'll run" : "Tendency"}</div>`;
-    h += `<div class="rd-dc-expect-big">`;
-    h += `<span class="rd-dc-expect-lean">${esc(lean)}</span>`;
-    if (leanPct != null) h += `<span class="rd-dc-expect-pct">${esc(fmt(leanPct))}</span>`;
-    h += `</div></div>`;
+    if (painted.html) {
+      h += painted.html;
+    } else {
+      h += `<div class="rd-dc-expect-big">`;
+      h += `<span class="rd-dc-expect-lean">${esc(lean)}</span>`;
+      if (leanPct != null) h += `<span class="rd-dc-expect-pct">${esc(fmt(leanPct))}</span>`;
+      h += `</div>`;
+    }
+    h += `</div>`;
     if (confLevel) {
       h += `<span class="rd-dc-expect-conf tone-${esc(confTone)}">${esc(confLevel)}</span>`;
     }
@@ -2758,9 +2775,6 @@
       h += `<span>Run ${esc(fmt(runPct))}</span>`;
       h += `<span>Pass ${esc(fmt(passPct))}</span>`;
       h += `</div>`;
-    }
-    if (grain && grain.text && grain.tier !== "parent") {
-      h += `<div class="rd-dc-expect-grain">${esc(grain.text)}</div>`;
     }
     if (mot != null) {
       h += `<div class="rd-dc-expect-chips">`;
@@ -3251,6 +3265,7 @@
     tendencyShiftSample: tendencyShiftSample,
     collectActiveShifts: collectActiveShifts,
     expectGrain: expectGrain,
+    expectPaint: expectPaint,
     expectSample: expectSample,
     /** Always rebuild from folded log (same rows the call log displays). */
     getMondayFocusPayload: function () {

@@ -183,6 +183,24 @@
     return Math.round((+p || 0) * 100) + "%";
   }
 
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
+  /** Markup the D Caller Expect panel must paint. Smoke asserts this, not just build(). */
+  function paint(grain) {
+    if (!grain || grain.empty || !grain.text) {
+      return { text: "", low: false, html: "" };
+    }
+    return {
+      text: grain.text,
+      low: !!grain.low,
+      html: '<div class="rd-dc-expect-grain">' + esc(grain.text) + "</div>",
+    };
+  }
+
   function runPass(rows) {
     var typed = 0;
     var pass = 0;
@@ -432,6 +450,7 @@
     formCounts: formCounts,
     impliedFormation: impliedFormation,
     build: build,
+    paint: paint,
     fmtPct: fmtPct,
   };
 
