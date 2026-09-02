@@ -22,6 +22,7 @@ const REQUIRED = [
   "OFFGRD-schedule-import.js",
   "OFFGRD-scout-report.js",
   "OFFGRD-dcaller.js",
+  "OFFGRD-dcaller-expect.js",
   "OFFGRD-booth-ask.js",
   "OFFGRD-caller-side.js",
   "OFFGRD-caller-sync.js",

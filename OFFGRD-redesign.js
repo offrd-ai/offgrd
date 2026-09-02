@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "346";
+  const ASSET_V = "347";
 
   function getScoutTool() {
     try {
@@ -1720,6 +1720,9 @@
       'html.rd-on #view-dcaller .rd-dc-expect-split-lbl{',
       'display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--rd-muted);margin:0 0 12px;',
       '}',
+      'html.rd-on #view-dcaller .rd-dc-expect-grain{',
+      'font-size:15px;font-weight:700;line-height:1.35;color:var(--rd-text);margin:0 0 10px;',
+      '}',
       'html.rd-on #view-dcaller .rd-dc-expect-chips{',
       'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px;',
       '}',
@@ -1826,7 +1829,10 @@
       'html.rd-on #view-dcaller .rd-dc-rp-btn{',
       'min-height:56px!important;font-size:18px!important;font-weight:800!important;',
       '}',
-      'html.rd-on #view-dcaller .rd-dc-dir-btn{min-height:48px!important;}',
+      'html.rd-on #view-dcaller .rd-dc-dir-btn{',
+      'min-height:48px!important;border-style:dashed!important;',
+      '}',
+      'html.rd-on #view-dcaller .rd-dc-dir-btn.on{border-style:solid!important;}',
       'html.rd-on #view-caller .rd-booth,html.rd-on #view-dcaller .rd-booth{',
       'margin:14px 0 4px;padding:14px 14px 16px;',
       'background:var(--rd-surface);',

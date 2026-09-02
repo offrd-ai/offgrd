@@ -1462,8 +1462,11 @@
           fieldZone: l.zone && l.zone !== "ANY" ? l.zone : "",
           hash: l.hash && l.hash !== "ANY" ? l.hash : "",
           playType: l.playType,
-          formation: "",
+          formation: l.formation || "",
           direction: l.theirDirection || "",
+          gap: l.gap || "",
+          passZone: l.passZone || l.pass_zone || "",
+          offStrength: l.offStrength || l.off_strength || "",
           motion: 0,
           gain: l.gain,
           opponent: l.opponent,
@@ -1576,23 +1579,28 @@
     return pass / rows.length;
   }
 
+  function expectGrain(rows, opts) {
+    var X = global.OFFGRD_DCALLER_EXPECT;
+    if (!X || typeof X.build !== "function") return null;
+    return X.build(rows, opts || {});
+  }
+
   function topForms(rows) {
+    var X = global.OFFGRD_DCALLER_EXPECT;
+    if (X && typeof X.formCounts === "function") {
+      var denom = (rows || []).length || 1;
+      return X.formCounts(rows)
+        .slice(0, 2)
+        .map(function (f) {
+          return { k: f.display, pct: f.n / denom, raw: f.n, n: f.n };
+        });
+    }
     if (typeof weightedDist !== "function") return [];
-    var withF = rows.filter(function (r) {
+    var withF = (rows || []).filter(function (r) {
       return r.formation;
     });
     if (!withF.length) return [];
     return weightedDist(withF, "formation", false).arr.slice(0, 2);
-  }
-
-  function dirLean(rows, form) {
-    if (typeof weightedDist !== "function" || !form) return null;
-    var g = rows.filter(function (r) {
-      return r.formation === form && r.direction && /run/i.test(r.playType || "");
-    });
-    if (g.length < 2) return null;
-    var d = weightedDist(g, "direction", false).arr[0];
-    return d || null;
   }
 
   function motionRate(rows) {
@@ -2631,7 +2639,6 @@
     h += `<div><div class="lbl">Direction</div><select id="dcEditDir" style="width:100%;min-height:44px"><option value=""></option>`;
     h += [
       ["L", "Left"],
-      ["M", "Mid"],
       ["R", "Right"],
     ]
       .map(function (p) {
@@ -2721,10 +2728,14 @@
     var passPct = pass == null ? 0.5 : pass;
     var runW = Math.max(4, Math.round(runPct * 100));
     var passW = Math.max(4, 100 - runW);
-    var forms = topForms(all);
+    var grain = expectGrain(all);
     var mot = motionRate(all);
     var confLevel = (conf && conf.level) || (thin ? "THIN" : "");
     var confTone = (conf && conf.tone) || (thin ? "bad" : "good");
+    if (grain && grain.low && !confLevel) {
+      confLevel = "LOW";
+      confTone = "bad";
+    }
     var h =
       `<div class="rd-dc-expect${thin ? " is-thin" : ""}${sample.widened ? " is-widened" : ""}${pass == null ? "" : isPass ? " is-pass" : " is-run"} no-print">`;
     h += `<div class="rd-dc-expect-hero">`;
@@ -2748,33 +2759,16 @@
       h += `<span>Pass ${esc(fmt(passPct))}</span>`;
       h += `</div>`;
     }
-    h += `<div class="rd-dc-expect-chips">`;
-    if (forms.length) {
-      forms.forEach(function (f) {
-        var dir = dirLean(all, f.k);
-        var dirTxt = dir
-          ? dir.k === "L"
-            ? "runs left"
-            : dir.k === "R"
-              ? "runs right"
-              : "runs mid"
-          : "";
-        h += `<div class="rd-dc-expect-chip">`;
-        h += `<span class="rd-dc-expect-chip-k">${esc(f.k)}</span>`;
-        h += `<span class="rd-dc-expect-chip-v">${esc(fmt(f.pct))}</span>`;
-        if (dirTxt) h += `<span class="rd-dc-expect-chip-d">${esc(dirTxt)}</span>`;
-        h += `</div>`;
-      });
-    } else {
-      h += `<div class="rd-dc-expect-chip is-muted"><span class="rd-dc-expect-chip-k">Formation</span><span class="rd-dc-expect-chip-v">—</span><span class="rd-dc-expect-chip-d">run/pass only</span></div>`;
+    if (grain && grain.text && grain.tier !== "parent") {
+      h += `<div class="rd-dc-expect-grain">${esc(grain.text)}</div>`;
     }
     if (mot != null) {
+      h += `<div class="rd-dc-expect-chips">`;
       h += `<div class="rd-dc-expect-chip">`;
       h += `<span class="rd-dc-expect-chip-k">Motion</span>`;
       h += `<span class="rd-dc-expect-chip-v">${esc(fmt(mot))}</span>`;
-      h += `</div>`;
+      h += `</div></div>`;
     }
-    h += `</div>`;
     h += `<div class="rd-dc-expect-meta">`;
     h += `<span>${all.length} snap${all.length === 1 ? "" : "s"}</span>`;
     if (sample.live && sample.live.length) h += `<span>${sample.live.length} live tonight</span>`;
@@ -2950,14 +2944,14 @@
     h += `<button type="button" class="rd-dc-rp-btn${livePt === "Run" ? " on" : ""}" onclick="OFFGRD_DCALLER.logTheirPlay('Run')">Run</button>`;
     h += `<button type="button" class="rd-dc-rp-btn${livePt === "Pass" ? " on" : ""}" onclick="OFFGRD_DCALLER.logTheirPlay('Pass')">Pass</button>`;
     h += `</div>`;
-    h += `<div class="lbl rd-look-lbl" style="margin-top:8px">Direction <span class="foot">optional</span></div>`;
+    h += `<div class="lbl rd-look-lbl" style="margin-top:8px">Direction <span class="foot">optional · skip</span></div>`;
     h += `<div class="seg covlog rd-dc-dir">`;
-    ["L", "M", "R"].forEach(function (d) {
+    ["L", "R"].forEach(function (d) {
       var onDir = liveDir === d;
-      h += `<button type="button" class="rd-dc-dir-btn${onDir ? " on" : ""}" onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "Left" : d === "R" ? "Right" : "Mid"}</button>`;
+      h += `<button type="button" class="rd-dc-dir-btn${onDir ? " on" : ""}" onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "Left" : "Right"}</button>`;
     });
     h += `</div>`;
-    h += `<p class="foot" style="margin:6px 0 10px">Direction optional · tap before or after Run/Pass</p>`;
+    h += `<p class="foot" style="margin:6px 0 10px">L/R optional · After-snap, never a gate</p>`;
 
     if (live) {
       h += `<div class="rd-dc-grade-card${live.result ? "" : " is-pending"}">`;
@@ -3179,6 +3173,7 @@
   }
 
   function setDir(d) {
+    if (d !== "L" && d !== "R") return;
     var live = liveCall();
     /* Live ungraded snap — toggle direction on this play (not just the next one). */
     if (live && !live.result) {
@@ -3255,6 +3250,8 @@
     boothReask: boothReask,
     tendencyShiftSample: tendencyShiftSample,
     collectActiveShifts: collectActiveShifts,
+    expectGrain: expectGrain,
+    expectSample: expectSample,
     /** Always rebuild from folded log (same rows the call log displays). */
     getMondayFocusPayload: function () {
       mondayFocusPayload = buildMondayFocusFromLog();
