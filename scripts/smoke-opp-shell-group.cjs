@@ -273,6 +273,23 @@ if (!Cloud || !Cloud.scoutSnapToRow) {
   check("hydrate offBackCount from column", lifted.offBackCount === 1, lifted.offBackCount);
   check("hydrate gap from raw", lifted.gap === "C", lifted.gap);
   check("hydrate direction from raw", lifted.direction === "R", lifted.direction);
+  const fromTyped = Cloud.scoutSnapToRow({
+    play_type: "Run",
+    play_dir: "L",
+    gap: "A",
+    pass_zone: "Short Left",
+    off_strength: "Lt",
+    raw: {},
+  });
+  check("typed play_dir survives empty raw", fromTyped.direction === "L", fromTyped.direction);
+  check("typed gap survives empty raw", fromTyped.gap === "A", fromTyped.gap);
+  check("typed pass_zone survives empty raw", fromTyped.passZone === "Short Left", fromTyped.passZone);
+  const fromSeason = Cloud.scoutSnapToRow({
+    play_type: "Pass",
+    direction: "R",
+    raw: {},
+  });
+  check("season-store direction key survives", fromSeason.direction === "R", fromSeason.direction);
   const fromRaw = Cloud.scoutSnapToRow({
     opponent: OPP,
     side: "off",

@@ -11,8 +11,8 @@
 
    KILL-SWITCH (zombie-SW incident): activate fetches sw-kill.json no-store;
    if { "kill": true } → delete all caches + unregister. Control plane never cached. */
-var CACHE = "offgrd-gameday-v349";
-var ASSET_V = "349";
+var CACHE = "offgrd-gameday-v350";
+var ASSET_V = "350";
 
 /* Shell + boot graph — must be present for airplane cold-boot. */
 var PRECACHE = [

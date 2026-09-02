@@ -86,3 +86,6 @@ split before film arrives. No Middle.
       loaded the module but `expectHtml` still rendered the old PASS/pct
       hero and hid `grain.text` when `tier === "parent"`. Smoke now asserts
       the painted markup, not just `build().text`.
+- [x] SNAP_CORPUS mapper copies play_dir / direction / gap / passZone /
+      offStrength from typed columns and season-store keys (v350). v349
+      painted parent-only because scoutSnapToRow only read those from raw.

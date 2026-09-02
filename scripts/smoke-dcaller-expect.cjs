@@ -129,6 +129,66 @@ ok(runLeanDir.text === "Run 56% · runs go L 70% (n=10)", "same runs + 8 pass: "
 const paintedRun = X.paint(runLeanDir);
 ok(paintedRun.html.indexOf("Run 56% · runs go L 70% (n=10)") >= 0, "paint() embeds run-lean line");
 
+/* --- SNAP_CORPUS mapper must keep direction (v350) --- */
+const cloudSrc = fs
+  .readFileSync(path.join(ROOT, "OFFGRD-cloud.js"), "utf8")
+  .replace(/^export const Cloud/m, "const Cloud");
+const cloudBox = {
+  window: { supabase: null, OFFGRD_CONFIG: {}, __OFFRD_SUPABASE__: null },
+  console,
+};
+cloudBox.window = Object.assign(cloudBox.window, cloudBox);
+vm.runInNewContext(cloudSrc + "\nthis.Cloud = Cloud;", cloudBox);
+const Cloud = cloudBox.Cloud || cloudBox.window.Cloud;
+ok(Cloud && typeof Cloud.scoutSnapToRow === "function", "Cloud.scoutSnapToRow loads");
+const typedCol = Cloud.scoutSnapToRow({
+  play_type: "Run",
+  play_dir: "L",
+  gap: "B",
+  pass_zone: "Deep Left",
+  off_strength: "Rt",
+  raw: {},
+});
+ok(typedCol.direction === "L", "typed play_dir survives empty raw: " + typedCol.direction);
+ok(typedCol.gap === "B", "typed gap survives empty raw");
+ok(typedCol.passZone === "Deep Left", "typed pass_zone survives empty raw");
+ok(typedCol.offStrength === "right", "typed off_strength survives empty raw");
+const seasonShaped = Cloud.scoutSnapToRow({
+  play_type: "Run",
+  direction: "R",
+  gap: "",
+  passZone: "",
+  offStrength: "left",
+  raw: {},
+});
+ok(seasonShaped.direction === "R", "season-store direction key survives: " + seasonShaped.direction);
+ok(seasonShaped.offStrength === "left", "season-store offStrength survives");
+const corpusSouth = southish(12).map(function (r) {
+  return Cloud.scoutSnapToRow({
+    play_type: r.playType,
+    play_dir: r.direction,
+    formation: r.formation,
+    down: r.down,
+    distance: r.distance,
+    raw: {},
+  });
+});
+ok(
+  corpusSouth.filter(function (r) {
+    return r.direction === "L" || r.direction === "R";
+  }).length === 10,
+  "corpus South slice keeps 10 dir-tagged runs"
+);
+const corpusGrain = X.build(corpusSouth);
+ok(
+  corpusGrain.text === "Pass 55% · runs go L 70% (n=10)",
+  "build() on corpus-mapped South: " + corpusGrain.text
+);
+ok(
+  X.paint(corpusGrain).html.indexOf("Pass 55% · runs go L 70% (n=10)") >= 0,
+  "painted corpus South line"
+);
+
 /* --- M is not a lean --- */
 const withM = many(10, { direction: "M" }).concat(many(3, { direction: "R" }));
 const noM = X.build(withM);

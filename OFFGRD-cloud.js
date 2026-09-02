@@ -1978,8 +1978,8 @@ export const Cloud = {
     if (s.success === true || s.success === 1 || s.success === "1") success = 1;
     else if (s.success === false || s.success === 0 || s.success === "0") success = 0;
 
-    /* Zero-SQL Tier 2 hydration — play_dir / gap / qtr / series live in raw.
-       Opponent-card grouping also needs off_strength / backfield / pass_zone. */
+    /* Typed scout_snaps columns first (play_dir / gap / pass_zone / off_strength).
+       Season-store rows use direction / passZone / offStrength. raw is fallback only. */
     const rawPick = this._rawPickAssist(s.raw, {
       direction: ["play dir", "play direction", "dir", "direction", "play_dir"],
       gap: ["gap", "hole"],
@@ -2020,8 +2020,10 @@ export const Cloud = {
         blitz = rawBlitz;
       }
     }
-    const direction = this._normPlayDir(rawPick.direction);
-    const gap = rawPick.gap || "";
+    const direction = this._normPlayDir(
+      s.play_dir || s.direction || s.playDir || rawPick.direction
+    );
+    const gap = String(s.gap || rawPick.gap || "").trim();
     let qtr = null;
     if (rawPick.qtr != null && String(rawPick.qtr).trim() !== "") {
       const qn = parseInt(String(rawPick.qtr).replace(/[^0-9]/g, ""), 10);
@@ -2033,7 +2035,7 @@ export const Cloud = {
       rawPick.personnel ||
       "";
     const offStrength = this._normOffStrength(
-      s.off_strength || rawPick.off_strength
+      s.off_strength || s.offStrength || rawPick.off_strength
     );
     let rawObj = s.raw;
     if (typeof rawObj === "string") {
@@ -2055,7 +2057,7 @@ export const Cloud = {
       if (!isNaN(bn) && bn >= 0 && bn <= 2) offBackCount = bn;
     }
     if (offBackCount == null) offBackCount = this._backCountFromBackfield(offBackfield);
-    const passZone = (s.pass_zone || rawPick.pass_zone || "").trim() || null;
+    const passZone = (s.pass_zone || s.passZone || rawPick.pass_zone || "").trim() || null;
     const offStructure = (s.off_structure || "").trim() || null;
 
     return {
