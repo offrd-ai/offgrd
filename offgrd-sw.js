@@ -46,6 +46,7 @@ var PRECACHE = [
   "./OFFGRD-empty-unknown.js?v=" + ASSET_V,
   "./OFFGRD-caller-select.js?v=" + ASSET_V,
   "./OFFGRD-dcaller-expect.js?v=" + ASSET_V,
+  "./OFFGRD-d-vocab.js?v=" + ASSET_V,
   "./OFFGRD-dcaller.js?v=" + ASSET_V,
   "./OFFGRD-account.js?v=" + ASSET_V,
   "./OFFGRD-invite-parse.js?v=" + ASSET_V,

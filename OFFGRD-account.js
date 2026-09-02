@@ -1458,6 +1458,7 @@ async function pull(silent){
       if(A.kind==="scout" || A.kind==="playbook"){
         await pullFormationMap(TEAM && TEAM.id);
         await pullPlayMap(TEAM && TEAM.id);
+        await pullDVocab(TEAM && TEAM.id);
       }
     }catch(e){}
   }catch(e){ if(!silent) alert(e.message||"Load failed"); }
@@ -2473,6 +2474,20 @@ function pullPlayMap(teamId){
       return rows;
     }).catch(function(){ return []; });
   }catch(e){ return Promise.resolve([]); }
+}
+
+/** Local-first, then Cloud.listDVocab — team D Caller Step 3 lists. */
+function pullDVocab(teamId){
+  try{
+    const V = window.OFFGRD_D_VOCAB;
+    const tid = teamId || (TEAM && TEAM.id);
+    if(!V || !tid || typeof V.pullBook !== "function") return Promise.resolve(null);
+    return V.pullBook(tid).then(function(book){
+      try{ if(typeof window.refreshLibUI === "function") window.refreshLibUI(); }catch(eL){}
+      try{ if(window.OFFGRD_DCALLER && typeof window.OFFGRD_DCALLER.render === "function") window.OFFGRD_DCALLER.render(); }catch(eR){}
+      return book;
+    }).catch(function(){ return V.getBook ? V.getBook(tid) : null; });
+  }catch(e){ return Promise.resolve(null); }
 }
 
 /** Local-first, then Cloud.listFormationMap — mirrors drawn-card cache. */

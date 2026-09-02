@@ -1,0 +1,11 @@
+{
+  "team": "Parkway West",
+  "side": "defense",
+  "front": ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ZULU"],
+  "coverage": ["BOSTON", "BUFFALO", "CHICAGO", "CINCY", "DENVER", "DALLAS", "CALI",
+               "FLORIDA", "M2M", "ATLANTA", "AKRON", "OMAHA", "ORLANDO", "LOCK CALL"],
+  "blitz": ["SAM", "BILL", "X TAG", "BOSS", "BOW", "BANDIT", "SCOUT",
+            "SAM & BILL", "SAM & SCOUT", "BILL & BANDIT", "SAM & BANDIT",
+            "BILL & SCOUT", "SCOUT LONG STICK", "BANDIT LONG STICK",
+            "SCOUT AND BANDIT LONGSTICK"]
+}

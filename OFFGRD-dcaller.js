@@ -1442,6 +1442,88 @@
     };
   }
 
+  var _vocabMore = { front: false, coverage: false, blitz: false };
+
+  function vocabApi() {
+    return global.OFFGRD_D_VOCAB || null;
+  }
+
+  function dCallBook() {
+    var V = vocabApi();
+    if (!V || !V.getBook) return null;
+    var tid = V.currentTeamId ? V.currentTeamId() : "";
+    return V.getBook(tid);
+  }
+
+  function dCallLists() {
+    var V = vocabApi();
+    var book = dCallBook();
+    if (V && book && V.hasActiveVocab(book)) {
+      return V.callerLists(book, { showAll: _vocabMore });
+    }
+    return null;
+  }
+
+  function genericLookLists() {
+    var book = defBook();
+    var V = vocabApi();
+    var covs = ["Cover 0", "Cover 1", "Cover 2", "Cover 3", "Cover 4", "2-man"].map(function (c) {
+      return { id: c, name: c };
+    });
+    var fronts = (book.fronts || []).slice(0, 8);
+    var pressures = (book.pressures || []).slice(0, 8);
+    if (V && V.ensureOther) {
+      fronts = V.ensureOther(fronts);
+      covs = V.ensureOther(covs);
+      pressures = V.ensureOther(pressures);
+    } else {
+      if (!covs.some(function (c) { return c.id === "other"; })) covs.push({ id: "other", name: "other" });
+    }
+    return {
+      fronts: { items: fronts, more: false },
+      coverages: { items: covs, more: false },
+      pressures: { items: pressures, more: false }
+    };
+  }
+
+  function lookLists() {
+    return dCallLists() || genericLookLists();
+  }
+
+  function lookOn(current, id) {
+    var V = vocabApi();
+    if (V && V.isSelected) return V.isSelected(current, id);
+    return current === id;
+  }
+
+  function dCallPayload() {
+    var V = vocabApi();
+    if (V && V.payloadFromSit) return V.payloadFromSit(sit, dCallBook() || V.emptyBook());
+    return {
+      front: sit.front || "",
+      coverage: sit.coverage || "",
+      pressure: sit.pressure || "",
+      dCallFront: sit.front || "",
+      dCallCoverage: sit.coverage || "",
+      dCallBlitz: sit.pressure || "",
+      frontFamily: "",
+      coverageFamily: "",
+      pressureFamily: ""
+    };
+  }
+
+  function dCallLabel(entry) {
+    var V = vocabApi();
+    if (V && V.callOfRecord) return V.callOfRecord(entry) || "no D call";
+    return [entry && entry.front, entry && entry.coverage, entry && entry.pressure].filter(Boolean).join(" · ") || "no D call";
+  }
+
+  function toggleVocabMore(kind) {
+    if (kind !== "front" && kind !== "coverage" && kind !== "blitz") return;
+    _vocabMore[kind] = !_vocabMore[kind];
+    render();
+  }
+
   function Sit() {
     return global.OFFGRD_CALLER_SIT || null;
   }
@@ -1825,6 +1907,7 @@
     var isTwo = !!sit.forTwo;
     var label = playType + (dir ? " " + dir : "");
     var sess = ensureSession();
+    var dPay = dCallPayload();
     append("call", nextPi, {
       sitTxt: isTwo ? "2-pt" : sitTxt(),
       play: label,
@@ -1837,10 +1920,16 @@
       hash: sit.hash,
       zone: sit.zone,
       situationInferred: !!sit.inferred,
-      coverage: sit.coverage || "",
-      front: sit.front || "",
-      pressure: sit.pressure || "",
+      coverage: dPay.coverage,
+      front: dPay.front,
+      pressure: dPay.pressure,
       dCall: sit.namedCall || "",
+      dCallFront: dPay.dCallFront,
+      dCallCoverage: dPay.dCallCoverage,
+      dCallBlitz: dPay.dCallBlitz,
+      frontFamily: dPay.frontFamily,
+      coverageFamily: dPay.coverageFamily,
+      pressureFamily: dPay.pressureFamily,
       opponent: sess.opp,
       date: sessionDate(),
       side: "defense",
@@ -2462,9 +2551,11 @@
     var dir = dirEl ? dirEl.value || null : entry.theirDirection || null;
     if (dir === "") dir = null;
     var result = resEl ? resEl.value || null : entry.result;
-    var coverage = covEl ? covEl.value || null : entry.coverage || null;
-    var front = frontEl ? frontEl.value || null : entry.front || null;
-    var pressure = pressEl ? pressEl.value || null : entry.pressure || null;
+    var coverage = covEl ? covEl.value || null : entry.coverage || entry.dCallCoverage || null;
+    var front = frontEl ? frontEl.value || null : entry.front || entry.dCallFront || null;
+    var pressure = pressEl ? pressEl.value || null : entry.pressure || entry.dCallBlitz || null;
+    var Vedit = vocabApi();
+    var famEdit = Vedit && Vedit.familiesFor ? Vedit.familiesFor(dCallBook() || Vedit.emptyBook(), front, coverage, pressure) : { front: "", coverage: "", pressure: "" };
     /* Draft is authoritative — checkbox DOM was unreliable (checked UI, flags:[] on wire). */
     var flags = Array.isArray(editFlagsDraft) ? editFlagsDraft.filter(Boolean).slice() : [];
     if (!flags.length) {
@@ -2505,6 +2596,12 @@
       frontCarried: false,
       pressure: pressure,
       pressureCarried: false,
+      dCallFront: front || "",
+      dCallCoverage: coverage || "",
+      dCallBlitz: pressure || "",
+      frontFamily: famEdit.front || "",
+      coverageFamily: famEdit.coverage || "",
+      pressureFamily: famEdit.pressure || "",
       result: result,
       flags: flags,
       flag: flags[0] || null,
@@ -2543,8 +2640,9 @@
     var barBd = graded ? "#13294B" : "#0B3D24";
     var resLbl =
       graded && Out && Out.resultLabel ? Out.resultLabel(on.result) : graded ? on.result : "grade below";
-    /* Front → Coverage → Blitz/Stunts — natural D call order */
-    var look = [on.front, on.coverage, on.pressure].filter(Boolean).join(" · ");
+    /* Front → Coverage → Blitz/Stunts — team names when a D vocabulary exists */
+    var look = dCallLabel(on);
+    if (look === "no D call") look = "";
     var h =
       `<div class="caller-oncall${graded ? " caller-oncall-graded" : " caller-oncall-liveplay"} no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px">`;
     h +=
@@ -2581,10 +2679,18 @@
     var hasOlder = ix > 0;
     var hasNewer = ix >= 0 && ix < n - 1;
     var Out = O();
-    var book = defBook();
+    var lists = lookLists();
+    var teamVocab = !!dCallLists();
     var buckets = Out ? Out.RESULT_BUCKETS || [] : [];
     var flags = Out ? Out.DEF_FLAGS || [] : [];
     var covOpts = ["Cover 0", "Cover 1", "Cover 2", "Cover 3", "Cover 4", "2-man", "Zone", "Man"];
+    function withCurrent(items, current) {
+      var list = (items || []).slice();
+      if (current && !list.some(function (it) { return lookOn(current, it.id || it.name); })) {
+        list = [{ id: current, name: current }].concat(list);
+      }
+      return list;
+    }
     var curFlags = Array.isArray(editFlagsDraft)
       ? editFlagsDraft
       : Array.isArray(entry.flags)
@@ -2659,26 +2765,28 @@
       .join("");
     h += `</select></div>`;
     h += `<div><div class="lbl">Front</div><select id="dcEditFront" style="width:100%;min-height:44px"><option value=""></option>`;
-    h += (book.fronts || [])
+    h += withCurrent(lists.fronts.items, entry.front || entry.dCallFront)
       .map(function (f) {
         var id = f.id || f.name;
-        return `<option value="${esc(id)}"${entry.front === id ? " selected" : ""}>${esc(f.name || id)}</option>`;
+        return `<option value="${esc(id)}"${lookOn(entry.front || entry.dCallFront, id) ? " selected" : ""}>${esc(f.name || id)}</option>`;
       })
       .join("");
     h += `</select></div>`;
     h += `<div><div class="lbl">Coverage</div><select id="dcEditCoverage" style="width:100%;min-height:44px"><option value=""></option>`;
-    h += covOpts
+    h += withCurrent(teamVocab ? lists.coverages.items : covOpts.map(function (c) { return { id: c, name: c }; }), entry.coverage || entry.dCallCoverage)
       .map(function (c) {
-        return `<option value="${esc(c)}"${entry.coverage === c ? " selected" : ""}>${esc(c)}</option>`;
+        var id = c.id || c.name || c;
+        var lab = c.name || c;
+        return `<option value="${esc(id)}"${lookOn(entry.coverage || entry.dCallCoverage, id) ? " selected" : ""}>${esc(lab)}</option>`;
       })
       .join("");
     h += `</select></div>`;
     h += `<div><div class="lbl">Blitz/Stunt</div><select id="dcEditPressure" style="width:100%;min-height:44px"><option value=""></option>`;
-    h += (book.pressures || [])
+    h += withCurrent(lists.pressures.items, entry.pressure || entry.dCallBlitz)
       .map(function (p) {
         var id = p.id || p.name;
-        var lab = /^none$/i.test(String(id)) ? "No blitz" : p.name || id;
-        return `<option value="${esc(id)}"${entry.pressure === id ? " selected" : ""}>${esc(lab)}</option>`;
+        var lab = !teamVocab && /^none$/i.test(String(id)) ? "No blitz" : p.name || id;
+        return `<option value="${esc(id)}"${lookOn(entry.pressure || entry.dCallBlitz, id) ? " selected" : ""}>${esc(lab)}</option>`;
       })
       .join("");
     h += `</select></div>`;
@@ -2820,33 +2928,34 @@
   }
 
   function lookHtml() {
-    var book = defBook();
-    var covs = ["Cover 0", "Cover 1", "Cover 2", "Cover 3", "Cover 4", "2-man"];
-    var h = `<div class="rd-dc-look no-print">`;
+    var lists = lookLists();
+    var team = !!dCallLists();
+    function chips(field, row, kind) {
+      var html = (row.items || [])
+        .map(function (it) {
+          var id = it.id || it.name;
+          var lab = !team && /^none$/i.test(String(id)) ? "No blitz" : it.name || id;
+          var on = lookOn(sit[field], id);
+          return (
+            `<button type="button"${on ? ' class="on"' : ""} data-dc-look="${field}" data-call="${esc(id)}" onclick="OFFGRD_DCALLER.setLook('${field}',this.getAttribute('data-call'))">${esc(lab)}</button>`
+          );
+        })
+        .join("");
+      if (row.more) {
+        html += `<button type="button" class="rd-dc-vocab-more" onclick="OFFGRD_DCALLER.toggleVocabMore('${kind}')">More…</button>`;
+      } else if (team && _vocabMore[kind] && (row.total || 0) > 16) {
+        html += `<button type="button" class="rd-dc-vocab-more" onclick="OFFGRD_DCALLER.toggleVocabMore('${kind}')">Less</button>`;
+      }
+      return html;
+    }
+    var h = `<div class="rd-dc-look${team ? " rd-dc-vocab" : ""} no-print">`;
     /* Front → Coverage → Blitz/Stunt — natural D-call order */
     h += `<div class="lbl rd-look-lbl" style="margin-top:0">Front</div><div class="seg covlog rd-gd-look-seg">`;
-    h += (book.fronts || [])
-      .slice(0, 8)
-      .map(function (f) {
-        var id = f.id || f.name;
-        return `<button type="button"${sit.front === id ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setLook('front','${String(id).replace(/'/g, "")}')">${esc(f.name || id)}</button>`;
-      })
-      .join("");
+    h += chips("front", lists.fronts, "front");
     h += `</div><div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div><div class="seg covlog rd-gd-look-seg">`;
-    h += covs
-      .map(function (cv) {
-        return `<button type="button"${sit.coverage === cv ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setLook('coverage','${cv}')">${cv}</button>`;
-      })
-      .join("");
+    h += chips("coverage", lists.coverages, "coverage");
     h += `</div><div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div><div class="seg covlog rd-gd-look-seg">`;
-    h += (book.pressures || [])
-      .slice(0, 8)
-      .map(function (p) {
-        var id = p.id || p.name;
-        var lab = /^none$/i.test(String(id)) ? "No blitz" : p.name || id;
-        return `<button type="button"${sit.pressure === id ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setLook('pressure','${String(id).replace(/'/g, "")}')">${esc(lab)}</button>`;
-      })
-      .join("");
+    h += chips("pressure", lists.pressures, "blitz");
     h += `</div></div>`;
     return h;
   }
@@ -3026,8 +3135,7 @@
             ? Out.resultLabel(l.result)
             : l.result || "…";
         var tags = Array.isArray(l.flags) && l.flags.length ? " · " + l.flags.join(", ") : "";
-        var our =
-          [l.front, l.coverage, l.pressure].filter(Boolean).join(" · ") || "no D call";
+        var our = dCallLabel(l);
         var isEdit = editPi != null && l.playIndex === editPi;
         var cls = "callitem" + (isEdit ? " callitem-editing" : "");
         h += `<div class="${cls}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:600">${esc(l.play)} <span class="foot">${esc(res)}${esc(tags)}</span><div class="foot">${esc(our)}</div></div>`;
@@ -3219,6 +3327,10 @@
     if (opp() !== "ANY" && session) session.opp = opp();
     ensureSyncBound();
     syncNow();
+    try {
+      var V = vocabApi();
+      if (V && V.pullBook) V.pullBook(V.currentTeamId ? V.currentTeamId() : "");
+    } catch (eV) {}
   }
 
   global.OFFGRD_DCALLER = {
@@ -3239,6 +3351,7 @@
     skipTry: skipTry,
     callNamed: callNamedPlay,
     toggleShowAll: toggleShowAll,
+    toggleVocabMore: toggleVocabMore,
     jumpResult: function () {
       jump("dcaller-result-anchor", true);
     },

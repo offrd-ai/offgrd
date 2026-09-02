@@ -50,6 +50,12 @@
  #mirrorList{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:8px}
  #mirrorList .tag,#stubList .tag{flex:none;color:var(--muted);font-size:11px;font-weight:800}
  #stubSheet{width:100%;min-height:160px;resize:vertical}
+ #dVocabModal textarea{width:100%;min-height:120px;resize:vertical;font-family:inherit}
+ #dVocabModal .dvocab-cols{display:grid;grid-template-columns:1fr;gap:12px}
+ @media (min-width:720px){ #dVocabModal .dvocab-cols{grid-template-columns:1fr 1fr 1fr} }
+ .dvocab-item{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line,#eef0f3)}
+ .dvocab-item input{flex:1;min-height:36px;font-weight:700}
+ .dvocab-retired .dvocab-item{opacity:.55}
  .playrow .th{width:72px;height:46px;flex:0 0 auto;border-radius:6px;overflow:hidden;background:#1f7a3d;border:1px solid var(--line)}
  .playrow .th svg{width:100%;height:100%;display:block;border-radius:0}
  .libtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
@@ -119,6 +125,8 @@
 <script src="OFFGRD-formation-canon.js?v=354"></script>
 <script src="OFFGRD-play-map.js?v=354"></script>
 <script src="OFFGRD-play-stubs.js?v=354"></script>
+<script src="OFFGRD-empty-unknown.js?v=354"></script>
+<script src="OFFGRD-d-vocab.js?v=354"></script>
 <script src="OFFGRD-play-direction.js?v=354"></script>
 <script src="OFFGRD-formation-map.js?v=354"></script>
 <script src="OFFGRD-render.js?v=354"></script>
@@ -315,6 +323,7 @@
  <button class="btn" id="exportLib">Export playbook</button>
  <button class="btn" id="importLib">Import playbook</button>
  <button class="btn nav" id="stubSheetBtn" title="Paste names from your existing call sheet">Add plays from your call sheet</button>
+ <button class="btn nav" id="dVocabBtn" title="Team D Caller fronts, coverages, and pressures">Defense calls</button>
  <button class="btn nav" id="mirrorMergeBtn" title="Fold HOUSTON WEST into HOUSTON">Merge mirrored plays</button>
  <input type="file" id="libFile" accept=".json" style="display:none">
  <input type="file" id="stubCsvFile" accept=".csv,text/csv,text/plain" style="display:none">
@@ -357,6 +366,34 @@
   <button class="btn" id="stubSheetCancel">Cancel</button>
   <button class="btn go" id="stubSheetCommit" disabled>Add plays</button>
  </div>
+</div></div>
+
+<div class="ov" id="dVocabModal"><div class="ovbox" style="max-width:880px">
+ <div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Defense calls</b><button class="btn" id="dVocabClose">Close</button></div>
+ <p class="hint" style="margin:8px 0 10px">Your D Caller Step 3 buttons. One name per line, coach order. Fully callable from the name. Mapping to a generic family can wait. Retire a name to hide it &mdash; logged snaps keep the old spelling.</p>
+ <p id="dVocabMapHint" class="hint" style="margin:0 0 10px;font-weight:800"></p>
+ <div class="dvocab-cols">
+  <div>
+   <div class="lbl">Front</div>
+   <textarea id="dVocabFront" placeholder="ALPHA&#10;BRAVO&#10;CHARLIE"></textarea>
+   <p id="dVocabFrontPrev" class="hint" style="margin:4px 0 0"></p>
+  </div>
+  <div>
+   <div class="lbl">Coverage</div>
+   <textarea id="dVocabCoverage" placeholder="BOSTON&#10;CHICAGO&#10;LOCK CALL"></textarea>
+   <p id="dVocabCoveragePrev" class="hint" style="margin:4px 0 0"></p>
+  </div>
+  <div>
+   <div class="lbl">Blitz / Stunt</div>
+   <textarea id="dVocabBlitz" placeholder="SAM&#10;BILL&#10;SAM &amp; BILL"></textarea>
+   <p id="dVocabBlitzPrev" class="hint" style="margin:4px 0 0"></p>
+  </div>
+ </div>
+ <div class="row" style="justify-content:flex-end;margin-top:10px">
+  <button class="btn" id="dVocabCancel">Cancel</button>
+  <button class="btn go" id="dVocabCommit">Save defense calls</button>
+ </div>
+ <div id="dVocabLists" style="margin-top:16px"></div>
 </div></div>
 
 <div class="ov" id="mirrorMergeModal"><div class="ovbox" style="max-width:560px">
@@ -1637,6 +1674,118 @@ function commitStubSheet(){
  closeStubSheet();
  msg(S.previewSentence(_stubPreview)+" Saved "+added+".");
 }
+function dVocabApi(){ return window.OFFGRD_D_VOCAB || null; }
+function dVocabTeamId(){
+  const V=dVocabApi();
+  if(V&&V.currentTeamId) return V.currentTeamId()||"";
+  try{ return (window.TEAM&&TEAM.id)||localStorage.getItem("offgrd_team")||""; }catch(e){ return ""; }
+}
+function dVocabKindText(kind){
+  const id=kind==="front"?"dVocabFront":kind==="coverage"?"dVocabCoverage":"dVocabBlitz";
+  const el=document.getElementById(id);
+  return el?el.value:"";
+}
+function refreshDVocabPreview(){
+  const V=dVocabApi(); if(!V) return;
+  ["front","coverage","blitz"].forEach(function(k){
+    const parsed=V.parseLines(dVocabKindText(k));
+    const el=document.getElementById(k==="front"?"dVocabFrontPrev":k==="coverage"?"dVocabCoveragePrev":"dVocabBlitzPrev");
+    if(el) el.textContent=V.previewSentence(parsed,k);
+  });
+}
+function paintDVocabTextareas(book){
+  const V=dVocabApi(); if(!V) return;
+  const b=book||V.getBook(dVocabTeamId());
+  function lines(kind){ return V.activeItems(b,kind).map(function(it){ return it.name; }).join("\n"); }
+  const f=document.getElementById("dVocabFront"); if(f) f.value=lines("front");
+  const c=document.getElementById("dVocabCoverage"); if(c) c.value=lines("coverage");
+  const z=document.getElementById("dVocabBlitz"); if(z) z.value=lines("blitz");
+  refreshDVocabPreview();
+  paintDVocabLists(b);
+}
+function paintDVocabLists(book){
+  const V=dVocabApi(); const host=document.getElementById("dVocabLists");
+  if(!V||!host) return;
+  const b=book||V.getBook(dVocabTeamId());
+  const hint=document.getElementById("dVocabMapHint");
+  if(hint) hint.textContent=V.mappingHint(b)||"";
+  function row(kind,label){
+    const active=V.activeItems(b,kind);
+    const retired=V.allItems(b,kind).filter(function(it){ return it.retired; });
+    let h=`<div class="lbl" style="margin-top:12px">${label} <span class="hint">(${active.length})</span></div>`;
+    active.forEach(function(it,i){
+      const nm=esc(it.name);
+      const enc=encodeURIComponent(it.name);
+      h+=`<div class="dvocab-item"><input data-dvocab-kind="${kind}" data-dvocab-from="${nm}" value="${nm}">`;
+      h+=`<button type="button" class="btn" ${i===0?"disabled":""} onclick="dVocabMove('${kind}',decodeURIComponent('${enc}'),-1)">Up</button>`;
+      h+=`<button type="button" class="btn" ${i===active.length-1?"disabled":""} onclick="dVocabMove('${kind}',decodeURIComponent('${enc}'),1)">Down</button>`;
+      h+=`<button type="button" class="btn" onclick="dVocabRetire('${kind}',decodeURIComponent('${enc}'))">Retire</button></div>`;
+    });
+    if(retired.length){
+      h+=`<div class="dvocab-retired"><div class="hint" style="margin-top:8px">Retired — hidden on Step 3, snaps keep the name</div>`;
+      retired.forEach(function(it){
+        const enc=encodeURIComponent(it.name);
+        h+=`<div class="dvocab-item"><span>${esc(it.name)}</span><button type="button" class="btn" onclick="dVocabAdd('${kind}',decodeURIComponent('${enc}'))">Restore</button></div>`;
+      });
+      h+=`</div>`;
+    }
+    return h;
+  }
+  host.innerHTML=row("front","Front")+row("coverage","Coverage")+row("blitz","Blitz / Stunt");
+  host.querySelectorAll("input[data-dvocab-kind]").forEach(function(inp){
+    inp.onchange=function(){ dVocabRename(inp.getAttribute("data-dvocab-kind"), inp.getAttribute("data-dvocab-from"), inp.value); };
+  });
+}
+function dVocabSaveBook(book){
+  const V=dVocabApi(); if(!V) return book;
+  const tid=dVocabTeamId();
+  V.setBook(book,tid);
+  try{ V.pushBook(tid); }catch(e){}
+  return V.getBook(tid);
+}
+function openDVocab(){
+  const V=dVocabApi(); const ov=document.getElementById("dVocabModal");
+  if(!V||!ov) return;
+  const tid=dVocabTeamId();
+  paintDVocabTextareas(V.getBook(tid));
+  ov.classList.add("show");
+  if(V.pullBook) V.pullBook(tid).then(function(b){ paintDVocabTextareas(b); }).catch(function(){});
+}
+function closeDVocab(){
+  const ov=document.getElementById("dVocabModal"); if(ov) ov.classList.remove("show");
+}
+function commitDVocab(){
+  const V=dVocabApi(); if(!V) return;
+  const tid=dVocabTeamId();
+  const next=V.adoptPaste(V.getBook(tid),{
+    front:dVocabKindText("front"),
+    coverage:dVocabKindText("coverage"),
+    blitz:dVocabKindText("blitz")
+  });
+  const saved=dVocabSaveBook(next);
+  paintDVocabTextareas(saved);
+  msg("Defense calls saved. D Caller Step 3 will use these names.");
+}
+function dVocabMove(kind,name,dir){
+  const V=dVocabApi(); if(!V) return;
+  const saved=dVocabSaveBook(V.moveName(V.getBook(dVocabTeamId()),kind,name,dir));
+  paintDVocabTextareas(saved);
+}
+function dVocabRetire(kind,name){
+  const V=dVocabApi(); if(!V) return;
+  const saved=dVocabSaveBook(V.retireName(V.getBook(dVocabTeamId()),kind,name));
+  paintDVocabTextareas(saved);
+}
+function dVocabAdd(kind,name){
+  const V=dVocabApi(); if(!V) return;
+  const saved=dVocabSaveBook(V.addName(V.getBook(dVocabTeamId()),kind,name));
+  paintDVocabTextareas(saved);
+}
+function dVocabRename(kind,fromName,toName){
+  const V=dVocabApi(); if(!V) return;
+  const saved=dVocabSaveBook(V.renameName(V.getBook(dVocabTeamId()),kind,fromName,toName));
+  paintDVocabTextareas(saved);
+}
 function applyStubCsvText(text){
  const ta=document.getElementById("stubSheet");
  if(ta) ta.value=text||"";
@@ -2141,6 +2290,20 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
  const stubBtn=document.getElementById("stubSheetBtn");
  if(stubBtn) stubBtn.onclick=openStubSheet;
+ const dVocabBtn=document.getElementById("dVocabBtn");
+ if(dVocabBtn) dVocabBtn.onclick=openDVocab;
+ const dVocabClose=document.getElementById("dVocabClose");
+ const dVocabCancel=document.getElementById("dVocabCancel");
+ const dVocabCommit=document.getElementById("dVocabCommit");
+ const dVocabOv=document.getElementById("dVocabModal");
+ if(dVocabClose) dVocabClose.onclick=closeDVocab;
+ if(dVocabCancel) dVocabCancel.onclick=closeDVocab;
+ if(dVocabCommit) dVocabCommit.onclick=commitDVocab;
+ if(dVocabOv) dVocabOv.onclick=function(e){ if(e.target.id==="dVocabModal") closeDVocab(); };
+ ["dVocabFront","dVocabCoverage","dVocabBlitz"].forEach(function(id){
+  const ta=document.getElementById(id);
+  if(ta) ta.oninput=refreshDVocabPreview;
+ });
  const mirrorBtn=document.getElementById("mirrorMergeBtn");
  if(mirrorBtn) mirrorBtn.onclick=openMirrorMerge;
  const mirrorClose=document.getElementById("mirrorMergeClose");

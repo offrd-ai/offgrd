@@ -2264,6 +2264,30 @@ export const Cloud = {
       .eq("raw_call_norm", norm);
     if (error) throw error;
   },
+
+  /* ---------- team D Caller vocabulary (Step 3 lists) ---------- */
+  async listDVocab(teamId) {
+    if (!OG || !teamId) return stampConfirmedEmpty([], null);
+    const { data, error, count } = await OG.from("offgrd_d_vocab")
+      .select("*", { count: "exact" })
+      .eq("team_id", teamId);
+    if (error) throw error;
+    return stampConfirmedEmpty(data || [], count);
+  },
+  async upsertDVocab(teamId, payload) {
+    if (!OG || !teamId) throw new Error("Sign in first.");
+    const row = {
+      team_id: teamId,
+      payload: payload || {},
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await OG.from("offgrd_d_vocab")
+      .upsert(row, { onConflict: "team_id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 if (typeof window !== "undefined") window.Cloud = Cloud;

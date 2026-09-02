@@ -475,7 +475,7 @@
 
   /**
    * Group O snaps by playType + concept (v1 — no family taxonomy).
-   * Group D snaps by coverage / front / pressure.
+   * Group D snaps by the call of record: front · coverage · blitz (team names when present).
    */
   function groupRates(log, side) {
     var groups = {};
@@ -484,7 +484,13 @@
       if (isSpecialType(e.playType)) return;
       var key;
       if (side === "defense") {
-        key = [e.coverage || "?", e.front || "?", e.pressure || "none"].join(" · ");
+        var front = e.dCallFront || e.front || "";
+        var cov = e.dCallCoverage || e.coverage || "";
+        var blitz = e.dCallBlitz || e.pressure || "";
+        var Vocab = global.OFFGRD_D_VOCAB;
+        key = Vocab && Vocab.formatCall
+          ? Vocab.formatCall(front, cov, blitz) || "?"
+          : [front || "?", cov || "?", blitz || "none"].join(" · ");
       } else {
         var conceptRaw = e.conceptOverride || e.concept || "";
         var concept = conceptLabel(conceptRaw) || "—";
