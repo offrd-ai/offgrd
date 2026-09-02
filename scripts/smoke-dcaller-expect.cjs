@@ -102,6 +102,27 @@ const dirOnlyHit = X.build(dirOnly);
 ok(dirOnlyHit.tier === "direction", "no form gate → direction tier: " + dirOnlyHit.tier);
 ok(dirOnlyHit.text === "Run 68% · runs go R 71% (n=17)", "dir line: " + dirOnlyHit.text);
 
+/* --- run-dir is independent of parent lean (South is pass-lean) --- */
+function southish(passN) {
+  const rows = [];
+  for (let i = 0; i < passN; i++) {
+    rows.push(snap({ playType: "Pass", direction: "", formation: "SF" + (i % 7) }));
+  }
+  for (let i = 0; i < 7; i++) {
+    rows.push(snap({ playType: "Run", direction: "L", formation: "SF" + (i % 7) }));
+  }
+  for (let i = 0; i < 3; i++) {
+    rows.push(snap({ playType: "Run", direction: "R", formation: "SF" + ((i + 3) % 7) }));
+  }
+  return rows;
+}
+const passLeanDir = X.build(southish(12));
+ok(passLeanDir.lean === "pass", "12P+10R lean is pass");
+ok(passLeanDir.dir && passLeanDir.dir.k === "L", "run-dir still renders on pass lean");
+ok(passLeanDir.text === "Pass 55% · runs go L 70% (n=10)", "South 1st/10+ line: " + passLeanDir.text);
+const runLeanDir = X.build(southish(8));
+ok(runLeanDir.text === "Run 56% · runs go L 70% (n=10)", "same runs + 8 pass: " + runLeanDir.text);
+
 /* --- M is not a lean --- */
 const withM = many(10, { direction: "M" }).concat(many(3, { direction: "R" }));
 const noM = X.build(withM);

@@ -340,9 +340,18 @@
     var ctxRp = form ? runPass(ctx) : parent;
     var lean = ctxRp.lean || parent.lean;
     var typed = typedRows(ctx, lean);
+    var runRows = typedRows(ctx, "run");
+    var passRows = typedRows(ctx, "pass");
 
-    var dirDist = countBy(typed, playDirOf);
-    var dir = gatedTop(dirDist, min);
+    /* Run-direction is independent of parent lean. South is pass-lean
+     * everywhere; the run-dir slice still has to show when n ≥ gate. */
+    var runDirDist = countBy(runRows, playDirOf);
+    var runDir = gatedTop(runDirDist, min);
+    var passDirDist = countBy(passRows, playDirOf);
+    var passDir = gatedTop(passDirDist, min);
+    var dir = runDir || passDir;
+    var dirKind = runDir ? "run" : dir ? "pass" : "";
+    var dirDist = runDir ? runDirDist : passDirDist;
 
     var lane = null;
     var depth = null;
@@ -373,10 +382,10 @@
     }
     if (dir) {
       if (tier === "parent") tier = "direction";
-      if (lane && !form) {
+      if (lane && !form && dirKind === "run") {
         bits.push(dir.k + " " + fmtPct(dir.pct));
       } else {
-        bits.push(dirClause(dir, lean, form ? form.raw : "", ctx));
+        bits.push(dirClause(dir, dirKind || "run", form ? form.raw : "", dirKind === "run" ? runRows : passRows));
       }
     }
 

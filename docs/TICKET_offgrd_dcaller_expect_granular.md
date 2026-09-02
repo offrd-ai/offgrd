@@ -78,3 +78,7 @@ split before film arrives. No Middle.
 - [x] Below gate: parent tier only, no silent guessing, LOW badges intact
 - [x] Formation strings normalized case-insensitively via import mapping
 - [x] P South-shaped book (86 D-rows, 75 PLAY DIR tagged) renders a split
+- [x] Run-direction is independent of parent lean. Pass-lean + dir-tagged
+      runs n ≥ 8 → `Pass 55% · runs go L 70% (n=10)` (v348). v347 coupled
+      dir to `typedRows(ctx, lean)`, so South (pass-lean everywhere) showed
+      no direction line.
