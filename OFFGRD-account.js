@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=350";
-import { openAuthModal } from "./OFFGRD-auth.js?v=350";
+import { Cloud } from "./OFFGRD-cloud.js?v=351";
+import { openAuthModal } from "./OFFGRD-auth.js?v=351";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=350";
+} from "./OFFGRD-invite-parse.js?v=351";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};

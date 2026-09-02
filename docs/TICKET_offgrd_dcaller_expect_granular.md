@@ -89,3 +89,7 @@ split before film arrives. No Middle.
 - [x] SNAP_CORPUS mapper copies play_dir / direction / gap / passZone /
       offStrength from typed columns and season-store keys (v350). v349
       painted parent-only because scoutSnapToRow only read those from raw.
+- [x] `setSnapCorpus` overlays season-store direction/gap onto cloud
+      corpus rows when the server omits them (v351). Production
+      `offgrd_scout_snaps_for_team` still ships dirTagged 0 — server
+      carry is `docs/TICKET_offgrd_scout_snaps_play_dir.md` (after Friday).
