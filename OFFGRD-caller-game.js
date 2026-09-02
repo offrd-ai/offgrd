@@ -95,6 +95,13 @@
     return n + " older plays need results";
   }
 
+  /** Game marks / rates line: "1 needs results" · "2 need results". */
+  function needResultsBit(n) {
+    n = +n || 0;
+    if (n <= 0) return "";
+    return n === 1 ? "1 needs results" : n + " need results";
+  }
+
   function nextScreenAfterCall() {
     return "b";
   }
@@ -118,6 +125,14 @@
   function looksBare(entry) {
     if (!entry) return true;
     return !entry.front && !entry.coverage && !entry.pressure;
+  }
+
+  /** Finger stayed put — not a scroll. Used so pointerup can fire after the node is gone. */
+  function tapSlopOk(ax, ay, bx, by, slop) {
+    slop = slop == null ? 20 : slop;
+    var dx = (ax || 0) - (bx || 0);
+    var dy = (ay || 0) - (by || 0);
+    return dx * dx + dy * dy <= slop * slop;
   }
 
   function covShort(k) {
@@ -262,10 +277,12 @@
     sitBannerLine: sitBannerLine,
     speakSitTxt: speakSitTxt,
     pendingNeedLabel: pendingNeedLabel,
+    needResultsBit: needResultsBit,
     nextScreenAfterCall: nextScreenAfterCall,
     sitFields: sitFields,
     sitFieldsEqual: sitFieldsEqual,
     looksBare: looksBare,
+    tapSlopOk: tapSlopOk,
     coachSheetTitle: coachSheetTitle,
     isEntryPaint: isEntryPaint,
     covShort: covShort,

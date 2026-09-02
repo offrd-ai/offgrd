@@ -135,3 +135,64 @@ Wizard loop passed. Two data bugs (v345):
    longer attaches sticky or Expect coverage at call time. Screen B shows
    sticky as dashed proposed. Skip strips look. Done may commit untouched
    sticky.
+
+## Field test follow-up (v345, Aug 31) — VERIFIED
+
+Both data bugs dead. Banner sit is the sit of record (`3rd & 10 L` after
+setting `3rd & 10 · L · RZ`). Skip is play-only; contrast row kept its
+look + result. Test snap deleted.
+
+**This is the practice build.** Do not pin over it for copy nits.
+
+### Notes for the next pin (none blocking)
+
+1. **Grammar:** Game marks rates line still said `1 need results`. Pill
+   was already `needs`. Fix staged in `needResultsBit` / `callerRatesHtml`
+   — ship with the next pin, not a v346 for practice.
+2. **Clear the test session on the game iPad** via Tools → Clear game.
+   A secondary-browser clear can trip the write-guard ("Local fold is
+   thinner than stored game — write refused") and the iPad keeps the
+   test log. That refusal is correct; the clear has to originate on the
+   device that still holds the thicker fold.
+3. **Dashed sticky-look proposal** did not appear in the browser
+   session. Glance it on the iPad: After-snap should show carried
+   front/pressure dashed until touched; Skip must still leave the row
+   bare.
+
+### Matt checklist before Friday
+
+- [ ] Clear test session on the game iPad (Tools → Clear game)
+- [ ] Footer ms on that iPad while tapping a few fake snaps (target <100)
+- [ ] Wizard at practice or JV with the actual operator
+- [ ] Glance dashed sticky on After-snap once, then Skip to confirm bare
+
+## Guided vs Advanced head-to-head (Claude, Sep 1)
+
+Same snap in both modes on v345. Guided: 4 taps, 0 scrolls (call → look →
+result → Done); rushed path 2 taps. Advanced: 2 taps + 1 scroll because it
+still pre-commits sticky look SOLID — decide later whether to port
+dashed/Done or keep that as booth-intent. Sideline is Guided Friday.
+
+### P0 — tap-swallow / layout-shift (landed v346)
+
+Three repros, one root: DOM replaced or moved between pointerdown and click.
+
+1. ZONE sit chip ate two clean center taps (v343).
+2. Delete click eaten during call-log re-render (v345, Sep 1).
+3. "→ next" insertion shifted Skip/Done mid-entry (v345, Sep 1).
+
+Fix: capture `data-caller-act` on pointerdown on `#view-caller`, dispatch
+on pointerup even if the original node is gone (20px slop). Call / Delete /
+Edit / sit / look / result / Skip / Done all use that path. `.rd-gd-next-sit`
+is reserved at 28px so Skip/Done do not move. Click remains a de-duped
+fallback.
+
+### Post-Friday queue
+
+- Our-game import with 0 def-tagged rows never fires
+  `retireLiveLooksForOpponent` → live snaps double-count. Retire off the
+  your-plays side too. One Thursday live session stamped three date keys.
+- Feature: merge live-logged looks into charted rows by sequence instead
+  of wholesale retire.
+- Port Guided labeling to Advanced; "1 snaps"; boot ~18 fulls.
+- Advanced sticky: port or document.

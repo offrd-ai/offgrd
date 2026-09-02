@@ -77,6 +77,8 @@ ok(G.sitBannerLine({ dn: 2, db: "7-9", hash: "L", zone: "OWN" }) === "2nd & 7-9 
 ok(G.speakSitTxt("3rd & 10+ L") === "3rd & 10 L", "backfill sitTxt drops 10+");
 ok(G.pendingNeedLabel(1) === "1 older play needs results", "pending singular needs");
 ok(G.pendingNeedLabel(2) === "2 older plays need results", "pending plural need");
+ok(G.needResultsBit(1) === "1 needs results" && G.needResultsBit(2) === "2 need results", "Game marks line pluralizes");
+ok(/needResultsBit/.test(HOME) && /callerRatesHtml/.test(HOME), "Game marks rates use needResultsBit");
 ok(G.nextScreenAfterCall() === "b", "call auto-advances to after-snap");
 ok(G.coachSheetTitle({ dn: 3, db: "4-6" }, {}) === "Best for 3rd & 4-6", "sheet title is coach copy");
 ok(
@@ -114,5 +116,10 @@ ok(/rd-gd-look-seg button\.is-prefill/.test(CSS), "proposed look chips are dashe
 ok(G.sitFieldsEqual({ dn: 3, db: "10+", hash: "L", zone: "REDZONE" }, { dn: 3, db: "10+", hash: "L", zone: "REDZONE" }), "sitFieldsEqual same banner");
 ok(!G.sitFieldsEqual({ dn: 3, db: "10+", hash: "L", zone: "REDZONE" }, { dn: 2, db: "7-9", hash: "L", zone: "ANY" }), "sitFieldsEqual rejects auto-computed sit");
 ok(G.looksBare({ play: "DINO" }) && !G.looksBare({ play: "DINO", front: "3-4" }), "looksBare is Skip's recorded shape");
+ok(G.tapSlopOk(100, 100, 110, 105) && !G.tapSlopOk(100, 100, 140, 100), "tap slop is 20px");
+ok(/callerOnPointerDown/.test(HOME) && /callerOnPointerUp/.test(HOME) && /callerDispatchAct/.test(HOME), "Guided taps fire from pointerup on #view-caller");
+ok(/data-caller-act="delete"/.test(HOME) && /data-caller-act="call"/.test(HOME), "Delete and Call are delegated");
+ok(/rd-gd-next-sit\{/.test(CSS) && /min-height:28px/.test(CSS), "→ next line keeps Skip/Done still");
+ok(/callerNextSitLabel/.test(HOME), "empty → next still occupies a line");
 
 console.log("ok", n, "caller-game-mode checks");
