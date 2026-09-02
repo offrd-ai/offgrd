@@ -72,7 +72,7 @@ for (let i = 0; i < 15; i++) {
 }
 const parentOnly = X.build(thinDir);
 ok(parentOnly.tier === "parent", "below dir gate → parent: " + parentOnly.tier);
-ok(!/runs go/.test(parentOnly.text), "below dir gate: no directional guess");
+ok(!/→/.test(parentOnly.text), "below dir gate: no directional guess");
 ok(parentOnly.dir == null, "dir null below gate");
 
 /* --- directional lean when typed-dir n ≥ 8 --- */
@@ -81,8 +81,8 @@ const dirBook = many(12, { playType: "Run", direction: "R" }).concat(
 ).concat(many(8, { playType: "Pass", direction: "L" }));
 const dirHit = X.build(dirBook);
 ok(dirHit.tier === "direction" || dirHit.tier === "formation", "dir book clears a split");
-ok(/runs go R 71%/.test(dirHit.text) || /to the wing/.test(dirHit.text), "dir text: " + dirHit.text);
-ok(/\(n=17\)/.test(dirHit.text) || dirHit.dir, "dir n on the line: " + dirHit.text);
+ok(/→ R 71%/.test(dirHit.text) || /to the wing/.test(dirHit.text), "dir text: " + dirHit.text);
+ok(/12 of 17 runs went right/.test(dirHit.foot) || dirHit.dir, "dir n in footer: " + dirHit.foot);
 
 /* Force no-formation by using 7 unique forms (each below gate) */
 const dirOnly = [];
@@ -100,7 +100,8 @@ for (let i = 0; i < 8; i++) {
 }
 const dirOnlyHit = X.build(dirOnly);
 ok(dirOnlyHit.tier === "direction", "no form gate → direction tier: " + dirOnlyHit.tier);
-ok(dirOnlyHit.text === "Run 68% · runs go R 71% (n=17)", "dir line: " + dirOnlyHit.text);
+ok(dirOnlyHit.text === "Run 68% → R 71% · Pass 32% → L 100%", "dir line: " + dirOnlyHit.text);
+ok(dirOnlyHit.foot === "25 snaps · 12 of 17 runs went right", "dir footer: " + dirOnlyHit.foot);
 
 /* --- run-dir is independent of parent lean (South is pass-lean) --- */
 function southish(passN) {
@@ -119,15 +120,16 @@ function southish(passN) {
 const passLeanDir = X.build(southish(12));
 ok(passLeanDir.lean === "pass", "12P+10R lean is pass");
 ok(passLeanDir.dir && passLeanDir.dir.k === "L", "run-dir still renders on pass lean");
-ok(passLeanDir.text === "Pass 55% · runs go L 70% (n=10)", "South 1st/10+ line: " + passLeanDir.text);
+ok(passLeanDir.text === "Pass 55% · Run 45% → L 70%", "South 1st/10+ line: " + passLeanDir.text);
+ok(passLeanDir.foot === "22 snaps · 7 of 10 runs went left", "South footer: " + passLeanDir.foot);
 const paintedSouth = X.paint(passLeanDir);
-ok(paintedSouth.html.indexOf("Pass 55% · runs go L 70% (n=10)") >= 0, "paint() embeds South line");
+ok(paintedSouth.html.indexOf("Pass 55% · Run 45% → L 70%") >= 0, "paint() embeds South line");
 ok(/rd-dc-expect-grain/.test(paintedSouth.html), "paint() uses grain class");
 ok(paintedSouth.low === false, "22-snap South sit is not LOW");
 const runLeanDir = X.build(southish(8));
-ok(runLeanDir.text === "Run 56% · runs go L 70% (n=10)", "same runs + 8 pass: " + runLeanDir.text);
+ok(runLeanDir.text === "Run 56% → L 70% · Pass 44%", "same runs + 8 pass: " + runLeanDir.text);
 const paintedRun = X.paint(runLeanDir);
-ok(paintedRun.html.indexOf("Run 56% · runs go L 70% (n=10)") >= 0, "paint() embeds run-lean line");
+ok(paintedRun.html.indexOf("Run 56% → L 70% · Pass 44%") >= 0, "paint() embeds run-lean line");
 
 /* --- SNAP_CORPUS mapper must keep direction (v350) --- */
 const cloudSrc = fs
@@ -181,11 +183,11 @@ ok(
 );
 const corpusGrain = X.build(corpusSouth);
 ok(
-  corpusGrain.text === "Pass 55% · runs go L 70% (n=10)",
+  corpusGrain.text === "Pass 55% · Run 45% → L 70%",
   "build() on corpus-mapped South: " + corpusGrain.text
 );
 ok(
-  X.paint(corpusGrain).html.indexOf("Pass 55% · runs go L 70% (n=10)") >= 0,
+  X.paint(corpusGrain).html.indexOf("Pass 55% · Run 45% → L 70%") >= 0,
   "painted corpus South line"
 );
 
@@ -201,7 +203,7 @@ const mixedCase = many(10, { formation: "2x1 Wing", playType: "Run", direction: 
 ok(X.formNorm("2x1 Wing") === X.formNorm("2X1 WING"), "formNorm case-insensitive");
 const formHit = X.build(mixedCase);
 ok(formHit.tier === "formation", "20 same form (mixed case) → formation: " + formHit.tier);
-ok(/2x1 Wing: run 83%/.test(formHit.text), "form line uses display + run%: " + formHit.text);
+ok(/2x1 Wing: Run 83%/.test(formHit.text), "form line uses display + run%: " + formHit.text);
 ok(formHit.formation && formHit.formation.n === 24, "mixed case collapsed to one form n=24");
 
 /* --- formation below gate stays parent/dir --- */
@@ -244,7 +246,7 @@ for (let i = 0; i < 20; i++) {
 const laneHit = X.build(laneBook);
 ok(laneHit.lane && laneHit.lane.k === "inside", "GAP A/B → inside");
 ok(/inside 60%/.test(laneHit.text), "lane on the line: " + laneHit.text);
-ok(/R 100%/.test(laneHit.text) || /runs go R/.test(laneHit.text), "lane keeps dir: " + laneHit.text);
+ok(/R 100%/.test(laneHit.text), "lane keeps dir: " + laneHit.text);
 
 const noLane = X.build(many(20, { playType: "Run", direction: "R", gap: "", formation: "F" + 0 }));
 ok(noLane.lane == null, "empty GAP stays dormant even on a fat run book");
@@ -263,7 +265,7 @@ for (let i = 0; i < 18; i++) {
 }
 const depthHit = X.build(deepBook);
 ok(depthHit.depth && depthHit.depth.k === "deep", "Deep Left → deep");
-ok(/Deep 67%/.test(depthHit.text), "depth on the line: " + depthHit.text);
+ok(/deep 67%/.test(depthHit.text), "depth on the line: " + depthHit.text);
 ok(X.playDirOf({ playType: "Pass", passZone: "Deep Left" }) === "L", "PASS ZONE backfills pass dir");
 ok(/go L/.test(depthHit.text) || /L 67%/.test(depthHit.text) || depthHit.dir, "pass-side dir from zone");
 
@@ -307,6 +309,7 @@ ok(/OFFGRD_DCALLER_EXPECT/.test(dc), "dcaller references the expect module");
 ok(/expectGrain/.test(dc), "dcaller wires expectGrain");
 ok(/X\.build\(/.test(dc), "dcaller calls module build()");
 ok(/expectPaint/.test(dc) && /painted\.html/.test(dc), "expectHtml paints paint().html");
+ok(/painted\.foot/.test(dc), "expectHtml paints grain.foot");
 ok(!/grain\.tier !== ["']parent["']/.test(dc), "parent-tier grain is not hidden");
 ok(/After-snap, never a gate/.test(dc), "L/R skippable copy");
 

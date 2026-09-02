@@ -196,6 +196,7 @@
     }
     return {
       text: grain.text,
+      foot: grain.foot || "",
       low: !!grain.low,
       html: '<div class="rd-dc-expect-grain">' + esc(grain.text) + "</div>",
     };
@@ -303,6 +304,35 @@
     return "go " + top.k + " " + fmtPct(top.pct);
   }
 
+  /** Grain token on a side clause: `L 70%` or `to the wing 80%`. */
+  function attachGrain(top, formRaw, ctxRows) {
+    if (!top) return "";
+    var attach = formRaw ? attachmentLabel(formRaw) : "";
+    var str = formRaw ? sliceStrength(ctxRows, formRaw) : "";
+    if (attach && str) {
+      return (top.k === str ? "to the " : "away from the ") + attach + " " + fmtPct(top.pct);
+    }
+    return top.k + " " + fmtPct(top.pct);
+  }
+
+  function dirWentWord(top, formRaw, ctxRows) {
+    if (!top) return "";
+    var attach = formRaw ? attachmentLabel(formRaw) : "";
+    var str = formRaw ? sliceStrength(ctxRows, formRaw) : "";
+    if (attach && str) {
+      return (top.k === str ? "to the " : "away from the ") + attach;
+    }
+    if (top.k === "L") return "left";
+    if (top.k === "R") return "right";
+    return top.k;
+  }
+
+  function clauseOf(label, share, grains) {
+    var s = label + " " + fmtPct(share);
+    if (grains && grains.length) s += " → " + grains.join(", ");
+    return s;
+  }
+
   function depthLabel(k) {
     if (k === "quick") return "Quick";
     if (k === "intermediate") return "Intermediate";
@@ -381,45 +411,52 @@
       depth = gatedTop(depthDist, min);
     }
 
-    var bits = [];
-    var tier = "parent";
-    if (form) {
-      tier = "formation";
-      bits.push(form.display + ": " + lean + " " + fmtPct(ctxRp.leanPct));
-    } else {
-      bits.push((lean === "pass" ? "Pass" : "Run") + " " + fmtPct(parent.leanPct));
-    }
+    var formRaw = form ? form.raw : "";
+    var passGrains = [];
+    if (depth) passGrains.push(depthLabel(depth.k).toLowerCase() + " " + fmtPct(depth.pct));
+    if (passDir) passGrains.push(attachGrain(passDir, formRaw, passRows));
+    var runGrains = [];
+    if (lane) runGrains.push(lane.k + " " + fmtPct(lane.pct));
+    if (runDir) runGrains.push(attachGrain(runDir, formRaw, runRows));
 
-    if (lane) {
-      if (tier === "parent") tier = "lane";
-      bits.push(lane.k + " " + fmtPct(lane.pct));
-    }
-    if (depth) {
-      if (tier === "parent") tier = "depth";
-      bits.push(depthLabel(depth.k) + " " + fmtPct(depth.pct));
-    }
-    if (dir) {
-      if (tier === "parent") tier = "direction";
-      if (lane && !form && dirKind === "run") {
-        bits.push(dir.k + " " + fmtPct(dir.pct));
-      } else {
-        bits.push(dirClause(dir, dirKind || "run", form ? form.raw : "", dirKind === "run" ? runRows : passRows));
-      }
-    }
+    var passShare = ctxRp.passShare != null ? ctxRp.passShare : parent.passShare;
+    if (passShare == null) passShare = lean === "pass" ? 1 : 0;
+    var passClause = clauseOf("Pass", passShare, passGrains);
+    var runClause = clauseOf("Run", 1 - passShare, runGrains);
+    var clauses = lean === "run" ? [runClause, passClause] : [passClause, runClause];
+    var line = (form ? form.display + ": " : "") + clauses.join(" · ");
+
+    var tier = "parent";
+    if (form) tier = "formation";
+    else if (lane) tier = "lane";
+    else if (depth) tier = "depth";
+    else if (dir) tier = "direction";
 
     var sliceN = form ? ctx.length : dir ? dirDist.n : parent.n;
-    var line = bits.join(" · ");
-    if (form || dir || lane || depth) {
-      line += " (n=" + (form ? ctx.length : dir ? dirDist.n : typed.length) + ")";
-    }
-
     var shownN = form ? ctx.length : all.length;
     var low = shownN >= minSnaps && shownN < min;
+
+    var footDir = runDir ? runDir : passDir;
+    var footDist = runDir ? runDirDist : passDirDist;
+    var footKind = runDir ? "runs" : passDir ? "passes" : "";
+    var foot = shownN + " snap" + (shownN === 1 ? "" : "s");
+    if (footDir && footDist && footDist.n) {
+      foot +=
+        " · " +
+        footDir.n +
+        " of " +
+        footDist.n +
+        " " +
+        footKind +
+        " went " +
+        dirWentWord(footDir, formRaw, runDir ? runRows : passRows);
+    }
 
     return {
       empty: false,
       tier: tier,
       text: line,
+      foot: foot,
       n: shownN,
       sliceN: sliceN,
       lean: lean,

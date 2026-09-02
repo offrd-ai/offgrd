@@ -1591,6 +1591,7 @@
     if (!grain || !grain.text) return { text: "", low: false, html: "" };
     return {
       text: grain.text,
+      foot: grain.foot || "",
       low: !!grain.low,
       html: '<div class="rd-dc-expect-grain">' + esc(grain.text) + "</div>",
     };
@@ -2784,7 +2785,11 @@
       h += `</div></div>`;
     }
     h += `<div class="rd-dc-expect-meta">`;
-    h += `<span>${all.length} snap${all.length === 1 ? "" : "s"}</span>`;
+    if (painted.foot) {
+      h += `<span>${esc(painted.foot)}</span>`;
+    } else {
+      h += `<span>${all.length} snap${all.length === 1 ? "" : "s"}</span>`;
+    }
     if (sample.live && sample.live.length) h += `<span>${sample.live.length} live tonight</span>`;
     if (thin) h += `<span>thin sample</span>`;
     h += `</div>`;

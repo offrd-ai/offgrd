@@ -95,3 +95,39 @@ split before film arrives. No Middle.
       carry is `docs/TICKET_offgrd_scout_snaps_play_dir.md` (after Friday).
 - [x] Sit fingerprint drops side + hash (v352). v351 keys missed 44/44:
       corpus `…|off|…|18|` vs season `…||…|18|R`.
+- [x] Copy amendment (v353): hero is two clauses
+      `Pass 55% · Run 45% → L 70%`; footer `22 snaps · 7 of 10 runs went left`.
+      Grain (`→`) attaches only to the side whose tagged slice clears the
+      gate. n is not on the hero. Formation/Tier-2 use the same grammar.
+
+## COPY AMENDMENT (Matt, Sep 1, after seeing v352 live) — two clauses, not one
+
+`Pass 55% · runs go L 70% (n=10)` is ambiguous: it reads as a parent share
+plus an unrelated "70% goes left." The n refers only to the run slice and
+nothing says so. Rewrite the hero as **two self-contained clauses, one per
+side, each carrying its own share and its own grain:**
+
+```
+Pass 55%  ·  Run 45% → L 70%
+```
+
+Rules:
+- BOTH sides always show their share (that's the parent tier). Lean side
+  first (the THEY'LL PASS header already names the lean).
+- A side's grain (`→ L 70%`, or pass depth `→ quick 60%` when PASS ZONE is
+  tagged) attaches ONLY to that side's clause, and ONLY when that side's
+  tagged slice clears DIRECTIONAL_SPLIT_MIN. Under the gate the clause is
+  just the share: `Pass 55% · Run 45%`.
+- Move the n out of the hero into the existing footer line, in coach
+  language: `22 snaps · 7 of 10 runs went left`. "7 of 10" is more honest
+  and more legible than "(n=10)".
+- Formation tier uses the same grammar:
+  `2x1 Wing: Pass 30% · Run 70% → L 71%`.
+- Tier 2 slots in without changing shape:
+  `Pass 55% → quick 58% · Run 45% → inside 60%, L 70%` (lane and direction
+  both on the run clause when both clear the gate).
+
+Expected South 1st & 10+ after the change:
+hero `Pass 55% · Run 45% → L 70%`, footer `22 snaps · 7 of 10 runs went left`.
+
+Paint-string only. No gate or data changes.

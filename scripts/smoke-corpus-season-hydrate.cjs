@@ -130,6 +130,6 @@ box.globalThis = box;
 vm.runInNewContext(expectSrc, box);
 const X = box.OFFGRD_DCALLER_EXPECT;
 const grain = X.build(filled);
-ok(grain.text === "Pass 55% · runs go L 70% (n=10)", "hydrated corpus paints South line: " + grain.text);
+ok(grain.text === "Pass 55% · Run 45% → L 70%", "hydrated corpus paints South line: " + grain.text);
 
 console.log("ok: corpus-season-hydrate");
