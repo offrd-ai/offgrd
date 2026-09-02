@@ -59,6 +59,7 @@ function many(n, partial) {
 ok(!!X && typeof X.build === "function", "module exports build");
 ok(X.cfgOf().DIRECTIONAL_SPLIT_MIN === 8, "split min 8");
 ok(X.cfgOf().MIN_SNAPS === 4, "MIN_SNAPS 4");
+ok(X.cfgOf().LEAN_FLOOR === 0.6, "LEAN_FLOOR 0.60");
 
 /* --- parent only when dir slice < 8 --- */
 const thinDir = [];
@@ -101,7 +102,10 @@ for (let i = 0; i < 8; i++) {
 const dirOnlyHit = X.build(dirOnly);
 ok(dirOnlyHit.tier === "direction", "no form gate → direction tier: " + dirOnlyHit.tier);
 ok(dirOnlyHit.text === "Run 68% → R 71% · Pass 32% → L 100%", "dir line: " + dirOnlyHit.text);
-ok(dirOnlyHit.foot === "25 snaps · 12 of 17 runs went right", "dir footer: " + dirOnlyHit.foot);
+ok(
+  dirOnlyHit.foot === "25 snaps · 12 of 17 runs went right · 8 of 8 passes went left",
+  "dir footer: " + dirOnlyHit.foot
+);
 
 /* --- run-dir is independent of parent lean (South is pass-lean) --- */
 function southish(passN) {
@@ -130,6 +134,29 @@ const runLeanDir = X.build(southish(8));
 ok(runLeanDir.text === "Run 56% → L 70% · Pass 44%", "same runs + 8 pass: " + runLeanDir.text);
 const paintedRun = X.paint(runLeanDir);
 ok(paintedRun.html.indexOf("Run 56% → L 70% · Pass 44%") >= 0, "paint() embeds run-lean line");
+
+/* Live v353: 7 of 12 passes R (58%) cleared n-gate and painted as a read. */
+function southLive() {
+  const rows = [];
+  for (let i = 0; i < 12; i++) {
+    rows.push(snap({ playType: "Pass", direction: i < 7 ? "R" : "L", formation: "SF" + (i % 7) }));
+  }
+  for (let i = 0; i < 7; i++) {
+    rows.push(snap({ playType: "Run", direction: "L", formation: "SF" + (i % 7) }));
+  }
+  for (let i = 0; i < 3; i++) {
+    rows.push(snap({ playType: "Run", direction: "R", formation: "SF" + ((i + 3) % 7) }));
+  }
+  return rows;
+}
+const liveNoise = X.build(southLive());
+ok(liveNoise.text === "Pass 55% · Run 45% → L 70%", "58% pass-dir stays off hero: " + liveNoise.text);
+ok(!/R 58%/.test(liveNoise.text), "R 58% is under LEAN_FLOOR");
+ok(liveNoise.foot === "22 snaps · 7 of 10 runs went left", "footer skips hidden pass arrow: " + liveNoise.foot);
+ok(!/passes/.test(liveNoise.foot), "footer does not explain a hidden arrow");
+const floorOff = X.build(southLive(), { cfg: { LEAN_FLOOR: 0.5 } });
+ok(/Pass 55% → R 58%/.test(floorOff.text), "LEAN_FLOOR is config: " + floorOff.text);
+ok(/7 of 12 passes went right/.test(floorOff.foot), "footer explains every shown arrow: " + floorOff.foot);
 
 /* --- SNAP_CORPUS mapper must keep direction (v350) --- */
 const cloudSrc = fs
@@ -310,6 +337,9 @@ ok(/expectGrain/.test(dc), "dcaller wires expectGrain");
 ok(/X\.build\(/.test(dc), "dcaller calls module build()");
 ok(/expectPaint/.test(dc) && /painted\.html/.test(dc), "expectHtml paints paint().html");
 ok(/painted\.foot/.test(dc), "expectHtml paints grain.foot");
+const rd = fs.readFileSync(path.join(ROOT, "OFFGRD-redesign.js"), "utf8");
+ok(!/expect-grain\{[^}]*max-width:22rem/.test(rd), "hero grain is not capped at 22rem");
+ok(/expect-hero \.rd-dc-expect-grain\{[^}]*font-size:16px/.test(rd), "hero grain steps down to 16px");
 ok(!/grain\.tier !== ["']parent["']/.test(dc), "parent-tier grain is not hidden");
 ok(/After-snap, never a gate/.test(dc), "L/R skippable copy");
 

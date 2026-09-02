@@ -13,6 +13,7 @@
 
   var FALLBACK_SPLIT_MIN = 8;
   var FALLBACK_MIN_SNAPS = 4;
+  var FALLBACK_LEAN_FLOOR = 0.6;
 
   function cfgOf(opts) {
     opts = opts || {};
@@ -27,10 +28,13 @@
     }
     var split = c && +c.DIRECTIONAL_SPLIT_MIN;
     var min = c && +c.MIN_SNAPS;
+    var leanFloor = c && +c.LEAN_FLOOR;
     return {
       DIRECTIONAL_SPLIT_MIN:
         split >= 1 && split <= 40 ? Math.round(split) : FALLBACK_SPLIT_MIN,
       MIN_SNAPS: min >= 1 && min <= 20 ? Math.round(min) : FALLBACK_MIN_SNAPS,
+      LEAN_FLOOR:
+        leanFloor >= 0.5 && leanFloor <= 1 ? leanFloor : FALLBACK_LEAN_FLOOR,
     };
   }
 
@@ -252,6 +256,13 @@
     return dist.top;
   }
 
+  /** n-gate plus lean floor. 58% is a coin flip, not a read. */
+  function gatedLean(dist, min, floor) {
+    var top = gatedTop(dist, min);
+    if (!top || top.pct < floor) return null;
+    return top;
+  }
+
   function formCounts(rows) {
     var by = Object.create(null);
     (rows || []).forEach(function (r) {
@@ -350,6 +361,7 @@
     var cfg = cfgOf(opts);
     var min = cfg.DIRECTIONAL_SPLIT_MIN;
     var minSnaps = cfg.MIN_SNAPS;
+    var leanFloor = cfg.LEAN_FLOOR;
     var all = Array.isArray(rows) ? rows : [];
     var parent = runPass(all);
 
@@ -394,9 +406,9 @@
     /* Run-direction is independent of parent lean. South is pass-lean
      * everywhere; the run-dir slice still has to show when n ≥ gate. */
     var runDirDist = countBy(runRows, playDirOf);
-    var runDir = gatedTop(runDirDist, min);
+    var runDir = gatedLean(runDirDist, min, leanFloor);
     var passDirDist = countBy(passRows, playDirOf);
-    var passDir = gatedTop(passDirDist, min);
+    var passDir = gatedLean(passDirDist, min, leanFloor);
     var dir = runDir || passDir;
     var dirKind = runDir ? "run" : dir ? "pass" : "";
     var dirDist = runDir ? runDirDist : passDirDist;
@@ -436,21 +448,27 @@
     var shownN = form ? ctx.length : all.length;
     var low = shownN >= minSnaps && shownN < min;
 
-    var footDir = runDir ? runDir : passDir;
-    var footDist = runDir ? runDirDist : passDirDist;
-    var footKind = runDir ? "runs" : passDir ? "passes" : "";
-    var foot = shownN + " snap" + (shownN === 1 ? "" : "s");
-    if (footDir && footDist && footDist.n) {
-      foot +=
-        " · " +
-        footDir.n +
-        " of " +
-        footDist.n +
-        " " +
-        footKind +
-        " went " +
-        dirWentWord(footDir, formRaw, runDir ? runRows : passRows);
+    var footBits = [shownN + " snap" + (shownN === 1 ? "" : "s")];
+    function pushFoot(top, dist, kind, rows) {
+      if (!top || !dist || !dist.n) return;
+      footBits.push(
+        top.n +
+          " of " +
+          dist.n +
+          " " +
+          kind +
+          " went " +
+          dirWentWord(top, formRaw, rows)
+      );
     }
+    if (lean === "run") {
+      pushFoot(runDir, runDirDist, "runs", runRows);
+      pushFoot(passDir, passDirDist, "passes", passRows);
+    } else {
+      pushFoot(passDir, passDirDist, "passes", passRows);
+      pushFoot(runDir, runDirDist, "runs", runRows);
+    }
+    var foot = footBits.join(" · ");
 
     return {
       empty: false,
@@ -474,6 +492,7 @@
   var API = {
     FALLBACK_SPLIT_MIN: FALLBACK_SPLIT_MIN,
     FALLBACK_MIN_SNAPS: FALLBACK_MIN_SNAPS,
+    FALLBACK_LEAN_FLOOR: FALLBACK_LEAN_FLOOR,
     cfgOf: cfgOf,
     formNorm: formNorm,
     formStructure: formStructure,

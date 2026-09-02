@@ -99,6 +99,9 @@ split before film arrives. No Middle.
       `Pass 55% · Run 45% → L 70%`; footer `22 snaps · 7 of 10 runs went left`.
       Grain (`→`) attaches only to the side whose tagged slice clears the
       gate. n is not on the hero. Formation/Tier-2 use the same grammar.
+- [x] LEAN_FLOOR 0.60 (v354). Directional arrow only when the lean clears
+      the floor. Live `→ R 58%` was n-gate-legal and still a coin flip.
+      Footer explains every arrow shown. Hero grain 16px, no 22rem cap.
 
 ## COPY AMENDMENT (Matt, Sep 1, after seeing v352 live) — two clauses, not one
 
@@ -131,3 +134,11 @@ Expected South 1st & 10+ after the change:
 hero `Pass 55% · Run 45% → L 70%`, footer `22 snaps · 7 of 10 runs went left`.
 
 Paint-string only. No gate or data changes.
+
+## LEAN_FLOOR (Matt, Sep 1, after seeing v353 live)
+
+`Pass 55% → R 58% · Run 45% → L 70%` painted a coin flip as a read.
+`LEAN_FLOOR` (0.60, config) — a directional arrow renders only when that
+side's lean clears the floor. n-gate is unchanged. 7 of 12 R is 58% and
+stays off the hero. Footer explains every arrow that is shown, none that
+are not.

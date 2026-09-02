@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "353";
+  const ASSET_V = "354";
 
   function getScoutTool() {
     try {
@@ -1723,8 +1723,9 @@
       'html.rd-on #view-dcaller .rd-dc-expect-grain{',
       'font-size:15px;font-weight:700;line-height:1.35;color:var(--rd-text);margin:0 0 10px;',
       '}',
+      'html.rd-on #view-dcaller .rd-dc-expect-hero-copy{min-width:0;flex:1;}',
       'html.rd-on #view-dcaller .rd-dc-expect-hero .rd-dc-expect-grain{',
-      'font-size:20px;font-weight:800;line-height:1.3;margin:0;max-width:22rem;',
+      'font-size:16px;font-weight:800;line-height:1.25;letter-spacing:-.015em;margin:0;',
       '}',
       'html.rd-on #view-dcaller .rd-dc-expect-chips{',
       'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px;',

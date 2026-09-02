@@ -18,6 +18,7 @@
     SUCCESS_FLOOR: 0.6,
     MIN_SNAPS: 4,
     DIRECTIONAL_SPLIT_MIN: 8,
+    LEAN_FLOOR: 0.6,
     CHUNK_YARDS: 15,
     CHUNK_YARDS_RUN: 10,
     CHUNK_YARDS_PASS: 15
@@ -30,6 +31,7 @@
       SUCCESS_FLOOR: DEFAULTS.SUCCESS_FLOOR,
       MIN_SNAPS: DEFAULTS.MIN_SNAPS,
       DIRECTIONAL_SPLIT_MIN: DEFAULTS.DIRECTIONAL_SPLIT_MIN,
+      LEAN_FLOOR: DEFAULTS.LEAN_FLOOR,
       CHUNK_YARDS: DEFAULTS.CHUNK_YARDS,
       CHUNK_YARDS_RUN: DEFAULTS.CHUNK_YARDS_RUN,
       CHUNK_YARDS_PASS: DEFAULTS.CHUNK_YARDS_PASS
@@ -43,6 +45,7 @@
     var floor = +c.SUCCESS_FLOOR;
     var min = +c.MIN_SNAPS;
     var split = +c.DIRECTIONAL_SPLIT_MIN;
+    var leanFloor = +c.LEAN_FLOOR;
     var chunk = +c.CHUNK_YARDS;
     var runY = +c.CHUNK_YARDS_RUN;
     var passY = +c.CHUNK_YARDS_PASS;
@@ -53,6 +56,7 @@
     if (floor >= 0 && floor <= 1) d.SUCCESS_FLOOR = floor;
     if (min >= 1 && min <= 20) d.MIN_SNAPS = Math.round(min);
     if (split >= 1 && split <= 40) d.DIRECTIONAL_SPLIT_MIN = Math.round(split);
+    if (leanFloor >= 0.5 && leanFloor <= 1) d.LEAN_FLOOR = leanFloor;
     if (hasFlat && chunk >= 8 && chunk <= 40 && !hasRun && !hasPass) {
       d.CHUNK_YARDS = Math.round(chunk);
       d.CHUNK_YARDS_RUN = d.CHUNK_YARDS;
