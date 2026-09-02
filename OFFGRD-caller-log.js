@@ -415,7 +415,7 @@
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection", "signal"];
+          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "playType", "theirDirection", "signal", "dCall", "dCallFront", "dCallCoverage", "dCallBlitz", "frontFamily", "coverageFamily", "pressureFamily"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -536,8 +536,24 @@
         p.sitTxt = ord + " & " + (dbL || "") + (hashL && hashL !== "ANY" ? " " + hashL : "");
       }
       var obs = slot.obs || null;
-      var front = obs && obs.front != null && obs.front !== "" ? obs.front : null;
-      var pressure = obs && obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
+      /* Observation wins when one was written (O Caller look / explicit clear).
+       * D Caller writes front/pressure on the call itself — fold used to drop those. */
+      var front = null;
+      if (obs && obs.frontSet) {
+        front = obs.front != null && obs.front !== "" ? obs.front : null;
+      } else if (p.front != null && p.front !== "") {
+        front = p.front;
+      } else if (p.dCallFront) {
+        front = p.dCallFront;
+      }
+      var pressure = null;
+      if (obs && obs.pressureSet) {
+        pressure = obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
+      } else if (p.pressure != null && p.pressure !== "") {
+        pressure = p.pressure;
+      } else if (p.dCallBlitz) {
+        pressure = p.dCallBlitz;
+      }
       var Out = global.OFFGRD_CALLER_OUTCOME;
       var fin = { result: null, gain: null, flag: null, flags: [], negated: false, success: null, concept: null, conceptOverride: null };
       var movedChains = false;
@@ -593,6 +609,12 @@
         playType: p.playType,
         theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,
         dCall: p.dCall != null && p.dCall !== "" ? p.dCall : "",
+        dCallFront: p.dCallFront != null && p.dCallFront !== "" ? p.dCallFront : "",
+        dCallCoverage: p.dCallCoverage != null && p.dCallCoverage !== "" ? p.dCallCoverage : "",
+        dCallBlitz: p.dCallBlitz != null && p.dCallBlitz !== "" ? p.dCallBlitz : "",
+        frontFamily: p.frontFamily || "",
+        coverageFamily: p.coverageFamily || "",
+        pressureFamily: p.pressureFamily || "",
         opponent: p.opponent,
         date: p.date,
         signal: hasOwn(p, "signal") ? (p.signal == null || p.signal === "" ? null : p.signal) : p.signal,

@@ -514,4 +514,39 @@ if (!dCallFold.log[0] || dCallFold.log[0].dCall !== "COVER 4 BUZZ") {
 }
 console.log("OK dCall survives fold");
 
+const dVocabFold = C.foldCallerEvents([
+  ev({
+    eventId: "dv1",
+    playIndex: 0,
+    payload: {
+      play: "Run",
+      dn: 1,
+      db: "4-6",
+      sitTxt: "1st & 4-6",
+      side: "defense",
+      front: "BRAVO",
+      coverage: "CHICAGO",
+      pressure: "SAM & BILL",
+      dCallFront: "BRAVO",
+      dCallCoverage: "CHICAGO",
+      dCallBlitz: "SAM & BILL",
+    },
+    deviceId: "dPad",
+    clientTs: 50,
+    seq: 1,
+  }),
+]);
+const dVocabRow = dVocabFold.log[0];
+if (!dVocabRow) throw new Error("D vocab call must fold to a row");
+if (dVocabRow.front !== "BRAVO" || dVocabRow.coverage !== "CHICAGO" || dVocabRow.pressure !== "SAM & BILL") {
+  throw new Error("D call payload front/coverage/blitz must survive fold: " + JSON.stringify(dVocabRow));
+}
+if (dVocabRow.dCallFront !== "BRAVO" || dVocabRow.dCallCoverage !== "CHICAGO" || dVocabRow.dCallBlitz !== "SAM & BILL") {
+  throw new Error("dCall* slots must survive fold: " + JSON.stringify(dVocabRow));
+}
+if (dVocabRow.frontCarried || dVocabRow.pressureCarried) {
+  throw new Error("call-payload look is not a sticky carry");
+}
+console.log("OK D vocab front · coverage · blitz survive fold without observation");
+
 console.log("ALL PASS");

@@ -1758,6 +1758,23 @@
   function setLook(field, value) {
     if (sit[field] === value) sit[field] = null;
     else sit[field] = value;
+    var live = liveCall();
+    if (live && live.playIndex != null && !live.result) {
+      var dPay = dCallPayload();
+      append("correction", live.playIndex, {
+        coverage: dPay.coverage,
+        front: dPay.front,
+        frontCarried: false,
+        pressure: dPay.pressure,
+        pressureCarried: false,
+        dCallFront: dPay.dCallFront,
+        dCallCoverage: dPay.dCallCoverage,
+        dCallBlitz: dPay.dCallBlitz,
+        frontFamily: dPay.frontFamily,
+        coverageFamily: dPay.coverageFamily,
+        pressureFamily: dPay.pressureFamily
+      });
+    }
     saveLocal();
     render();
   }
@@ -1893,6 +1910,23 @@
 
   /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
   function logTheirPlay(playType, direction) {
+    var live = liveCall();
+    /* Live ungraded snap — switch Run/Pass on THIS play. A second tap must
+     * not open a phantom snap (P0: scroll + mistap used to log Pass empty). */
+    if (live && live.playIndex != null && !live.result) {
+      var liveDir = direction || live.theirDirection || pendingDir || null;
+      if (liveDir === "") liveDir = null;
+      var liveLabel = playType + (liveDir ? " " + liveDir : "");
+      append("correction", live.playIndex, {
+        play: liveLabel,
+        playType: playType,
+        theirDirection: liveDir
+      });
+      pendingDir = null;
+      saveLocal();
+      render();
+      return;
+    }
     var eng = E();
     var nextPi = log.length ? Math.max.apply(null, log.map(function (l) { return l.playIndex; })) + 1 : 0;
     if (eng && eng.openSnap) {
@@ -1939,11 +1973,8 @@
     sit.needReason = null;
     saveLocal();
     render();
-    try {
-      setTimeout(function () {
-        jump("dcaller-result-anchor");
-      }, 40);
-    } catch (e) {}
+    /* Do not auto-scroll to yards. scrollIntoView moves Step 3 under the
+     * finger mid-look (same family as P0) and the next tap logs Pass. */
   }
 
   /** Happy path tap 2: yards allowed (same OC buckets). */
@@ -2625,7 +2656,7 @@
     if (!on || !on.play) {
       if (!log.length) return "";
       return (
-        `<div class="caller-oncall caller-oncall-empty no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px">` +
+        `<div class="caller-oncall caller-oncall-empty no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:72px">` +
         `<div class="caller-oncall-idle" style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px dashed var(--line,#c5c9d1);border-radius:8px">` +
         `<span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.55">D LOG</span>` +
         `<span class="foot" style="font-weight:600">Tap Edit last to fix a prior snap</span></div>` +
@@ -2643,16 +2674,17 @@
     /* Front → Coverage → Blitz/Stunts — team names when a D vocabulary exists */
     var look = dCallLabel(on);
     if (look === "no D call") look = "";
+    var hero = look || on.play || "";
     var h =
-      `<div class="caller-oncall${graded ? " caller-oncall-graded" : " caller-oncall-liveplay"} no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:56px">`;
+      `<div class="caller-oncall${graded ? " caller-oncall-graded" : " caller-oncall-liveplay"} no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:72px">`;
     h +=
       `<div class="caller-oncall-live" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:10px 14px;background:${barBg};border:2px solid ${barBd};border-radius:8px;color:#0E1116">`;
     h +=
       `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">${kicker}</span>` +
-      `<span style="font-size:20px;font-weight:800">${esc(on.play)}</span></div>`;
+      `<span style="font-size:20px;font-weight:800">${esc(hero)}</span></div>`;
     h +=
       `<div style="font-size:13px;font-weight:700;opacity:.85">${esc(on.sitTxt || "")}` +
-      (look ? " · " + esc(look) : "") +
+      (look && on.play ? " · " + esc(on.play) : "") +
       (graded ? " · " + esc(resLbl) : " · grade below") +
       `</div></div>`;
     h +=
@@ -3138,7 +3170,9 @@
         var our = dCallLabel(l);
         var isEdit = editPi != null && l.playIndex === editPi;
         var cls = "callitem" + (isEdit ? " callitem-editing" : "");
-        h += `<div class="${cls}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:600">${esc(l.play)} <span class="foot">${esc(res)}${esc(tags)}</span><div class="foot">${esc(our)}</div></div>`;
+        var main = our && our !== "no D call" ? our : l.play;
+        var sub = our && our !== "no D call" ? (l.play || "") + " · " + res + tags : res + tags;
+        h += `<div class="${cls}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:600">${esc(main)} <span class="foot">${esc(sub)}</span></div>`;
         h += `<button type="button" class="ghost caller-edit-row no-print" style="padding:6px 10px;min-height:40px;font-weight:700" onclick="OFFGRD_DCALLER.openEdit(${l.playIndex})" title="Edit this play">Edit</button></div>`;
       });
     h += `</div>`;

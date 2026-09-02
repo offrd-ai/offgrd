@@ -100,6 +100,9 @@ ok(/OFFGRD-d-vocab\.js/.test(fs.readFileSync(path.join(ROOT, "offgrd-sw.js"), "u
 ok(/OFFGRD_D_VOCAB/.test(DC) && /payloadFromSit/.test(DC) && /callerLists/.test(DC), "D Caller Step 3 reads team vocab");
 ok(/dCallFront/.test(DC) && /frontFamily/.test(DC), "live D snap writes team name + family slots");
 ok(/callOfRecord/.test(DC), "This-Play / log use team call of record");
+ok(/hero = look \|\| on\.play/.test(DC), "Last-play hero is the D call of record, not just Run/Pass");
+ok(/live && live.playIndex != null && !live.result/.test(DC) && /append\("correction"/.test(DC), "Step 3 look writes onto the live ungraded snap");
+ok(!/jump\("dcaller-result-anchor"\);\s*\}, 40\)/.test(DC.replace(/\s+/g, " ")), "Run/Pass does not auto-scroll to yards");
 
 ok(/callerLookChipsHtml/.test(HOME) && /Cover 0/.test(HOME) && /Mike A/.test(HOME), "O Caller look-logging vocabulary unchanged");
 ok(/function callerDefPlaybook/.test(HOME) && /offgrd_def_playbook_/.test(HOME), "O Caller still reads generic def_playbook");
