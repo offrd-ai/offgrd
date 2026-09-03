@@ -304,6 +304,23 @@
     return arr[0];
   }
 
+  function persp() {
+    return global.OFFGRD_DCALLER_PERSPECTIVE || null;
+  }
+
+  /** Display-only: offense L → your R. Math still uses canonical top.k. */
+  function speakGrainSide(k) {
+    var P = persp();
+    if (P && typeof P.speakDirShort === "function") return P.speakDirShort(k) || k;
+    return k;
+  }
+
+  function speakWentSide(k) {
+    var P = persp();
+    if (P && typeof P.speakWent === "function") return P.speakWent(k) || k;
+    return k;
+  }
+
   function dirClause(top, lean, formRaw, ctxRows) {
     if (!top) return "";
     var attach = formRaw ? attachmentLabel(formRaw) : "";
@@ -311,11 +328,11 @@
     if (attach && str) {
       return (top.k === str ? "to the " + attach : "away from the " + attach) + " " + fmtPct(top.pct);
     }
-    if (lean === "run") return "runs go " + top.k + " " + fmtPct(top.pct);
-    return "go " + top.k + " " + fmtPct(top.pct);
+    if (lean === "run") return "runs go " + speakGrainSide(top.k) + " " + fmtPct(top.pct);
+    return "go " + speakGrainSide(top.k) + " " + fmtPct(top.pct);
   }
 
-  /** Grain token on a side clause: `L 70%` or `to the wing 80%`. */
+  /** Grain token on a side clause: `your R 70%` or `to the wing 80%`. */
   function attachGrain(top, formRaw, ctxRows) {
     if (!top) return "";
     var attach = formRaw ? attachmentLabel(formRaw) : "";
@@ -323,7 +340,7 @@
     if (attach && str) {
       return (top.k === str ? "to the " : "away from the ") + attach + " " + fmtPct(top.pct);
     }
-    return top.k + " " + fmtPct(top.pct);
+    return speakGrainSide(top.k) + " " + fmtPct(top.pct);
   }
 
   function dirWentWord(top, formRaw, ctxRows) {
@@ -333,9 +350,7 @@
     if (attach && str) {
       return (top.k === str ? "to the " : "away from the ") + attach;
     }
-    if (top.k === "L") return "left";
-    if (top.k === "R") return "right";
-    return top.k;
+    return speakWentSide(top.k);
   }
 
   function clauseOf(label, share, grains) {

@@ -123,13 +123,15 @@ const filled = H(southCorpus, southSeasonRows);
 ok(filled.filter((r) => r.direction === "L" || r.direction === "R").length === 10, "hydrate restores 10 dir-tagged runs");
 ok(filled.filter((r) => r.direction === "L").length === 7, "7 L from season");
 
+const perspSrc = fs.readFileSync(path.join(ROOT, "OFFGRD-dcaller-perspective.js"), "utf8");
 const expectSrc = fs.readFileSync(path.join(ROOT, "OFFGRD-dcaller-expect.js"), "utf8");
 const box = { window: {}, globalThis: {}, console };
 box.window = box;
 box.globalThis = box;
+vm.runInNewContext(perspSrc, box);
 vm.runInNewContext(expectSrc, box);
 const X = box.OFFGRD_DCALLER_EXPECT;
 const grain = X.build(filled);
-ok(grain.text === "Pass 55% · Run 45% → L 70%", "hydrated corpus paints South line: " + grain.text);
+ok(grain.text === "Pass 55% · Run 45% → your R 70%", "hydrated corpus paints South line: " + grain.text);
 
 console.log("ok: corpus-season-hydrate");

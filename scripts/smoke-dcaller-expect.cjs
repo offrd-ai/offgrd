@@ -22,6 +22,7 @@ sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 load("OFFGRD-formation-map.js", sandbox);
 load("OFFGRD-caller-shortlist.js", sandbox);
+load("OFFGRD-dcaller-perspective.js", sandbox);
 load("OFFGRD-dcaller-expect.js", sandbox);
 
 const X = sandbox.OFFGRD_DCALLER_EXPECT;
@@ -82,8 +83,8 @@ const dirBook = many(12, { playType: "Run", direction: "R" }).concat(
 ).concat(many(8, { playType: "Pass", direction: "L" }));
 const dirHit = X.build(dirBook);
 ok(dirHit.tier === "direction" || dirHit.tier === "formation", "dir book clears a split");
-ok(/→ R 71%/.test(dirHit.text) || /to the wing/.test(dirHit.text), "dir text: " + dirHit.text);
-ok(/12 of 17 runs went right/.test(dirHit.foot) || dirHit.dir, "dir n in footer: " + dirHit.foot);
+ok(/→ your L 71%/.test(dirHit.text) || /to the wing/.test(dirHit.text), "dir text: " + dirHit.text);
+ok(/12 of 17 runs went to your left/.test(dirHit.foot) || dirHit.dir, "dir n in footer: " + dirHit.foot);
 
 /* Force no-formation by using 7 unique forms (each below gate) */
 const dirOnly = [];
@@ -101,9 +102,9 @@ for (let i = 0; i < 8; i++) {
 }
 const dirOnlyHit = X.build(dirOnly);
 ok(dirOnlyHit.tier === "direction", "no form gate → direction tier: " + dirOnlyHit.tier);
-ok(dirOnlyHit.text === "Run 68% → R 71% · Pass 32% → L 100%", "dir line: " + dirOnlyHit.text);
+ok(dirOnlyHit.text === "Run 68% → your L 71% · Pass 32% → your R 100%", "dir line: " + dirOnlyHit.text);
 ok(
-  dirOnlyHit.foot === "25 snaps · 12 of 17 runs went right · 8 of 8 passes went left",
+  dirOnlyHit.foot === "25 snaps · 12 of 17 runs went to your left · 8 of 8 passes went to your right",
   "dir footer: " + dirOnlyHit.foot
 );
 
@@ -124,16 +125,16 @@ function southish(passN) {
 const passLeanDir = X.build(southish(12));
 ok(passLeanDir.lean === "pass", "12P+10R lean is pass");
 ok(passLeanDir.dir && passLeanDir.dir.k === "L", "run-dir still renders on pass lean");
-ok(passLeanDir.text === "Pass 55% · Run 45% → L 70%", "South 1st/10+ line: " + passLeanDir.text);
-ok(passLeanDir.foot === "22 snaps · 7 of 10 runs went left", "South footer: " + passLeanDir.foot);
+ok(passLeanDir.text === "Pass 55% · Run 45% → your R 70%", "South 1st/10+ line: " + passLeanDir.text);
+ok(passLeanDir.foot === "22 snaps · 7 of 10 runs went to your right", "South footer: " + passLeanDir.foot);
 const paintedSouth = X.paint(passLeanDir);
-ok(paintedSouth.html.indexOf("Pass 55% · Run 45% → L 70%") >= 0, "paint() embeds South line");
+ok(paintedSouth.html.indexOf("Pass 55% · Run 45% → your R 70%") >= 0, "paint() embeds South line");
 ok(/rd-dc-expect-grain/.test(paintedSouth.html), "paint() uses grain class");
 ok(paintedSouth.low === false, "22-snap South sit is not LOW");
 const runLeanDir = X.build(southish(8));
-ok(runLeanDir.text === "Run 56% → L 70% · Pass 44%", "same runs + 8 pass: " + runLeanDir.text);
+ok(runLeanDir.text === "Run 56% → your R 70% · Pass 44%", "same runs + 8 pass: " + runLeanDir.text);
 const paintedRun = X.paint(runLeanDir);
-ok(paintedRun.html.indexOf("Run 56% → L 70% · Pass 44%") >= 0, "paint() embeds run-lean line");
+ok(paintedRun.html.indexOf("Run 56% → your R 70% · Pass 44%") >= 0, "paint() embeds run-lean line");
 
 /* Live v353: 7 of 12 passes R (58%) cleared n-gate and painted as a read. */
 function southLive() {
@@ -150,13 +151,13 @@ function southLive() {
   return rows;
 }
 const liveNoise = X.build(southLive());
-ok(liveNoise.text === "Pass 55% · Run 45% → L 70%", "58% pass-dir stays off hero: " + liveNoise.text);
-ok(!/R 58%/.test(liveNoise.text), "R 58% is under LEAN_FLOOR");
-ok(liveNoise.foot === "22 snaps · 7 of 10 runs went left", "footer skips hidden pass arrow: " + liveNoise.foot);
+ok(liveNoise.text === "Pass 55% · Run 45% → your R 70%", "58% pass-dir stays off hero: " + liveNoise.text);
+ok(!/your L 58%/.test(liveNoise.text), "your L 58% is under LEAN_FLOOR");
+ok(liveNoise.foot === "22 snaps · 7 of 10 runs went to your right", "footer skips hidden pass arrow: " + liveNoise.foot);
 ok(!/passes/.test(liveNoise.foot), "footer does not explain a hidden arrow");
 const floorOff = X.build(southLive(), { cfg: { LEAN_FLOOR: 0.5 } });
-ok(/Pass 55% → R 58%/.test(floorOff.text), "LEAN_FLOOR is config: " + floorOff.text);
-ok(/7 of 12 passes went right/.test(floorOff.foot), "footer explains every shown arrow: " + floorOff.foot);
+ok(/Pass 55% → your L 58%/.test(floorOff.text), "LEAN_FLOOR is config: " + floorOff.text);
+ok(/7 of 12 passes went to your left/.test(floorOff.foot), "footer explains every shown arrow: " + floorOff.foot);
 
 /* --- SNAP_CORPUS mapper must keep direction (v350) --- */
 const cloudSrc = fs
@@ -210,11 +211,11 @@ ok(
 );
 const corpusGrain = X.build(corpusSouth);
 ok(
-  corpusGrain.text === "Pass 55% · Run 45% → L 70%",
+  corpusGrain.text === "Pass 55% · Run 45% → your R 70%",
   "build() on corpus-mapped South: " + corpusGrain.text
 );
 ok(
-  X.paint(corpusGrain).html.indexOf("Pass 55% · Run 45% → L 70%") >= 0,
+  X.paint(corpusGrain).html.indexOf("Pass 55% · Run 45% → your R 70%") >= 0,
   "painted corpus South line"
 );
 
@@ -273,7 +274,7 @@ for (let i = 0; i < 20; i++) {
 const laneHit = X.build(laneBook);
 ok(laneHit.lane && laneHit.lane.k === "inside", "GAP A/B → inside");
 ok(/inside 60%/.test(laneHit.text), "lane on the line: " + laneHit.text);
-ok(/R 100%/.test(laneHit.text), "lane keeps dir: " + laneHit.text);
+ok(/your L 100%/.test(laneHit.text), "lane keeps dir: " + laneHit.text);
 
 const noLane = X.build(many(20, { playType: "Run", direction: "R", gap: "", formation: "F" + 0 }));
 ok(noLane.lane == null, "empty GAP stays dormant even on a fat run book");
@@ -294,7 +295,7 @@ const depthHit = X.build(deepBook);
 ok(depthHit.depth && depthHit.depth.k === "deep", "Deep Left → deep");
 ok(/deep 67%/.test(depthHit.text), "depth on the line: " + depthHit.text);
 ok(X.playDirOf({ playType: "Pass", passZone: "Deep Left" }) === "L", "PASS ZONE backfills pass dir");
-ok(/go L/.test(depthHit.text) || /L 67%/.test(depthHit.text) || depthHit.dir, "pass-side dir from zone");
+ok(/your R/.test(depthHit.text) || depthHit.dir, "pass-side dir from zone");
 
 /* --- LOW between MIN_SNAPS and split min --- */
 const lowBook = many(6, { playType: "Run", direction: "R", formation: "Solo" });
@@ -331,6 +332,8 @@ console.log("PROOF P South-shaped:", ps.text, "· tier", ps.tier, "· n", ps.n);
 /* --- live L/R only (no Mid) in D Caller markup --- */
 const dc = fs.readFileSync(path.join(ROOT, "OFFGRD-dcaller.js"), "utf8");
 ok(/\[\"L\", \"R\"\]/.test(dc) || /\["L", "R"\]/.test(dc), "live dir is L/R only");
+ok(/your L/.test(dc) && /your R/.test(dc), "live dir labels are your L / your R");
+ok(!/Left/.test(dc) && !/Right/.test(dc), "no bare Left/Right on D Caller");
 ok(!/Mid/.test(dc), "no Mid promise on D Caller");
 ok(/OFFGRD_DCALLER_EXPECT/.test(dc), "dcaller references the expect module");
 ok(/expectGrain/.test(dc), "dcaller wires expectGrain");

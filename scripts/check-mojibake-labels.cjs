@@ -24,6 +24,7 @@ const FILES = [
   "OFFGRD-account.js",
   "OFFGRD-auth.js",
   "OFFGRD-dcaller.js",
+  "OFFGRD-dcaller-perspective.js",
   "OFFGRD-dcaller-expect.js",
   "OFFGRD-redesign.js"
 ];

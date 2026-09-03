@@ -622,6 +622,23 @@
       }
     } catch (eDir) {}
 
+    var dirView = opts.dirView;
+    if (!dirView) {
+      try {
+        var dirEl = document.querySelector('input[name="imp-dir-view"]:checked');
+        dirView = dirEl && dirEl.value === "defense" ? "defense" : "offense";
+      } catch (eView) {
+        dirView = "offense";
+      }
+    }
+    if (dirView !== "defense") dirView = "offense";
+    if (side === "off" && dirView === "defense") {
+      var Persp = root.OFFGRD_DCALLER_PERSPECTIVE;
+      if (Persp && typeof Persp.canonicalizeRowsFromDefenseView === "function") {
+        Persp.canonicalizeRowsFromDefenseView(snaps);
+      }
+    }
+
     var unmatchedList = Object.keys(unmatchedForms)
       .map(function (k) {
         return { form: k, n: unmatchedForms[k] };
@@ -648,6 +665,7 @@
         mappedFields: Object.keys(map).filter(function (k) {
           return !!map[k];
         }),
+        dirView: dirView,
         unmappedHeaders: parsed.headers.filter(function (h) {
           var used = false;
           Object.keys(map).forEach(function (k) {
@@ -798,6 +816,12 @@
       "</b> · ODK keep=<b>" +
       esc(st.odkKeep) +
       "</b></p>";
+    if (dlg.side === "off") {
+      H +=
+        '<p class="foot" style="margin:2px 0">direction: ' +
+        (st.dirView === "defense" ? "defense view" : "offense view") +
+        "</p>";
+    }
     H +=
       '<p class="foot" style="margin:2px 0">Source rows ' +
       st.sourceRows +

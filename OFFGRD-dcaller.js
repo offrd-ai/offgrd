@@ -1279,15 +1279,60 @@
     return on && on.play && !on.result ? on : null;
   }
 
+  function persp() {
+    return global.OFFGRD_DCALLER_PERSPECTIVE || null;
+  }
+
+  function tapToCanonical(ui) {
+    var P = persp();
+    if (P && typeof P.fromDefenseTap === "function") return P.fromDefenseTap(ui);
+    return ui;
+  }
+
+  function speakHashSit(canonical) {
+    var P = persp();
+    if (P && typeof P.speakHash === "function") {
+      var spoken = P.speakHash(canonical);
+      if (spoken) return spoken;
+    }
+    return canonical;
+  }
+
+  function speakHashChipLab(canonical) {
+    var P = persp();
+    if (P && typeof P.speakHashChip === "function") return P.speakHashChip(canonical);
+    return canonical;
+  }
+
+  function sitLine(dn, db, zone, hash) {
+    var dist = db === "GOAL" ? "GOAL" : db;
+    var bits = [ordinalFn(+dn) + " & " + dist];
+    if (zone && zone !== "ANY") bits.push(zone === "REDZONE" ? "RZ" : zone);
+    if (hash && hash !== "ANY") bits.push(speakHashSit(hash));
+    return bits.join(" · ");
+  }
+
   function sitTxt() {
-    var dist = sit.db === "GOAL" ? "GOAL" : sit.db;
-    return (
-      ordinalFn(+sit.dn) +
-      " & " +
-      dist +
-      (sit.zone && sit.zone !== "ANY" ? " · " + (sit.zone === "REDZONE" ? "RZ" : sit.zone) : "") +
-      (sit.hash && sit.hash !== "ANY" ? " · " + sit.hash : "")
-    );
+    return sitLine(sit.dn, sit.db, sit.zone, sit.hash);
+  }
+
+  function sitTxtForEntry(entry) {
+    if (!entry) return sitTxt();
+    if (entry.forTwo) return "2-pt";
+    if (entry.playType === "xp") return entry.sitTxt || "After TD";
+    return sitLine(entry.dn, entry.db, entry.zone, entry.hash);
+  }
+
+  function speakPlayLabel(entry) {
+    var P = persp();
+    var dir = entry && entry.theirDirection;
+    var pt = entry && entry.playType;
+    if (dir && P && typeof P.speakDirShort === "function") {
+      return (pt || "Play") + " " + P.speakDirShort(dir);
+    }
+    var play = (entry && entry.play) || "";
+    if (P && typeof P.speakPlay === "function") return P.speakPlay(play);
+    return play || pt || "";
   }
 
   function namedDCalls() {
@@ -1734,6 +1779,7 @@
 
   function setSit(key, val) {
     global._dcallerShowAll = false;
+    if (key === "hash") val = tapToCanonical(val);
     sit[key] = key === "dn" ? +val : val;
     /* Every manual chip correction writes back to estYards. */
     if (key === "dn" || key === "db" || key === "zone") {
@@ -2601,11 +2647,7 @@
       }
     }
     var play = (playType || "Play") + (dir ? " " + dir : "");
-    var sitLine =
-      ordinalFn(dn) +
-      " & " +
-      (db === "GOAL" ? "GOAL" : db) +
-      (hash && hash !== "ANY" ? " " + hash : "");
+    var sitSpoken = sitLine(dn, db, zone, hash);
     var OutEdit = O();
     var wbEdit =
       OutEdit && OutEdit.writebackEstYards
@@ -2620,7 +2662,7 @@
       estYards: wbEdit.estYards,
       hash: hash,
       zone: zone,
-      sitTxt: sitLine,
+      sitTxt: sitSpoken,
       situationInferred: false,
       coverage: coverage,
       front: front,
@@ -2674,7 +2716,7 @@
     /* Front → Coverage → Blitz/Stunts — team names when a D vocabulary exists */
     var look = dCallLabel(on);
     if (look === "no D call") look = "";
-    var hero = look || on.play || "";
+    var hero = look || speakPlayLabel(on) || "";
     var h =
       `<div class="caller-oncall${graded ? " caller-oncall-graded" : " caller-oncall-liveplay"} no-print" role="status" style="display:flex;align-items:stretch;gap:8px;margin:0 0 10px;min-height:72px">`;
     h +=
@@ -2683,8 +2725,8 @@
       `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">${kicker}</span>` +
       `<span style="font-size:20px;font-weight:800">${esc(hero)}</span></div>`;
     h +=
-      `<div style="font-size:13px;font-weight:700;opacity:.85">${esc(on.sitTxt || "")}` +
-      (look && on.play ? " · " + esc(on.play) : "") +
+      `<div style="font-size:13px;font-weight:700;opacity:.85">${esc(sitTxtForEntry(on))}` +
+      (look && on.play ? " · " + esc(speakPlayLabel(on)) : "") +
       (graded ? " · " + esc(resLbl) : " · grade below") +
       `</div></div>`;
     h +=
@@ -2732,11 +2774,11 @@
           : [];
     var h = `<div class="caller-edit-panel no-print" id="dcaller-edit-anchor" role="dialog" aria-label="Edit defensive play">`;
     h += `<div class="persp" style="border:none;padding:0;margin-bottom:8px;flex-wrap:wrap;gap:8px">`;
-    h += `<span class="pl"><b>Edit play</b> · ${esc(entry.play || "?")} · ${ix + 1}/${n}</span>`;
+    h += `<span class="pl"><b>Edit play</b> · ${esc(speakPlayLabel(entry) || "?")} · ${ix + 1}/${n}</span>`;
     h += `<button type="button" class="ghost" style="margin-left:auto" onclick="OFFGRD_DCALLER.closeEdit()">Close</button></div>`;
     h += `<div class="caller-edit-nav no-print">`;
     h += `<button type="button" class="caller-edit-nav-btn"${hasOlder ? "" : " disabled"} onclick="OFFGRD_DCALLER.editStep(-1)" title="Older play">← Older</button>`;
-    h += `<span class="foot">${esc(entry.sitTxt || "")} · work backwards anytime</span>`;
+    h += `<span class="foot">${esc(sitTxtForEntry(entry))} · work backwards anytime</span>`;
     h += `<button type="button" class="caller-edit-nav-btn"${hasNewer ? "" : " disabled"} onclick="OFFGRD_DCALLER.editStep(1)" title="Newer play">Newer →</button>`;
     h += `</div>`;
     h += `<p class="foot" style="margin:0 0 8px">Saves a correction (history kept). Use Older to fix earlier snaps without leaving edit.</p>`;
@@ -2758,9 +2800,9 @@
     h += `<div><div class="lbl">Hash</div><select id="dcEditHash" style="width:100%;min-height:44px">`;
     h += [
       ["ANY", "ANY"],
-      ["L", "L"],
+      ["L", speakHashChipLab("L")],
       ["M", "M"],
-      ["R", "R"],
+      ["R", speakHashChipLab("R")],
     ]
       .map(function (p) {
         return `<option value="${p[0]}"${entry.hash === p[0] ? " selected" : ""}>${p[1]}</option>`;
@@ -2788,8 +2830,8 @@
     h += `</select></div>`;
     h += `<div><div class="lbl">Direction</div><select id="dcEditDir" style="width:100%;min-height:44px"><option value=""></option>`;
     h += [
-      ["L", "Left"],
-      ["R", "Right"],
+      ["L", "your R"],
+      ["R", "your L"],
     ]
       .map(function (p) {
         return `<option value="${p[0]}"${entry.theirDirection === p[0] ? " selected" : ""}>${p[1]}</option>`;
@@ -3076,7 +3118,7 @@
             ? "Grade kick"
             : "Grade PAT";
       h += sectionKickerHtml(4, stLabel);
-      h += `<div class="rd-dc-grade-card"><div class="lbl">${esc(live.play)}</div>`;
+      h += `<div class="rd-dc-grade-card"><div class="lbl">${esc(speakPlayLabel(live))}</div>`;
       h += `<div class="caller-out-results">`;
       h += buckets
         .map(function (b) {
@@ -3107,16 +3149,16 @@
     h += `<div class="lbl rd-look-lbl" style="margin-top:8px">Direction <span class="foot">optional · skip</span></div>`;
     h += `<div class="seg covlog rd-dc-dir">`;
     ["L", "R"].forEach(function (d) {
-      var onDir = liveDir === d;
-      h += `<button type="button" class="rd-dc-dir-btn${onDir ? " on" : ""}" onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "Left" : "Right"}</button>`;
+      var onDir = liveDir === tapToCanonical(d);
+      h += `<button type="button" class="rd-dc-dir-btn${onDir ? " on" : ""}" onclick="OFFGRD_DCALLER.setDir('${d}')">${d === "L" ? "your L" : "your R"}</button>`;
     });
     h += `</div>`;
-    h += `<p class="foot" style="margin:6px 0 10px">L/R optional · After-snap, never a gate</p>`;
+    h += `<p class="foot" style="margin:6px 0 10px">your L / your R optional · After-snap, never a gate</p>`;
 
     if (live) {
       h += `<div class="rd-dc-grade-card${live.result ? "" : " is-pending"}">`;
       h += `<div class="rd-dc-grade-title">${isTwo ? "2-pt result" : "Yards allowed"}</div>`;
-      h += `<div class="rd-dc-grade-sub">${esc(live.play)}${live.result ? "" : " · tap one"}</div>`;
+      h += `<div class="rd-dc-grade-sub">${esc(speakPlayLabel(live))}${live.result ? "" : " · tap one"}</div>`;
       h += yardsPadHtml(buckets, live, isTwo, Out);
       if (live.result && !isTwo) {
         h += `<div class="rd-gd-lastplay-block rd-dc-tag-block">`;
@@ -3170,9 +3212,10 @@
         var our = dCallLabel(l);
         var isEdit = editPi != null && l.playIndex === editPi;
         var cls = "callitem" + (isEdit ? " callitem-editing" : "");
-        var main = our && our !== "no D call" ? our : l.play;
-        var sub = our && our !== "no D call" ? (l.play || "") + " · " + res + tags : res + tags;
-        h += `<div class="${cls}"><div class="cn">${esc(l.sitTxt)}</div><div style="flex:1;font-weight:600">${esc(main)} <span class="foot">${esc(sub)}</span></div>`;
+        var spokenPlay = speakPlayLabel(l);
+        var main = our && our !== "no D call" ? our : spokenPlay;
+        var sub = our && our !== "no D call" ? (spokenPlay || "") + " · " + res + tags : res + tags;
+        h += `<div class="${cls}"><div class="cn">${esc(sitTxtForEntry(l))}</div><div style="flex:1;font-weight:600">${esc(main)} <span class="foot">${esc(sub)}</span></div>`;
         h += `<button type="button" class="ghost caller-edit-row no-print" style="padding:6px 10px;min-height:40px;font-weight:700" onclick="OFFGRD_DCALLER.openEdit(${l.playIndex})" title="Edit this play">Edit</button></div>`;
       });
     h += `</div>`;
@@ -3272,9 +3315,10 @@
         .join("") +
       `</div></div>`;
     h += `<div><div class="lbl">Hash</div><div class="seg">` +
-      [["ANY", "ANY"], ["L", "L"], ["M", "M"], ["R", "R"]]
+      [["ANY", "ANY"], ["L", "your L"], ["M", "M"], ["R", "your R"]]
         .map(function (p) {
-          return `<button type="button"${sit.hash === p[0] ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('hash','${p[0]}')">${p[1]}</button>`;
+          var onHash = sit.hash === tapToCanonical(p[0]);
+          return `<button type="button"${onHash ? ' class="on"' : ""} onclick="OFFGRD_DCALLER.setSit('hash','${p[0]}')">${p[1]}</button>`;
         })
         .join("") +
       `</div></div>`;
@@ -3334,6 +3378,7 @@
   }
 
   function setDir(d) {
+    d = tapToCanonical(d);
     if (d !== "L" && d !== "R") return;
     var live = liveCall();
     /* Live ungraded snap — toggle direction on this play (not just the next one). */
