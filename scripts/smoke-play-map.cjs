@@ -132,6 +132,9 @@ check("group tabs live in a second seg", /rd-gd-play-rollup-group/.test(rollFn) 
 check("inline n= only when denom differs", /nNote\(b\.yppN,b\.n\)/.test(rollFn) && /nNote\(b\.effN,b\.n\)/.test(rollFn) && !/n="\+b\.n/.test(rollFn));
 check("MEMPHIS suggest chip in panel", /suggested from playbook/.test(html));
 check("panel header is paint.statusText", /status\.textContent\s*=\s*paint\.statusText/.test(html));
+check("logged-out Group is Sign in to group", /Sign in to group/.test(html) && /pmPromptSignIn/.test(html));
+check("logged-out Group banner is not a foot whisper", /Sign in to group plays/.test(html) && /pm-signin/.test(html));
+check("logged-out Group does not silent-return", !/status\.textContent="Sign in to save groupings\."; return/.test(html));
 check("panel has no local coverage % copy", !/mapped = /.test(html) && !/% of your calls/.test(html));
 
 const rows238 = [];
@@ -333,6 +336,8 @@ check("shared chip sheet does not inherit --ink on chips", !/\.fm-chip\{[^}]*col
 check("play map does not inject .fm-chip.on locally", !/H\+='<style>\.pm-card[\s\S]*\.fm-chip\.on/.test(html));
 check("formations does not inject .fm-chip.on locally", !/H\+='<style>\.fm-panel[\s\S]*\.fm-chip\.on/.test(html));
 check("idle hydrate skips focused input", /mapPanelSkipRebuild/.test(html) && /pmNoteRender/.test(html));
+check("hydrate never rebuilds an open map panel", /Hydrate must not rebuild/.test(html) && /data-stem-act="yes"/.test(html));
+check("Group click is delegated and never silent", /pmStemAct/.test(html) && /Group needs a family/.test(html));
 check("cached open does not background-pull", !/M\.pullMap\(teamId\)\.catch/.test(html));
 
 let hydrates = 0;
@@ -356,6 +361,17 @@ if (typeof unsub === "function") unsub();
 const idleRps = extraHydrates / 0.25;
 console.log("idle same-cache hydrate rps=" + idleRps + " extra=" + extraHydrates + " ticks=" + ticks);
 check("idle same-cache rps is 0", extraHydrates === 0);
+
+check(
+  "stemGroupFamily uses mapped or suggested family",
+  M.stemGroupFamily({
+    members: [
+      { raw: "KARATE SLIDE" },
+      { raw: "KARATE", mapped: { family: "RPO" } },
+    ],
+  }) === "RPO"
+);
+check("stemGroupFamily empty is honest", M.stemGroupFamily({ members: [{ raw: "KARATE" }] }) === "");
 
 const pwOffense = [
   { name: "Stick", family: "Quick Game" },

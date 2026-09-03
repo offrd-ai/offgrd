@@ -346,6 +346,18 @@
       .sort(function (a, b) { return b.n - a.n || a.stem.localeCompare(b.stem); });
   }
 
+  /** Shared family for a stem Group. Empty means the click must say so — never silent. */
+  function stemGroupFamily(offer) {
+    var members = (offer && offer.members) || [];
+    var i, m, fam;
+    for (i = 0; i < members.length; i++) {
+      m = members[i];
+      fam = (m && m.mapped && m.mapped.family) || (m && m.suggestedFamily) || "";
+      if (fam) return canonFamily(fam);
+    }
+    return "";
+  }
+
   function storage() {
     try {
       if (root && root.localStorage) return root.localStorage;
@@ -941,6 +953,7 @@
     canonicalFamily: canonicalFamily,
     FAMILY_CHIP_LIMIT: FAMILY_CHIP_LIMIT,
     suggestStems: suggestStems,
+    stemGroupFamily: stemGroupFamily,
     inventoryCalls: inventoryCalls,
     isPlayTypeToken: isPlayTypeToken,
     coverageCounts: coverageCounts,
