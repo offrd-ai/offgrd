@@ -338,6 +338,7 @@ check("formations does not inject .fm-chip.on locally", !/H\+='<style>\.fm-panel
 check("idle hydrate skips focused input", /mapPanelSkipRebuild/.test(html) && /pmNoteRender/.test(html));
 check("hydrate never rebuilds an open map panel", /Hydrate must not rebuild/.test(html) && /data-stem-act="yes"/.test(html));
 check("Group click is delegated and never silent", /pmStemAct/.test(html) && /Group needs a family/.test(html));
+check("grouped stems leave the list", /stemAlreadyGrouped/.test(html) && /Grouped /.test(html) && /declineStem/.test(html));
 check("cached open does not background-pull", !/M\.pullMap\(teamId\)\.catch/.test(html));
 
 let hydrates = 0;
@@ -372,6 +373,27 @@ check(
   }) === "RPO"
 );
 check("stemGroupFamily empty is honest", M.stemGroupFamily({ members: [{ raw: "KARATE" }] }) === "");
+check(
+  "stemAlreadyGrouped when every member shares the concept",
+  M.stemAlreadyGrouped({
+    display: "KARATE",
+    members: [
+      { raw: "KARATE", mapped: { concept: "KARATE" } },
+      { raw: "KARATE SLIDE", mapped: { concept: "KARATE" } },
+    ],
+  })
+);
+check(
+  "stemAlreadyGrouped false until all members are mapped",
+  !M.stemAlreadyGrouped({
+    display: "KARATE",
+    members: [
+      { raw: "KARATE", mapped: { concept: "KARATE" } },
+      { raw: "KARATE SLIDE" },
+    ],
+  })
+);
+check("playIdOrNull drops local book ids", M.playIdOrNull("p1") === null && M.playIdOrNull("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"));
 
 const pwOffense = [
   { name: "Stick", family: "Quick Game" },

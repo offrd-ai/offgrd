@@ -358,6 +358,40 @@
     return "";
   }
 
+  /** True when every member is already mapped to this stem's concept. */
+  function stemAlreadyGrouped(offer) {
+    var members = (offer && offer.members) || [];
+    if (members.length < 2) return true;
+    var want = normCall((offer && offer.display) || "");
+    if (!want) return false;
+    var i, m, got;
+    for (i = 0; i < members.length; i++) {
+      m = members[i];
+      if (!m || !m.mapped) return false;
+      got = normCall(m.mapped.concept || "");
+      if (got !== want) return false;
+    }
+    return true;
+  }
+
+  function playIdOrNull(id) {
+    if (id == null || id === "") return null;
+    var s = String(id);
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s)
+      ? s
+      : null;
+  }
+
+  function mergeMapRows(prev, next) {
+    var by = Object.create(null);
+    (prev || []).concat(next || []).forEach(function (r) {
+      if (!r) return;
+      var k = normCall(r.raw_call_norm || r.raw_call);
+      if (k) by[k] = r;
+    });
+    return Object.keys(by).map(function (k) { return by[k]; });
+  }
+
   function storage() {
     try {
       if (root && root.localStorage) return root.localStorage;
@@ -641,8 +675,7 @@
     var family = canonFamily(opts.family);
     if (!family) throw new Error("family required");
     var concept = opts.concept != null ? canonFamily(opts.concept) : "";
-    var playId = opts.play_id || null;
-    if (playId === "") playId = null;
+    var playId = playIdOrNull(opts.play_id);
     return {
       team_id: opts.team_id || null,
       raw_call: raw,
@@ -954,6 +987,9 @@
     FAMILY_CHIP_LIMIT: FAMILY_CHIP_LIMIT,
     suggestStems: suggestStems,
     stemGroupFamily: stemGroupFamily,
+    stemAlreadyGrouped: stemAlreadyGrouped,
+    playIdOrNull: playIdOrNull,
+    mergeMapRows: mergeMapRows,
     inventoryCalls: inventoryCalls,
     isPlayTypeToken: isPlayTypeToken,
     coverageCounts: coverageCounts,
