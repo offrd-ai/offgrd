@@ -348,5 +348,16 @@ const st = Sync.getSyncHeaderState("defense", pendingEvents, false, { gameId: "g
 if (st.label === "All synced") fail("smoke8 header lied: All synced with unsynced local events");
 if (!st.pending && !st.held) fail("smoke8 header must show pending or held");
 console.log("ok  8 sync header does not say All synced for a local queue");
+const rolledSt = Sync.getSyncHeaderState(
+  "defense",
+  [],
+  false,
+  { gameId: "live-today", rolledFrom: "fri-d", restampedAt: 1 },
+  { dn: 4, db: "GOAL", namedCall: "OMAHA" }
+);
+if (rolledSt.label === "All synced" || !rolledSt.rolled) {
+  fail("smoke8 header lied: All synced after session roll");
+}
+console.log("ok  8b header does not say All synced after a session roll");
 
 console.log("smoke-caller-snap-advance: all ok");

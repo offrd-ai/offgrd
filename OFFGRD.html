@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v360: pin-assets — caller recovery Export all sessions; restamp no longer orphans -->
+<!-- v361: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -349,10 +349,10 @@
     #view-scout #grid{overflow-x:auto}
   }
 </style>
-<script src="OFFGRD-config.js?v=360"></script>
-<script src="OFFGRD-brand-persist.js?v=360"></script>
-<script src="supabase.js?v=360"></script>
-<script src="OFFGRD-cache-gate.js?v=360"></script>
+<script src="OFFGRD-config.js?v=361"></script>
+<script src="OFFGRD-brand-persist.js?v=361"></script>
+<script src="supabase.js?v=361"></script>
+<script src="OFFGRD-cache-gate.js?v=361"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -394,49 +394,50 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=360"></script>
-<script src="OFFGRD-pos-glossary.js?v=360"></script>
-<script src="OFFGRD-autoderive.js?v=360"></script>
-<script src="OFFGRD-matchup.js?v=360"></script>
-<script src="OFFGRD-scoutcards.js?v=360"></script>
-<script src="OFFGRD-tendencies.js?v=360"></script>
-<script src="OFFGRD-scout-report.js?v=360"></script>
-<script src="OFFGRD-week-autotest.js?v=360"></script>
-<script src="OFFGRD-weeklypackage.js?v=360"></script>
-<script src="OFFGRD-telestrate.js?v=360"></script>
-<script src="OFFGRD-redesign.js?v=360"></script>
-<script src="OFFGRD-shell.js?v=360"></script>
-<script src="OFFGRD-caller-outcome.js?v=360"></script>
-<script src="OFFGRD-caller-sit.js?v=360"></script>
-<script src="OFFGRD-formations-data.js?v=360"></script>
-<script src="OFFGRD-formation-canon.js?v=360"></script>
-<script src="OFFGRD-assist-import.js?v=360"></script>
-<script src="OFFGRD-schedule-import.js?v=360"></script>
-<script src="OFFGRD-opp-shells.js?v=360"></script>
-<script src="OFFGRD-formation-map.js?v=360"></script>
-<script src="OFFGRD-play-map.js?v=360"></script>
-<script src="OFFGRD-play-type.js?v=360"></script>
-<script src="OFFGRD-play-stubs.js?v=360"></script>
-<script src="OFFGRD-play-direction.js?v=360"></script>
-<script src="OFFGRD-caller-shortlist.js?v=360"></script>
-<script src="OFFGRD-caller-game.js?v=360"></script>
-<script src="OFFGRD-cv-review.js?v=360"></script>
-<script src="OFFGRD-frame-capture.js?v=360"></script>
-<script src="OFFGRD-caller-side.js?v=360"></script>
-<script src="OFFGRD-caller-log.js?v=360"></script>
-<script src="OFFGRD-caller-sync.js?v=360"></script>
-<script src="OFFGRD-caller-recovery.js?v=360"></script>
-<script src="OFFGRD-caller-analysis.js?v=360"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=360"></script>
-<script src="OFFGRD-booth-ask.js?v=360"></script>
-<script src="OFFGRD-boothpack.js?v=360"></script>
-<script src="OFFGRD-booth-chat.js?v=360"></script>
-<script src="OFFGRD-empty-unknown.js?v=360"></script>
-<script src="OFFGRD-caller-select.js?v=360"></script>
-<script src="OFFGRD-dcaller-perspective.js?v=360"></script>
-<script src="OFFGRD-dcaller-expect.js?v=360"></script>
-<script src="OFFGRD-d-vocab.js?v=360"></script>
-<script src="OFFGRD-dcaller.js?v=360"></script>
+<script src="OFFGRD-render.js?v=361"></script>
+<script src="OFFGRD-pos-glossary.js?v=361"></script>
+<script src="OFFGRD-autoderive.js?v=361"></script>
+<script src="OFFGRD-matchup.js?v=361"></script>
+<script src="OFFGRD-scoutcards.js?v=361"></script>
+<script src="OFFGRD-tendencies.js?v=361"></script>
+<script src="OFFGRD-scout-report.js?v=361"></script>
+<script src="OFFGRD-week-autotest.js?v=361"></script>
+<script src="OFFGRD-weeklypackage.js?v=361"></script>
+<script src="OFFGRD-telestrate.js?v=361"></script>
+<script src="OFFGRD-redesign.js?v=361"></script>
+<script src="OFFGRD-shell.js?v=361"></script>
+<script src="OFFGRD-caller-outcome.js?v=361"></script>
+<script src="OFFGRD-caller-sit.js?v=361"></script>
+<script src="OFFGRD-formations-data.js?v=361"></script>
+<script src="OFFGRD-formation-canon.js?v=361"></script>
+<script src="OFFGRD-assist-import.js?v=361"></script>
+<script src="OFFGRD-schedule-import.js?v=361"></script>
+<script src="OFFGRD-opp-shells.js?v=361"></script>
+<script src="OFFGRD-formation-map.js?v=361"></script>
+<script src="OFFGRD-play-map.js?v=361"></script>
+<script src="OFFGRD-play-type.js?v=361"></script>
+<script src="OFFGRD-play-stubs.js?v=361"></script>
+<script src="OFFGRD-play-direction.js?v=361"></script>
+<script src="OFFGRD-caller-shortlist.js?v=361"></script>
+<script src="OFFGRD-caller-game.js?v=361"></script>
+<script src="OFFGRD-cv-review.js?v=361"></script>
+<script src="OFFGRD-frame-capture.js?v=361"></script>
+<script src="OFFGRD-caller-side.js?v=361"></script>
+<script src="OFFGRD-caller-log.js?v=361"></script>
+<script src="OFFGRD-caller-journal.js?v=361"></script>
+<script src="OFFGRD-caller-sync.js?v=361"></script>
+<script src="OFFGRD-caller-recovery.js?v=361"></script>
+<script src="OFFGRD-caller-analysis.js?v=361"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=361"></script>
+<script src="OFFGRD-booth-ask.js?v=361"></script>
+<script src="OFFGRD-boothpack.js?v=361"></script>
+<script src="OFFGRD-booth-chat.js?v=361"></script>
+<script src="OFFGRD-empty-unknown.js?v=361"></script>
+<script src="OFFGRD-caller-select.js?v=361"></script>
+<script src="OFFGRD-dcaller-perspective.js?v=361"></script>
+<script src="OFFGRD-dcaller-expect.js?v=361"></script>
+<script src="OFFGRD-d-vocab.js?v=361"></script>
+<script src="OFFGRD-dcaller.js?v=361"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -4311,6 +4312,11 @@ function callerMarkBreak(kind){
     CALLER_LIVE_EXPANDED=true;
     callerSaveLocal();
     try{ callerSyncToGames({ side: "offense" }); }catch(eSyncQ){}
+    try{
+      if(window.OFFGRD_CALLER_JOURNAL&&OFFGRD_CALLER_JOURNAL.maybeAutoExport){
+        OFFGRD_CALLER_JOURNAL.maybeAutoExport(kind==="half"?"halftime":"snap", CALLER_LOG.length);
+      }
+    }catch(eEx){}
     callerRenderFull();
     try{
       const panel=document.getElementById("rd-live-panel");
@@ -4331,6 +4337,11 @@ function callerMarkBreak(kind){
       }
     }catch(eMf){ CALLER_MONDAY_FOCUS=null; }
     callerRequestSummaryLlm("final", CALLER_HALFTIME, CALLER_LOG.length+(opts.defenseLog||[]).length);
+    try{
+      if(window.OFFGRD_CALLER_JOURNAL&&OFFGRD_CALLER_JOURNAL.maybeAutoExport){
+        OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", CALLER_LOG.length);
+      }
+    }catch(eExF){}
   }
   callerSaveLocal();
   callerRenderFull();
@@ -5033,12 +5044,20 @@ function callerAppend(type, playIndex, payload){
     try{ console.warn("[callerAppend] buildEvent rejected", type); }catch(e){}
     return null;
   }
+  try{
+    if(window.OFFGRD_CALLER_JOURNAL&&OFFGRD_CALLER_JOURNAL.appendNow) OFFGRD_CALLER_JOURNAL.appendNow(ev);
+  }catch(eJ){}
   CALLER_EVENTS.push(ev);
   const SideMark=window.OFFGRD_CALLER_SIDE;
   if(SideMark&&SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
   callerRefold({fromCall:true});
   callerSaveLocal();
   callerScheduleSync();
+  try{
+    if(window.OFFGRD_CALLER_JOURNAL&&OFFGRD_CALLER_JOURNAL.maybeAutoExport){
+      OFFGRD_CALLER_JOURNAL.maybeAutoExport("snap", CALLER_LOG.length);
+    }
+  }catch(eEx){}
   return ev;
 }
 function callerSyncOpts(){
@@ -5066,7 +5085,16 @@ function callerSyncOpts(){
     applyMondayFocus: function(mf){ if(mf) CALLER_MONDAY_FOCUS=mf; callerSaveLocal(); },
     applyRemote: function(merged, game, sess){
       const E=callerEngine();
-      CALLER_EVENTS=merged||CALLER_EVENTS;
+      const EU=window.OFFGRD_EMPTY_UNKNOWN;
+      const J=window.OFFGRD_CALLER_JOURNAL;
+      if(EU&&EU.isUnknownEmpty(merged)) merged=CALLER_EVENTS;
+      if(J){
+        try{ J.adopt(CALLER_EVENTS); J.adopt(merged||[]); }catch(eAd){}
+        const fromJ=J.hydrateView(merged&&merged.length?merged:CALLER_EVENTS, "offense");
+        CALLER_EVENTS=fromJ&&fromJ.length?fromJ:(merged||CALLER_EVENTS);
+      }else{
+        CALLER_EVENTS=merged||CALLER_EVENTS;
+      }
       if(sess) CALLER_SESSION=sess;
       if(game&&game.monday_focus){
         const A=callerAnalysis();
@@ -5158,6 +5186,21 @@ function loadCallerSession(){
     CALLER_EVENTS=loaded.events;
     CALLER_SEQ=loaded.seq||0;
     if(Array.isArray(loaded.sessionArchives)) CALLER_SESSION_ARCHIVES=loaded.sessionArchives.slice();
+    try{
+      const J=window.OFFGRD_CALLER_JOURNAL;
+      if(J&&J.hydrateView){
+        CALLER_EVENTS=J.hydrateView(CALLER_EVENTS, "offense");
+        if(J.ready) J.ready().then(function(){
+          const next=J.hydrateView(CALLER_EVENTS, "offense");
+          if(next&&next.length&&next.length!==CALLER_EVENTS.length){
+            CALLER_EVENTS=next;
+            callerRefold();
+            callerSaveLocal();
+            if(typeof callerRenderFull==="function") callerRenderFull();
+          }
+        });
+      }
+    }catch(eHyd){}
     callerRefold();
     return;
   }
@@ -6143,15 +6186,34 @@ function callerSyncHeaderHtml(){
   try{
     const eng=window.OFFGRD_CALLER_SYNC_ENGINE;
     if(!eng||!eng.getSyncHeaderState) return "";
-    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession());
-    const cls=st.held||st.pending?"is-pending":(st.syncing?"is-syncing":"is-up");
+    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession(), callerSit);
+    const J=window.OFFGRD_CALLER_JOURNAL;
+    const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
+    const cen=J&&J.census?J.census({ side:"offense", gameId:sess&&sess.gameId, log:CALLER_LOG }):null;
+    const label=cen?cen.label:st.label;
+    const green=!!(cen?cen.reconciled&&!st.rolled:st.label==="All synced"&&!st.rolled);
+    const cls=st.held||st.pending||st.rolled||!green?"is-pending":(st.syncing?"is-syncing":"is-up");
     let extra="";
     if(st.held&&st.reason==="session-mismatch"){
       extra=`<button type="button" class="rd-dc-upload" onclick="callerResolveHeld()">Resolve session</button>`;
     }
+    if(cen&&cen.undoUntil){
+      extra+=`<button type="button" class="rd-dc-upload" onclick="callerUndoClear()">Undo clear</button>`;
+    }
     const guard=CALLER_SNAP_GUARD?`<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(CALLER_SNAP_GUARD)}</p>`:"";
-    return `<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(st.label)}${st.detail?" · "+esc(st.detail):""}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button><button type="button" class="rd-dc-upload" onclick="callerExport()">Export</button>${extra}</div>`+guard;
+    return `<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(label)}${cen&&cen.tone==="bad"?" · saved ≠ snaps":(st.detail?" · "+esc(st.detail):"")}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button><button type="button" class="rd-dc-upload" onclick="callerExport()">Export</button>${extra}</div>`+guard;
   }catch(e){ return ""; }
+}
+function callerUndoClear(){
+  const J=window.OFFGRD_CALLER_JOURNAL;
+  const sess=CALLER_SESSION;
+  const gameId=sess&&sess.gameId;
+  if(!J||!gameId||!J.undoClear) return;
+  J.undoClear(gameId, "offense");
+  CALLER_EVENTS=J.hydrateView(CALLER_EVENTS, "offense");
+  callerRefold();
+  callerSaveLocal();
+  if(typeof callerRenderFull==="function") callerRenderFull();
 }
 function callerResolveHeld(){
   const E=callerEngine();
@@ -6257,10 +6319,15 @@ function callerSyncWord(){
   try{
     const eng=window.OFFGRD_CALLER_SYNC_ENGINE;
     if(!eng||!eng.getSyncHeaderState) return "";
-    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession());
+    const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession(), callerSit);
+    const J=window.OFFGRD_CALLER_JOURNAL;
+    const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
+    const cen=J&&J.census?J.census({ side:"offense", gameId:sess&&sess.gameId, log:CALLER_LOG }):null;
     if(st.syncing) return "Syncing";
     if(st.held) return "Held";
     if(st.pending) return "Pending";
+    if(st.rolled) return "Rolled";
+    if(cen&&!cen.reconciled) return cen.tone==="offline"?"Offline":"Pending";
     return "Synced";
   }catch(e){ return ""; }
 }
@@ -7473,6 +7540,12 @@ function callerClear(){
   if(typeof confirm==="function" && !confirm("Clear this O Caller game?\n\nCloses the cloud game so the next session starts fresh. Past snaps stay archived — they are not deleted.")) return;
   const sess=CALLER_SESSION;
   const gameId=sess&&sess.gameId;
+  try{
+    if(gameId&&window.OFFGRD_CALLER_JOURNAL&&OFFGRD_CALLER_JOURNAL.recordClear){
+      OFFGRD_CALLER_JOURNAL.recordClear(gameId, "offense");
+      OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", CALLER_LOG.length);
+    }
+  }catch(eClr){}
   const k=gameKey(callerSessionOpp(), callerSessionWeek(), "ours");
   GAMES=GAMES.filter(g=>g.key!==k);
   CALLER_LOG=[]; CALLER_EVENTS=[]; CALLER_COLLISIONS=[]; CALLER_ACTIVITY=[]; CALLER_SEQ=0;
@@ -7833,7 +7906,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=360", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=361", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -8747,9 +8820,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=360"></script>
-<script src="OFFGRD-role-gate.js?v=360"></script>
-<script src="OFFGRD-mobile.js?v=360"></script>
+<script type="module" src="OFFGRD-account.js?v=361"></script>
+<script src="OFFGRD-role-gate.js?v=361"></script>
+<script src="OFFGRD-mobile.js?v=361"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
@@ -8758,7 +8831,7 @@ try{
    install+warm must happen in the same surface you reopen offline. */
 (function(){
   if(!("serviceWorker" in navigator)) return;
-  var swUrl = "offgrd-sw.js?v=360";
+  var swUrl = "offgrd-sw.js?v=361";
   try{
     navigator.serviceWorker.register(swUrl, { scope: "./", updateViaCache: "none" }).then(function(reg){
       try{ if(reg && reg.update) reg.update(); }catch(e0){}

@@ -244,6 +244,32 @@ check(
     emptyRoll.events.length === 0
 );
 check(
+  "restamp stamps rolledFrom on the new session",
+  emptyRoll.session.rolledFrom === "july-empty" && !!emptyRoll.session.restampedAt
+);
+const rolledHdr = Sync.getSyncHeaderState(
+  "defense",
+  [],
+  false,
+  emptyRoll.session,
+  { dn: 4, db: "GOAL", namedCall: "OMAHA" }
+);
+check(
+  "header is not All synced after a session roll",
+  rolledHdr.label !== "All synced" && rolledHdr.rolled === true && rolledHdr.reason === "session-rolled"
+);
+const leftoverHdr = Sync.getSyncHeaderState(
+  "defense",
+  [],
+  false,
+  { gameId: "live-today", week: "Live 2026-09-07" },
+  { dn: 4, db: "GOAL", namedCall: "OMAHA" }
+);
+check(
+  "leftover sit + empty events is not All synced",
+  leftoverHdr.label !== "All synced" && leftoverHdr.rolled === true
+);
+check(
   "flushed in-progress session is immune at midnight",
   !S.isStaleLiveIdentity(
     { week: "Live 2026-08-27", game_date: "2026-08-27", gameId: "g-live", inProgress: true },

@@ -538,6 +538,8 @@
         if (e && e.gameId === oldId && eventOnLiveDate(e, today)) e.gameId = next.gameId;
       });
     }
+    next.rolledFrom = oldId || null;
+    next.restampedAt = Date.now();
     return {
       session: next,
       events: list,
