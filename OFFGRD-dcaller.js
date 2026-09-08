@@ -156,28 +156,9 @@
     return "10+";
   }
 
-  function intendedOpp() {
-    var Side = global.OFFGRD_CALLER_SIDE;
-    var sitOpp = opp();
-    var weekOpp = null;
-    try {
-      if (global.WEEK && WEEK.opponent) weekOpp = WEEK.opponent;
-    } catch (eW) {}
-    if (Side && Side.explicitOpponent) return Side.explicitOpponent(sitOpp, weekOpp);
-    if (sitOpp && sitOpp !== "ANY") return sitOpp;
-    return weekOpp || null;
-  }
-
-  function hydrateView(prior) {
-    var J = global.OFFGRD_CALLER_JOURNAL;
-    if (!J || !J.hydrateView) return prior || [];
-    return J.hydrateView(prior || [], "defense", session && session.gameId);
-  }
-
   function ensureSession() {
     var eng = E();
     var Side = global.OFFGRD_CALLER_SIDE;
-    var J = global.OFFGRD_CALLER_JOURNAL;
     var mint = function () {
       return eng && eng.uuid ? eng.uuid() : "dg" + Date.now();
     };
@@ -190,26 +171,6 @@
         side: "defense",
       };
     }
-    var want = intendedOpp();
-    if (Side && Side.shouldRotateForOpponent && Side.shouldRotateForOpponent(session, want, events)) {
-      var rotated = Side.endAndMintForOpponent(
-        session,
-        {
-          opp: want,
-          week: (typeof callerSessionWeekRaw === "function" ? callerSessionWeekRaw() : weekLabel()) || "",
-          game_date: Side && Side.liveDateISO ? Side.liveDateISO() : new Date().toISOString().slice(0, 10),
-          side: "defense",
-        },
-        mint,
-        events,
-        sit
-      );
-      if (rotated.archive) sessionArchives = (sessionArchives || []).concat([rotated.archive]);
-      session = rotated.session;
-      session.side = "defense";
-      sit = sitDefaults();
-      events = J && J.hydrateView ? J.hydrateView([], "defense", session.gameId) : [];
-    }
     if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events, sit)) {
       var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
       session = stamped.session;
@@ -218,13 +179,6 @@
       if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
     }
     return session;
-  }
-
-  function onOpponentChanged() {
-    ensureSession();
-    refold();
-    saveLocal();
-    render();
   }
 
   function saveLocal() {
@@ -499,11 +453,6 @@
       pushFeedEvent({ kind: "period", id: "period-" + kind + "-" + lastPi + "-" + breaks.length, line: line, playIndex: lastPi });
       liveExpanded = true;
       saveLocal();
-      try {
-        if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-          OFFGRD_CALLER_JOURNAL.maybeAutoExport(kind === "half" ? "halftime" : "snap", log.length);
-        }
-      } catch (eEx) {}
       render();
       try {
         var panel = document.getElementById("rd-live-panel");
@@ -521,11 +470,6 @@
       mondayFocusPayload = buildMondayFocusFromLog();
       requestSummaryLlm("final", summaryView.view, (opts.offenseLog || []).length + log.length);
     }
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", log.length);
-      }
-    } catch (eExF) {}
     saveLocal();
     render();
     scheduleSync();
@@ -1197,24 +1141,6 @@
       else sit.estYards = Math.max(1, Math.round(+sit.estYards));
     }
     events = Array.isArray(st.events) ? st.events.slice() : [];
-    try {
-      var Jload = global.OFFGRD_CALLER_JOURNAL;
-      if (Jload && Jload.hydrateView) {
-        ensureSession();
-        events = hydrateView(events);
-        if (Jload.ready) {
-          Jload.ready().then(function () {
-            var next = hydrateView(events);
-            if (next && next.length !== events.length) {
-              events = next;
-              refold();
-              saveLocal();
-              render();
-            }
-          });
-        }
-      }
-    } catch (eHyd) {}
     sessionArchives = Array.isArray(st.sessionArchives) ? st.sessionArchives.slice() : [];
     seq = st.seq || 0;
     breaks = Array.isArray(st.breaks) ? st.breaks.slice() : [];
@@ -1262,22 +1188,12 @@
       } catch (e2) {}
       return null;
     }
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.appendNow) {
-        OFFGRD_CALLER_JOURNAL.appendNow(ev);
-      }
-    } catch (eJ) {}
     events.push(ev);
     var SideMark = global.OFFGRD_CALLER_SIDE;
     if (SideMark && SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
     refold({ fromCall: true });
     saveLocal();
     scheduleSync();
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("snap", log.length);
-      }
-    } catch (eEx) {}
     return ev;
   }
 
@@ -1296,25 +1212,8 @@
         saveLocal();
       },
       applyRemote: function (merged, game, sess) {
-        var EU = global.OFFGRD_EMPTY_UNKNOWN;
-        var Jr = global.OFFGRD_CALLER_JOURNAL;
-        if (EU && EU.isUnknownEmpty(merged)) merged = events;
-        if (Jr) {
-          try {
-            Jr.adopt(events);
-            Jr.adopt(merged || []);
-          } catch (eAd) {}
-          var SideR = global.OFFGRD_CALLER_SIDE;
-          if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
-            sess = session;
-          } else if (sess) {
-            session = sess;
-          }
-          events = hydrateView(merged && merged.length ? merged : events);
-        } else {
-          events = merged || events;
-          if (sess) session = sess;
-        }
+        events = merged || events;
+        if (sess) session = sess;
         if (game && game.monday_focus) {
           var An = A();
           if (An && An.mergeMondayFocusPayload && mondayFocusPayload) {
@@ -2426,12 +2325,6 @@
     )
       return;
     var gameId = session && session.gameId;
-    try {
-      if (gameId && global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.recordClear) {
-        OFFGRD_CALLER_JOURNAL.recordClear(gameId, "defense");
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", log.length);
-      }
-    } catch (eClr) {}
     events = [];
     seq = 0;
     log = [];
@@ -2480,22 +2373,13 @@
     var n = log.length;
     var eng = Sync();
     var st = eng && eng.getSyncHeaderState
-      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing(), ensureSession(), sit)
+      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing(), ensureSession())
       : { label: "All synced", pending: 0, syncing: false };
-    var Jcen = global.OFFGRD_CALLER_JOURNAL;
-    var sess = ensureSession();
-    var cen = Jcen && Jcen.census ? Jcen.census({ side: "defense", gameId: sess && sess.gameId, log: log }) : null;
-    var label = cen ? cen.label : st.label;
-    var green = !!(cen ? cen.reconciled && !st.rolled : st.label === "All synced" && !st.rolled);
-    var cls = st.held || st.pending || st.rolled || !green ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
+    var cls = st.held || st.pending ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
     var action = "";
     if (st.held && st.reason === "session-mismatch") {
       action =
         `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.resolveHeld()">Resolve session</button>`;
-    }
-    if (cen && cen.undoUntil) {
-      action +=
-        `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.undoClear()">Undo clear</button>`;
     }
     var guardLine = snapGuard
       ? `<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(snapGuard)}</p>`
@@ -2503,7 +2387,7 @@
     return (
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
-      `<span><b>${esc(label)}</b>${cen && cen.tone === "bad" ? " · saved ≠ snaps" : st.detail ? " · " + esc(st.detail) : ""}</span>` +
+      `<span><b>${esc(st.label)}</b>${st.detail ? " · " + esc(st.detail) : ""}</span>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.syncNow()">Sync now</button>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.upload()">Export</button>` +
       action +
@@ -3603,17 +3487,6 @@
     render();
   }
 
-  function undoClear() {
-    var J = global.OFFGRD_CALLER_JOURNAL;
-    var gameId = session && session.gameId;
-    if (!J || !gameId || !J.undoClear) return;
-    J.undoClear(gameId, "defense");
-    events = hydrateView(events);
-    refold();
-    saveLocal();
-    render();
-  }
-
   function init() {
     try {
       if (global.OFFGRD_CALLER_RECOVERY && OFFGRD_CALLER_RECOVERY.snapshotIfNeeded) {
@@ -3623,6 +3496,7 @@
     loadSession();
     var beforeId = session && session.gameId;
     ensureSession();
+    if (opp() !== "ANY" && session) session.opp = opp();
     if ((session && session.gameId) !== beforeId || (sessionArchives && sessionArchives.length)) {
       saveLocal();
     }
@@ -3636,7 +3510,6 @@
 
   global.OFFGRD_DCALLER = {
     init: init,
-    onOpponentChanged: onOpponentChanged,
     render: render,
     setSit: setSit,
     setLook: setLook,
@@ -3660,7 +3533,6 @@
     grade: grade,
     toggleFlag: toggleFlag,
     clear: clearLog,
-    undoClear: undoClear,
     syncNow: syncNow,
     resolveHeld: resolveHeld,
     upload: upload,

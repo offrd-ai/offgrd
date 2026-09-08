@@ -244,32 +244,6 @@ check(
     emptyRoll.events.length === 0
 );
 check(
-  "restamp stamps rolledFrom on the new session",
-  emptyRoll.session.rolledFrom === "july-empty" && !!emptyRoll.session.restampedAt
-);
-const rolledHdr = Sync.getSyncHeaderState(
-  "defense",
-  [],
-  false,
-  emptyRoll.session,
-  { dn: 4, db: "GOAL", namedCall: "OMAHA" }
-);
-check(
-  "header is not All synced after a session roll",
-  rolledHdr.label !== "All synced" && rolledHdr.rolled === true && rolledHdr.reason === "session-rolled"
-);
-const leftoverHdr = Sync.getSyncHeaderState(
-  "defense",
-  [],
-  false,
-  { gameId: "live-today", week: "Live 2026-09-07" },
-  { dn: 4, db: "GOAL", namedCall: "OMAHA" }
-);
-check(
-  "leftover sit + empty events is not All synced",
-  leftoverHdr.label !== "All synced" && leftoverHdr.rolled === true
-);
-check(
   "flushed in-progress session is immune at midnight",
   !S.isStaleLiveIdentity(
     { week: "Live 2026-08-27", game_date: "2026-08-27", gameId: "g-live", inProgress: true },
@@ -824,45 +798,6 @@ function evAt(id, seq) {
   });
   check("second defense flush is a no-op", pushedRows === pushedD && Sync.pendingCount("defense", dFlush) === 0);
   check("defense ledger has no side-name keys", noSideKeys());
-
-  const priorSess = {
-    gameId: "ce16f75d-070e-4d1c-8fcd-38db1bbaf645",
-    opp: "Parkway South",
-    week: "Live 2026-09-04",
-    inProgress: true,
-    ended: false,
-  };
-  const fridayEvents = [{ eventId: "f1", gameId: priorSess.gameId, type: "call", side: "offense" }];
-  check(
-    "Parkway Central differs from an open Friday session",
-    S.shouldRotateForOpponent(priorSess, "Parkway Central", fridayEvents) === true
-  );
-  check(
-    "same opponent case-insensitive does not rotate",
-    S.shouldRotateForOpponent(priorSess, "parkway south", fridayEvents) === false
-  );
-  const minted = S.endAndMintForOpponent(
-    priorSess,
-    { opp: "Parkway Central", week: "Live 2026-09-07", game_date: "2026-09-07" },
-    function () {
-      return "new-central-id";
-    },
-    fridayEvents,
-    { dn: 4, db: "GOAL" }
-  );
-  check(
-    "new opponent mints a new gameId and ends the prior session",
-    minted.rotated === true &&
-      minted.session.gameId === "new-central-id" &&
-      minted.session.opp === "Parkway Central" &&
-      minted.prior.ended === true &&
-      minted.prior.inProgress === false &&
-      minted.prior.gameId === priorSess.gameId
-  );
-  check(
-    "no-name leftover inProgress still rotates when an opponent is chosen",
-    S.shouldRotateForOpponent({ gameId: "anon", inProgress: true }, "Parkway Central", fridayEvents) === true
-  );
 
   if (fails) {
     console.error(fails + " failed");
