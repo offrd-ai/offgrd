@@ -773,6 +773,9 @@
   /** Last active (non-undone) call from a fold log — selection / ON CALL source of truth. */
   /** Game id the folder should use: session if it still has events, else the sole id in the store. */
   function foldGameId(session, events) {
+    var Pin = global.OFFGRD_GAMEDAY_PIN;
+    var pinned = Pin && Pin.writeId ? Pin.writeId() : null;
+    if (pinned) return String(pinned);
     var sid = session && session.gameId != null && session.gameId !== "" ? String(session.gameId) : null;
     var list = events || [];
     if (sid && list.some(function (e) { return e && String(e.gameId) === sid; })) return sid;

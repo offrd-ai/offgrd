@@ -77,14 +77,56 @@
     }
     return ("00000000" + (h >>> 0).toString(16)).slice(-8);
   }
+  function isUuid(s) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(s || ""));
+  }
+  /** Deterministic UUID so two devices merge and caller_games.id can store it. */
   function gameIdFor(opp, date) {
-    return "gd-" + fnv(scheduleKey(opp, date));
+    var k = scheduleKey(opp, date);
+    var a = fnv(k);
+    var b = fnv("1|" + k);
+    var c = fnv("2|" + k);
+    var d = fnv("3|" + k);
+    return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
+  }
+
+  function retargetLive(from, to) {
+    if (!from || !to || String(from) === String(to)) return;
+    function walk(evs) {
+      (evs || []).forEach(function (e) {
+        if (e && String(e.gameId) === String(from)) e.gameId = to;
+      });
+    }
+    try {
+      if (global.CALLER_SESSION && String(global.CALLER_SESSION.gameId) === String(from)) global.CALLER_SESSION.gameId = to;
+      walk(global.CALLER_EVENTS);
+    } catch (eO) {}
+    try {
+      var D = global.OFFGRD_DCALLER;
+      var ds = D && (D.getSession ? D.getSession() : D.session);
+      if (ds && String(ds.gameId) === String(from)) ds.gameId = to;
+    } catch (eD) {}
+    try {
+      var J = global.OFFGRD_CALLER_JOURNAL;
+      if (J && J.retargetGameId) J.retargetGameId(from, to);
+    } catch (eJ) {}
   }
 
   function get() {
     var o = parseJson(lsGet(PIN_KEY));
     if (!o || isFallbackOpp(o.opponent) || !o.gameId) return null;
+    if (!isUuid(o.gameId)) {
+      var next = gameIdFor(o.opponent, o.date);
+      var prev = o.gameId;
+      o.gameId = next;
+      save(o);
+      retargetLive(prev, next);
+    }
     return o;
+  }
+  function writeId() {
+    var p = get();
+    return p && p.gameId ? p.gameId : null;
   }
   function save(pin) {
     lsSet(PIN_KEY, JSON.stringify(pin));
@@ -276,11 +318,13 @@
   function adoptIfPinned(sess) {
     var pin = get();
     if (!pin || !sess) return sess;
+    var prev = sess.gameId;
     sess.opp = pin.opponent;
     sess.gameId = pin.gameId;
     sess.game_date = pin.date;
-    sess.week = sess.week || "Live " + pin.date;
+    sess.week = "Live " + pin.date;
     sess.ended = false;
+    if (prev && String(prev) !== String(pin.gameId)) retargetLive(prev, pin.gameId);
     return sess;
   }
 
@@ -483,6 +527,8 @@
     parseGameDate: parseGameDate,
     libraryOpponents: libraryOpponents,
     gameIdFor: gameIdFor,
+    writeId: writeId,
+    isUuid: isUuid,
     existingGameId: existingGameId,
     scheduleKey: scheduleKey,
     pick: pick,

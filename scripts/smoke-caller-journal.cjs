@@ -72,6 +72,21 @@ evs.forEach(function (e) {
 });
 check("60 taps land in the journal", J.allRows().filter(J.isLedgerEvent).length === 60);
 check("append is idempotent", J.appendNow(evs[0]) && J.allRows().filter(J.isLedgerEvent).length === 60);
+J.appendNow({
+  eventId: "misfiled",
+  gameId: "stolen-uuid",
+  side: "offense",
+  type: "call",
+  payload: {},
+  clientTs: 2,
+  seq: 99,
+});
+check(
+  "retarget moves a write onto the pin id",
+  J.retargetGameId("stolen-uuid", "pin-id") === 1 &&
+    J.snapRowsForGame("pin-id", "offense").some(function (r) { return r.eventId === "misfiled"; }) &&
+    J.snapRowsForGame("stolen-uuid", "offense").length === 0
+);
 
 const wiped = J.hydrateView([], "defense", "fri-d");
 check("empty store rebuilds from journal for that gameId", wiped.length === 60);

@@ -222,6 +222,20 @@
     return row;
   }
 
+  function retargetGameId(from, to) {
+    if (!from || !to || String(from) === String(to)) return 0;
+    var n = 0;
+    Object.keys(mem).forEach(function (id) {
+      var r = mem[id];
+      if (!r || String(r.gameId) !== String(from)) return;
+      r.gameId = String(to);
+      n += 1;
+      if (idb) idbPut(idb, r);
+    });
+    if (n) persistLsMirror();
+    return n;
+  }
+
   function adopt(events) {
     var n = 0;
     (events || []).forEach(function (e) {
@@ -548,6 +562,7 @@
     ready: ready,
     appendNow: appendNow,
     adopt: adopt,
+    retargetGameId: retargetGameId,
     allRows: allRows,
     activeEvents: activeEvents,
     eventsForGame: eventsForGame,
