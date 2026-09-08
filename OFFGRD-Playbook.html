@@ -91,6 +91,7 @@
  #pbSideBar .pb-side-seg .btn,.pb-side-seg .btn{border:0;border-radius:0;min-width:108px;padding:6px 12px;font-size:12px}
  #pbSideBar .pb-side-seg .btn.on,.pb-side-seg .btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
  body.pb-side-defense #m-family-wrap{display:none!important}
+ body.pb-side-defense #m-type-wrap{display:none!important}
  #pbDock{display:none;position:relative;flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
  #pbDock .row{margin-top:4px}
  body.pb-dock-on #pbDock{display:block}
@@ -117,29 +118,30 @@
  }
 
 </style>
-<script src="OFFGRD-config.js?v=359"></script>
-<script src="OFFGRD-brand-persist.js?v=359"></script>
-<script src="supabase.js?v=359"></script>
-<script src="OFFGRD-cache-gate.js?v=359"></script>
-<script src="OFFGRD-formations-data.js?v=359"></script>
-<script src="OFFGRD-formation-canon.js?v=359"></script>
-<script src="OFFGRD-play-map.js?v=359"></script>
-<script src="OFFGRD-play-stubs.js?v=359"></script>
-<script src="OFFGRD-empty-unknown.js?v=359"></script>
-<script src="OFFGRD-d-vocab.js?v=359"></script>
-<script src="OFFGRD-play-direction.js?v=359"></script>
-<script src="OFFGRD-formation-map.js?v=359"></script>
-<script src="OFFGRD-render.js?v=359"></script>
-<script src="OFFGRD-pb-dock.js?v=359"></script>
-<script src="OFFGRD-pos-glossary.js?v=359"></script>
-<script src="OFFGRD-autoderive.js?v=359"></script>
-<script src="OFFGRD-week-autotest.js?v=359"></script>
-<script src="OFFGRD-play-wizard.js?v=359"></script>
-<script src="OFFGRD-opp-shells.js?v=359"></script>
-<script src="OFFGRD-scoutcards.js?v=359"></script>
-<script src="OFFGRD-telestrate.js?v=359"></script>
-<script src="OFFGRD-redesign.js?v=359"></script>
-<script src="OFFGRD-shell.js?v=359"></script>
+<script src="OFFGRD-config.js?v=360"></script>
+<script src="OFFGRD-brand-persist.js?v=360"></script>
+<script src="supabase.js?v=360"></script>
+<script src="OFFGRD-cache-gate.js?v=360"></script>
+<script src="OFFGRD-formations-data.js?v=360"></script>
+<script src="OFFGRD-formation-canon.js?v=360"></script>
+<script src="OFFGRD-play-map.js?v=360"></script>
+<script src="OFFGRD-play-type.js?v=360"></script>
+<script src="OFFGRD-play-stubs.js?v=360"></script>
+<script src="OFFGRD-empty-unknown.js?v=360"></script>
+<script src="OFFGRD-d-vocab.js?v=360"></script>
+<script src="OFFGRD-play-direction.js?v=360"></script>
+<script src="OFFGRD-formation-map.js?v=360"></script>
+<script src="OFFGRD-render.js?v=360"></script>
+<script src="OFFGRD-pb-dock.js?v=360"></script>
+<script src="OFFGRD-pos-glossary.js?v=360"></script>
+<script src="OFFGRD-autoderive.js?v=360"></script>
+<script src="OFFGRD-week-autotest.js?v=360"></script>
+<script src="OFFGRD-play-wizard.js?v=360"></script>
+<script src="OFFGRD-opp-shells.js?v=360"></script>
+<script src="OFFGRD-scoutcards.js?v=360"></script>
+<script src="OFFGRD-telestrate.js?v=360"></script>
+<script src="OFFGRD-redesign.js?v=360"></script>
+<script src="OFFGRD-shell.js?v=360"></script>
 </head>
 <body>
  <div class="topbar"><a href="OFFGRD.html" title="OFFGRD &middot; back to home" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit"><img src="icon.svg" alt="OFFGRD" style="width:26px;height:26px;border-radius:6px"><b>OFF<span style="color:#7BAFD4">GRD</span></b></a><span>&middot; Playbook &middot; draw &amp; animate</span><a class="btn nav" href="OFFGRD.html" title="Back to OFFGRD home" style="text-decoration:none;margin-left:12px">&larr; OFFGRD</a><a class="btn" href="OFFGRD-QB.html" style="text-decoration:none;margin-left:6px">Reps Lab</a><span id="acct" style="margin-left:auto"></span></div>
@@ -300,6 +302,9 @@
  <input id="m-family" list="m-family-list" placeholder="type a family" autocomplete="off">
  <datalist id="m-family-list"></datalist>
  </label>
+ <label id="m-type-wrap">Type
+ <div id="m-type-chips" class="fm-row"></div>
+ </label>
  <label>Series<input id="m-series" placeholder="e.g. Zone"></label>
  <label style="grid-column:1/-1">Tags
  <div class="row" style="margin-top:4px;gap:6px">
@@ -333,6 +338,7 @@
 
  <div class="panel">
  <div class="lbl" style="margin-bottom:6px">Your playbook (<span id="playCount">0</span>)</div>
+ <p class="hint" id="typeUntypedBanner" hidden style="margin:0 0 8px"></p>
  <div class="libtools">
  <input type="search" id="libSearch" placeholder="Search name, tags, formation&hellip;" autocomplete="off">
  <select id="libSide" title="Offense vs defense calls"><option value="">Offense + Defense</option><option value="offense">Offense only</option><option value="defense">Defense only</option></select>
@@ -349,7 +355,7 @@
 <div class="ov" id="installModal"><div class="ovbox"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Install plan</b><div><button class="btn" onclick="window.print()">Print</button> <button class="btn" id="installClose">Close</button></div></div><p class="hint" style="margin:6px 0">Generated from your saved plays, grouped by series, base series first, ~6 installs per day.</p><div id="installBody"></div></div></div>
 <div class="ov" id="stubSheetModal"><div class="ovbox" style="max-width:560px">
  <div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:18px;color:var(--navy)">Add plays from your call sheet</b><button class="btn" id="stubSheetClose">Close</button></div>
- <p class="hint" style="margin:8px 0 10px">Paste one play per line. A name with a concept word — <b>SMASH, MESH, FLOOD, VERTS, STICK, CURL</b> — ranks in the Caller immediately, no drawing needed. House names (Houston, Mallet, Karate Combo) get the same if you add the concept in the second column: <b>Houston, Flood</b>. That column is concept/family. Free-form tags do nothing here. Diagrams can wait.</p>
+ <p class="hint" style="margin:8px 0 10px">Paste one play per line. A name with a concept word — <b>SMASH, MESH, FLOOD, VERTS, STICK, CURL</b> — ranks in the Caller immediately, no drawing needed. House names (Houston, Mallet, Karate Combo) get the same if you add the concept in the second column: <b>Houston, Flood</b>. That column is concept/family. Optional type suffix: <b>HAMMER (R)</b>, <b>HOUSTON (P)</b>, <b>FARGO SWITCH (RPO)</b>. Free-form tags do nothing here. Diagrams can wait.</p>
  <div class="row" style="margin-bottom:8px">
   <span class="lbl" style="margin:0">Side</span>
   <div class="pb-side-seg" id="stubSideSeg">
@@ -434,7 +440,7 @@ const STORE="offgrd_playbook_v1";
 const DRAFT_KEY="offgrd_pb_draft";
 const UNDO_SS="offgrd_pb_undo";
 const UNDO_CAP=120;
-let _draftT=null,_libFilt={q:"",side:"",form:"",fam:"",ser:"",pers:"",tag:"",sort:"updated"};
+let _draftT=null,_libFilt={q:"",side:"",form:"",fam:"",ser:"",pers:"",tag:"",sort:"updated",untyped:false};
 const SWATCH=["#4B9CD3","#13294B","#c8102e","#1d7a45","#b8860b","#9aa4b2","#222222"];
 function uuid(){ try{ if(crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return "p-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10); }
 function nfKey(p){ return String(p.name||"").toLowerCase()+"|"+String(p.formation||"").toLowerCase(); }
@@ -680,7 +686,7 @@ function seedDefensePlay(opts){
  OFFGRD_RENDER.placeDefenseOn(STATE, front, cov);
  EDIT_SIDE="defense"; persistEditSide(); markClean(); syncDefSels();
 }
-function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",type:"pass",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[],side:"offense"};SEL=null;UNDO=[];REDO=[];syncUndo(); EDIT_SIDE="offense"; persistEditSide(); markClean(); /* no draft write ? blank canvas must not nag on reopen */}
+function newPlay(fn){const f=(FORMS[fn]||FORMS["2x2 Doubles (Gun)"])();STATE={id:uuid(),tags:[],group:"",updatedAt:Date.now(),name:"",family:"",series:"",personnel:"",formation:fn||"2x2 Doubles (Gun)",type:"",typeSource:"",typeOverride:"",protection:"",front:"none",coverage:"none",showZones:false,qbNotes:"",field:"High School",bg:null,bgOpacity:0.5,players:f.map((p,i)=>({id:i,lab:p.lab,x:p.x,y:p.y,type:p.type,color:null,ol:p.ol||0,blk:null,route:[],motion:[]})),defs:[],texts:[],draws:[],side:"offense"};SEL=null;UNDO=[];REDO=[];syncUndo(); EDIT_SIDE="offense"; persistEditSide(); markClean(); /* no draft write ? blank canvas must not nag on reopen */}
 function startBlankPlay(){
  if(EDIT_SIDE==="defense") seedDefensePlay({front:(STATE&&STATE.front&&DFRONTS[STATE.front])?STATE.front:"4-3",coverage:(STATE&&STATE.coverage)||"none"});
  else newPlay((document.getElementById("formSel")&&document.getElementById("formSel").value)||"2x2 Doubles (Gun)");
@@ -773,6 +779,8 @@ function wizFinish(){
  if(WZ.front && WZ.front!=="none"){ placeDefense(WZ.front,WZ.cov); const df=document.getElementById("defFront"),dc=document.getElementById("defCov"),sz=document.getElementById("showZones"); if(df)df.value=WZ.front; if(dc)dc.value=WZ.cov; if(WZ.cov!=="none"&&sz){sz.checked=true;STATE.showZones=true;} }
  set("m-name",WZ.name); set("m-series",WZ.series);
  if(WZ.family) set("m-family",WZ.family); else if(WZ.kind==="Run" && WZ.scheme) set("m-family",WZ.scheme.replace(/ (Rt|Lt)$/,""));
+ if(WZ.kind==="Run"){ STATE.type="run"; STATE.typeSource="wizard"; STATE.typeOverride=""; }
+ else if(WZ.kind==="Pass"){ STATE.type="pass"; STATE.typeSource="wizard"; STATE.typeOverride=""; }
  readMeta(); renderAll();
  if(WZ.save && WZ.name) savePlay();
  wizClose(); msg("Play built"+(WZ.save&&WZ.name?" & saved":"")+" \u2014 edit anything on the field.");
@@ -1308,7 +1316,7 @@ function migrateLib(arr){
  const seen=new Set();
  return out.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
 }
-function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a)){LIB=migrateLib(a); try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}}}}catch(e){}}
+function loadLib(){try{const s=localStorage.getItem(STORE);if(s){const a=JSON.parse(s);if(Array.isArray(a)){LIB=migrateLib(a); rederiveLibTypes(false); try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){}}}}catch(e){}}
 function saveLib(){try{localStorage.setItem(STORE,JSON.stringify(LIB));}catch(e){} try{ if(window.OFFGRD_SYNC) window.OFFGRD_SYNC(); }catch(e){}}
 function val(id){
  if(id==="m-form"){ const el=document.getElementById("formSel"); return el?(el.value||"").trim():""; }
@@ -1327,7 +1335,7 @@ function set(id,v){
  const el=document.getElementById(id);if(el)el.value=v||"";
 }
 function readMeta(){if(!STATE)return;STATE.name=val("m-name");if(EDIT_SIDE==="defense"){STATE.family="";}else{const typedFam=val("m-family");STATE.family=typedFam?(applyPlaybookFamily({typed:typedFam})||typedFam):"";}STATE.series=val("m-series");STATE.personnel=val("m-pers");STATE.formation=val("m-form")||STATE.formation;STATE.protection=val("m-prot");STATE.group=val("m-group");if(!Array.isArray(STATE.tags))STATE.tags=[];}
-function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();renderFamilyChips();}
+function writeMeta(){set("m-name",STATE.name);set("m-family",STATE.family);set("m-series",STATE.series);set("m-pers",STATE.personnel);set("m-form",STATE.formation);set("m-prot",STATE.protection);set("m-group",STATE.group||"");renderTagChips();renderFamilyChips();paintTypeChips();}
 function renderTagChips(){
  const host=document.getElementById("tagChips"); if(!host||!STATE) return;
  const tags=Array.isArray(STATE.tags)?STATE.tags:[];
@@ -1486,6 +1494,12 @@ function filteredLib(){
  if(_libFilt.ser && (p.series||"")!==_libFilt.ser) return false;
  if(_libFilt.pers && (p.personnel||"")!==_libFilt.pers) return false;
  if(_libFilt.tag && !(p.tags||[]).includes(_libFilt.tag)) return false;
+ if(_libFilt.untyped){
+  const T=window.OFFGRD_PLAY_TYPE;
+  if(T&&T.isDefense&&T.isDefense(p)) return false;
+  if(T&&T.typeOf&&T.typeOf(p,{snaps:seasonTypeSnaps()})) return false;
+  if(!T && (p.type==="run"||p.type==="pass"||p.type==="rpo"||p.type==="defense")) return false;
+ }
  if(!q) return true;
  const hay=[p.name,p.formation,p.family,p.series,p.personnel,p.group,(p.tags||[]).join(" ")].join(" ").toLowerCase();
  return hay.indexOf(q)>=0;
@@ -1509,6 +1523,7 @@ function renderLib(){
   if(_libFilt.ser) bits.push(_libFilt.ser);
   if(_libFilt.pers) bits.push(_libFilt.pers);
   if(_libFilt.tag) bits.push(_libFilt.tag);
+  if(_libFilt.untyped) bits.push("untyped");
   const filter=bits.join(" · ");
   let why="No plays match your search/filters.";
   if(q && filter) why="No plays match '"+q+"' in "+filter+" — clear filters";
@@ -1517,7 +1532,7 @@ function renderLib(){
   host.innerHTML='<p class="hint">'+esc(why)+'</p><p><button type="button" class="btn" id="libClearFilt">Clear filters</button></p>';
   const clr=document.getElementById("libClearFilt");
   if(clr) clr.onclick=function(){
-    _libFilt.q=""; _libFilt.side=""; _libFilt.form=""; _libFilt.fam=""; _libFilt.ser=""; _libFilt.pers=""; _libFilt.tag="";
+    _libFilt.q=""; _libFilt.side=""; _libFilt.form=""; _libFilt.fam=""; _libFilt.ser=""; _libFilt.pers=""; _libFilt.tag=""; _libFilt.untyped=false;
     ["libSearch","libSide","libForm","libFam","libSer","libPers","libTag"].forEach(function(id){
       const el=document.getElementById(id); if(el) el.value="";
     });
@@ -1534,14 +1549,91 @@ function renderLib(){
  const stubApi=window.OFFGRD_PLAY_STUBS;
  const needsDiagram=stubApi&&stubApi.isStub&&stubApi.isStub(p);
  const stubBadge=needsDiagram?` <span class="stub-badge">Needs diagram</span>`:"";
+ const T=window.OFFGRD_PLAY_TYPE;
+ const snaps=seasonTypeSnaps();
+ const curType=side==="defense"?"":(T&&T.typeOf?T.typeOf(p,{snaps:snaps}): (p.type==="run"||p.type==="pass"||p.type==="rpo"?p.type:""));
+ const typeChips=side==="defense"?"":typeChipHtml(p.id, curType);
+ const srcLow=p.typeSource==="name-guess"?` <span class="tag">LOW</span>`:"";
  const meta=side==="defense"?[p.front||p.formation,p.coverage||p.family,p.personnel].filter(Boolean):[p.formation,p.family,p.personnel];
- return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}${stubBadge}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
+ return `<div class="playrow">${th}<span class="nm">${esc(p.name)}</span>${sideBadge}${stubBadge}${typeChips}${srcLow}<span class="tag">${meta.filter(Boolean).map(esc).join(" \u00b7 ")}${tags}${grp}</span><span class="sp"></span><button class="btn" data-act="open" data-id="${esc(p.id)}">Open</button><button class="btn" data-act="dup" data-id="${esc(p.id)}">Duplicate</button><button class="btn dz" data-act="del" data-id="${esc(p.id)}">&times;</button></div>`;
  }).join("");
  host.querySelectorAll("button[data-act]").forEach(b=>{
  b.onclick=()=>{ const id=b.dataset.id; if(b.dataset.act==="open") loadPlayId(id); else if(b.dataset.act==="dup") dupPlayId(id); else if(b.dataset.act==="del"){ if(confirm("Delete this play?")) delPlayId(id); } };
  });
+ host.querySelectorAll("button[data-type]").forEach(b=>{
+  b.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); setPlayType(b.getAttribute("data-id"), b.getAttribute("data-type")); };
+ });
 }
-function refreshLibUI(){ mergeDefCallsFromCache(); fillLibFilters(); renderLib(); paintMirrorMergeBtn(); }
+function typeChipHtml(id, current){
+ const cur=String(current||"").toLowerCase();
+ return ["run","pass","rpo"].map(function(t){
+  const on=cur===t?" on":"";
+  const lab=t==="rpo"?"RPO":(t==="run"?"Run":"Pass");
+  return `<button type="button" class="fm-chip${on}" data-type="${t}" data-id="${esc(id)}">${lab}</button>`;
+ }).join("");
+}
+function paintTypeChips(){
+ const host=document.getElementById("m-type-chips");
+ if(!host||!STATE) return;
+ if(EDIT_SIDE==="defense"){ host.innerHTML=""; return; }
+ const T=window.OFFGRD_PLAY_TYPE;
+ const cur=T&&T.typeOf?T.typeOf(STATE,{snaps:seasonTypeSnaps()}):(STATE.type||"");
+ host.innerHTML=typeChipHtml(STATE.id, cur);
+ host.querySelectorAll("button[data-type]").forEach(function(b){
+  b.onclick=function(){ setPlayType(STATE.id, b.getAttribute("data-type")); };
+ });
+}
+function seasonTypeSnaps(){
+ const PM=window.OFFGRD_PLAY_MAP;
+ return (PM&&PM.seasonOursRows)?PM.seasonOursRows():[];
+}
+function rederiveLibTypes(persist){
+ const T=window.OFFGRD_PLAY_TYPE;
+ if(!T||!T.rederiveBook) return [];
+ const changed=T.rederiveBook(LIB, seasonTypeSnaps());
+ if(changed.length && persist) saveLib();
+ if(STATE&&!T.isDefense(STATE)){
+  const hit=(LIB||[]).find(function(p){ return p&&p.id===STATE.id; });
+  if(hit){ STATE.type=hit.type; STATE.typeSource=hit.typeSource||""; STATE.typeOverride=hit.typeOverride||""; }
+ }
+ return changed;
+}
+function paintTypeBanner(){
+ const el=document.getElementById("typeUntypedBanner");
+ if(!el) return;
+ const T=window.OFFGRD_PLAY_TYPE;
+ const list=T&&T.untypedPlays?T.untypedPlays(memberLib(), seasonTypeSnaps()):[];
+ if(!list.length){ el.hidden=true; el.innerHTML=""; return; }
+ const n=list.length;
+ el.hidden=false;
+ el.innerHTML=`<button type="button" class="btn" id="typeUntypedBtn">${n} play${n===1?"":"s"} untyped \u2192</button>`;
+ const btn=document.getElementById("typeUntypedBtn");
+ if(btn) btn.onclick=function(){
+  _libFilt.untyped=true;
+  renderLib();
+  const host=document.getElementById("playList");
+  if(host) try{ host.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(e){}
+ };
+}
+function setPlayType(id, type){
+ const T=window.OFFGRD_PLAY_TYPE;
+ const p=(LIB||[]).find(function(x){ return x&&x.id===id; });
+ const target=p||(STATE&&STATE.id===id?STATE:null);
+ if(!target||(T&&T.isDefense&&T.isDefense(target))) return;
+ const next=String(type||"").toLowerCase();
+ if(T&&T.setOverride){
+  if(target.typeOverride===next) T.setOverride(target, "");
+  else T.setOverride(target, next);
+  if(!target.typeOverride) T.applyDerive(target, seasonTypeSnaps());
+ }else{
+  target.type=next; target.typeSource="override"; target.typeOverride=next;
+ }
+ if(STATE&&STATE.id===id){
+  STATE.type=target.type; STATE.typeSource=target.typeSource||""; STATE.typeOverride=target.typeOverride||"";
+ }
+ saveLib(); refreshLibUI(); paintTypeChips();
+}
+function refreshLibUI(){ rederiveLibTypes(false); mergeDefCallsFromCache(); fillLibFilters(); renderLib(); paintTypeBanner(); paintMirrorMergeBtn(); }
 function dirApi(){ return window.OFFGRD_PLAY_DIRECTION||null; }
 function mirrorTokens(){
  const D=dirApi();
@@ -1667,10 +1759,10 @@ function commitStubSheet(){
  let added=0;
  _stubPreview.rows.forEach(function(r){
   if(r.status!=="new") return;
-  const stub=S.makeStub(r.name, side, r.family, uuid());
+  const stub=S.makeStub(r.name, side, r.family, uuid(), { type:r.type||"", typeOverride:r.typeOverride||"" });
   LIB.push(stub); added++;
  });
- saveLib(); refreshLibUI(); dismissStarterPrompt();
+ rederiveLibTypes(true); saveLib(); refreshLibUI(); dismissStarterPrompt();
  closeStubSheet();
  msg(S.previewSentence(_stubPreview)+" Saved "+added+".");
 }
@@ -2047,7 +2139,10 @@ function applyPlaybookFamily(opts){
  const inp=document.getElementById("m-family");
  if(inp) inp.value=prep.family;
  if(STATE) STATE.family=prep.family;
+ const T=window.OFFGRD_PLAY_TYPE;
+ if(STATE&&T&&T.applyDerive&&!STATE.typeOverride) T.applyDerive(STATE, seasonTypeSnaps());
  renderFamilyChips();
+ paintTypeChips();
  if(prep.notice) msg(prep.notice);
  return prep.family;
 }
@@ -2287,7 +2382,7 @@ document.getElementById("wizBtn").onclick=wizOpen;
  document.getElementById("wizModal").onclick=e=>{if(e.target.id==="wizModal")wizClose();};
  document.getElementById("exportLib").onclick=()=>{const b=new Blob([JSON.stringify(LIB,null,1)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="offgrd-playbook.json";a.click();URL.revokeObjectURL(u);};
  document.getElementById("importLib").onclick=()=>document.getElementById("libFile").click();
- document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
+ document.getElementById("libFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const a=JSON.parse(rd.result);if(Array.isArray(a)){LIB=migrateLib(a);rederiveLibTypes(true);saveLib();refreshLibUI();msg("Imported "+LIB.length+" plays.");}}catch(err){msg("Not a valid playbook file.");}};rd.readAsText(f);};
  const stubBtn=document.getElementById("stubSheetBtn");
  if(stubBtn) stubBtn.onclick=openStubSheet;
  const dVocabBtn=document.getElementById("dVocabBtn");
@@ -2345,10 +2440,10 @@ document.getElementById("wizBtn").onclick=wizOpen;
  bootDock();
 });
 </script>
-<script type="module" src="OFFGRD-qb-cloud.js?v=359"></script>
-<script type="module" src="OFFGRD-account.js?v=359"></script>
-<script src="OFFGRD-role-gate.js?v=359"></script>
-<script src="OFFGRD-mobile.js?v=359"></script>
+<script type="module" src="OFFGRD-qb-cloud.js?v=360"></script>
+<script type="module" src="OFFGRD-account.js?v=360"></script>
+<script src="OFFGRD-role-gate.js?v=360"></script>
+<script src="OFFGRD-mobile.js?v=360"></script>
 <script>setTimeout(function(){var a=document.getElementById("acct")||document.getElementById("navAuth");if(a&&!a.children.length&&!(a.textContent||"").trim()){a.innerHTML='<a href="javascript:location.reload(true)" style="font-size:12px;color:#c8102e;font-weight:800;text-decoration:underline">Sign-in didn\u2019t load \u2014 tap to reload</a>';}},6000);</script>
 </body>
 </html>

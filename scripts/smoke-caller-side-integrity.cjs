@@ -195,6 +195,54 @@ check(
   "empty leftover Live session still rolls",
   S.isStaleLiveIdentity({ week: "Live 2026-08-27", game_date: "2026-08-27" }, midnightNow, [])
 );
+const fridaySit = { dn: 4, db: "GOAL", namedCall: "OMAHA", zone: "REDZONE", hash: "ANY" };
+check(
+  "leftover Friday sit with empty events is immune",
+  !S.isStaleLiveIdentity(
+    { week: "Live 2026-09-04", game_date: "2026-09-04", gameId: "fri-d" },
+    new Date("2026-09-07T18:00:00-05:00"),
+    [],
+    fridaySit
+  )
+);
+const sitStamp = S.restampStaleSession(
+  { week: "Live 2026-09-04", game_date: "2026-09-04", gameId: "fri-d" },
+  [],
+  new Date("2026-09-07T18:00:00-05:00"),
+  "mon-id",
+  fridaySit
+);
+check(
+  "restamp does not mint a new Live day over leftover sit",
+  sitStamp.restamped === false && sitStamp.immune === true && sitStamp.session.gameId === "fri-d"
+);
+const keepEv = [
+  { eventId: "fri1", gameId: "fri-d", type: "call", playIndex: 0, clientTs: Date.parse("2026-09-04T20:00:00-05:00"), side: "defense" },
+];
+const evStamp = S.restampStaleSession(
+  { week: "Live 2026-09-04", game_date: "2026-09-04", gameId: "fri-d" },
+  keepEv,
+  new Date("2026-09-07T18:00:00-05:00"),
+  "mon-id"
+);
+check(
+  "restamp never drops Friday events",
+  evStamp.immune === true && evStamp.events.length === 1 && evStamp.events[0].gameId === "fri-d"
+);
+const emptyRoll = S.restampStaleSession(
+  { week: "Live 2026-08-27", game_date: "2026-08-27", gameId: "july-empty", opp: "Parkway North" },
+  [],
+  midnightNow,
+  "aug-empty"
+);
+check(
+  "empty leftover restamp archives the old session",
+  emptyRoll.restamped === true &&
+    emptyRoll.archive &&
+    emptyRoll.archive.session &&
+    emptyRoll.archive.session.gameId === "july-empty" &&
+    emptyRoll.events.length === 0
+);
 check(
   "flushed in-progress session is immune at midnight",
   !S.isStaleLiveIdentity(

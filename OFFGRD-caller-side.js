@@ -424,15 +424,38 @@
   }
 
   /**
+   * Sit still holds a real game (4th & GOAL · named call · look).
+   * Empty events + leftover sit is how Friday 9/4 was orphaned —
+   * restamp minted Live-today with events:[] and left sit in place.
+   */
+  function sitHasGameState(sit) {
+    if (!sit || typeof sit !== "object") return false;
+    if (sit.namedCall) return true;
+    if (sit.front || sit.coverage || sit.pressure) return true;
+    if (sit.pendingTry || sit.forTwo) return true;
+    if (sit.needsInput || sit.inferred) return true;
+    var dn = +sit.dn;
+    if (dn && dn !== 1) return true;
+    var db = sit.db != null ? String(sit.db) : "";
+    if (db && db !== "10+") return true;
+    var zone = sit.zone != null ? String(sit.zone) : "";
+    if (zone && zone !== "ANY") return true;
+    return false;
+  }
+
+  /**
    * Game is still open: coach has not hit Clear.
    * Flush/ack must not decide identity — a fully synced 18:13–23:30 game
    * is the same game at midnight. inProgress is set on first append and
    * persisted; events.length covers builds that predate the flag.
+   * Events in the store always win — ended must not orphan a ledger.
    */
-  function sessionIsOpen(sess, events) {
+  function sessionIsOpen(sess, events, sit) {
+    if (hasInFlightCallerEvents(sess, events)) return true;
+    if (sitHasGameState(sit)) return true;
     if (sess && sess.ended) return false;
     if (sess && sess.inProgress) return true;
-    return hasInFlightCallerEvents(sess, events);
+    return false;
   }
 
   function markSessionInProgress(sess) {
@@ -444,8 +467,8 @@
 
   /** Live YYYY-MM-DD whose day is not today, or game_date not today.
    *  An open session is immune — Friday 18:13 through 23:30 is one game. */
-  function isStaleLiveIdentity(sess, now, events) {
-    if (sessionIsOpen(sess, events)) return false;
+  function isStaleLiveIdentity(sess, now, events, sit) {
+    if (sessionIsOpen(sess, events, sit)) return false;
     if (!sess) return true;
     var today = liveDateISO(now);
     var week = String(sess.week || "");
@@ -472,27 +495,56 @@
     return liveDateISO(d) === today;
   }
 
+  function snapshotSessionArchive(sess, events, sit, reason) {
+    var ids = Object.create(null);
+    var n = 0;
+    (events || []).forEach(function (e) {
+      if (!e) return;
+      n += 1;
+      var id = e.gameId || e.game_id;
+      if (id) ids[String(id)] = (ids[String(id)] || 0) + 1;
+    });
+    return {
+      session: sess ? Object.assign({}, sess) : null,
+      sit: sit ? Object.assign({}, sit) : null,
+      gameIds: Object.keys(ids),
+      eventsByGame: ids,
+      eventCount: n,
+      archivedAt: Date.now(),
+      reason: reason || "restamp",
+    };
+  }
+
   /**
    * Recycled Live week/date → today + new gameId.
    * Only retarget events whose clientTs is today so July test snaps stay off the new key.
+   * Never drops the events array. A session with events or leftover sit is immune.
+   * When a true empty leftover rolls, the old identity is archived so it stays selectable.
    */
-  function restampStaleSession(sess, events, now, newId) {
-    if (sessionIsOpen(sess, events)) {
-      return { session: sess, events: events || [], restamped: false, immune: true };
+  function restampStaleSession(sess, events, now, newId, sit) {
+    var list = events || [];
+    if (sessionIsOpen(sess, list, sit)) {
+      return { session: sess, events: list, restamped: false, immune: true };
     }
-    if (!isStaleLiveIdentity(sess, now)) {
-      return { session: sess, events: events || [], restamped: false };
+    if (!isStaleLiveIdentity(sess, now, list, sit)) {
+      return { session: sess, events: list, restamped: false };
     }
     var today = liveDateISO(now);
     var oldId = sess && sess.gameId;
+    var archive = snapshotSessionArchive(sess, list, sit, "restamp");
     var next = stampFreshLiveSession(sess, now, newId || oldId);
-    var list = events || [];
     if (oldId && next.gameId && oldId !== next.gameId) {
       list.forEach(function (e) {
         if (e && e.gameId === oldId && eventOnLiveDate(e, today)) e.gameId = next.gameId;
       });
     }
-    return { session: next, events: list, restamped: true, fromGameId: oldId };
+    return {
+      session: next,
+      events: list,
+      restamped: true,
+      fromGameId: oldId,
+      archive: archive,
+    };
   }
 
   /** Active caller_games row is a previous day's Live session.
@@ -856,6 +908,8 @@
     liveWeekLabel: liveWeekLabel,
     isStaleLiveIdentity: isStaleLiveIdentity,
     hasInFlightCallerEvents: hasInFlightCallerEvents,
+    sitHasGameState: sitHasGameState,
+    snapshotSessionArchive: snapshotSessionArchive,
     sessionIsOpen: sessionIsOpen,
     markSessionInProgress: markSessionInProgress,
     stampFreshLiveSession: stampFreshLiveSession,

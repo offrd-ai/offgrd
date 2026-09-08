@@ -36,6 +36,7 @@
     needReason: null,
   };
   var session = null;
+  var sessionArchives = [];
   var pendingDir = null;
   var lastUploadAt = null;
   /** playIndex open in edit panel (correction), or null */
@@ -170,11 +171,12 @@
         side: "defense",
       };
     }
-    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events)) {
-      var stamped = Side.restampStaleSession(session, events, null, mint());
+    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events, sit)) {
+      var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
       session = stamped.session;
       session.side = "defense";
       if (Array.isArray(stamped.events)) events = stamped.events;
+      if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
     }
     return session;
   }
@@ -182,9 +184,10 @@
   function saveLocal() {
     var eng = E();
     if (!eng || !eng.saveStore) return;
+    var sess = session && session.gameId ? session : ensureSession();
     eng.saveStore(
       {
-        session: ensureSession(),
+        session: sess,
         sit: sit,
         events: events,
         seq: seq,
@@ -192,6 +195,7 @@
         lastUploadAt: lastUploadAt,
         eventFeed: eventFeed.slice(0, 40),
         liveExpanded: !!liveExpanded,
+        sessionArchives: sessionArchives,
         updatedAt: Date.now(),
       },
       storeKey()
@@ -1137,6 +1141,7 @@
       else sit.estYards = Math.max(1, Math.round(+sit.estYards));
     }
     events = Array.isArray(st.events) ? st.events.slice() : [];
+    sessionArchives = Array.isArray(st.sessionArchives) ? st.sessionArchives.slice() : [];
     seq = st.seq || 0;
     breaks = Array.isArray(st.breaks) ? st.breaks.slice() : [];
     lastUploadAt = st.lastUploadAt || null;
@@ -3372,9 +3377,91 @@
     h += marksHtml();
     h += logHtml();
     h += `</div>`;
+    h += recoveryToolsHtml();
     h += finalReviewHtml();
     h += `</div>`;
     host.innerHTML = h;
+  }
+
+  function recoveryToolsHtml() {
+    var Rec = global.OFFGRD_CALLER_RECOVERY;
+    var listed = Rec && Rec.listSelectableSessions
+      ? Rec.listSelectableSessions({ session: session, events: events, sessionArchives: sessionArchives }, sessionArchives)
+      : [];
+    var h = `<div class="rd-gd-panel rd-gd-tools" style="margin-top:12px"><div class="lbl">Tools</div>`;
+    h += `<div class="rd-gd-tools-row">`;
+    h += `<button type="button" class="rd-gd-tool-btn" onclick="OFFGRD_DCALLER.exportAllSessions()">Export all sessions</button>`;
+    h += `<button type="button" class="rd-gd-tool-btn" onclick="OFFGRD_DCALLER.replaySessions()">Replay to cloud</button>`;
+    h += `<button type="button" class="rd-gd-tool-btn" onclick="OFFGRD_DCALLER.upload()">Export this session</button>`;
+    h += `</div>`;
+    h += `<p class="foot">Export all sessions dumps every gameId in the D and O stores — use this before a new Live day restamps.</p>`;
+    if (listed.length) {
+      h += `<div class="lbl" style="margin-top:10px">Sessions on this device</div>`;
+      listed.forEach(function (row) {
+        var cur = session && String(session.gameId) === String(row.gameId);
+        h += `<div class="rd-gd-tools-row" style="margin-top:6px">`;
+        h += `<span class="foot">${esc(row.week || row.game_date || row.gameId)} · ${row.eventCount} events${row.source === "archive" ? " · archived" : ""}${cur ? " · current" : ""}</span>`;
+        if (!cur) {
+          h += `<button type="button" class="rd-gd-tool-btn" onclick="OFFGRD_DCALLER.resumeSession('${esc(row.gameId)}')">Resume</button>`;
+        }
+        h += `</div>`;
+      });
+    }
+    h += `</div>`;
+    return h;
+  }
+
+  function exportAllSessions() {
+    var Rec = global.OFFGRD_CALLER_RECOVERY;
+    if (!Rec || !Rec.exportAllSessions) return;
+    Rec.exportAllSessions();
+  }
+
+  function replaySessions() {
+    var Rec = global.OFFGRD_CALLER_RECOVERY;
+    if (!Rec || !Rec.replayFromFile) return;
+    Rec.replayFromFile()
+      .then(function (r) {
+        var n = r && r.pushed != null ? r.pushed : 0;
+        var g = r && r.games ? r.games.length : 0;
+        try {
+          alert(r && r.ok ? "Replayed " + n + " events across " + g + " game(s)." : "Replay failed: " + ((r && r.reason) || "unknown"));
+        } catch (eA) {}
+        render();
+      })
+      .catch(function (e) {
+        if (e && e.message === "cancelled") return;
+        try {
+          alert("Replay failed: " + (e && e.message ? e.message : e));
+        } catch (e2) {}
+      });
+  }
+
+  function resumeSession(gameId) {
+    if (!gameId) return;
+    var want = String(gameId);
+    var hit = (sessionArchives || []).find(function (a) {
+      return a && a.session && String(a.session.gameId) === want;
+    });
+    if (hit && hit.session) {
+      session = Object.assign({}, hit.session);
+      if (hit.sit) sit = Object.assign(sitDefaults(), hit.sit);
+    } else {
+      session = session || {};
+      session.gameId = want;
+      var ev = (events || []).find(function (e) {
+        return e && String(e.gameId) === want;
+      });
+      if (ev && ev.payload && ev.payload.date) {
+        session.game_date = String(ev.payload.date).slice(0, 10);
+        session.week = "Live " + session.game_date;
+      }
+      if (ev && ev.payload && ev.payload.opponent) session.opp = ev.payload.opponent;
+    }
+    session.side = "defense";
+    refold();
+    saveLocal();
+    render();
   }
 
   function setDir(d) {
@@ -3401,9 +3488,18 @@
   }
 
   function init() {
+    try {
+      if (global.OFFGRD_CALLER_RECOVERY && OFFGRD_CALLER_RECOVERY.snapshotIfNeeded) {
+        OFFGRD_CALLER_RECOVERY.snapshotIfNeeded();
+      }
+    } catch (eSnap) {}
     loadSession();
+    var beforeId = session && session.gameId;
     ensureSession();
     if (opp() !== "ANY" && session) session.opp = opp();
+    if ((session && session.gameId) !== beforeId || (sessionArchives && sessionArchives.length)) {
+      saveLocal();
+    }
     ensureSyncBound();
     syncNow();
     try {
@@ -3440,6 +3536,9 @@
     syncNow: syncNow,
     resolveHeld: resolveHeld,
     upload: upload,
+    exportAllSessions: exportAllSessions,
+    replaySessions: replaySessions,
+    resumeSession: resumeSession,
     openEditLast: openEditLast,
     openEdit: openEdit,
     closeEdit: closeEdit,
