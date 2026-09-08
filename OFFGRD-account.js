@@ -2109,6 +2109,7 @@ function applyCloudBrand(){
     if(!entry) return;
     _brandHydrateFp = brandFp;
     try{ console.log("[brand] hydrated", brandName, entry.bg, "abbr=", entry.abbr); }catch(e){}
+    try{ document.dispatchEvent(new CustomEvent("offgrd-brand-hydrated")); }catch(eB){}
     /* CSS-only hook on QB (redesign wrapper); Scout hook also updates in-page crest */
     if(window.OFFGRD_BRAND){ window.OFFGRD_BRAND(brandName, entry); }
     /* Program position glossary (display-only labels) */

@@ -51,6 +51,21 @@
     d.setDate(d.getDate() + n);
     return todayISO(d);
   }
+  var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  function parseGameDate(raw, today) {
+    var s = String(raw == null ? "" : raw).trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    var m = s.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+    if (m) {
+      var mo = MONTHS[m[1].slice(0, 3).toLowerCase()];
+      var day = +m[2];
+      var y = m[3] ? +m[3] : +String(today || todayISO()).slice(0, 4);
+      if (!mo || !day) return "";
+      return todayISO(new Date(y, mo - 1, day));
+    }
+    return "";
+  }
   function scheduleKey(opp, date) {
     return normalizeOpp(opp) + "|" + String(date || "").slice(0, 10);
   }
@@ -130,10 +145,11 @@
     var hi = addDays(today, 7);
     var seen = Object.create(null);
     var out = [];
-    function add(g) {
+    function add(g, force) {
       if (!g || isFallbackOpp(g.opponent)) return;
-      var date = String(g.date || g.game_date || today).slice(0, 10);
-      if (date < lo || date > hi) return;
+      var date = parseGameDate(g.date || g.game_date, today) || (force ? today : "");
+      if (!date) return;
+      if (!force && (date < lo || date > hi)) return;
       var k = scheduleKey(g.opponent, date);
       if (seen[k]) return;
       seen[k] = 1;
@@ -149,7 +165,8 @@
       });
     }
     var sched = global.SCHEDULE;
-    if (Array.isArray(sched)) sched.forEach(add);
+    if (Array.isArray(sched)) sched.forEach(function (g) { add(g, false); });
+    if (!out.length && Array.isArray(sched)) sched.forEach(function (g) { add(g, true); });
     var pin = get();
     if (pin) add({ opponent: pin.opponent, date: pin.date || today, ha: pin.ha || "H" });
     out.sort(function (a, b) {
@@ -315,6 +332,8 @@
   function renderPicker() {
     var host = global.document && document.getElementById("view-pick");
     if (!host) return;
+    bindRefresh();
+    wrapScheduleSet();
     ensurePickCss();
     var games = listGames();
     var pin = get();
@@ -324,8 +343,27 @@
     var crest = typeof global.crest === "function" ? global.crest : function () { return ""; };
     var h = '<div class="rd-gd rd-gd-pick">';
     h += '<div class="rd-gd-pick-head"><b>Tonight\'s game</b><span class="foot">Pick once. ' + esc(sideLbl) + " opens on that pin.</span></div>";
+    var libs = !games.length ? libraryOpponents() : [];
     if (!games.length) {
-      h += '<p class="foot">No games on the schedule for yesterday through next week. Add one under Schedule.</p>';
+      h += '<p class="foot">Schedule is still loading, or nothing sits in yesterday through next week.</p>';
+      h += '<p class="foot"><b>Start a game</b> → choose opponent from the library. Never a dead end.</p>';
+      if (!libs.length) {
+        h +=
+          '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Opponent" autocomplete="off">' +
+          '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
+      }
+      libs.forEach(function (name) {
+        h +=
+          '<button type="button" class="rd-gd-pick-card rd-gd-pick-lib" data-opp="' +
+          esc(name) +
+          '">' +
+          crest(name, 56) +
+          '<span class="rd-gd-pick-body"><b>vs ' +
+          esc(name) +
+          '</b><span class="foot">Library</span><span class="rd-gd-pick-cta">Start a game · vs ' +
+          esc(name) +
+          "</span></span></button>";
+      });
     }
     games.forEach(function (g) {
       var vs = (g.ha === "A" ? "@ " : "vs ") + g.opponent;
@@ -378,12 +416,72 @@
         if (g) pick(g, { side: side, fresh: true });
       };
     }
+    host.querySelectorAll(".rd-gd-pick-lib").forEach(function (btn) {
+      btn.onclick = function () {
+        pick({ opponent: btn.getAttribute("data-opp"), date: todayISO(), ha: "H" }, { side: side });
+      };
+    });
+    var typedGo = host.querySelector("#gdPickTypedGo");
+    if (typedGo) {
+      typedGo.onclick = function () {
+        var inp = host.querySelector("#gdPickTyped");
+        var name = inp && inp.value ? String(inp.value).trim() : "";
+        if (name) pick({ opponent: name, date: todayISO(), ha: "H" }, { side: side });
+      };
+    }
   }
+
+  function libraryOpponents() {
+    var names = [];
+    function addName(n) {
+      if (isFallbackOpp(n)) return;
+      var t = String(n).trim();
+      if (names.some(function (x) { return normalizeOpp(x) === normalizeOpp(t); })) return;
+      names.push(t);
+    }
+    if (Array.isArray(global.GAMES)) global.GAMES.forEach(function (g) { addName(g && g.opponent); });
+    if (Array.isArray(global.SCHEDULE)) global.SCHEDULE.forEach(function (g) { addName(g && g.opponent); });
+    try {
+      if (global.WEEK && WEEK.opponent) addName(WEEK.opponent);
+    } catch (eW) {}
+    names.sort(function (a, b) { return a.localeCompare(b); });
+    return names;
+  }
+
+  function wrapScheduleSet() {
+    var S = global.OFFGRD_SCHEDULE;
+    if (!S || typeof S.set !== "function" || S.set._pinWrapped) return;
+    var orig = S.set;
+    S.set = function () {
+      var r = orig.apply(this, arguments);
+      if (global.CURRENT_VIEW === "pick") renderPicker();
+      return r;
+    };
+    S.set._pinWrapped = true;
+  }
+
+  function refreshIfPick() {
+    wrapScheduleSet();
+    if (global.CURRENT_VIEW === "pick") renderPicker();
+  }
+
+  function bindRefresh() {
+    if (bindRefresh._on) return;
+    bindRefresh._on = true;
+    if (global.document && document.addEventListener) {
+      document.addEventListener("offgrd-program-ready", refreshIfPick);
+      document.addEventListener("offgrd-brand-hydrated", refreshIfPick);
+    }
+    wrapScheduleSet();
+  }
+  bindRefresh();
 
   global.OFFGRD_GAMEDAY_PIN = {
     PIN_KEY: PIN_KEY,
     get: get,
     listGames: listGames,
+    parseGameDate: parseGameDate,
+    libraryOpponents: libraryOpponents,
     gameIdFor: gameIdFor,
     existingGameId: existingGameId,
     scheduleKey: scheduleKey,
