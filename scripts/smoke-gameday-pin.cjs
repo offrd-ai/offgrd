@@ -120,6 +120,44 @@ check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));
 check("setOpponent does not pick or rotate", /function setOpponent\(v\)\{ sit\.opp=v;/.test(html) && !/function setOpponent[\s\S]{0,400}shouldRotateForOpponent/.test(html));
 
+const pinSrc = fs.readFileSync(path.join(root, "OFFGRD-gameday-pin.js"), "utf8");
+const acct = fs.readFileSync(path.join(root, "OFFGRD-account.js"), "utf8");
+check("picker re-renders on program-ready", /offgrd-program-ready/.test(pinSrc) && /refreshIfPick/.test(pinSrc));
+check("picker re-renders on brand-hydrated", /offgrd-brand-hydrated/.test(pinSrc) && /offgrd-brand-hydrated/.test(acct));
+check("empty picker offers Start a game from the library", /Start a game/.test(pinSrc) && /libraryOpponents/.test(pinSrc));
+
+const w = makeSandbox();
+load(w);
+const PinW = w.OFFGRD_GAMEDAY_PIN;
+const soakNow = new Date(2026, 8, 8);
+w.SCHEDULE = [
+  { opponent: "Parkway South", date: "2026-09-04", ha: "A" },
+  { opponent: "Parkway Central", date: "2026-09-10", ha: "H" },
+  { opponent: "Parkway North", date: "2026-09-15", ha: "A" },
+];
+const windowed = PinW.listGames(soakNow);
+check(
+  "window includes Central · Sep 10 from Sep 8",
+  windowed.some(function (g) { return g.opponent === "Parkway Central" && g.date === "2026-09-10"; })
+);
+check(
+  "window excludes South · Sep 4 (before yesterday)",
+  !windowed.some(function (g) { return /South/i.test(g.opponent); })
+);
+check(
+  "window includes North · Sep 15 (today+7)",
+  windowed.some(function (g) { return /North/i.test(g.opponent) && g.date === "2026-09-15"; })
+);
+w.SCHEDULE = [{ opponent: "Parkway Central", date: "Sep 10", ha: "H" }];
+check(
+  "Sep 10 label parses into the window",
+  PinW.parseGameDate("Sep 10", "2026-09-08") === "2026-09-10" &&
+    PinW.listGames(soakNow).some(function (g) { return /Central/i.test(g.opponent); })
+);
+w.SCHEDULE = [];
+w.GAMES = [{ opponent: "Parkway Central", week: "Wk 3" }];
+check("zero schedule cards still expose the library", PinW.libraryOpponents().indexOf("Parkway Central") >= 0);
+
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");
   process.exit(1);
