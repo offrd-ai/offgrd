@@ -23,7 +23,7 @@
   const LS_SCOUT_TOOL = "offgrd_scout_tool";
   const LS_VIEW = "offgrd_view";
   const SCOUT_TOOLS = { predict: 1, tendency: 1, report: 1, cards: 1 };
-  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, pick: 1, caller: 1, dcaller: 1, report: 1, cards: 1, practice: 1, thisweek: 1, recruiting: 1 };
+  const VALID_VIEWS = { scout: 1, plan: 1, package: 1, caller: 1, dcaller: 1, report: 1, cards: 1, practice: 1, thisweek: 1, recruiting: 1 };
   const INLINE_TOKEN_PROPS = [
     "--rd-accent", "--rd-accent-text", "--accent", "--accent-text", "--accent-ink",
     "--bg", "--panel", "--ink", "--muted", "--line",
@@ -161,7 +161,7 @@
     {
       id: "gameday",
       label: "Gameday",
-      views: ["pick", "caller", "dcaller"],
+      views: ["caller", "dcaller"],
       tools: [
         { id: "caller", label: "O Caller", view: "caller" },
         { id: "dcaller", label: "D Caller", view: "dcaller" },
@@ -528,7 +528,7 @@
     try {
       if (typeof root.CURRENT_VIEW === "string" && root.CURRENT_VIEW) return root.CURRENT_VIEW;
     } catch (e) {}
-    const ids = ["scout", "plan", "package", "pick", "caller", "dcaller", "report", "cards", "practice"];
+    const ids = ["scout", "plan", "package", "caller", "dcaller", "report", "cards", "practice"];
     for (let i = 0; i < ids.length; i++) {
       const el = document.getElementById("view-" + ids[i]);
       if (el && el.style.display !== "none") return ids[i];
@@ -1241,17 +1241,14 @@
       'html.rd-on.rd-gameday #rdScope,html.rd-on.rd-gameday #rdSync,html.rd-on.rd-gameday #rdAcctHost{display:none!important;}',
       'html.rd-on.rd-booth #rdShell{display:none!important;}',
       'html.rd-on.rd-booth body{padding-top:8px!important;padding-bottom:8px!important;}',
-      'html.rd-on #view-caller,html.rd-on #view-dcaller,html.rd-on #view-pick{max-width:720px;margin:0 auto;}',
+      'html.rd-on #view-caller,html.rd-on #view-dcaller{max-width:720px;margin:0 auto;}',
       'html.rd-on #view-caller .rd-gd,html.rd-on #view-dcaller .rd-gd{display:flex;flex-direction:column;gap:10px;}',
       'html.rd-on #view-caller .rd-gd-top,html.rd-on #view-dcaller .rd-gd-top{',
       'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
       'padding:10px 12px;',
       '}',
-      'html.rd-on #view-caller .rd-gd-top .crest,html.rd-on #view-dcaller .rd-gd-top .crest{',
-      'flex:0 0 48px;height:48px!important;width:48px!important;border-radius:8px;object-fit:contain;',
-      '}',
-      'html.rd-on #view-caller .rd-gd-top b,html.rd-on #view-dcaller .rd-gd-top b{color:var(--rd-text);font-weight:800;font-size:22px;}',
+      'html.rd-on #view-caller .rd-gd-top b,html.rd-on #view-dcaller .rd-gd-top b{color:var(--rd-text);font-weight:500;font-size:var(--fs-title);}',
       'html.rd-on #view-caller .rd-gd-chip,html.rd-on #view-dcaller .rd-gd-chip{',
       'display:inline-flex;align-items:center;padding:6px 10px;min-height:32px;',
       'border-radius:var(--radius-pill);background:var(--rd-surface-2);border:1px solid var(--rd-border);',

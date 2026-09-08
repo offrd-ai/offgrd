@@ -156,18 +156,6 @@
     return "10+";
   }
 
-  function intendedOpp() {
-    var sitOpp = opp();
-    if (sitOpp && sitOpp !== "ANY") return sitOpp;
-    return null;
-  }
-
-  function hydrateView(prior) {
-    var J = global.OFFGRD_CALLER_JOURNAL;
-    if (!J || !J.hydrateView) return prior || [];
-    return J.hydrateView(prior || [], "defense", session && session.gameId);
-  }
-
   function ensureSession() {
     var eng = E();
     var Side = global.OFFGRD_CALLER_SIDE;
@@ -183,14 +171,6 @@
         side: "defense",
       };
     }
-    var Pin = global.OFFGRD_GAMEDAY_PIN;
-    var priorGid = session && session.gameId;
-    if (Pin && Pin.adoptIfPinned) session = Pin.adoptIfPinned(session);
-    if (Pin && Pin.get()) {
-      session.side = "defense";
-      if (session.gameId !== priorGid) events = hydrateView(events);
-      return session;
-    }
     if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events, sit)) {
       var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
       session = stamped.session;
@@ -198,45 +178,6 @@
       if (Array.isArray(stamped.events)) events = stamped.events;
       if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
     }
-    return session;
-  }
-
-  function onOpponentChanged() {
-    /* Scout opponent does not drive the caller pin. */
-  }
-
-  function applyPin(pin, rotatePrior) {
-    if (!pin || !pin.gameId) return session;
-    var Side = global.OFFGRD_CALLER_SIDE;
-    var J = global.OFFGRD_CALLER_JOURNAL;
-    var rotate = !!rotatePrior && session && Side && Side.sessionOpponentDiffers && Side.sessionOpponentDiffers(session, pin.opponent);
-    if (rotate) {
-      var rotated = Side.endAndMintForOpponent(
-        session,
-        { opp: pin.opponent, week: "Live " + pin.date, game_date: pin.date, side: "defense" },
-        function () { return pin.gameId; },
-        events,
-        sit
-      );
-      if (rotated.archive) sessionArchives = (sessionArchives || []).concat([rotated.archive]);
-      session = rotated.session;
-      sit = sitDefaults();
-      events = J && J.hydrateView ? J.hydrateView([], "defense", pin.gameId) : [];
-    } else {
-      session = {
-        opp: pin.opponent,
-        week: "Live " + pin.date,
-        game_date: pin.date,
-        gameId: pin.gameId,
-        side: "defense",
-        inProgress: !!(session && session.inProgress),
-        ended: false,
-      };
-      if (J && J.hydrateView) events = J.hydrateView(events || [], "defense", pin.gameId);
-    }
-    session.side = "defense";
-    refold();
-    saveLocal();
     return session;
   }
 
@@ -512,11 +453,6 @@
       pushFeedEvent({ kind: "period", id: "period-" + kind + "-" + lastPi + "-" + breaks.length, line: line, playIndex: lastPi });
       liveExpanded = true;
       saveLocal();
-      try {
-        if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-          OFFGRD_CALLER_JOURNAL.maybeAutoExport(kind === "half" ? "halftime" : "snap", log.length);
-        }
-      } catch (eEx) {}
       render();
       try {
         var panel = document.getElementById("rd-live-panel");
@@ -534,11 +470,6 @@
       mondayFocusPayload = buildMondayFocusFromLog();
       requestSummaryLlm("final", summaryView.view, (opts.offenseLog || []).length + log.length);
     }
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", log.length);
-      }
-    } catch (eExF) {}
     saveLocal();
     render();
     scheduleSync();
@@ -1210,24 +1141,6 @@
       else sit.estYards = Math.max(1, Math.round(+sit.estYards));
     }
     events = Array.isArray(st.events) ? st.events.slice() : [];
-    try {
-      var Jload = global.OFFGRD_CALLER_JOURNAL;
-      if (Jload && Jload.hydrateView) {
-        ensureSession();
-        events = hydrateView(events);
-        if (Jload.ready) {
-          Jload.ready().then(function () {
-            var next = hydrateView(events);
-            if (next && next.length !== events.length) {
-              events = next;
-              refold();
-              saveLocal();
-              render();
-            }
-          });
-        }
-      }
-    } catch (eHyd) {}
     sessionArchives = Array.isArray(st.sessionArchives) ? st.sessionArchives.slice() : [];
     seq = st.seq || 0;
     breaks = Array.isArray(st.breaks) ? st.breaks.slice() : [];
@@ -1275,22 +1188,12 @@
       } catch (e2) {}
       return null;
     }
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.appendNow) {
-        OFFGRD_CALLER_JOURNAL.appendNow(ev);
-      }
-    } catch (eJ) {}
     events.push(ev);
     var SideMark = global.OFFGRD_CALLER_SIDE;
     if (SideMark && SideMark.markSessionInProgress) SideMark.markSessionInProgress(sess);
     refold({ fromCall: true });
     saveLocal();
     scheduleSync();
-    try {
-      if (global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.maybeAutoExport) {
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("snap", log.length);
-      }
-    } catch (eEx) {}
     return ev;
   }
 
@@ -1309,25 +1212,8 @@
         saveLocal();
       },
       applyRemote: function (merged, game, sess) {
-        var EU = global.OFFGRD_EMPTY_UNKNOWN;
-        var Jr = global.OFFGRD_CALLER_JOURNAL;
-        if (EU && EU.isUnknownEmpty(merged)) merged = events;
-        if (Jr) {
-          try {
-            Jr.adopt(events);
-            Jr.adopt(merged || []);
-          } catch (eAd) {}
-          var SideR = global.OFFGRD_CALLER_SIDE;
-          if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
-            sess = session;
-          } else if (sess) {
-            session = sess;
-          }
-          events = hydrateView(merged && merged.length ? merged : events);
-        } else {
-          events = merged || events;
-          if (sess) session = sess;
-        }
+        events = merged || events;
+        if (sess) session = sess;
         if (game && game.monday_focus) {
           var An = A();
           if (An && An.mergeMondayFocusPayload && mondayFocusPayload) {
@@ -2439,12 +2325,6 @@
     )
       return;
     var gameId = session && session.gameId;
-    try {
-      if (gameId && global.OFFGRD_CALLER_JOURNAL && OFFGRD_CALLER_JOURNAL.recordClear) {
-        OFFGRD_CALLER_JOURNAL.recordClear(gameId, "defense");
-        OFFGRD_CALLER_JOURNAL.maybeAutoExport("final", log.length);
-      }
-    } catch (eClr) {}
     events = [];
     seq = 0;
     log = [];
@@ -2493,22 +2373,13 @@
     var n = log.length;
     var eng = Sync();
     var st = eng && eng.getSyncHeaderState
-      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing(), ensureSession(), sit)
+      ? eng.getSyncHeaderState("defense", events, eng.isSyncing && eng.isSyncing(), ensureSession())
       : { label: "All synced", pending: 0, syncing: false };
-    var Jcen = global.OFFGRD_CALLER_JOURNAL;
-    var sess = ensureSession();
-    var cen = Jcen && Jcen.census ? Jcen.census({ side: "defense", gameId: sess && sess.gameId, log: log }) : null;
-    var label = cen ? cen.label : st.label;
-    var green = !!(cen ? cen.reconciled && !st.rolled : st.label === "All synced" && !st.rolled);
-    var cls = st.held || st.pending || st.rolled || !green ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
+    var cls = st.held || st.pending ? " is-pending" : st.syncing ? " is-syncing" : " is-up";
     var action = "";
     if (st.held && st.reason === "session-mismatch") {
       action =
         `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.resolveHeld()">Resolve session</button>`;
-    }
-    if (cen && cen.undoUntil) {
-      action +=
-        `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.undoClear()">Undo clear</button>`;
     }
     var guardLine = snapGuard
       ? `<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(snapGuard)}</p>`
@@ -2516,7 +2387,7 @@
     return (
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
-      `<span><b>${esc(label)}</b>${cen && cen.tone === "bad" ? " · saved ≠ snaps" : st.detail ? " · " + esc(st.detail) : ""}</span>` +
+      `<span><b>${esc(st.label)}</b>${st.detail ? " · " + esc(st.detail) : ""}</span>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.syncNow()">Sync now</button>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.upload()">Export</button>` +
       action +
@@ -3360,18 +3231,13 @@
     var host = document.getElementById("view-dcaller");
     if (!host) return;
     ensureSession();
-    var oName = (function () {
-      var Pin = global.OFFGRD_GAMEDAY_PIN;
-      var p = Pin && Pin.get && Pin.get();
-      if (p && p.opponent) return p.opponent;
-      return ensureSession().opp || opp();
-    })();
+    var oName = ensureSession().opp || opp();
     var crestHtml = "";
     try {
-      if (typeof crest === "function") crestHtml = crest(oName !== "ANY" && oName !== "opponent" ? oName : "", 48);
+      if (typeof crest === "function") crestHtml = crest(oName !== "ANY" ? oName : "", 28);
     } catch (e) {}
     var h = `<div class="rd-gd rd-dc" data-acc-skip id="dcaller-top-anchor">`;
-    h += `<div class="rd-gd-top">${crestHtml}<b>${esc(oName !== "ANY" && oName !== "opponent" ? oName : "opponent")}</b>`;
+    h += `<div class="rd-gd-top">${crestHtml}<b>${esc(oName !== "ANY" ? oName : "opponent")}</b>`;
     h += `<span class="rd-gd-chip">D CALLER</span>`;
     var snapEng = E();
     h += `<span class="rd-gd-chip rd-gd-snap" aria-live="polite">Snap ${snapEng && snapEng.snapCount ? snapEng.snapCount(log) : log.length}</span>`;
@@ -3380,7 +3246,7 @@
       if (typeof callerOdToggleHtml === "function") h += callerOdToggleHtml("d");
     } catch (eOd) {}
     h += `<button type="button" class="rd-gd-btn rd-gd-booth" onclick="setBooth(!document.documentElement.classList.contains('rd-booth'))">${document.documentElement.classList.contains("rd-booth") ? "Booth on" : "Booth"}</button>`;
-    h += `<button type="button" class="rd-gd-exit" onclick="OFFGRD_GAMEDAY_PIN?OFFGRD_GAMEDAY_PIN.leave():setView('pick')">Exit</button></div>`;
+    h += `<button type="button" class="rd-gd-exit" onclick="setView('scout')">Exit</button></div>`;
     try {
       if (global.CALLER_TOMBSTONE_REFUSAL && CALLER_TOMBSTONE_REFUSAL.message) {
         h += `<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
@@ -3621,17 +3487,6 @@
     render();
   }
 
-  function undoClear() {
-    var J = global.OFFGRD_CALLER_JOURNAL;
-    var gameId = session && session.gameId;
-    if (!J || !gameId || !J.undoClear) return;
-    J.undoClear(gameId, "defense");
-    events = hydrateView(events);
-    refold();
-    saveLocal();
-    render();
-  }
-
   function init() {
     try {
       if (global.OFFGRD_CALLER_RECOVERY && OFFGRD_CALLER_RECOVERY.snapshotIfNeeded) {
@@ -3641,6 +3496,7 @@
     loadSession();
     var beforeId = session && session.gameId;
     ensureSession();
+    if (opp() !== "ANY" && session) session.opp = opp();
     if ((session && session.gameId) !== beforeId || (sessionArchives && sessionArchives.length)) {
       saveLocal();
     }
@@ -3654,9 +3510,6 @@
 
   global.OFFGRD_DCALLER = {
     init: init,
-    onOpponentChanged: onOpponentChanged,
-    applyPin: applyPin,
-    getSession: function () { return session; },
     render: render,
     setSit: setSit,
     setLook: setLook,
@@ -3680,7 +3533,6 @@
     grade: grade,
     toggleFlag: toggleFlag,
     clear: clearLog,
-    undoClear: undoClear,
     syncNow: syncNow,
     resolveHeld: resolveHeld,
     upload: upload,

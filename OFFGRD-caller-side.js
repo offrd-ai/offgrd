@@ -465,59 +465,6 @@
     return sess;
   }
 
-  function normalizeOppName(name) {
-    return String(name == null ? "" : name).trim().toLowerCase();
-  }
-
-  function explicitOpponent(sitOpp, weekOpp) {
-    var s = sitOpp != null ? String(sitOpp).trim() : "";
-    if (s && s !== "ANY") return s;
-    var w = weekOpp != null ? String(weekOpp).trim() : "";
-    return w || null;
-  }
-
-  function sessionOpponentDiffers(sess, nextOpp) {
-    var a = normalizeOppName(sess && sess.opp);
-    var b = normalizeOppName(nextOpp);
-    if (!a || !b) return false;
-    return a !== b;
-  }
-
-  function isFallbackOppName(name) {
-    var n = normalizeOppName(name);
-    return !n || n === "any" || n === "live" || n === "opponent";
-  }
-
-  /**
-   * Mint only when both sides have a real opponent name and they differ.
-   * Same name, missing name, Live/ANY, inProgress, or leftover events:
-   * keep the active gameId. Calls and reopen must not mint.
-   */
-  function shouldRotateForOpponent(sess, nextOpp) {
-    if (!sess || isFallbackOppName(nextOpp) || isFallbackOppName(sess.opp)) return false;
-    return sessionOpponentDiffers(sess, nextOpp);
-  }
-
-  function endAndMintForOpponent(sess, next, mintFn, events, sit) {
-    var ended = sess ? Object.assign({}, sess) : null;
-    if (ended) {
-      ended.inProgress = false;
-      ended.ended = true;
-      ended.endedAt = Date.now();
-    }
-    var archive = snapshotSessionArchive(ended, events, sit, "opponent-change");
-    var minted = {
-      opp: next && next.opp,
-      week: (next && next.week) || "",
-      game_date: (next && next.game_date) || liveDateISO(),
-      gameId: mintFn(),
-      inProgress: false,
-      ended: false,
-    };
-    if (next && next.side) minted.side = next.side;
-    return { session: minted, archive: archive, prior: ended, rotated: true };
-  }
-
   /** Live YYYY-MM-DD whose day is not today, or game_date not today.
    *  An open session is immune — Friday 18:13 through 23:30 is one game. */
   function isStaleLiveIdentity(sess, now, events, sit) {
@@ -591,8 +538,6 @@
         if (e && e.gameId === oldId && eventOnLiveDate(e, today)) e.gameId = next.gameId;
       });
     }
-    next.rolledFrom = oldId || null;
-    next.restampedAt = Date.now();
     return {
       session: next,
       events: list,
@@ -967,12 +912,6 @@
     snapshotSessionArchive: snapshotSessionArchive,
     sessionIsOpen: sessionIsOpen,
     markSessionInProgress: markSessionInProgress,
-    normalizeOppName: normalizeOppName,
-    explicitOpponent: explicitOpponent,
-    sessionOpponentDiffers: sessionOpponentDiffers,
-    isFallbackOppName: isFallbackOppName,
-    shouldRotateForOpponent: shouldRotateForOpponent,
-    endAndMintForOpponent: endAndMintForOpponent,
     stampFreshLiveSession: stampFreshLiveSession,
     restampStaleSession: restampStaleSession,
     callerGameIsRecycled: callerGameIsRecycled,

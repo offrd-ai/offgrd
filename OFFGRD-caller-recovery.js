@@ -1,15 +1,11 @@
 /* OFFGRD caller recovery — dump every session, replay to cloud, keep archives.
    Export is session-scoped (offgrd_dcaller_export / offgrd_ocaller_export).
    This module reads the raw stores before restamp can mint a new Live-today.
-   Every boot writes a snapshot. The first snapshot that has events is
-   precious and is never overwritten by an empty later boot. */
+   Snapshot writes once and is never overwritten. */
 (function (global) {
   "use strict";
 
   var SNAPSHOT_KEY = "offgrd_caller_recovery_snapshot_v1";
-  var BOOT_KEY = "offgrd_caller_recovery_boot_v1";
-  var RING_KEY = "offgrd_caller_recovery_boot_ring_v1";
-  var RING_MAX = 5;
   var ALL_KIND = "offgrd_caller_all_sessions";
   var STORE_KEYS = ["offgrd_dcaller_events_v2", "offgrd_caller_events_v2"];
   var RECEIPT_PREFIXES = [
@@ -158,70 +154,25 @@
       }
     });
     if (payload && Array.isArray(payload.events)) add(payload.events);
-    if (payload && Array.isArray(payload.rows)) add(payload.rows);
-    try {
-      var J = global.OFFGRD_CALLER_JOURNAL;
-      if (J && J.allRows) add(J.allRows());
-    } catch (eJ) {}
-    function addSnapStores(snap) {
-      if (!snap || !snap.stores) return;
-      Object.keys(snap.stores).forEach(function (k) {
-        add(eventsFromStore(snap.stores[k]));
+    if (payload && payload.snapshot && payload.snapshot.stores) {
+      Object.keys(payload.snapshot.stores).forEach(function (k) {
+        add(eventsFromStore(payload.snapshot.stores[k]));
       });
     }
-    if (payload && payload.snapshot) addSnapStores(payload.snapshot);
-    if (payload && payload.boot) addSnapStores(payload.boot);
-    (payload && payload.bootRing ? payload.bootRing : []).forEach(addSnapStores);
     return Object.keys(map).map(function (id) {
       return map[id];
     });
   }
 
-  function snapshotHasEvents(snap) {
-    if (!snap) return false;
-    if (snap.census && snap.census.eventCount > 0) return true;
-    var stores = snap.stores || {};
-    return Object.keys(stores).some(function (k) {
-      return eventsFromStore(stores[k]).length > 0;
-    });
-  }
-
-  function captureSnapshot() {
-    var read = readRawStores();
-    var rec = readReceipts();
-    var storeCen = censusEvents(
-      Object.keys(read.stores).reduce(function (acc, k) {
-        return acc.concat(eventsFromStore(read.stores[k]));
-      }, [])
-    );
-    return {
-      kind: "offgrd_caller_recovery_snapshot",
-      schemaVersion: 1,
-      capturedAt: new Date().toISOString(),
-      stores: read.stores,
-      receipts: rec.receipts,
-      census: {
-        eventCount: storeCen.eventCount,
-        games: storeCen.games,
-        storeKeys: read.keys,
-        receiptKeys: Object.keys(rec.receipts),
-      },
-    };
-  }
-
   function buildDump() {
     var read = readRawStores();
     var rec = readReceipts();
-    var snapshot = parseJson(lsGet(SNAPSHOT_KEY));
-    var boot = parseJson(lsGet(BOOT_KEY));
-    var bootRing = parseJson(lsGet(RING_KEY));
-    if (!Array.isArray(bootRing)) bootRing = [];
+    var snapRaw = lsGet(SNAPSHOT_KEY);
+    var snapshot = parseJson(snapRaw);
     var all = collectAllEvents({
       stores: read.stores,
       receipts: rec.receipts,
       snapshot: snapshot,
-      boot: boot,
-      bootRing: bootRing,
     });
     var cen = censusEvents(all);
     return {
@@ -232,8 +183,6 @@
       storeRaw: read.raw,
       receipts: rec.receipts,
       snapshot: snapshot,
-      boot: boot,
-      bootRing: bootRing,
       census: {
         eventCount: cen.eventCount,
         games: cen.games,
@@ -243,33 +192,27 @@
     };
   }
 
-  /** Every boot. Precious first-with-events is kept; empty later boots do not erase it. */
-  function snapshotOnBoot() {
-    var snap = captureSnapshot();
+  function snapshotIfNeeded() {
+    if (lsGet(SNAPSHOT_KEY)) return parseJson(lsGet(SNAPSHOT_KEY));
+    var dump = buildDump();
     var has =
-      snapshotHasEvents(snap) ||
-      Object.keys(snap.receipts || {}).length > 0 ||
+      dump.census.eventCount > 0 ||
+      Object.keys(dump.receipts || {}).length > 0 ||
       STORE_KEYS.some(function (k) {
-        var st = snap.stores && snap.stores[k];
+        var st = dump.stores && dump.stores[k];
         return !!(st && (st.sit || st.session));
       });
-    if (!has) return parseJson(lsGet(SNAPSHOT_KEY));
-    lsSet(BOOT_KEY, JSON.stringify(snap));
-    var ring = parseJson(lsGet(RING_KEY));
-    if (!Array.isArray(ring)) ring = [];
-    ring.unshift(snap);
-    if (ring.length > RING_MAX) ring = ring.slice(0, RING_MAX);
-    lsSet(RING_KEY, JSON.stringify(ring));
-    var precious = parseJson(lsGet(SNAPSHOT_KEY));
-    if (!precious || (!snapshotHasEvents(precious) && snapshotHasEvents(snap))) {
-      lsSet(SNAPSHOT_KEY, JSON.stringify(snap));
-      precious = snap;
-    }
-    return precious;
-  }
-
-  function snapshotIfNeeded() {
-    return snapshotOnBoot();
+    if (!has) return null;
+    var snap = {
+      kind: "offgrd_caller_recovery_snapshot",
+      schemaVersion: 1,
+      capturedAt: dump.exportedAt,
+      stores: dump.stores,
+      receipts: dump.receipts,
+      census: dump.census,
+    };
+    lsSet(SNAPSHOT_KEY, JSON.stringify(snap));
+    return snap;
   }
 
   function downloadJson(filename, obj) {
@@ -508,11 +451,8 @@
 
   global.OFFGRD_CALLER_RECOVERY = {
     SNAPSHOT_KEY: SNAPSHOT_KEY,
-    BOOT_KEY: BOOT_KEY,
-    RING_KEY: RING_KEY,
     ALL_KIND: ALL_KIND,
     snapshotIfNeeded: snapshotIfNeeded,
-    snapshotOnBoot: snapshotOnBoot,
     buildDump: buildDump,
     exportAllSessions: exportAllSessions,
     collectAllEvents: collectAllEvents,

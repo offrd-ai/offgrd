@@ -1,13 +1,12 @@
 # How to pick up a new OFFGRD build on iOS (do not clear site data)
 
-Production is **v360** (v362 soak failed and was rolled back). The caller
-chip is the only proof. If it still says **v362**, force-quit on wifi and
-reopen so the network-first SW can pick up v360.
+The caller chip **v354** (top bar, next to Snap N) is the only proof the refresh took.
+If it still says **v353** or older, you are on the old build. Do not open a caller on v353.
 
 ## There is a service worker
 
 `offgrd-sw.js` caches the gameday shell so airplane mode still boots.
-Cache name is `offgrd-gameday-v360`. A pin changes that name. On activate the
+Cache name is `offgrd-gameday-v354`. A pin changes that name. On activate the
 worker `skipWaiting`s, `clients.claim`s, and deletes the previous `offgrd-gameday-*`
 cache. `offgrd-sw.js` and `sw-kill.json` are never cached (`updateViaCache: "none"`).
 
@@ -20,20 +19,19 @@ Safari tab does nothing to the icon on the home screen. Force-quitting the
 home-screen app and reopening it is what re-runs `register` + `reg.update()`
 in the surface you actually call from.
 
-## Path that does NOT wipe the journal
+## Path that does NOT wipe Friday's game
 
 Do this on the **same icon you use Friday night**. Stay on wifi.
 
 1. Open the home-screen OFFGRD / gameday app (not a Safari tab).
 2. Swipe it away (force quit).
 3. Tap the icon again. Wait until the caller header paints.
-4. Read the chip: it must say **v360**.
-5. If it still says v362, stay in that app, pull down to refresh once, force-quit, reopen. Do not go to Settings.
-6. Tools → Export all sessions on the O iPad before anything else.
+4. Read the chip: it must say **v354**.
+5. If it still says v353, stay in that app, pull down to refresh once, force-quit, reopen. Do not go to Settings.
 
 ## Do not
 
-- Settings → Safari → Clear History and Website Data. That deletes `localStorage` (the caller event ledger and journal mirror).
+- Settings → Safari → Clear History and Website Data. That deletes `localStorage` (the caller event ledger).
 - Settings → Safari → Advanced → Website Data → delete getoffrd.com. Same wipe.
 - Update a Safari tab and assume the home-screen app moved.
 
