@@ -94,18 +94,18 @@ Wednesday drill 19) because hydrate was not scoped by `session.gameId`
 and the still-open Friday session (`ce16f75d`, `inProgress: true`) was
 inherited. Census counted the journal, not the active game.
 
-**Pinned v362 (Mon 2026-09-07 night, Matt: soak on getoffrd.com).**
-Rebuild filters by the active `gameId` only; a new opponent mints a
-new `gameId` and ends the prior session; census `saved`/`synced` are
-calls for that game, the same unit as snaps. Chip must read **v362**.
+**Production is v360.** Do not pin v362 until soak passes on a device.
+The local fix (unpushed): rebuild filters by the active `gameId` only;
+a new opponent mints a new `gameId` and ends the prior session; census
+`saved`/`synced` are calls for that game, the same unit as snaps.
 
-- **Soak on the home-screen app.** Scenario 1: airplane, 60 snaps
+- **Soak on a device before any pin.** Scenario 1: airplane, 60 snaps
   across O and D, force-quit mid-game, reopen → count = 60. Scenario
   2-lite: reconnect on wifi against the live cloud (South row +
   Wednesday drill already there) → still 60, cloud 60, census green.
   Open a *different* opponent: header and log are empty for that
   gameId; Friday stays in the journal under its own id. Either fail →
-  roll back to v360; keep the export files.
+  iPads stay on v360; keep the export files.
 - **Wednesday practice** is the gate for Friday: both callers, DC
   included, census line visible, a halftime auto-export that actually
   lands in Files.

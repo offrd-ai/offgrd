@@ -1,16 +1,16 @@
 # How to pick up a new OFFGRD build on iOS (do not clear site data)
 
-The caller chip **v362** (top bar, next to Snap N) is the only proof the refresh took.
-If it still says **v360** or **v361**, you are on the old build.
+Production is **v360** (v361 rolled back). The caller chip (top bar, next
+to Snap N) is the only proof of the build. If it says **v361**, force-quit
+and reopen on wifi so the network-first SW can pick up v360.
 
-v362 scopes the journal by the active game. A new opponent mints a new
-gameId and ends the prior session. Census counts that game's snaps, not
-the whole journal.
+v362 is **not pinned**. Soak on a device first. Do not expect a v362 chip
+until that soak passes.
 
 ## There is a service worker
 
 `offgrd-sw.js` caches the gameday shell so airplane mode still boots.
-Cache name is `offgrd-gameday-v362`. A pin changes that name. On activate the
+Cache name is `offgrd-gameday-v360`. A pin changes that name. On activate the
 worker `skipWaiting`s, `clients.claim`s, and deletes the previous `offgrd-gameday-*`
 cache. `offgrd-sw.js` and `sw-kill.json` are never cached (`updateViaCache: "none"`).
 
@@ -30,8 +30,8 @@ Do this on the **same icon you use Friday night**. Stay on wifi.
 1. Open the home-screen OFFGRD / gameday app (not a Safari tab).
 2. Swipe it away (force quit).
 3. Tap the icon again. Wait until the caller header paints.
-4. Read the chip: it must say **v362**.
-5. If it still says v360/v361, stay in that app, pull down to refresh once, force-quit, reopen. Do not go to Settings.
+4. Read the chip: it must say **v360**.
+5. If it still says v361, stay in that app, pull down to refresh once, force-quit, reopen. Do not go to Settings.
 
 ## Do not
 
