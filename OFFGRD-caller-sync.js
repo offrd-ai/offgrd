@@ -463,8 +463,21 @@
     return { reason: "held", detail: "tap Sync now" };
   }
 
+  function leftoverSitEmpty(events, sit) {
+    if (events && events.length) return false;
+    var S = global.OFFGRD_CALLER_SIDE;
+    return !!(S && S.sitHasGameState && S.sitHasGameState(sit));
+  }
+
+  function sessionWasRolled(sess, events, sit) {
+    if (events && events.length) return false;
+    if (leftoverSitEmpty(events, sit)) return true;
+    if (sess && (sess.rolledFrom || sess.restampedAt)) return true;
+    return false;
+  }
+
   /** Synced means the server acknowledged the event id. Local queue never reads as synced. */
-  function getSyncHeaderState(side, events, syncing, sess) {
+  function getSyncHeaderState(side, events, syncing, sess, sit) {
     var online = isOnline();
     var pending = pendingCount(side, events);
     var held = heldCount(side, events);
@@ -475,6 +488,7 @@
       if (e && e.eventId && !isSynced(side, e.eventId)) unsynced += 1;
     });
     if (unsynced > pending + held) pending = unsynced - held;
+    var rolled = sessionWasRolled(sess, events, sit);
     var fault = held || mismatchHint(events, sess) ? heldFault(side, events, sess) : null;
     function pack(label, extra) {
       extra = extra || {};
@@ -484,6 +498,7 @@
         held: held,
         synced: syncedN,
         syncing: sync,
+        rolled: extra.rolled != null ? extra.rolled : rolled,
         reason: extra.reason || (fault && fault.reason) || null,
         detail: extra.detail || (fault && fault.detail) || null,
         label: label,
@@ -514,7 +529,15 @@
       if (fault && fault.reason === "session-mismatch") return pack(fault.detail, fault);
       return pack(formatN(held) + " events waiting — " + ((fault && fault.detail) || "tap Sync now"), fault);
     }
-    return pack("All synced");
+    if (rolled) {
+      return pack(
+        leftoverSitEmpty(events, sit)
+          ? "Session rolled — events missing"
+          : "Session rolled — check log",
+        { reason: "session-rolled", detail: "session rolled", rolled: true }
+      );
+    }
+    return pack("All synced", { rolled: false });
   }
 
   function mismatchHint(events, sess) {
