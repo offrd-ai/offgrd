@@ -664,7 +664,19 @@
       });
     }
 
-    if (game && game.id && sess.gameId && game.id !== sess.gameId) {
+    var Pin = global.OFFGRD_GAMEDAY_PIN;
+    var pinnedId = Pin && Pin.writeId ? Pin.writeId() : null;
+    if (pinnedId) {
+      sess.gameId = pinnedId;
+      if (Pin.get) {
+        var pin = Pin.get();
+        if (pin) {
+          sess.opp = pin.opponent;
+          sess.game_date = pin.date;
+          sess.week = "Live " + pin.date;
+        }
+      }
+    } else if (game && game.id && sess.gameId && game.id !== sess.gameId) {
       var old = sess.gameId;
       events.forEach(function (e) {
         if (e && e.gameId === old) e.gameId = game.id;

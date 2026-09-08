@@ -1129,6 +1129,43 @@ export const Cloud = {
   async ensureCallerGame(teamId, meta) {
     if (!OG || !teamId) return null;
     const side = (meta && meta.side) === "defense" ? "defense" : "offense";
+    if (meta && meta.id) {
+      const byId = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
+      if (byId.error) throw byId.error;
+      const other = await this.activeCallerGame(teamId, side);
+      if (other && String(other.id) !== String(meta.id)) {
+        await this.archiveCallerGame(other.id);
+      }
+      if (byId.data) {
+        if (byId.data.status !== "active") {
+          const patch = { status: "active" };
+          if (meta.opponent) patch.opponent = meta.opponent;
+          if (meta.week) patch.week = meta.week;
+          if (meta.game_date) patch.game_date = meta.game_date;
+          await OG.from("caller_games").update(patch).eq("id", meta.id);
+          const fresh = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
+          return fresh.data || Object.assign({}, byId.data, patch);
+        }
+        return byId.data;
+      }
+      const pinned = {
+        id: meta.id,
+        team_id: teamId,
+        opponent: (meta && meta.opponent) || null,
+        week: (meta && meta.week) || null,
+        game_date: (meta && meta.game_date) || null,
+        status: "active",
+        created_by: (meta && meta.created_by) || null,
+        side: side,
+      };
+      const ins = await OG.from("caller_games").insert(pinned).select().single();
+      if (ins.error) {
+        const again = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
+        if (again.data) return again.data;
+        throw ins.error;
+      }
+      return ins.data;
+    }
     const existing = await this.activeCallerGame(teamId, side);
     const Side = typeof window !== "undefined" ? window.OFFGRD_CALLER_SIDE : null;
     if (existing && Side && Side.callerGameIsRecycled && Side.callerGameIsRecycled(existing, meta)) {

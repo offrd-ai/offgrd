@@ -86,7 +86,7 @@ if (!PinA || !PinB) throw new Error("OFFGRD_GAMEDAY_PIN missing");
 
 const idA = PinA.gameIdFor("Parkway Central", "2026-09-10");
 const idB = PinB.gameIdFor("parkway central", "2026-09-10");
-check("two devices hash the same gameId", idA === idB && /^gd-[0-9a-f]{8}$/.test(idA));
+check("two devices hash the same UUID gameId", idA === idB && PinA.isUuid(idA));
 check(
   "North is a different schedule key",
   PinA.gameIdFor("Parkway North", "2026-09-10") !== idA
@@ -94,6 +94,7 @@ check(
 
 const pin1 = PinA.pick({ opponent: "Parkway Central", date: "2026-09-10", ha: "H" });
 check("pick pins Central and that gameId", !!(pin1 && pin1.opponent === "Parkway Central" && pin1.gameId === idA));
+check("writes use the pin id", PinA.writeId() === idA);
 check("entered after pick", PinA.entered() === "caller");
 a.sit = { opp: "Parkway North" };
 check("scout opponent does not change the pin", PinA.get().opponent === "Parkway Central" && PinA.get().gameId === idA);
@@ -116,6 +117,14 @@ check("O/D nav asks the pin, never auto-enters", /OFFGRD_GAMEDAY_PIN\.request\('
 check("setView gates caller until entered", /Pin&&!Pin\.entered\(\)/.test(html));
 check("Exit leaves to the picker", /OFFGRD_GAMEDAY_PIN\.leave\(\)/.test(html));
 check("SW precaches the pin module", /OFFGRD-gameday-pin\.js/.test(sw));
+const cloud = fs.readFileSync(path.join(root, "OFFGRD-cloud.js"), "utf8");
+const sync = fs.readFileSync(path.join(root, "OFFGRD-caller-sync.js"), "utf8");
+const log = fs.readFileSync(path.join(root, "OFFGRD-caller-log.js"), "utf8");
+check("ensureCallerGame inserts the pinned id, never a leftover active game", /if \(meta && meta.id\)/.test(cloud) && /archiveCallerGame\(other\.id\)/.test(cloud));
+check("sync flush keeps the pin gameId", /pinnedId/.test(sync) && /sess\.gameId = pinnedId/.test(sync));
+check("fold prefers the pin over leftover event ids", /Pin\.writeId/.test(log));
+check("O append stamps writeId", /Pin\.writeId&&Pin\.writeId\(\)/.test(html));
+check("D append stamps writeId", /PinW && PinW.writeId/.test(dc));
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));
 check("setOpponent does not pick or rotate", /function setOpponent\(v\)\{ sit\.opp=v;/.test(html) && !/function setOpponent[\s\S]{0,400}shouldRotateForOpponent/.test(html));

@@ -1241,12 +1241,15 @@
   function append(type, playIndex, payload) {
     var eng = E();
     var sess = ensureSession();
+    var PinW = global.OFFGRD_GAMEDAY_PIN;
+    var gid = (PinW && PinW.writeId && PinW.writeId()) || (sess && sess.gameId);
+    if (sess && gid) sess.gameId = gid;
     var clean = Object.assign({}, payload || {});
     if (Object.prototype.hasOwnProperty.call(clean, "side")) delete clean.side;
     seq = (seq || 0) + 1;
     var ev = eng.buildEvent
       ? eng.buildEvent({
-          gameId: sess.gameId,
+          gameId: gid,
           playIndex: playIndex,
           type: type,
           payload: clean,
@@ -1258,7 +1261,7 @@
         })
       : {
           eventId: eng.uuid ? eng.uuid() : "e" + Date.now(),
-          gameId: sess.gameId,
+          gameId: gid,
           playIndex: playIndex,
           type: type,
           payload: clean,
@@ -1318,7 +1321,11 @@
             Jr.adopt(merged || []);
           } catch (eAd) {}
           var SideR = global.OFFGRD_CALLER_SIDE;
-          if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
+          var PinR = global.OFFGRD_GAMEDAY_PIN;
+          if (PinR && PinR.adoptIfPinned && session) {
+            if (sess) PinR.adoptIfPinned(sess);
+            session = PinR.adoptIfPinned(session);
+          } else if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
             sess = session;
           } else if (sess) {
             session = sess;
@@ -2497,7 +2504,8 @@
       : { label: "All synced", pending: 0, syncing: false };
     var Jcen = global.OFFGRD_CALLER_JOURNAL;
     var sess = ensureSession();
-    var cen = Jcen && Jcen.census ? Jcen.census({ side: "defense", gameId: sess && sess.gameId, log: log }) : null;
+    var gid = (global.OFFGRD_GAMEDAY_PIN && OFFGRD_GAMEDAY_PIN.writeId && OFFGRD_GAMEDAY_PIN.writeId()) || (sess && sess.gameId);
+    var cen = Jcen && Jcen.census ? Jcen.census({ side: "defense", gameId: gid, log: log }) : null;
     var label = cen ? cen.label : st.label;
     var green = !!(cen ? cen.reconciled && !st.rolled : st.label === "All synced" && !st.rolled);
     var cls = st.held || st.pending || st.rolled || !green ? " is-pending" : st.syncing ? " is-syncing" : " is-up";

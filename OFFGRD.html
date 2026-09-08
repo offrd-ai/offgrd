@@ -5047,12 +5047,15 @@ function callerAppend(type, playIndex, payload){
   const E=callerEngine();
   const sess=callerEnsureSession();
   const actor=callerActor();
+  const Pin=window.OFFGRD_GAMEDAY_PIN;
+  const gid=(Pin&&Pin.writeId&&Pin.writeId())||sess.gameId;
+  if(sess&&gid) sess.gameId=gid;
   const clean=Object.assign({}, payload||{});
   if(Object.prototype.hasOwnProperty.call(clean,"side")) delete clean.side;
   CALLER_SEQ=(CALLER_SEQ||0)+1;
   const ev=(E&&E.buildEvent)
     ? E.buildEvent({
-        gameId: sess.gameId,
+        gameId: gid,
         playIndex: playIndex,
         type: type,
         payload: clean,
@@ -5064,7 +5067,7 @@ function callerAppend(type, playIndex, payload){
       })
     : {
         eventId: E&&E.uuid?E.uuid():("e"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
-        gameId: sess.gameId,
+        gameId: gid,
         playIndex: playIndex,
         type: type,
         payload: clean,
@@ -5122,11 +5125,15 @@ function callerSyncOpts(){
       const E=callerEngine();
       const EU=window.OFFGRD_EMPTY_UNKNOWN;
       const J=window.OFFGRD_CALLER_JOURNAL;
+      const Pin=window.OFFGRD_GAMEDAY_PIN;
       if(EU&&EU.isUnknownEmpty(merged)) merged=CALLER_EVENTS;
       if(J){
         const Side=window.OFFGRD_CALLER_SIDE;
         try{ J.adopt(CALLER_EVENTS); J.adopt(merged||[]); }catch(eAd){}
-        if(sess&&CALLER_SESSION&&Side&&Side.sessionOpponentDiffers&&Side.sessionOpponentDiffers(CALLER_SESSION, sess.opp)){
+        if(Pin&&Pin.adoptIfPinned&&CALLER_SESSION){
+          if(sess) Pin.adoptIfPinned(sess);
+          CALLER_SESSION=Pin.adoptIfPinned(CALLER_SESSION);
+        }else if(sess&&CALLER_SESSION&&Side&&Side.sessionOpponentDiffers&&Side.sessionOpponentDiffers(CALLER_SESSION, sess.opp)){
           sess=CALLER_SESSION;
         }else if(sess){
           CALLER_SESSION=sess;
@@ -6230,7 +6237,8 @@ function callerSyncHeaderHtml(){
     const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession(), callerSit);
     const J=window.OFFGRD_CALLER_JOURNAL;
     const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
-    const cen=J&&J.census?J.census({ side:"offense", gameId:sess&&sess.gameId, log:CALLER_LOG }):null;
+    const gid=(window.OFFGRD_GAMEDAY_PIN&&OFFGRD_GAMEDAY_PIN.writeId&&OFFGRD_GAMEDAY_PIN.writeId())||(sess&&sess.gameId);
+    const cen=J&&J.census?J.census({ side:"offense", gameId:gid, log:CALLER_LOG }):null;
     const label=cen?cen.label:st.label;
     const green=!!(cen?cen.reconciled&&!st.rolled:st.label==="All synced"&&!st.rolled);
     const cls=st.held||st.pending||st.rolled||!green?"is-pending":(st.syncing?"is-syncing":"is-up");
@@ -6363,7 +6371,8 @@ function callerSyncWord(){
     const st=eng.getSyncHeaderState("offense", CALLER_EVENTS, eng.isSyncing&&eng.isSyncing(), callerEnsureSession(), callerSit);
     const J=window.OFFGRD_CALLER_JOURNAL;
     const sess=typeof callerEnsureSession==="function"?callerEnsureSession():CALLER_SESSION;
-    const cen=J&&J.census?J.census({ side:"offense", gameId:sess&&sess.gameId, log:CALLER_LOG }):null;
+    const gid=(window.OFFGRD_GAMEDAY_PIN&&OFFGRD_GAMEDAY_PIN.writeId&&OFFGRD_GAMEDAY_PIN.writeId())||(sess&&sess.gameId);
+    const cen=J&&J.census?J.census({ side:"offense", gameId:gid, log:CALLER_LOG }):null;
     if(st.syncing) return "Syncing";
     if(st.held) return "Held";
     if(st.pending) return "Pending";
