@@ -169,18 +169,23 @@ function isFridaySouth(row) {
     console.log("deleted outcomes", i, "rowcount", count);
   }
 
-  const { data: drillNow, error: dRead } = await OG.from("scouting_games").select("id,rows").eq("id", drill.id).single();
+  const { data: drillNow, error: dRead } = await OG.from("scouting_games").select("*").eq("id", drill.id).single();
   if (dRead) throw dRead;
   if (!drillNow || (drillNow.rows || []).length !== beforeRows.length) {
     console.error("REFUSING: drill changed under us", drillNow && (drillNow.rows || []).length);
     process.exit(1);
   }
-  const { error: dUp, count: dCount } = await OG.from("scouting_games")
-    .update({ rows: nextDrill })
-    .eq("id", drill.id)
-    .eq("team_id", TEAM);
-  if (dUp) throw dUp;
-  console.log("drill update rowcount", dCount);
+  /* Trigger refuses UPDATE shrink. DELETE+INSERT is the recovery hatch (UPDATE-only trigger). */
+  const insertRow = Object.assign({}, drillNow, { rows: nextDrill });
+  const { error: dDel, count: delN } = await OG.from("scouting_games").delete({ count: "exact" }).eq("id", drill.id).eq("team_id", TEAM);
+  if (dDel) throw dDel;
+  if (delN !== 1) {
+    console.error("REFUSING: drill delete rowcount", delN);
+    process.exit(1);
+  }
+  const { error: dIns } = await OG.from("scouting_games").insert(insertRow);
+  if (dIns) throw dIns;
+  console.log("drill replace", beforeRows.length, "→", nextDrill.length);
 
   for (const g of north) {
     const { count: evDel, error: eDel } = await OG.from("caller_events").delete({ count: "exact" }).eq("game_id", g.id);
