@@ -1263,7 +1263,11 @@
           side: "defense",
         })
       : {
-          eventId: eng.uuid ? eng.uuid() : "e" + Date.now(),
+          eventId: type === "outcome" && eng.outcomeEventId
+            ? eng.outcomeEventId(gid, "defense", playIndex)
+            : eng.uuid
+              ? eng.uuid()
+              : "e" + Date.now(),
           gameId: gid,
           playIndex: playIndex,
           type: type,

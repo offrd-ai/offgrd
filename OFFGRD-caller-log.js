@@ -144,6 +144,26 @@
   /**
    * Required side on every event. Unset / bad side throws — do not default.
    */
+  function fnv8(s) {
+    var h = 2166136261;
+    var str = String(s == null ? "" : s);
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return ("00000000" + (h >>> 0).toString(16)).slice(-8);
+  }
+
+  /** One outcome row per snap. Remint and re-grade reuse this id. */
+  function outcomeEventId(gameId, side, playIndex) {
+    var k = "outcome|" + String(gameId || "") + "|" + String(side || "") + "|" + String(playIndex);
+    var a = fnv8(k);
+    var b = fnv8("1|" + k);
+    var c = fnv8("2|" + k);
+    var d = fnv8("3|" + k);
+    return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
+  }
+
   function buildEvent(opts) {
     opts = opts || {};
     var S = global.OFFGRD_CALLER_SIDE;
@@ -160,8 +180,10 @@
         "caller event side required: expected \"offense\" or \"defense\", got " + JSON.stringify(raw)
       );
     }
+    var evId = opts.eventId;
+    if (!evId && opts.type === "outcome") evId = outcomeEventId(opts.gameId, side, opts.playIndex);
     var ev = {
-      eventId: opts.eventId || uuid(),
+      eventId: evId || uuid(),
       gameId: opts.gameId,
       playIndex: opts.playIndex,
       type: opts.type,
@@ -752,10 +774,11 @@
       });
       if (l.result) {
         seq += 1;
+        var pi = typeof l.playIndex === "number" ? l.playIndex : idx;
         events.push({
-          eventId: uuid(),
+          eventId: outcomeEventId(gameId, migSide, pi),
           gameId: gameId,
-          playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
+          playIndex: pi,
           type: "outcome",
           side: migSide,
           payload: { result: l.result },
@@ -895,6 +918,7 @@
     loadStore: loadStore,
     saveStore: saveStore,
     migrateV1Log: migrateV1Log,
+    outcomeEventId: outcomeEventId,
     entryToGamesRow: entryToGamesRow,
     snapCount: function (log) {
       return log && log.length ? log.length : 0;
