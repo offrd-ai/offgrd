@@ -148,16 +148,22 @@ check("keeps Friday O gameId", ids.has("o-fri"));
 check("receipt keys included", !!(dump.receipts && dump.receipts["offgrd_dcaller_export_211ccbe3-fri-d"]));
 
 const snap = R.snapshotIfNeeded();
-check("snapshot writes once", !!(snap && snap.stores));
+check("snapshot writes on boot", !!(snap && snap.stores));
 const firstSnap = sandbox.localStorage.getItem(R.SNAPSHOT_KEY);
+const firstBoot = sandbox.localStorage.getItem(R.BOOT_KEY);
 sandbox.localStorage.setItem(
   "offgrd_dcaller_events_v2",
   JSON.stringify({ session: mondayEmpty.session, sit: mondayEmpty.sit, events: [] })
 );
 const snap2 = R.snapshotIfNeeded();
 const afterWipe = JSON.parse(sandbox.localStorage.getItem(R.SNAPSHOT_KEY) || "null");
-check("snapshot is never overwritten", firstSnap === sandbox.localStorage.getItem(R.SNAPSHOT_KEY));
-check("wiped store does not erase snapshot events", (afterWipe.stores.offgrd_dcaller_events_v2.events || []).length === 2);
+check("precious snapshot is not overwritten by empty boot", firstSnap === sandbox.localStorage.getItem(R.SNAPSHOT_KEY));
+check("boot snapshot writes every boot", !!(R.BOOT_KEY && sandbox.localStorage.getItem(R.BOOT_KEY) && sandbox.localStorage.getItem(R.BOOT_KEY) !== firstBoot));
+check("wiped store does not erase precious events", (afterWipe.stores.offgrd_dcaller_events_v2.events || []).length === 2);
+const ring = JSON.parse(sandbox.localStorage.getItem(R.RING_KEY) || "[]");
+check("boot ring keeps prior snapshot", Array.isArray(ring) && ring.length >= 2 && ring.some(function (s) {
+  return s && s.stores && s.stores.offgrd_dcaller_events_v2 && (s.stores.offgrd_dcaller_events_v2.events || []).length === 2;
+}));
 
 const dumpedAfterWipe = R.buildDump();
 const recovered = R.collectAllEvents(dumpedAfterWipe);
