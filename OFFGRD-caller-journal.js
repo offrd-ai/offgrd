@@ -236,6 +236,29 @@
     return n;
   }
 
+  function isFallbackOpp(name) {
+    var Pin = global.OFFGRD_GAMEDAY_PIN;
+    if (Pin && Pin.isFallbackOpp) return Pin.isFallbackOpp(name);
+    var n = String(name == null ? "" : name).trim().toLowerCase();
+    return !n || n === "any" || n === "live" || n === "opponent";
+  }
+
+  function stampFallbackOpponent(opp, gameId) {
+    if (!opp || isFallbackOpp(opp) || !gameId) return 0;
+    var n = 0;
+    Object.keys(mem).forEach(function (id) {
+      var r = mem[id];
+      if (!r || String(r.gameId) !== String(gameId)) return;
+      if (!r.payload) r.payload = {};
+      if (!isFallbackOpp(r.payload.opponent)) return;
+      r.payload.opponent = String(opp).trim();
+      n += 1;
+      if (idb) idbPut(idb, r);
+    });
+    if (n) persistLsMirror();
+    return n;
+  }
+
   function adopt(events) {
     var n = 0;
     (events || []).forEach(function (e) {
@@ -563,6 +586,7 @@
     appendNow: appendNow,
     adopt: adopt,
     retargetGameId: retargetGameId,
+    stampFallbackOpponent: stampFallbackOpponent,
     allRows: allRows,
     activeEvents: activeEvents,
     eventsForGame: eventsForGame,

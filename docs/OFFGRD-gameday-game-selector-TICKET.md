@@ -55,3 +55,8 @@ nothing re-resolves it until Exit.
       gameId rotation
 - [ ] Header shows opponent logo + name on O and D callers
 - [ ] Two devices picking "vs Central · Sep 10" land on the same gameId
+- [ ] Export-all shows opponent = Parkway Central on every O and D event,
+      never `Live`. Both stores carry the pinned opponent (v360 O opened
+      with `session.opp = 'Live'` and tagged 48 events that way; D on the
+      same device was Central. A Live library row never matches
+      per-opponent retire.)

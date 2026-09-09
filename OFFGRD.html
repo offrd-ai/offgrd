@@ -3750,7 +3750,8 @@ function callerEnsureSession(){
   const Pin=window.OFFGRD_GAMEDAY_PIN;
   const mint=function(){ return (E&&E.uuid)?E.uuid():("g"+Date.now().toString(36)); };
   if(!CALLER_SESSION){
-    CALLER_SESSION={ opp:callerSessionOppRaw(), week:callerSessionWeekRaw(), game_date:callerSessionDate(), gameId:mint() };
+    const pinnedOpp=Pin&&Pin.writeOpp&&Pin.writeOpp();
+    CALLER_SESSION={ opp:pinnedOpp||callerSessionOppRaw(), week:callerSessionWeekRaw(), game_date:callerSessionDate(), gameId:mint() };
   }
   const priorGid=CALLER_SESSION&&CALLER_SESSION.gameId;
   if(Pin&&Pin.adoptIfPinned) CALLER_SESSION=Pin.adoptIfPinned(CALLER_SESSION);
@@ -3770,7 +3771,15 @@ function callerEnsureSession(){
   if(!CALLER_SESSION.week) CALLER_SESSION.week=callerSessionWeekRaw();
   return CALLER_SESSION;
 }
-function callerSessionOpp(){ return (CALLER_SESSION&&CALLER_SESSION.opp)||callerSessionOppRaw(); }
+function callerSessionOpp(){
+  const Pin=window.OFFGRD_GAMEDAY_PIN;
+  if(Pin&&Pin.writeOpp){ const pinned=Pin.writeOpp(); if(pinned) return pinned; }
+  const raw=(CALLER_SESSION&&CALLER_SESSION.opp)||"";
+  if(raw && raw!=="ANY" && raw!=="Live" && raw!=="opponent") return raw;
+  if(sit&&sit.opp&&sit.opp!=="ANY") return sit.opp;
+  if(WEEK&&WEEK.opponent) return WEEK.opponent;
+  return raw||callerSessionOppRaw();
+}
 function callerSessionWeek(){ return (CALLER_SESSION&&CALLER_SESSION.week)||callerSessionWeekRaw(); }
 function callerPlayType(pl){
   const T=window.OFFGRD_PLAY_TYPE;
@@ -5050,7 +5059,9 @@ function callerAppend(type, playIndex, payload){
   const Pin=window.OFFGRD_GAMEDAY_PIN;
   const gid=(Pin&&Pin.writeId&&Pin.writeId())||sess.gameId;
   if(sess&&gid) sess.gameId=gid;
+  if(Pin&&Pin.stampSession) Pin.stampSession(sess);
   const clean=Object.assign({}, payload||{});
+  if(Pin&&Pin.stampPayload) Pin.stampPayload(clean);
   if(Object.prototype.hasOwnProperty.call(clean,"side")) delete clean.side;
   CALLER_SEQ=(CALLER_SEQ||0)+1;
   const ev=(E&&E.buildEvent)

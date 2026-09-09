@@ -87,6 +87,22 @@ check(
     J.snapRowsForGame("pin-id", "offense").some(function (r) { return r.eventId === "misfiled"; }) &&
     J.snapRowsForGame("stolen-uuid", "offense").length === 0
 );
+J.appendNow({
+  eventId: "live-tag",
+  gameId: "pin-id",
+  side: "offense",
+  type: "call",
+  payload: { opponent: "Live" },
+  clientTs: 3,
+  seq: 100,
+});
+check(
+  "stamp leftover Live opponent onto the pin",
+  J.stampFallbackOpponent("Parkway Central", "pin-id") >= 1 &&
+    J.snapRowsForGame("pin-id", "offense").some(function (r) {
+      return r.eventId === "live-tag" && r.payload.opponent === "Parkway Central";
+    })
+);
 
 const wiped = J.hydrateView([], "defense", "fri-d");
 check("empty store rebuilds from journal for that gameId", wiped.length === 60);
