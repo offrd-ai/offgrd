@@ -174,16 +174,17 @@
     var mint = function () {
       return eng && eng.uuid ? eng.uuid() : "dg" + Date.now();
     };
+    var Pin = global.OFFGRD_GAMEDAY_PIN;
     if (!session || !session.gameId) {
+      var pinnedOpp = Pin && Pin.writeOpp && Pin.writeOpp();
       session = {
         gameId: mint(),
-        opp: opp() !== "ANY" ? opp() : weekLabel() || "opponent",
+        opp: pinnedOpp || (opp() !== "ANY" ? opp() : weekLabel() || "opponent"),
         week: (typeof callerSessionWeekRaw === "function" ? callerSessionWeekRaw() : weekLabel()) || "",
         game_date: Side && Side.liveDateISO ? Side.liveDateISO() : new Date().toISOString().slice(0, 10),
         side: "defense",
       };
     }
-    var Pin = global.OFFGRD_GAMEDAY_PIN;
     var priorGid = session && session.gameId;
     if (Pin && Pin.adoptIfPinned) session = Pin.adoptIfPinned(session);
     if (Pin && Pin.get()) {
@@ -1244,7 +1245,9 @@
     var PinW = global.OFFGRD_GAMEDAY_PIN;
     var gid = (PinW && PinW.writeId && PinW.writeId()) || (sess && sess.gameId);
     if (sess && gid) sess.gameId = gid;
+    if (PinW && PinW.stampSession) PinW.stampSession(sess);
     var clean = Object.assign({}, payload || {});
+    if (PinW && PinW.stampPayload) PinW.stampPayload(clean);
     if (Object.prototype.hasOwnProperty.call(clean, "side")) delete clean.side;
     seq = (seq || 0) + 1;
     var ev = eng.buildEvent

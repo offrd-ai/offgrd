@@ -54,6 +54,7 @@ function makeSandbox() {
     applyPin(pin, rotatePrior) {
       this.lastPin = pin;
       this.lastRotate = !!rotatePrior;
+      this._sess = { opp: pin.opponent, gameId: pin.gameId, week: "Live " + pin.date };
     },
     getSession() {
       return this._sess || null;
@@ -92,13 +93,25 @@ check(
   PinA.gameIdFor("Parkway North", "2026-09-10") !== idA
 );
 
+a.CALLER_SESSION = { opp: "Live", week: "Live 2026-09-08", gameId: "leftover-o", game_date: "2026-09-08" };
+a.OFFGRD_DCALLER._sess = { opp: "Parkway Central", gameId: "leftover-d" };
 const pin1 = PinA.pick({ opponent: "Parkway Central", date: "2026-09-10", ha: "H" });
 check("pick pins Central and that gameId", !!(pin1 && pin1.opponent === "Parkway Central" && pin1.gameId === idA));
+check("pick overwrites leftover O Live store", a.CALLER_SESSION.opp === "Parkway Central" && a.CALLER_SESSION.gameId === idA);
+check("pick stamps the D store with the same opponent", a.OFFGRD_DCALLER.getSession().opp === "Parkway Central" && a.OFFGRD_DCALLER.getSession().gameId === idA);
 check("writes use the pin id", PinA.writeId() === idA);
 check("entered after pick", PinA.entered() === "caller");
 a.sit = { opp: "Parkway North" };
 check("scout opponent does not change the pin", PinA.get().opponent === "Parkway Central" && PinA.get().gameId === idA);
 check("adopt keeps the pinned gameId", PinA.adoptIfPinned({ gameId: "random-uuid", opp: "Parkway North" }).gameId === idA);
+check("adopt overwrites leftover O Live session", PinA.adoptIfPinned({ gameId: idA, opp: "Live" }).opp === "Parkway Central");
+check("writeOpp is the pin, never Live", PinA.writeOpp() === "Parkway Central" && PinA.isFallbackOpp("Live"));
+a.CALLER_EVENTS = [{ eventId: "live-tag", gameId: idA, payload: { opponent: "Live" } }];
+PinA.adoptIfPinned({ gameId: idA, opp: "Live" });
+check(
+  "adopt restamps Live events onto the pin opponent",
+  a.CALLER_EVENTS[0].payload.opponent === "Parkway Central"
+);
 
 PinA.leave();
 check("Exit clears entered, keeps pin", PinA.entered() === "" && PinA.get().opponent === "Parkway Central");
@@ -125,12 +138,17 @@ check("sync flush keeps the pin gameId", /pinnedId/.test(sync) && /sess\.gameId 
 check("fold prefers the pin over leftover event ids", /Pin\.writeId/.test(log));
 check("O append stamps writeId", /Pin\.writeId&&Pin\.writeId\(\)/.test(html));
 check("D append stamps writeId", /PinW && PinW.writeId/.test(dc));
+check("O append stamps pin opponent", /Pin\.stampPayload/.test(html) && /Pin\.writeOpp/.test(html));
+check("D append stamps pin opponent", /PinW\.stampPayload/.test(dc) && /Pin\.writeOpp/.test(dc));
+check("O session opp prefers the pin over Live", /function callerSessionOpp\(\)\{[\s\S]*?writeOpp/.test(html));
+check("sync flush does not let a leftover cloud opponent overwrite the pin", /if \(game && !pinnedId\)/.test(sync));
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));
 check("setOpponent does not pick or rotate", /function setOpponent\(v\)\{ sit\.opp=v;/.test(html) && !/function setOpponent[\s\S]{0,400}shouldRotateForOpponent/.test(html));
 
 const pinSrc = fs.readFileSync(path.join(root, "OFFGRD-gameday-pin.js"), "utf8");
 const acct = fs.readFileSync(path.join(root, "OFFGRD-account.js"), "utf8");
+check("resume reapplies the pin to both stores", /applyPinToSessions\(pin, false\)/.test(pinSrc));
 check("picker re-renders on program-ready", /offgrd-program-ready/.test(pinSrc) && /refreshIfPick/.test(pinSrc));
 check("picker re-renders on brand-hydrated", /offgrd-brand-hydrated/.test(pinSrc) && /offgrd-brand-hydrated/.test(acct));
 check("empty picker offers Start a game from the library", /Start a game/.test(pinSrc) && /libraryOpponents/.test(pinSrc));

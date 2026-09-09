@@ -665,16 +665,14 @@
     }
 
     var Pin = global.OFFGRD_GAMEDAY_PIN;
+    var pin = Pin && Pin.get ? Pin.get() : null;
     var pinnedId = Pin && Pin.writeId ? Pin.writeId() : null;
     if (pinnedId) {
       sess.gameId = pinnedId;
-      if (Pin.get) {
-        var pin = Pin.get();
-        if (pin) {
-          sess.opp = pin.opponent;
-          sess.game_date = pin.date;
-          sess.week = "Live " + pin.date;
-        }
+      if (pin) {
+        sess.opp = pin.opponent;
+        sess.game_date = pin.date;
+        sess.week = "Live " + pin.date;
       }
     } else if (game && game.id && sess.gameId && game.id !== sess.gameId) {
       var old = sess.gameId;
@@ -685,7 +683,7 @@
     } else if (game && game.id) {
       sess.gameId = game.id;
     }
-    if (game) {
+    if (game && !pinnedId) {
       var SideStamp = global.OFFGRD_CALLER_SIDE;
       var recycled = SideStamp && SideStamp.callerGameIsRecycled
         ? SideStamp.callerGameIsRecycled(game, { week: sess.week, game_date: sess.game_date })
@@ -695,6 +693,14 @@
         if (game.week) sess.week = game.week;
         if (game.game_date) sess.game_date = game.game_date;
       }
+    }
+    if (pin && Pin.stampSession) Pin.stampSession(sess);
+    if (pin && Pin.stampPayload) {
+      events.forEach(function (e) {
+        if (e && e.payload && Pin.isFallbackOpp && Pin.isFallbackOpp(e.payload.opponent)) {
+          Pin.stampPayload(e.payload);
+        }
+      });
     }
 
     var gameId = sess.gameId;

@@ -128,6 +128,55 @@
     var p = get();
     return p && p.gameId ? p.gameId : null;
   }
+  function writeOpp() {
+    var p = get();
+    return p && p.opponent && !isFallbackOpp(p.opponent) ? String(p.opponent).trim() : null;
+  }
+  function stampSession(sess) {
+    var pin = get();
+    if (!pin || !sess) return sess;
+    sess.opp = pin.opponent;
+    sess.gameId = pin.gameId;
+    sess.game_date = pin.date;
+    sess.week = "Live " + pin.date;
+    sess.ended = false;
+    return sess;
+  }
+  function stampPayload(payload) {
+    var opp = writeOpp();
+    if (!payload || !opp) return payload;
+    payload.opponent = opp;
+    return payload;
+  }
+  function stampFallbackOpponent(evs, opp, gameId) {
+    var n = 0;
+    (evs || []).forEach(function (e) {
+      if (!e || !e.payload) return;
+      if (gameId && String(e.gameId) !== String(gameId)) return;
+      if (isFallbackOpp(e.payload.opponent)) {
+        e.payload.opponent = opp;
+        n += 1;
+      }
+    });
+    return n;
+  }
+  function stampLiveOpponent(pin) {
+    pin = pin || get();
+    if (!pin || isFallbackOpp(pin.opponent)) return;
+    stampFallbackOpponent(global.CALLER_EVENTS, pin.opponent, pin.gameId);
+    try {
+      var D = global.OFFGRD_DCALLER;
+      var evs = D && D.getEvents ? D.getEvents() : null;
+      if (evs) stampFallbackOpponent(evs, pin.opponent, pin.gameId);
+    } catch (eD) {}
+    try {
+      var J = global.OFFGRD_CALLER_JOURNAL;
+      if (J && J.stampFallbackOpponent) J.stampFallbackOpponent(pin.opponent, pin.gameId);
+    } catch (eJ) {}
+    try {
+      if (global.sit && global.sit.opp !== pin.opponent) global.sit.opp = pin.opponent;
+    } catch (eSit) {}
+  }
   function save(pin) {
     lsSet(PIN_KEY, JSON.stringify(pin));
     return pin;
@@ -272,6 +321,7 @@
       var D = global.OFFGRD_DCALLER;
       if (D && D.applyPin) D.applyPin(pin, rotatePrior);
     } catch (eD) {}
+    stampLiveOpponent(pin);
   }
 
   function pick(game, opts) {
@@ -303,7 +353,13 @@
   function request(side) {
     setPendingSide(side);
     var view = side === "defense" ? "dcaller" : "caller";
-    if (entered() && get()) {
+    var pin = get();
+    if (entered() && pin) {
+      applyPinToSessions(pin, false);
+      stampLiveOpponent(pin);
+      try {
+        if (typeof global.setOpponent === "function") global.setOpponent(pin.opponent);
+      } catch (eSit) {}
       if (typeof global.setView === "function") global.setView(view);
       return;
     }
@@ -319,12 +375,9 @@
     var pin = get();
     if (!pin || !sess) return sess;
     var prev = sess.gameId;
-    sess.opp = pin.opponent;
-    sess.gameId = pin.gameId;
-    sess.game_date = pin.date;
-    sess.week = "Live " + pin.date;
-    sess.ended = false;
+    stampSession(sess);
     if (prev && String(prev) !== String(pin.gameId)) retargetLive(prev, pin.gameId);
+    stampLiveOpponent(pin);
     return sess;
   }
 
@@ -528,6 +581,10 @@
     libraryOpponents: libraryOpponents,
     gameIdFor: gameIdFor,
     writeId: writeId,
+    writeOpp: writeOpp,
+    stampSession: stampSession,
+    stampPayload: stampPayload,
+    isFallbackOpp: isFallbackOpp,
     isUuid: isUuid,
     existingGameId: existingGameId,
     scheduleKey: scheduleKey,
