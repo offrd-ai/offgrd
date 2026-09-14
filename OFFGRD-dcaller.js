@@ -196,8 +196,8 @@
       var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
       session = stamped.session;
       session.side = "defense";
-      if (Array.isArray(stamped.events)) events = stamped.events;
       if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
+      events = hydrateView(events);
     }
     return session;
   }
@@ -1240,6 +1240,8 @@
   }
 
   function append(type, playIndex, payload) {
+    var SideW = global.OFFGRD_CALLER_SIDE;
+    if (SideW && SideW.callerWritesAllowed && !SideW.callerWritesAllowed()) return null;
     var eng = E();
     var sess = ensureSession();
     var PinW = global.OFFGRD_GAMEDAY_PIN;
@@ -2088,11 +2090,18 @@
   }
 
   /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
+  function shouldAmendOpenCall(live, playType, now) {
+    if (!live || live.playIndex == null || live.result) return false;
+    if (String(live.playType || "") !== String(playType || "")) return false;
+    var ts = live.ts || live.clientTs || 0;
+    return (now != null ? now : Date.now()) - ts <= 3000;
+  }
+
   function logTheirPlay(playType, direction) {
     var live = liveCall();
-    /* Live ungraded snap — switch Run/Pass on THIS play. A second tap must
-     * not open a phantom snap (P0: scroll + mistap used to log Pass empty). */
-    if (live && live.playIndex != null && !live.result) {
+    /* Same Run/Pass re-tapped within 3s amends this snap. Any other tap
+     * is the next snap — yards are optional; the call is the snap. */
+    if (shouldAmendOpenCall(live, playType, Date.now())) {
       var liveDir = direction || live.theirDirection || pendingDir || null;
       if (liveDir === "") liveDir = null;
       var liveLabel = playType + (liveDir ? " " + liveDir : "");
@@ -2528,7 +2537,10 @@
     var guardLine = snapGuard
       ? `<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(snapGuard)}</p>`
       : "";
+    var SideBan = global.OFFGRD_CALLER_SIDE;
+    var safari = SideBan && SideBan.safariReadOnlyBannerHtml ? SideBan.safariReadOnlyBannerHtml() : "";
     return (
+      safari +
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
       `<span><b>${esc(label)}</b>${cen && cen.tone === "bad" ? " · saved ≠ snaps" : st.detail ? " · " + esc(st.detail) : ""}</span>` +
@@ -3681,6 +3693,7 @@
     driveOver: driveOver,
     movedChains: movedChains,
     logForUi: logForUi,
+    shouldAmendOpenCall: shouldAmendOpenCall,
     logTheirPlay: logTheirPlay,
     logST: logST,
     logTry: logTry,

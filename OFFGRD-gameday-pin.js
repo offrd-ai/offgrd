@@ -90,37 +90,17 @@
     return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
   }
 
+  /** Build A: leftover sessions stay under their own ids. Never re-parent. */
   function retargetLive(from, to) {
-    if (!from || !to || String(from) === String(to)) return;
-    function walk(evs) {
-      (evs || []).forEach(function (e) {
-        if (e && String(e.gameId) === String(from)) e.gameId = to;
-      });
-    }
-    try {
-      if (global.CALLER_SESSION && String(global.CALLER_SESSION.gameId) === String(from)) global.CALLER_SESSION.gameId = to;
-      walk(global.CALLER_EVENTS);
-    } catch (eO) {}
-    try {
-      var D = global.OFFGRD_DCALLER;
-      var ds = D && (D.getSession ? D.getSession() : D.session);
-      if (ds && String(ds.gameId) === String(from)) ds.gameId = to;
-    } catch (eD) {}
-    try {
-      var J = global.OFFGRD_CALLER_JOURNAL;
-      if (J && J.retargetGameId) J.retargetGameId(from, to);
-    } catch (eJ) {}
+    return;
   }
 
   function get() {
     var o = parseJson(lsGet(PIN_KEY));
     if (!o || isFallbackOpp(o.opponent) || !o.gameId) return null;
     if (!isUuid(o.gameId)) {
-      var next = gameIdFor(o.opponent, o.date);
-      var prev = o.gameId;
-      o.gameId = next;
+      o.gameId = gameIdFor(o.opponent, o.date);
       save(o);
-      retargetLive(prev, next);
     }
     return o;
   }
@@ -374,9 +354,7 @@
   function adoptIfPinned(sess) {
     var pin = get();
     if (!pin || !sess) return sess;
-    var prev = sess.gameId;
     stampSession(sess);
-    if (prev && String(prev) !== String(pin.gameId)) retargetLive(prev, pin.gameId);
     stampLiveOpponent(pin);
     return sess;
   }

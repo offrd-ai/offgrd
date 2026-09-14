@@ -1,8 +1,8 @@
 # TICKET — Week 2: replicate by eventId, derive the library on the server
 
-Start Monday 2026-09-14. Thursday 9/10 is v364 airplane; v365 is preview-only
-until it soaks. This ticket is the proof that live library rows never depend
-on a client fold.
+Start Monday **2026-09-21** (Build B). Not Sep 14 — that week is Build A
+(device trust) per `docs/OFFGRD-PLAN-no-rigmarole-by-Sep-25.md`.
+This ticket is the proof that live library rows never depend on a client fold.
 
 ## Why
 v364 reminted outcomes on every `GAMES` hydrate and wrote them as new
@@ -28,9 +28,9 @@ derives Season / Live rows from that ledger. The client does not write
 4. **Empty is unknown.** A successful exact-count `0` may clear a dest.
    `[]` without a count does not.
 
-## Not in order until Monday
-- Do not pin v365 to production before the three-boot DB check.
-- Do not hydrate Thursday's game from wifi.
+## Not in order until Build B (Sep 21)
+- Do not start this ticket during Build A (Sep 14–17).
+- Do not pin anything to production without a green game-iPad soak.
 - Do not add new caller surfaces.
 
 ## Acceptance

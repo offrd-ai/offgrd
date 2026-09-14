@@ -82,10 +82,10 @@ J.appendNow({
   seq: 99,
 });
 check(
-  "retarget moves a write onto the pin id",
-  J.retargetGameId("stolen-uuid", "pin-id") === 1 &&
-    J.snapRowsForGame("pin-id", "offense").some(function (r) { return r.eventId === "misfiled"; }) &&
-    J.snapRowsForGame("stolen-uuid", "offense").length === 0
+  "retarget is a no-op — leftover events keep their gameId",
+  J.retargetGameId("stolen-uuid", "pin-id") === 0 &&
+    J.snapRowsForGame("stolen-uuid", "offense").some(function (r) { return r.eventId === "misfiled"; }) &&
+    !J.snapRowsForGame("pin-id", "offense").some(function (r) { return r.eventId === "misfiled"; })
 );
 J.appendNow({
   eventId: "live-tag",

@@ -569,10 +569,8 @@
   }
 
   /**
-   * Recycled Live week/date → today + new gameId.
-   * Only retarget events whose clientTs is today so July test snaps stay off the new key.
-   * Never drops the events array. A session with events or leftover sit is immune.
-   * When a true empty leftover rolls, the old identity is archived so it stays selectable.
+   * Empty leftover Live session → archive under its own id, mint today.
+   * Never rewrites event gameIds. A session with events or leftover sit is immune.
    */
   function restampStaleSession(sess, events, now, newId, sit) {
     var list = events || [];
@@ -582,15 +580,9 @@
     if (!isStaleLiveIdentity(sess, now, list, sit)) {
       return { session: sess, events: list, restamped: false };
     }
-    var today = liveDateISO(now);
     var oldId = sess && sess.gameId;
-    var archive = snapshotSessionArchive(sess, list, sit, "restamp");
+    var archive = snapshotSessionArchive(sess, list, sit, "archive-leftover");
     var next = stampFreshLiveSession(sess, now, newId || oldId);
-    if (oldId && next.gameId && oldId !== next.gameId) {
-      list.forEach(function (e) {
-        if (e && e.gameId === oldId && eventOnLiveDate(e, today)) e.gameId = next.gameId;
-      });
-    }
     next.rolledFrom = oldId || null;
     next.restampedAt = Date.now();
     return {
@@ -929,6 +921,37 @@
       });
   }
 
+  function isIosDevice(nav) {
+    nav = nav || (typeof global.navigator !== "undefined" ? global.navigator : null);
+    if (!nav) return false;
+    var ua = String(nav.userAgent || "");
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    if (nav.platform === "MacIntel" && nav.maxTouchPoints > 1) return true;
+    return false;
+  }
+
+  function isStandaloneDisplay(nav, matchMediaFn) {
+    nav = nav || (typeof global.navigator !== "undefined" ? global.navigator : null);
+    if (!nav) return false;
+    if (nav.standalone === true) return true;
+    try {
+      var mm = matchMediaFn || global.matchMedia;
+      if (mm && mm("(display-mode: standalone)").matches) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  /** iOS Safari (not the home-screen icon) is view-only. */
+  function callerWritesAllowed(nav, matchMediaFn) {
+    if (!isIosDevice(nav)) return true;
+    return isStandaloneDisplay(nav, matchMediaFn);
+  }
+
+  function safariReadOnlyBannerHtml() {
+    if (callerWritesAllowed()) return "";
+    return '<p class="rd-gd-safari-ro" role="status" style="margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#fff3cd;color:#5c4300;font-weight:800">Open the OFFGRD icon to log. Safari is view-only.</p>';
+  }
+
   global.OFFGRD_CALLER_SIDE = {
     EVENT_OFFENSE: EVENT_OFFENSE,
     EVENT_DEFENSE: EVENT_DEFENSE,
@@ -985,6 +1008,10 @@
     mergeRowsByCallId: mergeRowsByCallId,
     findExactLive: findExactLive,
     assertUniqueLogicalKeys: assertUniqueLogicalKeys,
+    isIosDevice: isIosDevice,
+    isStandaloneDisplay: isStandaloneDisplay,
+    callerWritesAllowed: callerWritesAllowed,
+    safariReadOnlyBannerHtml: safariReadOnlyBannerHtml,
     planLiveLibraryWrite: planLiveLibraryWrite,
     LIBRARY_SHRINK_REFUSAL: LIBRARY_SHRINK_REFUSAL,
     LIBRARY_WEEK_REFUSAL: LIBRARY_WEEK_REFUSAL,

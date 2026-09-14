@@ -222,18 +222,9 @@
     return row;
   }
 
+  /** Build A: a game's events keep that game's id. Never re-parent. */
   function retargetGameId(from, to) {
-    if (!from || !to || String(from) === String(to)) return 0;
-    var n = 0;
-    Object.keys(mem).forEach(function (id) {
-      var r = mem[id];
-      if (!r || String(r.gameId) !== String(from)) return;
-      r.gameId = String(to);
-      n += 1;
-      if (idb) idbPut(idb, r);
-    });
-    if (n) persistLsMirror();
-    return n;
+    return 0;
   }
 
   function isFallbackOpp(name) {

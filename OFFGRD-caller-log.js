@@ -11,6 +11,7 @@
   var STORE_KEY = "offgrd_caller_events_v2";
   var DCALLER_STORE_KEY = "offgrd_dcaller_events_v2";
   var DEVICE_KEY = "offgrd_device_id";
+  var DEVICE_KEY_SAFARI = "offgrd_device_id_safari_v1";
 
   function eventSideOf(e) {
     var S = global.OFFGRD_CALLER_SIDE;
@@ -212,10 +213,13 @@
 
   function deviceId() {
     try {
-      var d = localStorage.getItem(DEVICE_KEY);
+      var Side = global.OFFGRD_CALLER_SIDE;
+      var safari = Side && Side.callerWritesAllowed && !Side.callerWritesAllowed();
+      var key = safari ? DEVICE_KEY_SAFARI : DEVICE_KEY;
+      var d = localStorage.getItem(key);
       if (d) return d;
       d = "dev_" + uuid().slice(0, 12);
-      localStorage.setItem(DEVICE_KEY, d);
+      localStorage.setItem(key, d);
       return d;
     } catch (e) {
       return "dev_anon";
@@ -308,9 +312,7 @@
         throw new Error("foldCallerEvents: side must be \"offense\" or \"defense\"");
       }
       events = (events || []).filter(function (e) {
-        var got = eventSideOf(e);
-        if (got) return got === want;
-        return e && e.type && e.type !== "call";
+        return eventSideOf(e) === want;
       });
     }
     var sorted = sortEvents(events);

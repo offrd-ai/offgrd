@@ -118,8 +118,8 @@ check(
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
 const dc = fs.readFileSync(path.join(root, "OFFGRD-dcaller.js"), "utf8");
 check(
-  "hydrateFromGames returns while a pin exists",
-  /function callerHydrateFromGames\(\)\{[\s\S]{0,180}Pin\.get\(\)\) return;/.test(html)
+  "hydrateFromGames is a no-op",
+  /function callerHydrateFromGames\(\)\{\s*return;/.test(html)
 );
 check("O fallback outcome id is deterministic", /outcomeEventId\(gid,"offense"/.test(html));
 check("D fallback outcome id is deterministic", /outcomeEventId\(gid, "defense"/.test(dc));

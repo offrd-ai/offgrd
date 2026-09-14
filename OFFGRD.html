@@ -3762,8 +3762,8 @@ function callerEnsureSession(){
     if(S&&S.isStaleLiveIdentity&&S.isStaleLiveIdentity(CALLER_SESSION, null, CALLER_EVENTS, callerSit)){
       const stamped=S.restampStaleSession(CALLER_SESSION, CALLER_EVENTS, null, mint(), callerSit);
       CALLER_SESSION=stamped.session;
-      if(Array.isArray(stamped.events)) CALLER_EVENTS=stamped.events;
       if(stamped.archive) CALLER_SESSION_ARCHIVES=(CALLER_SESSION_ARCHIVES||[]).concat([stamped.archive]);
+      CALLER_EVENTS=callerHydrateView(CALLER_EVENTS);
     }
   }
   if(!CALLER_SESSION.gameId) CALLER_SESSION.gameId=mint();
@@ -5053,6 +5053,8 @@ function callerSyncToGames(opts){
   return planned;
 }
 function callerAppend(type, playIndex, payload){
+  const SideW=window.OFFGRD_CALLER_SIDE;
+  if(SideW&&SideW.callerWritesAllowed&&!SideW.callerWritesAllowed()) return null;
   const E=callerEngine();
   const sess=callerEnsureSession();
   const actor=callerActor();
@@ -5283,39 +5285,7 @@ function loadCallerSession(){
   }catch(e){}
 }
 function callerHydrateFromGames(){
-  const Pin=window.OFFGRD_GAMEDAY_PIN;
-  if(Pin&&Pin.get&&Pin.get()) return;
-  if(CALLER_EVENTS.length||CALLER_LOG.length) return;
-  const k=gameKey(callerSessionOpp(), callerSessionWeek(), "ours");
-  let g=GAMES.find(x=>x.key===k || gameKey(x.opponent,x.week,x.side)===k);
-  if(!g){
-    g=GAMES.find(x=> x.side==="ours" && (x.source==="live_call" || (x.rows&&x.rows[0]&&x.rows[0].source==="live_call")) && String(x.week||"").toLowerCase().indexOf("live")===0);
-  }
-  if(!g||!Array.isArray(g.rows)||!g.rows.length) return;
-  if(g.source!=="live_call" && !(g.rows[0]&&g.rows[0].source==="live_call")) return;
-  const E=callerEngine();
-  if(!E||!E.migrateV1Log) return;
-  /* Prefer stable callIds from rows as gameId seed — do not mint a disposable uuid every hydrate. */
-  const seedId=(g.rows.find(function(r){ return r&&r.callId; })||{}).callId || null;
-  CALLER_SESSION={opp:g.opponent, week:g.week, gameId:seedId||(g.cid||null)};
-  const log=g.rows.map(function(r,idx){
-    return {
-      id: r.callId||r.id,
-      playIndex: idx,
-      sitTxt: ordinal(+r.down)+" & "+distBucket(r.distance)+(r.hash?" "+r.hash:""),
-      play: r.play,
-      result: r.success===1?"hit":r.success===0?"miss":null,
-      dn: +r.down, db: distBucket(r.distance), hash: r.hash||"ANY", zone: r.fieldZone||"ANY",
-      coverage: r.coverage||null, playType: r.playType||"", opponent: r.opponent||g.opponent,
-      date: r.date||null, signal: r.signal, front: r.front||"", ts: Date.now()-idx
-    };
-  });
-  const mig=E.migrateV1Log(log, CALLER_SESSION, callerDeviceId(), callerActor().id);
-  CALLER_SESSION.gameId=mig.gameId;
-  CALLER_EVENTS=mig.events;
-  CALLER_SEQ=mig.events.length;
-  callerRefold({sync:false});
-  callerSaveLocal();
+  return;
 }
 function callerPersist(){ callerSaveLocal(); callerSyncToGames({ side: "offense", fromCall: true }); callerScheduleSync(); }
 function dispatchCall(play){ callerLog(play); }
@@ -6263,7 +6233,9 @@ function callerSyncHeaderHtml(){
       extra+=`<button type="button" class="rd-dc-upload" onclick="callerUndoClear()">Undo clear</button>`;
     }
     const guard=CALLER_SNAP_GUARD?`<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(CALLER_SNAP_GUARD)}</p>`:"";
-    return `<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(label)}${cen&&cen.tone==="bad"?" · saved ≠ snaps":(st.detail?" · "+esc(st.detail):"")}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button><button type="button" class="rd-dc-upload" onclick="callerExport()">Export</button>${extra}</div>`+guard;
+    const SideH=window.OFFGRD_CALLER_SIDE;
+    const safari=SideH&&SideH.safariReadOnlyBannerHtml?SideH.safariReadOnlyBannerHtml():"";
+    return safari+`<div class="rd-dc-sync no-print" role="status"><span class="rd-dc-sync-dot ${cls}" aria-hidden="true"></span><span>${esc(label)}${cen&&cen.tone==="bad"?" · saved ≠ snaps":(st.detail?" · "+esc(st.detail):"")}</span><button type="button" class="rd-dc-upload" onclick="OFFGRD_CALLER_SYNC()">Sync now</button><button type="button" class="rd-dc-upload" onclick="callerExport()">Export</button>${extra}</div>`+guard;
   }catch(e){ return ""; }
 }
 function callerUndoClear(){

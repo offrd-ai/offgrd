@@ -112,6 +112,13 @@ check(
   "adopt restamps Live events onto the pin opponent",
   a.CALLER_EVENTS[0].payload.opponent === "Parkway Central"
 );
+a.CALLER_EVENTS.push({ eventId: "fri-leftover", gameId: "leftover-o", payload: { opponent: "Parkway South" } });
+PinA.adoptIfPinned({ gameId: "leftover-o", opp: "Live" });
+check(
+  "adopt never retargets leftover events onto the pin",
+  a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === "leftover-o"; }) &&
+    !a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === idA; })
+);
 
 PinA.leave();
 check("Exit clears entered, keeps pin", PinA.entered() === "" && PinA.get().opponent === "Parkway Central");
