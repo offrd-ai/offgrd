@@ -43,9 +43,9 @@
     rb: ["routes-back", "run-path", "motion", "pass-pro"],
     qb: ["qb-drop", "qb-boot", "qb-notes"],
     ol: ["run-blocks", "pass-set"],
-    dl: ["dl-slant", "dl-contain", "dl-two-gap", "zone-drop"],
-    lb: ["blitz", "zone-drop", "spy", "man"],
-    db: ["man", "zone-drop", "blitz", "press"]
+    dl: ["dl-slant", "dl-contain", "dl-two-gap", "zone-drop", "direct"],
+    lb: ["blitz", "zone-drop", "spy", "man", "direct"],
+    db: ["man", "zone-drop", "blitz", "press", "direct"]
   };
 
   function groupsForSelection(sel, opts) {

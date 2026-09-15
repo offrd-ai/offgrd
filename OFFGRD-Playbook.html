@@ -1040,7 +1040,7 @@ function renderDock(){
    dockBtn(dockRow(host),"Pass set",function(){ applyBlock("set",0); });
   } else if(g==="direct"){
    dockLbl(host,"Direct");
-   dockBtn(dockRow(host),"Direct path",function(){ setMode("route"); });
+   dockBtn(dockRow(host),"Direct path",function(){ DOCK_VERB=null; setMode("route"); msg("Tap the field to draw "+(SEL&&SEL.lab?SEL.lab:"the defender")+"\u2019s path \u00b7 it overrides his coverage drop."); });
   } else if(g==="dl-slant"){
    dockLbl(host,"Slant / stunt");
    dockBtn(dockRow(host),"Slant / stunt",function(){
