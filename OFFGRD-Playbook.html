@@ -1016,6 +1016,9 @@ function renderDock(){
    dockLbl(host,"Back routes");
    const row=dockRow(host);
    ["Flat","Wheel","Screen"].forEach(function(n){ if(ROUTES[n]) dockBtn(row,n,function(){ applyRoute(n); }); });
+  } else if(g==="draw-route"){
+   dockLbl(host,"Custom route");
+   dockBtn(dockRow(host),"Draw route",function(){ DOCK_VERB=null; setMode("route"); msg("Tap the field to draw "+(SEL&&SEL.lab?SEL.lab:"the player")+"\u2019s route. Drag green dots to adjust, gray dots to curve."); });
   } else if(g==="motion"){
    dockLbl(host,"Motion path");
    dockBtn(dockRow(host),"Motion path",function(){ DOCK_VERB=null; setMode("motion"); msg("Tap the field to draw pre-snap motion. Drag the player to realign."); });

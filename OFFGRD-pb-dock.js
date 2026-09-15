@@ -39,7 +39,7 @@
   var GROUPS = {
     play: ["side", "formation", "personnel", "protection", "concepts", "defense-look"],
     defensePlay: ["side", "front", "coverage", "blitz-group", "offense-look"],
-    wr: ["routes-quick", "routes-inter", "routes-deep", "motion", "block-perim"],
+    wr: ["routes-quick", "routes-inter", "routes-deep", "draw-route", "motion", "block-perim"],
     rb: ["routes-back", "run-path", "motion", "pass-pro"],
     qb: ["qb-drop", "qb-boot", "qb-notes"],
     ol: ["run-blocks", "pass-set"],
