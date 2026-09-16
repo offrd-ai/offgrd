@@ -185,20 +185,26 @@
         side: "defense",
       };
     }
-    var priorGid = session && session.gameId;
-    if (Pin && Pin.adoptIfPinned) session = Pin.adoptIfPinned(session);
-    if (Pin && Pin.get()) {
+    var pin = Pin && Pin.get ? Pin.get() : null;
+    if (pin) {
+      if (session.gameId !== pin.gameId) {
+        /* Build A: never re-key a leftover session. Build a fresh session on
+           the pin's identity; the leftover's events stay under their own id. */
+        session = {
+          opp: pin.opponent,
+          week: "Live " + pin.date,
+          game_date: pin.date,
+          gameId: pin.gameId,
+          side: "defense",
+          inProgress: !!(session && session.inProgress),
+          ended: false,
+        };
+        events = hydrateView(events);
+      }
       session.side = "defense";
-      if (session.gameId !== priorGid) events = hydrateView(events);
       return session;
     }
-    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events, sit)) {
-      var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
-      session = stamped.session;
-      session.side = "defense";
-      if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
-      events = hydrateView(events);
-    }
+    /* No pin: a leftover session stays under its own id and real date (restamp deleted). */
     return session;
   }
 
@@ -1331,9 +1337,9 @@
           } catch (eAd) {}
           var SideR = global.OFFGRD_CALLER_SIDE;
           var PinR = global.OFFGRD_GAMEDAY_PIN;
-          if (PinR && PinR.adoptIfPinned && session) {
-            if (sess) PinR.adoptIfPinned(sess);
-            session = PinR.adoptIfPinned(session);
+          var pinnedGid = PinR && PinR.writeId ? PinR.writeId() : null;
+          if (pinnedGid && session) {
+            /* Pinned: the pin is identity. A remote session never re-keys local. */
           } else if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
             sess = session;
           } else if (sess) {

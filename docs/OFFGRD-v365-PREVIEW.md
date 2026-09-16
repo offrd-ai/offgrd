@@ -10,6 +10,9 @@ Chip may say **v365** on this host. Home-screen getoffrd.com stays v364.
 - Outcome `eventId` = `outcomeEventId(gameId, side, playIndex)` (deterministic UUID).
   Remint and three boots write the same id. `ignoreDuplicates` is a no-op.
 - `callerHydrateFromGames` returns immediately when a gameday pin exists.
+- Local remint purge (`offgrd_cleanup_ver` = `2026-09-09-remint-v1`): collapse extra
+  outcomes, drop the phantom North session, strip Friday dates from
+  `Live|Live 2026-09-02|ours`. `saveGame` refuses grow past 24 on that key.
 
 ## Soak (device, before any production pin)
 1. Safari against the preview host (empty origin LS). Do not Clear History.

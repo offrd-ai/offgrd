@@ -3749,22 +3749,16 @@ function callerEnsureSession(){
   const S=window.OFFGRD_CALLER_SIDE;
   const Pin=window.OFFGRD_GAMEDAY_PIN;
   const mint=function(){ return (E&&E.uuid)?E.uuid():("g"+Date.now().toString(36)); };
+  const pin=Pin&&Pin.get?Pin.get():null;
   if(!CALLER_SESSION){
-    const pinnedOpp=Pin&&Pin.writeOpp&&Pin.writeOpp();
-    CALLER_SESSION={ opp:pinnedOpp||callerSessionOppRaw(), week:callerSessionWeekRaw(), game_date:callerSessionDate(), gameId:mint() };
-  }
-  const priorGid=CALLER_SESSION&&CALLER_SESSION.gameId;
-  if(Pin&&Pin.adoptIfPinned) CALLER_SESSION=Pin.adoptIfPinned(CALLER_SESSION);
-  if(Pin&&Pin.get()&&CALLER_SESSION&&CALLER_SESSION.gameId!==priorGid){
+    CALLER_SESSION=pin
+      ? { opp:pin.opponent, week:"Live "+pin.date, game_date:pin.date, gameId:pin.gameId }
+      : { opp:callerSessionOppRaw(), week:callerSessionWeekRaw(), game_date:callerSessionDate(), gameId:mint() };
+  }else if(pin&&CALLER_SESSION.gameId!==pin.gameId){
+    /* Build A: never re-key a leftover session. Fresh session on the pin's identity;
+       the leftover's events stay under their own id. No restamp without a pin. */
+    CALLER_SESSION={ opp:pin.opponent, week:"Live "+pin.date, game_date:pin.date, gameId:pin.gameId, inProgress:!!CALLER_SESSION.inProgress, ended:false };
     CALLER_EVENTS=callerHydrateView(CALLER_EVENTS);
-  }
-  if(!Pin||!Pin.get()){
-    if(S&&S.isStaleLiveIdentity&&S.isStaleLiveIdentity(CALLER_SESSION, null, CALLER_EVENTS, callerSit)){
-      const stamped=S.restampStaleSession(CALLER_SESSION, CALLER_EVENTS, null, mint(), callerSit);
-      CALLER_SESSION=stamped.session;
-      if(stamped.archive) CALLER_SESSION_ARCHIVES=(CALLER_SESSION_ARCHIVES||[]).concat([stamped.archive]);
-      CALLER_EVENTS=callerHydrateView(CALLER_EVENTS);
-    }
   }
   if(!CALLER_SESSION.gameId) CALLER_SESSION.gameId=mint();
   if(!CALLER_SESSION.game_date) CALLER_SESSION.game_date=callerSessionDate();
@@ -5143,9 +5137,9 @@ function callerSyncOpts(){
       if(J){
         const Side=window.OFFGRD_CALLER_SIDE;
         try{ J.adopt(CALLER_EVENTS); J.adopt(merged||[]); }catch(eAd){}
-        if(Pin&&Pin.adoptIfPinned&&CALLER_SESSION){
-          if(sess) Pin.adoptIfPinned(sess);
-          CALLER_SESSION=Pin.adoptIfPinned(CALLER_SESSION);
+        const pinnedGid=Pin&&Pin.writeId?Pin.writeId():null;
+        if(pinnedGid&&CALLER_SESSION){
+          /* Pinned: the pin is identity. A remote session never re-keys local. */
         }else if(sess&&CALLER_SESSION&&Side&&Side.sessionOpponentDiffers&&Side.sessionOpponentDiffers(CALLER_SESSION, sess.opp)){
           sess=CALLER_SESSION;
         }else if(sess){
@@ -5265,28 +5259,17 @@ function loadCallerSession(){
     callerRefold();
     return;
   }
-  /* migrate v1 snapshot ? events */
+  /* v1 snapshot: restore session/sit only. Build A deleted migrateV1Log —
+     no code path mints events from old logs. */
   try{
     const x=localStorage.getItem(CALLER_KEY);
     if(!x) return;
     const o=JSON.parse(x);
     if(o.session&&o.session.opp) CALLER_SESSION=o.session;
     if(o.sit) callerSit=callerNormalizeSit(o.sit);
-    if(Array.isArray(o.log)&&o.log.length&&E&&E.migrateV1Log){
-      const actor=callerActor();
-      const mig=E.migrateV1Log(o.log, CALLER_SESSION, callerDeviceId(), actor.id);
-      CALLER_SESSION=CALLER_SESSION||{};
-      CALLER_SESSION.gameId=mig.gameId;
-      CALLER_EVENTS=mig.events;
-      CALLER_SEQ=mig.events.length;
-      callerRefold();
-      callerSaveLocal();
-    }
   }catch(e){}
 }
-function callerHydrateFromGames(){
-  return;
-}
+/* Build A: callerHydrateFromGames deleted — GAMES rows never (re)mint caller events. */
 function callerPersist(){ callerSaveLocal(); callerSyncToGames({ side: "offense", fromCall: true }); callerScheduleSync(); }
 function dispatchCall(play){ callerLog(play); }
 try{ window.dispatchCall=dispatchCall; }catch(e){}
@@ -6056,16 +6039,22 @@ function callerPendingQueueHtml(opts){
   h+=`</div>`;
   return h;
 }
+/* Build A (2026-09-15): guided header pill — pending grades, tap to jump.
+   Renders empty when caught up. */
+function callerPendingPillHtml(){
+  const O=callerOut();
+  const pending=O?O.pendingEntries(CALLER_LOG).length:CALLER_LOG.filter(l=>!l.result).length;
+  if(!(pending>0)) return "";
+  return `<button type="button" class="rd-gd-sticky-pending rd-gd-top-pending no-print" onclick="callerJumpPending()">${pending} need${pending===1?"s":""} results</button>`;
+}
 /* Compact always-visible strip: next-call sit + jump to This play grade.
    Navigation + call-flow only — no data-derived % (keep-out: no analytics overlay). */
 function callerStickyBarHtml(sitTxt){
+  /* Advanced mode only. Guided's pending pill lives in the game header
+     (rd-gd-top) — see callerPendingPillHtml (Build A, 2026-09-15). */
   const on=callerOnCall();
   const O=callerOut();
   const pending=O?O.pendingEntries(CALLER_LOG).length:CALLER_LOG.filter(l=>!l.result).length;
-  if(callerIsGuided()){
-    if(!(pending>0)) return "";
-    return `<div class="rd-gd-sticky rd-gd-sticky-game no-print"><button type="button" class="rd-gd-sticky-pending" onclick="callerJumpPending()">${pending} need${pending===1?"s":""} results</button></div>`;
-  }
   let h=`<div class="rd-gd-sticky no-print">`;
   h+=`<button type="button" class="rd-gd-sticky-sit" onclick="callerJumpTop()" title="Next call situation"><span class="rd-gd-sticky-kicker">Next</span> ${esc(sitTxt||"situation")}</button>`;
   if(on&&on.play&&!on.result){
@@ -6368,7 +6357,10 @@ function callerSyncWord(){
 }
 function callerUiChrome(){
   let h="";
-  if(!callerIsGuided()) h+=callerSyncHeaderHtml();
+  /* Build A (2026-09-15): census strip renders on every caller screen,
+     guided included. Reliability standard §4 — the screen always shows
+     saved/synced as numbers. */
+  h+=callerSyncHeaderHtml();
   if(!callerIsGuided()) h+=callerOnCallBarHtml();
   h+=callerEditPanelHtml();
   if(CALLER_PEERS.length){
@@ -7132,7 +7124,7 @@ function renderCaller(opts){
     if(mode!=="advanced"){
       let h=`<div class="rd-gd rd-gd-game" data-acc-skip data-caller-game="1" id="caller-top-anchor">`;
       const vsName=opp&&opp!=="ANY"&&opp!=="opponent"?("vs "+opp):"vs opponent";
-      h+=`<div class="rd-gd-top">${crest(opp&&opp!=="ANY"?opp:"",48)}<b class="rd-gd-vs">${esc(vsName)}</b>${callerModeToggleHtml()}<button type="button" class="rd-gd-exit" onclick="OFFGRD_GAMEDAY_PIN?OFFGRD_GAMEDAY_PIN.leave():setView('pick')">Exit</button></div>`;
+      h+=`<div class="rd-gd-top">${crest(opp&&opp!=="ANY"?opp:"",48)}<b class="rd-gd-vs">${esc(vsName)}</b>${callerPendingPillHtml()}${callerModeToggleHtml()}<button type="button" class="rd-gd-exit" onclick="OFFGRD_GAMEDAY_PIN?OFFGRD_GAMEDAY_PIN.leave():setView('pick')">Exit</button></div>`;
       if(CALLER_TOMBSTONE_REFUSAL&&CALLER_TOMBSTONE_REFUSAL.message){
         h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_TOMBSTONE_REFUSAL.message)}</p>`;
       }
@@ -7140,7 +7132,6 @@ function renderCaller(opts){
         h+=`<p class="rd-gd-tombstone-warn" role="status">${esc(CALLER_LIBRARY_REFUSAL.message)}</p>`;
       }
       h+=callerUiChrome();
-      if(CALLER_GAME_SCREEN==="a") h+=callerStickyBarHtml(sitTxt);
       h+=callerGuidedEntryHtml();
       if(CALLER_GAME_SCREEN==="a") h+=callerGuidedMoreHtml();
       h+=callerDeleteToastHtml();
@@ -8724,7 +8715,7 @@ OURS_SAMPLE=buildOffenseSample();
 GAMES=loadGames(); loadPlanCfg(); loadWeekCache(); loadLive(); loadCallerSession(); USER_BRANDS=loadBrands(); { const id=loadIdentity(); if(id) OUR_TEAM=id; } applyTeamColors();
 try{ sweepLeftoverLiveLooks(); }catch(eSweep){}
 try{ if(window.OFFGRD_SESSION_GATED && window.OFFGRD_SHOW_SIGNED_OUT_GATE) window.OFFGRD_SHOW_SIGNED_OUT_GATE(); }catch(e){}
-window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();try{sweepLeftoverLiveLooks();}catch(eSw2){}callerHydrateFromGames();saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
+window.OFFGRD_APP={kind:"scout",get:()=>GAMES,set:a=>{if(Array.isArray(a)){GAMES=a;rebuildActive();try{sweepLeftoverLiveLooks();}catch(eSw2){}saveGames({sync:false});buildControls();render();try{if(window.OFFGRD_CALLER_SYNC)window.OFFGRD_CALLER_SYNC();}catch(e){}try{if(window.OFFGRD_REFRESH_SCOUT_SNAPS)window.OFFGRD_REFRESH_SCOUT_SNAPS();}catch(e){}}},touch:a=>{if(Array.isArray(a)){GAMES=a;try{localStorage.setItem(STORE_KEY,JSON.stringify(GAMES));}catch(e){}rebuildActive();}},onUser:email=>{ACCT_EMAIL=(email||"").toLowerCase();seedForAccount(email);try{closeGetStarted();}catch(e){}try{refreshView();}catch(e){}},setSnapCorpus:setSnapCorpus,getSnapCorpus:()=>SNAP_CORPUS};
 window.OFFGRD_SET_SNAP_CORPUS=setSnapCorpus;
 window.markLivePoolRetired=markLivePoolRetired;
 window.livePoolRetiredAt=livePoolRetiredAt;
@@ -8758,7 +8749,6 @@ window.OFFGRD_WEEK={set:function(wp,ce){
 /* live-apply hook for the onboarding brand editor (account.js) */
 window.OFFGRD_BRAND=function(name,brand){ try{ USER_BRANDS[name]=brand; OUR_TEAM=name; saveBrands(); saveIdentity(name); applyTeamColors(); const bc=document.getElementById("brandCrest"); if(bc) bc.innerHTML=crest(OUR_TEAM,34); buildControls(); render(); }catch(e){} };
 rebuildActive();
-callerHydrateFromGames();
 try{
   if(window.OFFGRD_CALLER_SYNC) setTimeout(function(){ window.OFFGRD_CALLER_SYNC(); }, 1200);
   if(window.OFFGRD_CALLER_SYNC_ENGINE&&OFFGRD_CALLER_SYNC_ENGINE.subscribe){

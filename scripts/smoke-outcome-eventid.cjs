@@ -84,28 +84,24 @@ const ev2 = E.buildEvent({
 });
 check("buildEvent remint reuses the outcome id", ev1.eventId === a && ev2.eventId === a);
 
-const log = [];
-for (let i = 0; i < 11; i++) {
-  log.push({
-    id: "call-" + i + "-xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    playIndex: i,
-    play: "TRAP",
-    result: "hit",
-    ts: 1000 + i,
-  });
-}
-const sess = { gameId: gid, opp: "Parkway Central", week: "Live 2026-09-08", side: "offense" };
-const boot1 = E.migrateV1Log(log, sess, "dev", null);
-const boot2 = E.migrateV1Log(log, sess, "dev", null);
-const boot3 = E.migrateV1Log(log, sess, "dev", null);
-check("three migrates emit the same outcome ids", boot1.events.filter(function (e) { return e.type === "outcome"; }).every(function (e, i) {
-  return e.eventId === boot2.events.filter(function (x) { return x.type === "outcome"; })[i].eventId &&
-    e.eventId === boot3.events.filter(function (x) { return x.type === "outcome"; })[i].eventId;
-}));
+check("migrateV1Log is deleted — no boot mints events from old logs", typeof E.migrateV1Log === "undefined");
 
-[boot1, boot2, boot3].forEach(function (boot) {
-  boot.events.forEach(function (e) { J.appendNow(e); });
-});
+/* Three boots re-appending the same deterministic outcome ids stay idempotent. */
+for (let boot = 0; boot < 3; boot++) {
+  for (let i = 0; i < 11; i++) {
+    J.appendNow({
+      eventId: E.outcomeEventId(gid, "offense", i),
+      gameId: gid,
+      playIndex: i,
+      type: "outcome",
+      side: "offense",
+      payload: { result: "hit" },
+      deviceId: "dev",
+      clientTs: 1000 + i,
+      seq: 10 + i,
+    });
+  }
+}
 const outcomes = J.allRows().filter(function (r) {
   return r.type === "outcome" && String(r.gameId) === gid;
 });
@@ -118,8 +114,8 @@ check(
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
 const dc = fs.readFileSync(path.join(root, "OFFGRD-dcaller.js"), "utf8");
 check(
-  "hydrateFromGames is a no-op",
-  /function callerHydrateFromGames\(\)\{\s*return;/.test(html)
+  "hydrateFromGames is deleted",
+  !/function callerHydrateFromGames/.test(html)
 );
 check("O fallback outcome id is deterministic", /outcomeEventId\(gid,"offense"/.test(html));
 check("D fallback outcome id is deterministic", /outcomeEventId\(gid, "defense"/.test(dc));

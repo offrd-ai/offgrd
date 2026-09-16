@@ -22,3 +22,5 @@ from those files, not from a live hydrate.
 - Sync on another device
 - Commit film on the booth device
 - Open getoffrd.com on wifi until the files are copied off
+- Tap Sync on an iPad that still holds reminted outcomes / drill 86. Server
+  reject + row cap must be live first (`docs/security/apply-offgrd-caller-remint-rejects.sql`).

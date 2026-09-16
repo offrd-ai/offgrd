@@ -82,8 +82,8 @@ J.appendNow({
   seq: 99,
 });
 check(
-  "retarget is a no-op — leftover events keep their gameId",
-  J.retargetGameId("stolen-uuid", "pin-id") === 0 &&
+  "retarget is deleted — leftover events keep their gameId",
+  typeof J.retargetGameId === "undefined" &&
     J.snapRowsForGame("stolen-uuid", "offense").some(function (r) { return r.eventId === "misfiled"; }) &&
     !J.snapRowsForGame("pin-id", "offense").some(function (r) { return r.eventId === "misfiled"; })
 );
@@ -174,7 +174,7 @@ check("O append writes the journal first", /OFFGRD_CALLER_JOURNAL\.appendNow/.te
 check("D append writes the journal first", /OFFGRD_CALLER_JOURNAL\.appendNow/.test(dc));
 check("applyRemote refuses unknown empty (O)", /isUnknownEmpty/.test(html));
 check("applyRemote refuses unknown empty (D)", /isUnknownEmpty/.test(dc));
-check("O hydrate is scoped by gameId", /callerHydrateView/.test(html) && /adoptIfPinned/.test(html));
+check("O hydrate is scoped by gameId", /callerHydrateView/.test(html) && !/adoptIfPinned/.test(html));
 check("D hydrate is scoped by gameId", /hydrateView/.test(dc) && /applyPin/.test(dc) && /endAndMintForOpponent/.test(dc));
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));

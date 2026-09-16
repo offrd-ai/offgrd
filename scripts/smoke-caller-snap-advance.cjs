@@ -178,11 +178,10 @@ const liveEvents = [
 if (S.isStaleLiveIdentity(sess, afterMidnight, liveEvents)) {
   fail("smoke4 in-progress session flagged stale at midnight");
 }
-const restamp = S.restampStaleSession(sess, liveEvents, afterMidnight, "new-game-id");
-if (restamp.restamped || restamp.session.gameId !== sess.gameId) {
-  fail("smoke4 restamp re-keyed in-progress game to " + (restamp.session && restamp.session.gameId));
+if (typeof S.restampStaleSession !== "undefined") {
+  fail("smoke4 restampStaleSession must be deleted (Build A: no re-key path exists)");
 }
-const evGameIds = new Set(restamp.events.map((e) => e.gameId));
+const evGameIds = new Set(liveEvents.map((e) => e.gameId));
 if (evGameIds.size !== 1 || !evGameIds.has(sess.gameId)) {
   fail("smoke4 events carry a gameId differing from the session");
 }
@@ -203,11 +202,7 @@ const flushedSess = {
 if (S.isStaleLiveIdentity(flushedSess, afterMidnight, [])) {
   fail("smoke4 flushed in-progress session flagged stale at midnight");
 }
-const flushedStamp = S.restampStaleSession(flushedSess, [], afterMidnight, "new-game-id");
-if (flushedStamp.restamped || flushedStamp.session.gameId !== sess.gameId) {
-  fail("smoke4 flushed session re-keyed at midnight to " + (flushedStamp.session && flushedStamp.session.gameId));
-}
-console.log("ok  4 session identity: midnight does not re-key an open game (events or flushed)");
+console.log("ok  4 session identity: midnight does not re-key an open game (restamp deleted)");
 
 /* 5) Friday 2026-08-27 Parkway North export — 39 calls must fold to 39 snaps, not 5. */
 const fixturePath = path.join(__dirname, "fixtures", "offgrd-dcaller-parkway-north-2026-08-27.json");

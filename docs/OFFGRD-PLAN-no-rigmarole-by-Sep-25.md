@@ -53,19 +53,43 @@ What *was* wrong, and is superseded by this file:
 
 ### Build A — the device is trustworthy (Sep 14–17)
 
-§1 Delete every after-write path: `retargetGameId`, `adoptIfPinned`
-   re-keying, `callerHydrateFromGames`, `migrateV1Log` remint, restamp.
-   Leftover sessions are archived under their own ids. Period.
+§1 Delete every after-write path — **deleted, not no-op'd**: `retargetGameId`,
+   `retargetLive`, `adoptIfPinned`, `callerHydrateFromGames`, `migrateV1Log`
+   remint, `restampStaleSession`. The functions do not exist; the smokes
+   assert absence. Leftover sessions stay listed under their own ids and
+   real dates. pick() is the only place a session takes an identity.
 §2 Every check side-scoped `(gameId, side)`: next index, open snap, graded,
    census, export.
 §3 D call = snap; next call closes the last; yards optional.
    Ticket: `docs/OFFGRD-dcaller-call-is-snap-TICKET.md`.
 §4 One identity: iOS Safari is read-only for callers; device id per install.
-§5 The dirty-iPad soak, Wednesday or Thursday, on the game iPads
-   themselves (two weeks of history — do not fresh-install before the
-   soak): pick new game → 0 foreign events; 30 O + 30 D with yards →
-   30/30 outcomes; force-quit ×3; wifi → census green; Safari refused.
-   Green on both → pin Thursday. Then fresh install for Friday.
+§5 Census + pending pill in the header on **every** caller screen,
+   guided included.
+§6 Maple Lake fix (not optional): the picker with zero games offers both
+   "add opponent from the library" and "enter tonight's opponent."
+   A caller never opens on opponent "Live" — a fallback opponent can
+   never pin, and `get()` refuses a fallback pin.
+
+#### The soak that gates each pin
+
+On the **actual game iPads** with their two-week history (no fresh
+install first), both callers. Any red line = no pin.
+
+1. **Airplane all game**: pick new game → 0 foreign events on the pin;
+   30 O + 30 D with yards; force-quit ×3 → 30/30; wifi at home →
+   cloud == device within 60s, census green, no manual Sync, no export
+   needed.
+2. **Wifi all game**: same 30/30 logged with wifi on; census green live
+   as taps land; server row counts == device counts at the whistle;
+   outcome ids stable across three boots (no remints).
+3. **Flapping**: toggle wifi every 5 snaps; same result as (2).
+4. **Two devices, same game, opposite sides**: both merge, zero prompts.
+5. **Safari on the same iPad**: refused as a caller.
+6. **Empty picker** (Maple Lake): with no schedule loaded, the picker
+   offers add-from-library and type-tonight's-opponent; no path opens a
+   caller on "Live."
+
+Green on both → pin Thursday. Then fresh install for Friday.
 
 Sep 18: icon only, pick the game, airplane, file-first one more time.
 

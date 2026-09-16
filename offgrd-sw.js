@@ -43,6 +43,7 @@ var PRECACHE = [
   "./OFFGRD-caller-sync.js?v=" + ASSET_V,
   "./OFFGRD-caller-recovery.js?v=" + ASSET_V,
   "./OFFGRD-caller-journal.js?v=" + ASSET_V,
+  "./OFFGRD-cleanup-remint.js?v=" + ASSET_V,
   "./OFFGRD-caller-analysis.js?v=" + ASSET_V,
   "./OFFGRD-caller-summary-llm.js?v=" + ASSET_V,
   "./OFFGRD-booth-ask.js?v=" + ASSET_V,

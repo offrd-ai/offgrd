@@ -93,16 +93,16 @@ check(
 
 const leftover = { eventId: "fri-o", gameId: "friday-id", side: "offense", type: "outcome", payload: {}, clientTs: 1 };
 J.appendNow(leftover);
-check("retargetGameId never re-parents", J.retargetGameId("friday-id", gid) === 0 && J.eventsForGame("friday-id").length === 1);
+check("retargetGameId is deleted (never re-parents)", typeof J.retargetGameId === "undefined" && J.eventsForGame("friday-id").length === 1);
 
 s.CALLER_EVENTS = [leftover];
 s.localStorage.setItem(
   "offgrd_gameday_pin_v1",
   JSON.stringify({ opponent: "Parkway Central", date: "2026-09-10", gameId: gid, ha: "H", pinnedAt: 1 })
 );
-const adopted = Pin.adoptIfPinned({ gameId: "friday-id", opp: "Live" });
-check("adoptIfPinned stamps the session onto the pin", adopted.gameId === gid && adopted.opp === "Parkway Central");
-check("adoptIfPinned does not rewrite leftover event gameIds", s.CALLER_EVENTS[0].gameId === "friday-id");
+check("adoptIfPinned is deleted (pick is the only identity path)", typeof Pin.adoptIfPinned === "undefined");
+check("pin writeId is the pinned game", Pin.writeId() === gid);
+check("leftover event gameIds are never rewritten", s.CALLER_EVENTS[0].gameId === "friday-id");
 
 const dcSrc = fs.readFileSync(path.join(root, "OFFGRD-dcaller.js"), "utf8");
 const amendSrc = dcSrc.match(/function shouldAmendOpenCall\(live, playType, now\) \{[\s\S]*?return \(now != null \? now : Date\.now\(\)\) - ts <= 3000;\s*\}/);
@@ -134,10 +134,14 @@ check("Safari mint uses a separate device key", (function () {
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
 const pinSrc = fs.readFileSync(path.join(root, "OFFGRD-gameday-pin.js"), "utf8");
 const journalSrc = fs.readFileSync(path.join(root, "OFFGRD-caller-journal.js"), "utf8");
-check("hydrateFromGames is gone", /function callerHydrateFromGames\(\)\{\s*return;/.test(html));
-check("journal retarget is a no-op", /function retargetGameId\([^)]*\) \{\s*return 0;/.test(journalSrc));
-check("pin retargetLive is a no-op", /function retargetLive\([^)]*\) \{\s*return;/.test(pinSrc));
-check("restamp does not rewrite event gameIds", !/e\.gameId = next\.gameId/.test(fs.readFileSync(path.join(root, "OFFGRD-caller-side.js"), "utf8")));
+check("hydrateFromGames is deleted", !/function callerHydrateFromGames/.test(html));
+check("journal retarget is deleted", !/function retargetGameId/.test(journalSrc));
+check("pin retargetLive is deleted", !/function retargetLive/.test(pinSrc));
+check("pin adoptIfPinned is deleted", !/function adoptIfPinned/.test(pinSrc));
+const sideSrc = fs.readFileSync(path.join(root, "OFFGRD-caller-side.js"), "utf8");
+check("restampStaleSession is deleted", !/function restampStaleSession/.test(sideSrc));
+check("no code rewrites event gameIds", !/e\.gameId = next\.gameId/.test(sideSrc));
+check("migrateV1Log is deleted", !/function migrateV1Log/.test(fs.readFileSync(path.join(root, "OFFGRD-caller-log.js"), "utf8")));
 check("O append refuses Safari writes", /callerWritesAllowed/.test(html));
 check("D append refuses Safari writes", /callerWritesAllowed/.test(dcSrc));
 

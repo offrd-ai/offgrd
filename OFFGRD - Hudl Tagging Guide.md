@@ -48,6 +48,44 @@ OFFGRD understands all of these and normalizes them automatically:
 
 ---
 
+## One-time setup: add the columns in Hudl Team Settings
+
+Do this once per season and every game grid has the columns waiting:
+
+1. Hudl → your team → **Team Settings → Tagging defaults** (Fall '26: Data Columns).
+2. Make sure these exist and are visible on the play grid:
+   - **DEF FRONT**, **BLITZ**, **COVERAGE** — the core three above.
+   - **GAP**, **PASS ZONE**, **OFF PERS** — the level-2 three below.
+3. If a column is hidden on a breakdown, right-click a column header to show it (new in Fall '26).
+
+Five minutes once, so nobody is inventing column names in Week 6.
+
+## Level 2 (optional): GAP · PASS ZONE · OFF PERS
+
+Two extra taps per snap in Hudl buy inside/outside run lanes and pass
+depth in your defensive call sheet. These readouts are already built and
+wake up automatically on the first import that carries the data — no
+setting to flip.
+
+### GAP *(runs)*
+Where the run hit. Use Hudl's standard letters — `A` `B` `C` `D` (or
+`EDGE`). OFFGRD buckets A/B → **inside**, C/D/edge → **outside**, and your
+D Caller's Expect gains `Run 62% · inside 58%`.
+
+### PASS ZONE *(passes)*
+Hudl standard: depth × direction — `Short Left`, `Short Middle`,
+`Deep Right`, etc. OFFGRD buckets these to **Quick / Intermediate /
+Deep**, unlocking `Pass → quick 60%` and completion-by-depth — the
+strongest single defensive read a hand breakdown carries.
+
+### OFF PERS *(personnel)*
+Offensive personnel as digits — `10` `11` `12` `21` `22`. Feeds
+personnel-conditioned tendencies as your book grows.
+
+**Priority if your staff only adds one: PASS ZONE, then GAP, then OFF PERS.**
+
+---
+
 ## Export from Hudl
 
 Both Hudl interfaces work. Either way, OFFGRD needs the **play-by-play grid**, one row per play.
@@ -87,6 +125,28 @@ You can export the whole game — OFFGRD filters to the right rows itself.
 4. Type the **Opponent** (e.g., `Parkway North`) and a **Week / game label** (e.g., `2024` or `Wk 3`).
 5. Paste the CSV (or upload it) → **Add to season**.
 6. The box confirms what mapped and which rows it used.
+
+---
+
+## The Monday routine — three imports, fifteen minutes
+
+Every Monday, same three imports. This is the whole weekly maintenance
+of the system:
+
+1. **Your offense from Friday** — export your game grid, import as
+   **Offense (our plays)**. Your self-scout and call sheet update, and
+   Friday's live sideline taps retire themselves in favor of the charted
+   numbers (exact yards replace buckets automatically).
+2. **Their offense from Friday** — same export, import as **Opponent
+   offense**. Your D rows carry what their offense did; the D-side book
+   and Expect update the same way.
+3. **Next opponent's newest film** — import as **Defense (DC scout)**
+   (their defense) and/or **Opponent offense** (their offense), depending
+   on which side of the ball you're planning. One more game in the book
+   every week is what keeps the predictions sharpening.
+
+Same Opponent + Week label re-imported replaces the game — so if the
+charting gets cleaned up Tuesday, just re-import. No duplicates.
 
 ---
 

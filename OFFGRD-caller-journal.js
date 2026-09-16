@@ -222,10 +222,8 @@
     return row;
   }
 
-  /** Build A: a game's events keep that game's id. Never re-parent. */
-  function retargetGameId(from, to) {
-    return 0;
-  }
+  /* Build A: a game's events keep that game's id. Never re-parent.
+     retargetGameId deleted — no code path may rewrite an event's gameId. */
 
   function isFallbackOpp(name) {
     var Pin = global.OFFGRD_GAMEDAY_PIN;
@@ -576,7 +574,6 @@
     ready: ready,
     appendNow: appendNow,
     adopt: adopt,
-    retargetGameId: retargetGameId,
     stampFallbackOpponent: stampFallbackOpponent,
     allRows: allRows,
     activeEvents: activeEvents,

@@ -568,31 +568,9 @@
     };
   }
 
-  /**
-   * Empty leftover Live session → archive under its own id, mint today.
-   * Never rewrites event gameIds. A session with events or leftover sit is immune.
-   */
-  function restampStaleSession(sess, events, now, newId, sit) {
-    var list = events || [];
-    if (sessionIsOpen(sess, list, sit)) {
-      return { session: sess, events: list, restamped: false, immune: true };
-    }
-    if (!isStaleLiveIdentity(sess, now, list, sit)) {
-      return { session: sess, events: list, restamped: false };
-    }
-    var oldId = sess && sess.gameId;
-    var archive = snapshotSessionArchive(sess, list, sit, "archive-leftover");
-    var next = stampFreshLiveSession(sess, now, newId || oldId);
-    next.rolledFrom = oldId || null;
-    next.restampedAt = Date.now();
-    return {
-      session: next,
-      events: list,
-      restamped: true,
-      fromGameId: oldId,
-      archive: archive,
-    };
-  }
+  /* Build A: restampStaleSession deleted. A stale session stays listed under
+     its own id and real date; picking tonight's game is the only path to a
+     fresh identity (gameday pin). */
 
   /** Active caller_games row is a previous day's Live session.
    *  An open session (inProgress / inFlight) makes the row immune. */
@@ -997,7 +975,6 @@
     shouldRotateForOpponent: shouldRotateForOpponent,
     endAndMintForOpponent: endAndMintForOpponent,
     stampFreshLiveSession: stampFreshLiveSession,
-    restampStaleSession: restampStaleSession,
     callerGameIsRecycled: callerGameIsRecycled,
     TOMBSTONE_REFUSAL: TOMBSTONE_REFUSAL,
     normalizePromoteOpts: normalizePromoteOpts,

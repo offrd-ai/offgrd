@@ -736,64 +736,9 @@
     } catch (e) {}
   }
 
-  /** Migrate v1 CALLER_LOG snapshot → events (once). */
-  function migrateV1Log(log, session, device, actorId) {
-    if (!log || !log.length) return [];
-    var events = [];
-    var seq = 0;
-    var gameId = (session && session.gameId) || uuid();
-    var migSide = session && session.side === "defense" ? "defense" : "offense";
-    log.forEach(function (l, idx) {
-      seq += 1;
-      var callId = l.id && String(l.id).length >= 30 ? l.id : uuid();
-      events.push({
-        eventId: callId,
-        gameId: gameId,
-        playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
-        type: "call",
-        side: migSide,
-        payload: {
-          sitTxt: l.sitTxt,
-          play: l.play,
-          dn: l.dn,
-          db: l.db,
-          estYards: l.estYards,
-          hash: l.hash,
-          zone: l.zone,
-          coverage: l.coverage,
-          playType: l.playType,
-          opponent: l.opponent,
-          date: l.date,
-          signal: l.signal,
-          front: l.front || "",
-          actorLabel: l.actorLabel || null,
-        },
-        deviceId: device,
-        actorId: actorId || null,
-        clientTs: l.ts || Date.now() - (log.length - idx) * 1000,
-        seq: seq,
-        superseded: false,
-      });
-      if (l.result) {
-        seq += 1;
-        var pi = typeof l.playIndex === "number" ? l.playIndex : idx;
-        events.push({
-          eventId: outcomeEventId(gameId, migSide, pi),
-          gameId: gameId,
-          playIndex: pi,
-          type: "outcome",
-          side: migSide,
-          payload: { result: l.result },
-          deviceId: device,
-          actorId: actorId || null,
-          clientTs: (l.ts || Date.now()) + 1,
-          seq: seq,
-          superseded: false,
-        });
-      }
-    });
-    return { gameId: gameId, events: events };
-  }
+  /* Build A: migrateV1Log deleted. v1 CALLER_LOG snapshots are never
+     converted to events on device; no code path may mint eventIds for
+     historical rows. */
 
   /** Last active (non-undone) call from a fold log — selection / ON CALL source of truth. */
   /** Game id the folder should use: session if it still has events, else the sole id in the store. */
@@ -919,7 +864,6 @@
     mergeEvents: mergeEvents,
     loadStore: loadStore,
     saveStore: saveStore,
-    migrateV1Log: migrateV1Log,
     outcomeEventId: outcomeEventId,
     entryToGamesRow: entryToGamesRow,
     snapCount: function (log) {

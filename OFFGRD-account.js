@@ -1513,6 +1513,10 @@ async function push(silent){
             try{ console.warn("[push]", eSave.code, gameNaturalKey(g.opponent,g.week,g.side), eSave.message); }catch(eW){}
             continue;
           }
+          if(eSave && eSave.code==="REFUSE_GROW"){
+            try{ console.warn("[push] REFUSE_GROW", gameNaturalKey(g.opponent,g.week,g.side), eSave.message); }catch(eW){}
+            continue;
+          }
           if(eSave && eSave.code==="STALE_WRITE"){
             try{
               const cloudAll = await Cloud.listGames(TEAM.id);

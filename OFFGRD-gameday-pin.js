@@ -90,10 +90,9 @@
     return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
   }
 
-  /** Build A: leftover sessions stay under their own ids. Never re-parent. */
-  function retargetLive(from, to) {
-    return;
-  }
+  /* Build A: leftover sessions stay under their own ids. Never re-parent.
+     retargetLive and adoptIfPinned deleted — pick() is the only place a
+     session takes the pin's identity (applyPinToSessions). */
 
   function get() {
     var o = parseJson(lsGet(PIN_KEY));
@@ -351,14 +350,6 @@
     if (typeof global.setView === "function") global.setView("pick");
   }
 
-  function adoptIfPinned(sess) {
-    var pin = get();
-    if (!pin || !sess) return sess;
-    stampSession(sess);
-    stampLiveOpponent(pin);
-    return sess;
-  }
-
   function haLabel(ha) {
     if (ha === "A") return "Away";
     if (ha === "N") return "Neutral";
@@ -420,13 +411,14 @@
     h += '<div class="rd-gd-pick-head"><b>Tonight\'s game</b><span class="foot">Pick once. ' + esc(sideLbl) + " opens on that pin.</span></div>";
     var libs = !games.length ? libraryOpponents() : [];
     if (!games.length) {
-      h += '<p class="foot">Schedule is still loading, or nothing sits in yesterday through next week.</p>';
-      h += '<p class="foot"><b>Start a game</b> → choose opponent from the library. Never a dead end.</p>';
-      if (!libs.length) {
-        h +=
-          '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Opponent" autocomplete="off">' +
-          '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
-      }
+      /* Maple Lake: zero games is never a dead end. Offer both paths —
+         add opponent from the library, or type tonight's opponent.
+         A caller never opens on "Live". */
+      h += '<p class="foot">No schedule loaded, or nothing sits in yesterday through next week.</p>';
+      h += '<p class="foot"><b>Start a game</b> → pick an opponent from the library, or enter tonight\'s opponent.</p>';
+      h +=
+        '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off">' +
+        '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
       libs.forEach(function (name) {
         h +=
           '<button type="button" class="rd-gd-pick-card rd-gd-pick-lib" data-opp="' +
@@ -571,7 +563,6 @@
     leave: leave,
     entered: entered,
     pendingSide: pendingSide,
-    adoptIfPinned: adoptIfPinned,
     renderPicker: renderPicker,
     snapCountFor: snapCountFor,
   };

@@ -103,20 +103,20 @@ check("writes use the pin id", PinA.writeId() === idA);
 check("entered after pick", PinA.entered() === "caller");
 a.sit = { opp: "Parkway North" };
 check("scout opponent does not change the pin", PinA.get().opponent === "Parkway Central" && PinA.get().gameId === idA);
-check("adopt keeps the pinned gameId", PinA.adoptIfPinned({ gameId: "random-uuid", opp: "Parkway North" }).gameId === idA);
-check("adopt overwrites leftover O Live session", PinA.adoptIfPinned({ gameId: idA, opp: "Live" }).opp === "Parkway Central");
+check("adoptIfPinned is deleted — pick is the only identity path", typeof PinA.adoptIfPinned === "undefined");
 check("writeOpp is the pin, never Live", PinA.writeOpp() === "Parkway Central" && PinA.isFallbackOpp("Live"));
-a.CALLER_EVENTS = [{ eventId: "live-tag", gameId: idA, payload: { opponent: "Live" } }];
-PinA.adoptIfPinned({ gameId: idA, opp: "Live" });
+a.CALLER_EVENTS = [
+  { eventId: "live-tag", gameId: idA, payload: { opponent: "Live" } },
+  { eventId: "fri-leftover", gameId: "leftover-o", payload: { opponent: "Parkway South" } },
+];
+PinA.request("offense");
 check(
-  "adopt restamps Live events onto the pin opponent",
+  "re-enter restamps Live-tagged pin events onto the pin opponent",
   a.CALLER_EVENTS[0].payload.opponent === "Parkway Central"
 );
-a.CALLER_EVENTS.push({ eventId: "fri-leftover", gameId: "leftover-o", payload: { opponent: "Parkway South" } });
-PinA.adoptIfPinned({ gameId: "leftover-o", opp: "Live" });
 check(
-  "adopt never retargets leftover events onto the pin",
-  a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === "leftover-o"; }) &&
+  "re-enter never retargets leftover events onto the pin",
+  a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === "leftover-o" && e.payload.opponent === "Parkway South"; }) &&
     !a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === idA; })
 );
 
@@ -159,6 +159,10 @@ check("resume reapplies the pin to both stores", /applyPinToSessions\(pin, false
 check("picker re-renders on program-ready", /offgrd-program-ready/.test(pinSrc) && /refreshIfPick/.test(pinSrc));
 check("picker re-renders on brand-hydrated", /offgrd-brand-hydrated/.test(pinSrc) && /offgrd-brand-hydrated/.test(acct));
 check("empty picker offers Start a game from the library", /Start a game/.test(pinSrc) && /libraryOpponents/.test(pinSrc));
+check(
+  "empty picker always offers tonight's-opponent input (Maple Lake)",
+  /gdPickTyped/.test(pinSrc) && !/if \(!libs\.length\)/.test(pinSrc)
+);
 
 const w = makeSandbox();
 load(w);
@@ -191,6 +195,12 @@ check(
 w.SCHEDULE = [];
 w.GAMES = [{ opponent: "Parkway Central", week: "Wk 3" }];
 check("zero schedule cards still expose the library", PinW.libraryOpponents().indexOf("Parkway Central") >= 0);
+check("typed 'Live' can never pin", PinW.pick({ opponent: "Live", date: "2026-09-15", ha: "H" }) === null);
+check("typed 'ANY' can never pin", PinW.pick({ opponent: "ANY", date: "2026-09-15", ha: "H" }) === null);
+check("a caller never opens on Live: fallback pin is refused by get()", (function () {
+  w.localStorage.setItem(PinW.PIN_KEY, JSON.stringify({ opponent: "Live", date: "2026-09-15", gameId: "x", pinnedAt: 1 }));
+  return PinW.get() === null && PinW.writeOpp() === null;
+})());
 
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");
