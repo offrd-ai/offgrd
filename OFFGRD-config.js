@@ -1,5 +1,5 @@
 /* OFFGRD Supabase config. The anon/publishable key is public-safe (RLS protects data). */
-/** Single cache-bust token — every <script src> and ES module import must match (currently ?v=365). */
+/** Single cache-bust token — every <script src> and ES module import must match (currently ?v=366). */
 window.OFFGRD_ASSET_V = "365";
 window.OFFGRD_BUILD_LABEL = "v" + window.OFFGRD_ASSET_V;
 window.OFFGRD_CONFIG = {
