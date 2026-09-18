@@ -163,6 +163,11 @@ check(
   "empty picker always offers tonight's-opponent input (Maple Lake)",
   /gdPickTyped/.test(pinSrc) && !/if \(!libs\.length\)/.test(pinSrc)
 );
+check(
+  "typed-opponent input is outside the zero-games branch (always in DOM)",
+  /games\.forEach\(function \(g\) \{/.test(pinSrc) &&
+    pinSrc.indexOf("gdPickTyped") > pinSrc.indexOf("games.forEach(function (g) {")
+);
 
 check(
   "pin reads schedule via OFFGRD_SCHEDULE.get / localStorage (not bare SCHEDULE)",

@@ -435,9 +435,6 @@
          A caller never opens on "Live". */
       h += '<p class="foot">No schedule loaded, or nothing sits in yesterday through next week.</p>';
       h += '<p class="foot"><b>Start a game</b> → pick an opponent from the library, or enter tonight\'s opponent.</p>';
-      h +=
-        '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off">' +
-        '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
       libs.forEach(function (name) {
         h +=
           '<button type="button" class="rd-gd-pick-card rd-gd-pick-lib" data-opp="' +
@@ -488,6 +485,12 @@
     if (games.some(function (g) { return g.live; })) {
       h += '<p class="foot" style="margin-top:12px"><button type="button" class="ghost" id="gdPickFresh">Start new game</button> · never the default</p>';
     }
+    /* Always below schedule cards (or alone when empty): soak / ad-hoc games
+       must not require pinning tomorrow's real opponent. */
+    h +=
+      '<p class="foot" style="margin-top:12px">Or enter tonight\'s opponent</p>' +
+      '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off">' +
+      '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
     h += "</div>";
     host.innerHTML = h;
     host.querySelectorAll(".rd-gd-pick-card").forEach(function (btn) {
