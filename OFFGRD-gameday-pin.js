@@ -209,6 +209,25 @@
     return gameIdFor(opp, date);
   }
 
+  /** Schedule lives in OFFGRD.html as a script-scoped let. Read via OFFGRD_SCHEDULE.get,
+      then localStorage, then a global.SCHEDULE fallback (smokes / older hosts). */
+  function scheduleRows() {
+    var S = global.OFFGRD_SCHEDULE;
+    if (S && typeof S.get === "function") {
+      var viaGet = S.get();
+      if (Array.isArray(viaGet)) return viaGet;
+    }
+    if (Array.isArray(global.SCHEDULE)) return global.SCHEDULE;
+    try {
+      var raw = global.localStorage && localStorage.getItem("offgrd_schedule_v1");
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (eLs) {}
+    return [];
+  }
+
   function listGames(now) {
     var today = todayISO(now);
     var lo = addDays(today, -1);
@@ -234,7 +253,7 @@
         live: snaps > 0,
       });
     }
-    var sched = global.SCHEDULE;
+    var sched = scheduleRows();
     if (Array.isArray(sched)) sched.forEach(function (g) { add(g, false); });
     if (!out.length && Array.isArray(sched)) sched.forEach(function (g) { add(g, true); });
     var pin = get();
@@ -507,7 +526,7 @@
       names.push(t);
     }
     if (Array.isArray(global.GAMES)) global.GAMES.forEach(function (g) { addName(g && g.opponent); });
-    if (Array.isArray(global.SCHEDULE)) global.SCHEDULE.forEach(function (g) { addName(g && g.opponent); });
+    scheduleRows().forEach(function (g) { addName(g && g.opponent); });
     try {
       if (global.WEEK && WEEK.opponent) addName(WEEK.opponent);
     } catch (eW) {}

@@ -164,6 +164,12 @@ check(
   /gdPickTyped/.test(pinSrc) && !/if \(!libs\.length\)/.test(pinSrc)
 );
 
+check(
+  "pin reads schedule via OFFGRD_SCHEDULE.get / localStorage (not bare SCHEDULE)",
+  /function scheduleRows\(/.test(pinSrc) && /OFFGRD_SCHEDULE/.test(pinSrc) && /offgrd_schedule_v1/.test(pinSrc)
+);
+check("HTML exposes OFFGRD_SCHEDULE.get", /OFFGRD_SCHEDULE=\{get:function\(\)\{ return SCHEDULE; \}/.test(html));
+
 const w = makeSandbox();
 load(w);
 const PinW = w.OFFGRD_GAMEDAY_PIN;
@@ -192,6 +198,31 @@ check(
   PinW.parseGameDate("Sep 10", "2026-09-08") === "2026-09-10" &&
     PinW.listGames(soakNow).some(function (g) { return /Central/i.test(g.opponent); })
 );
+
+/* Production path: schedule is script-scoped — expose via OFFGRD_SCHEDULE.get / localStorage. */
+w.SCHEDULE = undefined;
+w.OFFGRD_SCHEDULE = {
+  get: function () {
+    return [{ opponent: "Riverview", date: "2026-09-18", ha: "H" }];
+  },
+};
+const viaGet = PinW.listGames(new Date(2026, 8, 17));
+check(
+  "listGames reads OFFGRD_SCHEDULE.get (Riverview · Sep 18)",
+  viaGet.some(function (g) { return g.opponent === "Riverview" && g.date === "2026-09-18"; })
+);
+w.OFFGRD_SCHEDULE = undefined;
+w.localStorage.setItem(
+  "offgrd_schedule_v1",
+  JSON.stringify([{ opponent: "Riverview", date: "2026-09-18", ha: "H" }])
+);
+const viaLs = PinW.listGames(new Date(2026, 8, 17));
+check(
+  "listGames falls back to offgrd_schedule_v1 when SCHEDULE is undefined",
+  viaLs.some(function (g) { return g.opponent === "Riverview" && g.date === "2026-09-18"; })
+);
+w.localStorage.removeItem("offgrd_schedule_v1");
+
 w.SCHEDULE = [];
 w.GAMES = [{ opponent: "Parkway Central", week: "Wk 3" }];
 check("zero schedule cards still expose the library", PinW.libraryOpponents().indexOf("Parkway Central") >= 0);
