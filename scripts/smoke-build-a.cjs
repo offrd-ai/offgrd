@@ -37,6 +37,7 @@ function loadCore() {
   const sandbox = {
     console,
     localStorage: ls(),
+    sessionStorage: ls(),
     navigator: { userAgent: "Mozilla/5.0", platform: "Win32", maxTouchPoints: 0, standalone: undefined },
     document: { getElementById() { return null; }, createElement() { return { textContent: "" }; }, head: { appendChild() {} } },
   };
@@ -118,17 +119,23 @@ check("graded D call is not amended", amendBox.shouldAmendOpenCall({ playIndex: 
 const iphoneSafari = { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", platform: "iPhone", standalone: false, maxTouchPoints: 5 };
 const iphoneIcon = { userAgent: iphoneSafari.userAgent, platform: "iPhone", standalone: true, maxTouchPoints: 5 };
 const ipadSafari = { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15", platform: "MacIntel", standalone: false, maxTouchPoints: 5 };
-check("iPhone Safari is read-only", S.callerWritesAllowed(iphoneSafari) === false);
+check("iPhone Safari is read-only until unlocked", S.callerWritesAllowed(iphoneSafari) === false);
 check("iPhone home-screen icon can write", S.callerWritesAllowed(iphoneIcon) === true);
-check("iPad Safari is read-only", S.callerWritesAllowed(ipadSafari) === false);
+check("iPad Safari is read-only until unlocked", S.callerWritesAllowed(ipadSafari) === false);
 check("desktop can write", S.callerWritesAllowed({ userAgent: "Mozilla/5.0", platform: "Win32", maxTouchPoints: 0 }) === true);
 s.navigator = iphoneSafari;
 check("Safari banner names the icon", /OFFGRD icon/.test(S.safariReadOnlyBannerHtml()));
-check("Safari mint uses a separate device key", (function () {
+check("Safari banner offers Log here anyway", /Log here anyway/.test(S.safariReadOnlyBannerHtml()));
+S.allowSafariLogging();
+check("Log here anyway unlocks this tab", S.callerWritesAllowed(iphoneSafari) === true);
+check("unlocked Safari still shows the banner", /Logging in this Safari tab/.test(S.safariReadOnlyBannerHtml()));
+s.sessionStorage.removeItem("offgrd_safari_log_anyway");
+check("unlock is per tab (cleared session locks again)", S.callerWritesAllowed(iphoneSafari) === false);
+check("Safari mint uses a per-tab id, not the icon key", (function () {
   const id1 = C.deviceId();
   s.localStorage.setItem("offgrd_device_id", "dev_icon_should_stay");
   const id2 = C.deviceId();
-  return id1 === id2 && id1 !== "dev_icon_should_stay" && s.localStorage.getItem("offgrd_device_id") === "dev_icon_should_stay";
+  return id1 === id2 && id1 !== "dev_icon_should_stay" && s.localStorage.getItem("offgrd_device_id") === "dev_icon_should_stay" && s.sessionStorage.getItem("offgrd_device_id_safari_tab") === id1;
 })());
 
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
