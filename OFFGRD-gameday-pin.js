@@ -489,7 +489,9 @@
        must not require pinning tomorrow's real opponent. */
     h +=
       '<p class="foot" style="margin-top:12px">Or enter tonight\'s opponent</p>' +
-      '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off">' +
+      '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off" value="' +
+      esc(typedDraft) +
+      '">' +
       '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
     h += "</div>";
     host.innerHTML = h;
@@ -510,12 +512,27 @@
         pick({ opponent: btn.getAttribute("data-opp"), date: todayISO(), ha: "H" }, { side: side });
       };
     });
+    function submitTyped() {
+      var inp = host.querySelector("#gdPickTyped");
+      var name = inp && inp.value ? String(inp.value).trim() : String(typedDraft || "").trim();
+      if (!name) return;
+      typedDraft = "";
+      pick({ opponent: name, date: todayISO(), ha: "H" }, { side: side });
+    }
     var typedGo = host.querySelector("#gdPickTypedGo");
-    if (typedGo) {
-      typedGo.onclick = function () {
-        var inp = host.querySelector("#gdPickTyped");
-        var name = inp && inp.value ? String(inp.value).trim() : "";
-        if (name) pick({ opponent: name, date: todayISO(), ha: "H" }, { side: side });
+    if (typedGo) typedGo.onclick = submitTyped;
+    var typedInp = host.querySelector("#gdPickTyped");
+    if (typedInp) {
+      typedInp.oninput = function () {
+        typedDraft = String(typedInp.value || "");
+      };
+      typedInp.onkeydown = function (ev) {
+        ev = ev || global.event;
+        var key = ev.key || ev.keyCode;
+        if (key === "Enter" || key === 13) {
+          if (ev.preventDefault) ev.preventDefault();
+          submitTyped();
+        }
       };
     }
   }
@@ -543,15 +560,25 @@
     var orig = S.set;
     S.set = function () {
       var r = orig.apply(this, arguments);
-      if (global.CURRENT_VIEW === "pick") renderPicker();
+      refreshIfPick();
       return r;
     };
     S.set._pinWrapped = true;
   }
 
+  var typedDraft = "";
+
   function refreshIfPick() {
     wrapScheduleSet();
-    if (global.CURRENT_VIEW === "pick") renderPicker();
+    if (global.CURRENT_VIEW !== "pick") return;
+    try {
+      var ae = global.document && document.activeElement;
+      if (ae && ae.id === "gdPickTyped") {
+        typedDraft = String(ae.value || "");
+        return;
+      }
+    } catch (eFocus) {}
+    renderPicker();
   }
 
   function bindRefresh() {

@@ -168,6 +168,8 @@ check(
   /games\.forEach\(function \(g\) \{/.test(pinSrc) &&
     pinSrc.indexOf("gdPickTyped") > pinSrc.indexOf("games.forEach(function (g) {")
 );
+check("typed-opponent submits on Enter", /key === "Enter"/.test(pinSrc) && /submitTyped/.test(pinSrc));
+check("typed draft survives re-render / skips wipe while focused", /typedDraft/.test(pinSrc) && /gdPickTyped/.test(pinSrc) && /activeElement/.test(pinSrc));
 
 check(
   "pin reads schedule via OFFGRD_SCHEDULE.get / localStorage (not bare SCHEDULE)",
