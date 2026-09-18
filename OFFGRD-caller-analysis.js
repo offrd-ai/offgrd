@@ -574,8 +574,29 @@
 
     if (chipId === "working") {
       if (side === "offense") {
+        /* Run vs pass split from stored playType; an RPO counts in both lanes. */
+        var typedSnaps = oLog.filter(function (e) {
+          return isGraded(e) && !isNegated(e) && e.playType;
+        });
+        var rvp = { run: { ok: 0, n: 0 }, pass: { ok: 0, n: 0 }, rpo: 0 };
+        typedSnaps.forEach(function (e) {
+          var t = String(e.playType).toLowerCase();
+          var okN = e.success === 1 ? 1 : 0;
+          if (t === "rpo") rvp.rpo++;
+          if (t === "run" || t === "rpo") { rvp.run.n++; rvp.run.ok += okN; }
+          if (t === "pass" || t === "rpo") { rvp.pass.n++; rvp.pass.ok += okN; }
+        });
+        if (rvp.run.n || rvp.pass.n) {
+          pushLine(
+            "Run vs pass: Run " + rvp.run.ok + "/" + rvp.run.n +
+              " · Pass " + rvp.pass.ok + "/" + rvp.pass.n +
+              (rvp.rpo ? " — RPO in both" : "") +
+              " (n=" + typedSnaps.length + ")",
+            typedSnaps.length
+          );
+        }
         var oRank = rankCallFamilies(groupRates(oLog, "offense"), "working_o").slice(0, 3);
-        if (!oRank.length) pushLine("Not enough graded O snaps yet.", 0);
+        if (!oRank.length && !lines.length) pushLine("Not enough graded O snaps yet.", 0);
         oRank.forEach(function (g) {
           pushLine(g.key + ": " + g.success + "/" + g.n + " success (n=" + g.n + ")", g.n);
         });

@@ -113,6 +113,18 @@
   }
   function opp() {
     try {
+      var Pin = global.OFFGRD_GAMEDAY_PIN;
+      if (Pin && Pin.writeOpp) {
+        var pinned = Pin.writeOpp();
+        if (pinned) return pinned;
+      }
+    } catch (ePin) {}
+    try {
+      if (session && session.opp && session.opp !== "ANY" && session.opp !== "Live" && session.opp !== "opponent") {
+        return session.opp;
+      }
+    } catch (eSess) {}
+    try {
       if (typeof sit !== "undefined" && global.sit && global.sit.opp) return global.sit.opp;
     } catch (e) {}
     return (global.sit && global.sit.opp) || "ANY";
@@ -185,20 +197,26 @@
         side: "defense",
       };
     }
-    var priorGid = session && session.gameId;
-    if (Pin && Pin.adoptIfPinned) session = Pin.adoptIfPinned(session);
-    if (Pin && Pin.get()) {
+    var pin = Pin && Pin.get ? Pin.get() : null;
+    if (pin) {
+      if (session.gameId !== pin.gameId) {
+        /* Build A: never re-key a leftover session. Build a fresh session on
+           the pin's identity; the leftover's events stay under their own id. */
+        session = {
+          opp: pin.opponent,
+          week: "Live " + pin.date,
+          game_date: pin.date,
+          gameId: pin.gameId,
+          side: "defense",
+          inProgress: !!(session && session.inProgress),
+          ended: false,
+        };
+        events = hydrateView(events);
+      }
       session.side = "defense";
-      if (session.gameId !== priorGid) events = hydrateView(events);
       return session;
     }
-    if (Side && Side.isStaleLiveIdentity && Side.isStaleLiveIdentity(session, null, events, sit)) {
-      var stamped = Side.restampStaleSession(session, events, null, mint(), sit);
-      session = stamped.session;
-      session.side = "defense";
-      if (Array.isArray(stamped.events)) events = stamped.events;
-      if (stamped.archive) sessionArchives = (sessionArchives || []).concat([stamped.archive]);
-    }
+    /* No pin: a leftover session stays under its own id and real date (restamp deleted). */
     return session;
   }
 
@@ -1240,6 +1258,8 @@
   }
 
   function append(type, playIndex, payload) {
+    var SideW = global.OFFGRD_CALLER_SIDE;
+    if (SideW && SideW.callerWritesAllowed && !SideW.callerWritesAllowed()) return null;
     var eng = E();
     var sess = ensureSession();
     var PinW = global.OFFGRD_GAMEDAY_PIN;
@@ -1263,7 +1283,11 @@
           side: "defense",
         })
       : {
-          eventId: eng.uuid ? eng.uuid() : "e" + Date.now(),
+          eventId: type === "outcome" && eng.outcomeEventId
+            ? eng.outcomeEventId(gid, "defense", playIndex)
+            : eng.uuid
+              ? eng.uuid()
+              : "e" + Date.now(),
           gameId: gid,
           playIndex: playIndex,
           type: type,
@@ -1325,9 +1349,9 @@
           } catch (eAd) {}
           var SideR = global.OFFGRD_CALLER_SIDE;
           var PinR = global.OFFGRD_GAMEDAY_PIN;
-          if (PinR && PinR.adoptIfPinned && session) {
-            if (sess) PinR.adoptIfPinned(sess);
-            session = PinR.adoptIfPinned(session);
+          var pinnedGid = PinR && PinR.writeId ? PinR.writeId() : null;
+          if (pinnedGid && session) {
+            /* Pinned: the pin is identity. A remote session never re-keys local. */
           } else if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
             sess = session;
           } else if (sess) {
@@ -1742,8 +1766,15 @@
     var anyDb = !!opts.anyDb;
     var season = [];
     try {
-      if (typeof oppRows === "function") season = oppRows("off") || [];
+      if (typeof callerOppRows === "function") season = callerOppRows("off") || [];
+      else if (typeof oppRows === "function") season = oppRows("off") || [];
     } catch (e) {}
+    var want = opp();
+    if (want && want !== "ANY") {
+      season = (season || []).filter(function (r) {
+        return r && r.opponent === want;
+      });
+    }
     var live = liveRowsAsSnaps();
     var pool = season.concat(live);
 
@@ -2084,11 +2115,18 @@
   }
 
   /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
+  function shouldAmendOpenCall(live, playType, now) {
+    if (!live || live.playIndex == null || live.result) return false;
+    if (String(live.playType || "") !== String(playType || "")) return false;
+    var ts = live.ts || live.clientTs || 0;
+    return (now != null ? now : Date.now()) - ts <= 3000;
+  }
+
   function logTheirPlay(playType, direction) {
     var live = liveCall();
-    /* Live ungraded snap — switch Run/Pass on THIS play. A second tap must
-     * not open a phantom snap (P0: scroll + mistap used to log Pass empty). */
-    if (live && live.playIndex != null && !live.result) {
+    /* Same Run/Pass re-tapped within 3s amends this snap. Any other tap
+     * is the next snap — yards are optional; the call is the snap. */
+    if (shouldAmendOpenCall(live, playType, Date.now())) {
       var liveDir = direction || live.theirDirection || pendingDir || null;
       if (liveDir === "") liveDir = null;
       var liveLabel = playType + (liveDir ? " " + liveDir : "");
@@ -2524,7 +2562,10 @@
     var guardLine = snapGuard
       ? `<p class="rd-dc-snap-guard" role="alert" style="margin:6px 0 0;font-weight:800;color:#b42318">${esc(snapGuard)}</p>`
       : "";
+    var SideBan = global.OFFGRD_CALLER_SIDE;
+    var safari = SideBan && SideBan.safariReadOnlyBannerHtml ? SideBan.safariReadOnlyBannerHtml() : "";
     return (
+      safari +
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
       `<span><b>${esc(label)}</b>${cen && cen.tone === "bad" ? " · saved ≠ snaps" : st.detail ? " · " + esc(st.detail) : ""}</span>` +
@@ -3677,6 +3718,7 @@
     driveOver: driveOver,
     movedChains: movedChains,
     logForUi: logForUi,
+    shouldAmendOpenCall: shouldAmendOpenCall,
     logTheirPlay: logTheirPlay,
     logST: logST,
     logTry: logTry,

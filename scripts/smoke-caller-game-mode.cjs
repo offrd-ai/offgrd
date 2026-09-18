@@ -102,7 +102,11 @@ ok(
 );
 ok(/!topInBucket && !game/.test(HOME), "game mode folds BEST NOW into the list");
 ok(/coachSheetTitle/.test(HOME) && /callerSpeakSitTxt/.test(HOME), "game screen uses coach sit copy");
-ok(/if\(!callerIsGuided\(\)\) h\+=callerSyncHeaderHtml/.test(HOME), "sync/export chrome is not on the game header");
+/* Build A decision 2026-09-15: census strip on every caller screen, guided included;
+   pending pill lives in the game header, not a sticky bar. */
+ok(!/if\(!callerIsGuided\(\)\) h\+=callerSyncHeaderHtml/.test(HOME) && /h\+=callerSyncHeaderHtml\(\)/.test(HOME), "census strip renders on the game header too");
+ok(/function callerPendingPillHtml/.test(HOME) && /rd-gd-top-pending/.test(HOME), "pending pill is in the game header");
+ok(!/rd-gd-sticky rd-gd-sticky-game/.test(HOME), "guided sticky bar is gone");
 ok(/isEntryPaint/.test(HOME) && /CALLER_ENTRY_MS/.test(HOME), "footer ms is the last entry-scope paint");
 
 ok(/CALLER_REPICK/.test(HOME) && /callerIsGuided\(\)&&CALLER_REPICK/.test(HOME), "re-pick only after Back from After-snap");

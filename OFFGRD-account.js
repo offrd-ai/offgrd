@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=367";
-import { openAuthModal } from "./OFFGRD-auth.js?v=367";
+import { Cloud } from "./OFFGRD-cloud.js?v=369";
+import { openAuthModal } from "./OFFGRD-auth.js?v=369";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=367";
+} from "./OFFGRD-invite-parse.js?v=369";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1511,6 +1511,10 @@ async function push(silent){
           if(eSave && (eSave.code==="REFUSE_SHRINK" || eSave.code==="REFUSE_WEEK_MUTATION")){
             rejected.push(Object.assign({reason:eSave.code}, g));
             try{ console.warn("[push]", eSave.code, gameNaturalKey(g.opponent,g.week,g.side), eSave.message); }catch(eW){}
+            continue;
+          }
+          if(eSave && eSave.code==="REFUSE_GROW"){
+            try{ console.warn("[push] REFUSE_GROW", gameNaturalKey(g.opponent,g.week,g.side), eSave.message); }catch(eW){}
             continue;
           }
           if(eSave && eSave.code==="STALE_WRITE"){

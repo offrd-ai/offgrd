@@ -11,6 +11,7 @@
   var STORE_KEY = "offgrd_caller_events_v2";
   var DCALLER_STORE_KEY = "offgrd_dcaller_events_v2";
   var DEVICE_KEY = "offgrd_device_id";
+  var DEVICE_KEY_SAFARI = "offgrd_device_id_safari_v1";
 
   function eventSideOf(e) {
     var S = global.OFFGRD_CALLER_SIDE;
@@ -144,6 +145,26 @@
   /**
    * Required side on every event. Unset / bad side throws — do not default.
    */
+  function fnv8(s) {
+    var h = 2166136261;
+    var str = String(s == null ? "" : s);
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return ("00000000" + (h >>> 0).toString(16)).slice(-8);
+  }
+
+  /** One outcome row per snap. Remint and re-grade reuse this id. */
+  function outcomeEventId(gameId, side, playIndex) {
+    var k = "outcome|" + String(gameId || "") + "|" + String(side || "") + "|" + String(playIndex);
+    var a = fnv8(k);
+    var b = fnv8("1|" + k);
+    var c = fnv8("2|" + k);
+    var d = fnv8("3|" + k);
+    return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
+  }
+
   function buildEvent(opts) {
     opts = opts || {};
     var S = global.OFFGRD_CALLER_SIDE;
@@ -160,8 +181,10 @@
         "caller event side required: expected \"offense\" or \"defense\", got " + JSON.stringify(raw)
       );
     }
+    var evId = opts.eventId;
+    if (!evId && opts.type === "outcome") evId = outcomeEventId(opts.gameId, side, opts.playIndex);
     var ev = {
-      eventId: opts.eventId || uuid(),
+      eventId: evId || uuid(),
       gameId: opts.gameId,
       playIndex: opts.playIndex,
       type: opts.type,
@@ -190,10 +213,13 @@
 
   function deviceId() {
     try {
-      var d = localStorage.getItem(DEVICE_KEY);
+      var Side = global.OFFGRD_CALLER_SIDE;
+      var safari = Side && Side.callerWritesAllowed && !Side.callerWritesAllowed();
+      var key = safari ? DEVICE_KEY_SAFARI : DEVICE_KEY;
+      var d = localStorage.getItem(key);
       if (d) return d;
       d = "dev_" + uuid().slice(0, 12);
-      localStorage.setItem(DEVICE_KEY, d);
+      localStorage.setItem(key, d);
       return d;
     } catch (e) {
       return "dev_anon";
@@ -286,9 +312,7 @@
         throw new Error("foldCallerEvents: side must be \"offense\" or \"defense\"");
       }
       events = (events || []).filter(function (e) {
-        var got = eventSideOf(e);
-        if (got) return got === want;
-        return e && e.type && e.type !== "call";
+        return eventSideOf(e) === want;
       });
     }
     var sorted = sortEvents(events);
@@ -712,63 +736,9 @@
     } catch (e) {}
   }
 
-  /** Migrate v1 CALLER_LOG snapshot → events (once). */
-  function migrateV1Log(log, session, device, actorId) {
-    if (!log || !log.length) return [];
-    var events = [];
-    var seq = 0;
-    var gameId = (session && session.gameId) || uuid();
-    var migSide = session && session.side === "defense" ? "defense" : "offense";
-    log.forEach(function (l, idx) {
-      seq += 1;
-      var callId = l.id && String(l.id).length >= 30 ? l.id : uuid();
-      events.push({
-        eventId: callId,
-        gameId: gameId,
-        playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
-        type: "call",
-        side: migSide,
-        payload: {
-          sitTxt: l.sitTxt,
-          play: l.play,
-          dn: l.dn,
-          db: l.db,
-          estYards: l.estYards,
-          hash: l.hash,
-          zone: l.zone,
-          coverage: l.coverage,
-          playType: l.playType,
-          opponent: l.opponent,
-          date: l.date,
-          signal: l.signal,
-          front: l.front || "",
-          actorLabel: l.actorLabel || null,
-        },
-        deviceId: device,
-        actorId: actorId || null,
-        clientTs: l.ts || Date.now() - (log.length - idx) * 1000,
-        seq: seq,
-        superseded: false,
-      });
-      if (l.result) {
-        seq += 1;
-        events.push({
-          eventId: uuid(),
-          gameId: gameId,
-          playIndex: typeof l.playIndex === "number" ? l.playIndex : idx,
-          type: "outcome",
-          side: migSide,
-          payload: { result: l.result },
-          deviceId: device,
-          actorId: actorId || null,
-          clientTs: (l.ts || Date.now()) + 1,
-          seq: seq,
-          superseded: false,
-        });
-      }
-    });
-    return { gameId: gameId, events: events };
-  }
+  /* Build A: migrateV1Log deleted. v1 CALLER_LOG snapshots are never
+     converted to events on device; no code path may mint eventIds for
+     historical rows. */
 
   /** Last active (non-undone) call from a fold log — selection / ON CALL source of truth. */
   /** Game id the folder should use: session if it still has events, else the sole id in the store. */
@@ -894,7 +864,7 @@
     mergeEvents: mergeEvents,
     loadStore: loadStore,
     saveStore: saveStore,
-    migrateV1Log: migrateV1Log,
+    outcomeEventId: outcomeEventId,
     entryToGamesRow: entryToGamesRow,
     snapCount: function (log) {
       return log && log.length ? log.length : 0;

@@ -31,6 +31,7 @@ const REQUIRED = [
   "OFFGRD-caller-sync.js",
   "OFFGRD-caller-recovery.js",
   "OFFGRD-caller-journal.js",
+  "OFFGRD-cleanup-remint.js",
   "OFFGRD-caller-analysis.js",
   "OFFGRD-caller-sit.js",
   "OFFGRD-caller-summary-llm.js",

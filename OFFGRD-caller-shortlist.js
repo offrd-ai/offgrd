@@ -98,20 +98,45 @@
     return next;
   }
 
+  /** Lazy resolve so script order never matters (browser) and Node smokes work. */
+  function playTypeApi() {
+    if (global.OFFGRD_PLAY_TYPE) return global.OFFGRD_PLAY_TYPE;
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./OFFGRD-play-type.js"); } catch (e) {}
+    }
+    return null;
+  }
+
+  /** "run" / "pass" / "rpo" / "" — unknown is not pass. */
   function lane(e) {
-    if (!e) return "pass";
+    if (!e) return "";
     var k = String(e.kind || e.playType || e.lane || "").toLowerCase();
+    if (/rpo/.test(k)) return "rpo";
     if (/run|rush|stop|gap/.test(k) && !/pass/.test(k)) return "run";
     if (/pass|cover|zone|man/.test(k)) return "pass";
     var p = e.playObj || e.play;
     if (p && typeof p === "object") {
-      var t = String(p.type || p.kind || "").toLowerCase();
-      if (t === "run" || t === "run-defense") return "run";
-      if (t === "pass" || t === "pass-defense" || t === "defense") return "pass";
+      var T = playTypeApi();
+      if (T && T.typeOf) {
+        var stored = T.typeOf(p);
+        if (stored === "run" || stored === "pass" || stored === "rpo") return stored;
+      }
+      /* Defense-side compat: D entries keep their old lane mapping. */
+      var td = String(p.type || p.kind || "").toLowerCase();
+      if (td === "run-defense") return "run";
+      if (td === "pass-defense" || td === "defense") return "pass";
     }
-    var nm = String((typeof e.play === "string" ? e.play : e.name) || "").toLowerCase();
-    if (/\b(zone|power|counter|iso|toss|sweep|draw|blast|dive)\b/.test(nm)) return "run";
-    return "pass";
+    var nm = String((typeof e.play === "string" ? e.play : e.name) || "");
+    var T2 = playTypeApi();
+    return (T2 && T2.nameGuess ? T2.nameGuess(nm) : "") || "";
+  }
+
+  /** RPO satisfies both lanes; unknown satisfies neither. */
+  function matchesLane(e, want) {
+    if (!want) return true;
+    var l = lane(e);
+    if (l === "rpo") return want === "run" || want === "pass" || want === "rpo";
+    return l === want;
   }
 
   function playName(e) {
@@ -426,6 +451,7 @@
     cfgFor: cfgFor,
     saveCfg: saveCfg,
     lane: lane,
+    matchesLane: matchesLane,
     playName: playName,
     hasRecord: hasRecord,
     empSr: empSr,

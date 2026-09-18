@@ -103,14 +103,21 @@ check("writes use the pin id", PinA.writeId() === idA);
 check("entered after pick", PinA.entered() === "caller");
 a.sit = { opp: "Parkway North" };
 check("scout opponent does not change the pin", PinA.get().opponent === "Parkway Central" && PinA.get().gameId === idA);
-check("adopt keeps the pinned gameId", PinA.adoptIfPinned({ gameId: "random-uuid", opp: "Parkway North" }).gameId === idA);
-check("adopt overwrites leftover O Live session", PinA.adoptIfPinned({ gameId: idA, opp: "Live" }).opp === "Parkway Central");
+check("adoptIfPinned is deleted — pick is the only identity path", typeof PinA.adoptIfPinned === "undefined");
 check("writeOpp is the pin, never Live", PinA.writeOpp() === "Parkway Central" && PinA.isFallbackOpp("Live"));
-a.CALLER_EVENTS = [{ eventId: "live-tag", gameId: idA, payload: { opponent: "Live" } }];
-PinA.adoptIfPinned({ gameId: idA, opp: "Live" });
+a.CALLER_EVENTS = [
+  { eventId: "live-tag", gameId: idA, payload: { opponent: "Live" } },
+  { eventId: "fri-leftover", gameId: "leftover-o", payload: { opponent: "Parkway South" } },
+];
+PinA.request("offense");
 check(
-  "adopt restamps Live events onto the pin opponent",
+  "re-enter restamps Live-tagged pin events onto the pin opponent",
   a.CALLER_EVENTS[0].payload.opponent === "Parkway Central"
+);
+check(
+  "re-enter never retargets leftover events onto the pin",
+  a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === "leftover-o" && e.payload.opponent === "Parkway South"; }) &&
+    !a.CALLER_EVENTS.some(function (e) { return e.eventId === "fri-leftover" && e.gameId === idA; })
 );
 
 PinA.leave();
@@ -141,6 +148,18 @@ check("D append stamps writeId", /PinW && PinW.writeId/.test(dc));
 check("O append stamps pin opponent", /Pin\.stampPayload/.test(html) && /Pin\.writeOpp/.test(html));
 check("D append stamps pin opponent", /PinW\.stampPayload/.test(dc) && /Pin\.writeOpp/.test(dc));
 check("O session opp prefers the pin over Live", /function callerSessionOpp\(\)\{[\s\S]*?writeOpp/.test(html));
+check(
+  "caller Expect/shortlist prefer pin over Scout sit.opp",
+  /function callerOppScope\(/.test(html) &&
+    /function callerOppRows\(/.test(html) &&
+    /callerOppRows\("def"\)/.test(html) &&
+    /Scout selection must not drive the caller/.test(html)
+);
+check(
+  "callerRankedCalls scopes ours rows to the pin",
+  /callerOppScope\(\)/.test(html) && /r\.opponent===scopeOpp/.test(html)
+);
+check("D expect opp prefers the pin", /Pin\.writeOpp/.test(dc) && /function opp\(\)/.test(dc));
 check("sync flush does not let a leftover cloud opponent overwrite the pin", /if \(game && !pinnedId\)/.test(sync));
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));
@@ -152,6 +171,23 @@ check("resume reapplies the pin to both stores", /applyPinToSessions\(pin, false
 check("picker re-renders on program-ready", /offgrd-program-ready/.test(pinSrc) && /refreshIfPick/.test(pinSrc));
 check("picker re-renders on brand-hydrated", /offgrd-brand-hydrated/.test(pinSrc) && /offgrd-brand-hydrated/.test(acct));
 check("empty picker offers Start a game from the library", /Start a game/.test(pinSrc) && /libraryOpponents/.test(pinSrc));
+check(
+  "empty picker always offers tonight's-opponent input (Maple Lake)",
+  /gdPickTyped/.test(pinSrc) && !/if \(!libs\.length\)/.test(pinSrc)
+);
+check(
+  "typed-opponent input is outside the zero-games branch (always in DOM)",
+  /games\.forEach\(function \(g\) \{/.test(pinSrc) &&
+    pinSrc.indexOf("gdPickTyped") > pinSrc.indexOf("games.forEach(function (g) {")
+);
+check("typed-opponent submits on Enter", /key === "Enter"/.test(pinSrc) && /submitTyped/.test(pinSrc));
+check("typed draft survives re-render / skips wipe while focused", /typedDraft/.test(pinSrc) && /gdPickTyped/.test(pinSrc) && /activeElement/.test(pinSrc));
+
+check(
+  "pin reads schedule via OFFGRD_SCHEDULE.get / localStorage (not bare SCHEDULE)",
+  /function scheduleRows\(/.test(pinSrc) && /OFFGRD_SCHEDULE/.test(pinSrc) && /offgrd_schedule_v1/.test(pinSrc)
+);
+check("HTML exposes OFFGRD_SCHEDULE.get", /OFFGRD_SCHEDULE=\{get:function\(\)\{ return SCHEDULE; \}/.test(html));
 
 const w = makeSandbox();
 load(w);
@@ -181,9 +217,40 @@ check(
   PinW.parseGameDate("Sep 10", "2026-09-08") === "2026-09-10" &&
     PinW.listGames(soakNow).some(function (g) { return /Central/i.test(g.opponent); })
 );
+
+/* Production path: schedule is script-scoped — expose via OFFGRD_SCHEDULE.get / localStorage. */
+w.SCHEDULE = undefined;
+w.OFFGRD_SCHEDULE = {
+  get: function () {
+    return [{ opponent: "Riverview", date: "2026-09-18", ha: "H" }];
+  },
+};
+const viaGet = PinW.listGames(new Date(2026, 8, 17));
+check(
+  "listGames reads OFFGRD_SCHEDULE.get (Riverview · Sep 18)",
+  viaGet.some(function (g) { return g.opponent === "Riverview" && g.date === "2026-09-18"; })
+);
+w.OFFGRD_SCHEDULE = undefined;
+w.localStorage.setItem(
+  "offgrd_schedule_v1",
+  JSON.stringify([{ opponent: "Riverview", date: "2026-09-18", ha: "H" }])
+);
+const viaLs = PinW.listGames(new Date(2026, 8, 17));
+check(
+  "listGames falls back to offgrd_schedule_v1 when SCHEDULE is undefined",
+  viaLs.some(function (g) { return g.opponent === "Riverview" && g.date === "2026-09-18"; })
+);
+w.localStorage.removeItem("offgrd_schedule_v1");
+
 w.SCHEDULE = [];
 w.GAMES = [{ opponent: "Parkway Central", week: "Wk 3" }];
 check("zero schedule cards still expose the library", PinW.libraryOpponents().indexOf("Parkway Central") >= 0);
+check("typed 'Live' can never pin", PinW.pick({ opponent: "Live", date: "2026-09-15", ha: "H" }) === null);
+check("typed 'ANY' can never pin", PinW.pick({ opponent: "ANY", date: "2026-09-15", ha: "H" }) === null);
+check("a caller never opens on Live: fallback pin is refused by get()", (function () {
+  w.localStorage.setItem(PinW.PIN_KEY, JSON.stringify({ opponent: "Live", date: "2026-09-15", gameId: "x", pinnedAt: 1 }));
+  return PinW.get() === null && PinW.writeOpp() === null;
+})());
 
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");

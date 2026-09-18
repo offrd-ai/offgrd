@@ -90,37 +90,16 @@
     return a + "-" + b.slice(0, 4) + "-4" + b.slice(4, 7) + "-8" + c.slice(0, 3) + "-" + c.slice(3) + d.slice(0, 7);
   }
 
-  function retargetLive(from, to) {
-    if (!from || !to || String(from) === String(to)) return;
-    function walk(evs) {
-      (evs || []).forEach(function (e) {
-        if (e && String(e.gameId) === String(from)) e.gameId = to;
-      });
-    }
-    try {
-      if (global.CALLER_SESSION && String(global.CALLER_SESSION.gameId) === String(from)) global.CALLER_SESSION.gameId = to;
-      walk(global.CALLER_EVENTS);
-    } catch (eO) {}
-    try {
-      var D = global.OFFGRD_DCALLER;
-      var ds = D && (D.getSession ? D.getSession() : D.session);
-      if (ds && String(ds.gameId) === String(from)) ds.gameId = to;
-    } catch (eD) {}
-    try {
-      var J = global.OFFGRD_CALLER_JOURNAL;
-      if (J && J.retargetGameId) J.retargetGameId(from, to);
-    } catch (eJ) {}
-  }
+  /* Build A: leftover sessions stay under their own ids. Never re-parent.
+     retargetLive and adoptIfPinned deleted — pick() is the only place a
+     session takes the pin's identity (applyPinToSessions). */
 
   function get() {
     var o = parseJson(lsGet(PIN_KEY));
     if (!o || isFallbackOpp(o.opponent) || !o.gameId) return null;
     if (!isUuid(o.gameId)) {
-      var next = gameIdFor(o.opponent, o.date);
-      var prev = o.gameId;
-      o.gameId = next;
+      o.gameId = gameIdFor(o.opponent, o.date);
       save(o);
-      retargetLive(prev, next);
     }
     return o;
   }
@@ -230,6 +209,25 @@
     return gameIdFor(opp, date);
   }
 
+  /** Schedule lives in OFFGRD.html as a script-scoped let. Read via OFFGRD_SCHEDULE.get,
+      then localStorage, then a global.SCHEDULE fallback (smokes / older hosts). */
+  function scheduleRows() {
+    var S = global.OFFGRD_SCHEDULE;
+    if (S && typeof S.get === "function") {
+      var viaGet = S.get();
+      if (Array.isArray(viaGet)) return viaGet;
+    }
+    if (Array.isArray(global.SCHEDULE)) return global.SCHEDULE;
+    try {
+      var raw = global.localStorage && localStorage.getItem("offgrd_schedule_v1");
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (eLs) {}
+    return [];
+  }
+
   function listGames(now) {
     var today = todayISO(now);
     var lo = addDays(today, -1);
@@ -255,7 +253,7 @@
         live: snaps > 0,
       });
     }
-    var sched = global.SCHEDULE;
+    var sched = scheduleRows();
     if (Array.isArray(sched)) sched.forEach(function (g) { add(g, false); });
     if (!out.length && Array.isArray(sched)) sched.forEach(function (g) { add(g, true); });
     var pin = get();
@@ -371,16 +369,6 @@
     if (typeof global.setView === "function") global.setView("pick");
   }
 
-  function adoptIfPinned(sess) {
-    var pin = get();
-    if (!pin || !sess) return sess;
-    var prev = sess.gameId;
-    stampSession(sess);
-    if (prev && String(prev) !== String(pin.gameId)) retargetLive(prev, pin.gameId);
-    stampLiveOpponent(pin);
-    return sess;
-  }
-
   function haLabel(ha) {
     if (ha === "A") return "Away";
     if (ha === "N") return "Neutral";
@@ -442,13 +430,11 @@
     h += '<div class="rd-gd-pick-head"><b>Tonight\'s game</b><span class="foot">Pick once. ' + esc(sideLbl) + " opens on that pin.</span></div>";
     var libs = !games.length ? libraryOpponents() : [];
     if (!games.length) {
-      h += '<p class="foot">Schedule is still loading, or nothing sits in yesterday through next week.</p>';
-      h += '<p class="foot"><b>Start a game</b> → choose opponent from the library. Never a dead end.</p>';
-      if (!libs.length) {
-        h +=
-          '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Opponent" autocomplete="off">' +
-          '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
-      }
+      /* Maple Lake: zero games is never a dead end. Offer both paths —
+         add opponent from the library, or type tonight's opponent.
+         A caller never opens on "Live". */
+      h += '<p class="foot">No schedule loaded, or nothing sits in yesterday through next week.</p>';
+      h += '<p class="foot"><b>Start a game</b> → pick an opponent from the library, or enter tonight\'s opponent.</p>';
       libs.forEach(function (name) {
         h +=
           '<button type="button" class="rd-gd-pick-card rd-gd-pick-lib" data-opp="' +
@@ -499,6 +485,14 @@
     if (games.some(function (g) { return g.live; })) {
       h += '<p class="foot" style="margin-top:12px"><button type="button" class="ghost" id="gdPickFresh">Start new game</button> · never the default</p>';
     }
+    /* Always below schedule cards (or alone when empty): soak / ad-hoc games
+       must not require pinning tomorrow's real opponent. */
+    h +=
+      '<p class="foot" style="margin-top:12px">Or enter tonight\'s opponent</p>' +
+      '<p class="rd-gd-pick-typed"><input id="gdPickTyped" type="text" placeholder="Tonight\'s opponent" autocomplete="off" value="' +
+      esc(typedDraft) +
+      '">' +
+      '<button type="button" class="ghost" id="gdPickTypedGo">Start</button></p>';
     h += "</div>";
     host.innerHTML = h;
     host.querySelectorAll(".rd-gd-pick-card").forEach(function (btn) {
@@ -518,12 +512,27 @@
         pick({ opponent: btn.getAttribute("data-opp"), date: todayISO(), ha: "H" }, { side: side });
       };
     });
+    function submitTyped() {
+      var inp = host.querySelector("#gdPickTyped");
+      var name = inp && inp.value ? String(inp.value).trim() : String(typedDraft || "").trim();
+      if (!name) return;
+      typedDraft = "";
+      pick({ opponent: name, date: todayISO(), ha: "H" }, { side: side });
+    }
     var typedGo = host.querySelector("#gdPickTypedGo");
-    if (typedGo) {
-      typedGo.onclick = function () {
-        var inp = host.querySelector("#gdPickTyped");
-        var name = inp && inp.value ? String(inp.value).trim() : "";
-        if (name) pick({ opponent: name, date: todayISO(), ha: "H" }, { side: side });
+    if (typedGo) typedGo.onclick = submitTyped;
+    var typedInp = host.querySelector("#gdPickTyped");
+    if (typedInp) {
+      typedInp.oninput = function () {
+        typedDraft = String(typedInp.value || "");
+      };
+      typedInp.onkeydown = function (ev) {
+        ev = ev || global.event;
+        var key = ev.key || ev.keyCode;
+        if (key === "Enter" || key === 13) {
+          if (ev.preventDefault) ev.preventDefault();
+          submitTyped();
+        }
       };
     }
   }
@@ -537,7 +546,7 @@
       names.push(t);
     }
     if (Array.isArray(global.GAMES)) global.GAMES.forEach(function (g) { addName(g && g.opponent); });
-    if (Array.isArray(global.SCHEDULE)) global.SCHEDULE.forEach(function (g) { addName(g && g.opponent); });
+    scheduleRows().forEach(function (g) { addName(g && g.opponent); });
     try {
       if (global.WEEK && WEEK.opponent) addName(WEEK.opponent);
     } catch (eW) {}
@@ -551,15 +560,25 @@
     var orig = S.set;
     S.set = function () {
       var r = orig.apply(this, arguments);
-      if (global.CURRENT_VIEW === "pick") renderPicker();
+      refreshIfPick();
       return r;
     };
     S.set._pinWrapped = true;
   }
 
+  var typedDraft = "";
+
   function refreshIfPick() {
     wrapScheduleSet();
-    if (global.CURRENT_VIEW === "pick") renderPicker();
+    if (global.CURRENT_VIEW !== "pick") return;
+    try {
+      var ae = global.document && document.activeElement;
+      if (ae && ae.id === "gdPickTyped") {
+        typedDraft = String(ae.value || "");
+        return;
+      }
+    } catch (eFocus) {}
+    renderPicker();
   }
 
   function bindRefresh() {
@@ -593,7 +612,6 @@
     leave: leave,
     entered: entered,
     pendingSide: pendingSide,
-    adoptIfPinned: adoptIfPinned,
     renderPicker: renderPicker,
     snapCountFor: snapCountFor,
   };

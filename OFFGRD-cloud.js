@@ -899,6 +899,10 @@ export const Cloud = {
     const msg = String(err.message || err.details || err.hint || "");
     return /scouting_game tombstoned/i.test(msg) || /tombstoned/i.test(msg);
   },
+  scoutingRowCap(nk) {
+    if (nk === "live|live 2026-09-02|ours") return 24;
+    return null;
+  },
   async saveGame(teamId, game) {
     if (!OG) throw new Error("offgrd schema unavailable");
     const nk = this.gameNaturalKey(game.opponent, game.week, game.side);
@@ -906,6 +910,13 @@ export const Cloud = {
     if (await this.isGameTombstoned(teamId, game)) {
       const err = new Error("scouting_game tombstoned: " + nk);
       err.code = "TOMBSTONED";
+      throw err;
+    }
+    const cap = this.scoutingRowCap(nk);
+    const localCapN = Array.isArray(game.rows) ? game.rows.length : 0;
+    if (cap != null && localCapN > cap) {
+      const err = new Error("scouting_game refuse grow: " + nk + " " + localCapN + " cap " + cap);
+      err.code = "REFUSE_GROW";
       throw err;
     }
     const row = {
@@ -1009,7 +1020,7 @@ export const Cloud = {
         }
       }
     } catch (eCas) {
-      if (eCas && (eCas.code === "STALE_WRITE" || eCas.code === "REFUSE_SHRINK" || eCas.code === "REFUSE_WEEK_MUTATION")) throw eCas;
+      if (eCas && (eCas.code === "STALE_WRITE" || eCas.code === "REFUSE_SHRINK" || eCas.code === "REFUSE_GROW" || eCas.code === "REFUSE_WEEK_MUTATION")) throw eCas;
       /* Have a server row and lookup/compare failed — do not blind-upsert. */
       if (cur) return cur;
     }
@@ -1020,6 +1031,12 @@ export const Cloud = {
       if (/refuse shrink/i.test(trigMsg)) {
         const err = new Error(trigMsg);
         err.code = "REFUSE_SHRINK";
+        err.cause = error;
+        throw err;
+      }
+      if (/refuse grow/i.test(trigMsg)) {
+        const err = new Error(trigMsg);
+        err.code = "REFUSE_GROW";
         err.cause = error;
         throw err;
       }
@@ -1128,6 +1145,8 @@ export const Cloud = {
   },
   async ensureCallerGame(teamId, meta) {
     if (!OG || !teamId) return null;
+    const Clean = typeof window !== "undefined" ? window.OFFGRD_CLEANUP_REMINT : null;
+    if (meta && meta.id && Clean && Clean.isRejectedGame && Clean.isRejectedGame(meta.id)) return null;
     const side = (meta && meta.side) === "defense" ? "defense" : "offense";
     if (meta && meta.id) {
       const byId = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
@@ -1196,6 +1215,8 @@ export const Cloud = {
    *  Does not steal the one-active-per-side slot — defaults to archived. */
   async ensureCallerGameRow(teamId, meta) {
     if (!OG || !teamId || !meta || !meta.id) return null;
+    const Clean = typeof window !== "undefined" ? window.OFFGRD_CLEANUP_REMINT : null;
+    if (Clean && Clean.isRejectedGame && Clean.isRejectedGame(meta.id)) return null;
     const existing = await OG.from("caller_games").select("*").eq("id", meta.id).maybeSingle();
     if (existing.error) throw existing.error;
     if (existing.data) return existing.data;
@@ -1343,6 +1364,8 @@ export const Cloud = {
     const toRow = (Sync && Sync.eventToSyncRow) || (Side && Side.eventToSyncRow);
     const rows = [];
     let skippedNoSide = 0;
+    const Clean = typeof window !== "undefined" ? window.OFFGRD_CLEANUP_REMINT : null;
+    const seenOutcome = Object.create(null);
     events.forEach(function (e) {
       const row = toRow
         ? toRow(e, teamId)
@@ -1362,6 +1385,18 @@ export const Cloud = {
               side: e.side,
             }
           : null);
+      if (row && Clean && Clean.isRejectedGame && Clean.isRejectedGame(row.game_id)) return;
+      if (row && row.type === "outcome") {
+        let pay = "";
+        try {
+          pay = JSON.stringify(row.payload || {});
+        } catch (ePay) {
+          pay = "";
+        }
+        const ok = String(row.game_id) + "|" + String(row.side) + "|" + String(row.play_index) + "|" + pay;
+        if (seenOutcome[ok]) return;
+        seenOutcome[ok] = 1;
+      }
       if (row && row.side) rows.push(row);
       else skippedNoSide += 1;
     });

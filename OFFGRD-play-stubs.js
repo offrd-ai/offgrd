@@ -42,6 +42,26 @@
     return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
   }
 
+  /** Lazy resolve so script order never matters (browser) and Node smokes work. */
+  function playTypeApi() {
+    if (global.OFFGRD_PLAY_TYPE) return global.OFFGRD_PLAY_TYPE;
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./OFFGRD-play-type.js"); } catch (e) {}
+    }
+    return null;
+  }
+
+  /** `HAMMER (R)` → { name:"HAMMER", type:"run" }. No suffix → type "". */
+  function stripTypeSuffix(name) {
+    var nm = String(name == null ? "" : name).trim();
+    var PT = playTypeApi();
+    if (PT && PT.parseTypeSuffix) {
+      var suf = PT.parseTypeSuffix(nm);
+      if (suf) return { name: suf.name || nm, type: suf.type || "" };
+    }
+    return { name: nm, type: "" };
+  }
+
   function playSide(p) {
     if (!p) return "";
     if (p.side === "defense" || p.side === "def") return "defense";
@@ -109,10 +129,21 @@
       var name = cleanPlayName(cols[0]);
       var family = cols.length > 1 ? String(cols[1] || "").trim() : "";
       if (!name) { skippedBlank++; continue; }
+      /* Paste suffix `(R)` / `(P)` / `(RPO)` is the coach labeling his own
+         sheet — strip it from the name, carry it as an override. */
+      var suf = stripTypeSuffix(name);
+      name = suf.name;
+      if (!name) { skippedBlank++; continue; }
       var key = normName(name);
       if (seen[key]) { skippedDupes++; continue; }
       seen[key] = true;
-      rows.push({ name: name, family: family, raw: String(line).trim() });
+      rows.push({
+        name: name,
+        family: family,
+        type: suf.type,
+        typeOverride: suf.type,
+        raw: String(line).trim()
+      });
     }
     return {
       rows: rows,
@@ -317,16 +348,37 @@
     return out;
   }
 
-  function makeStub(name, side, family, id) {
+  function makeStub(name, side, family, id, opts) {
     var s = side === "defense" ? "defense" : "offense";
     var fam = String(family || "").trim();
     var tags = fam ? [fam] : [];
-    var hints = suggestTagsFromName(name);
+    var o = opts || {};
+    /* Unknown is not pass. An offense stub is untyped until the coach's
+       paste suffix, a family, charted snaps, or an explicit override types
+       it (OFFGRD-play-type.js owns derivation). */
+    var suf = stripTypeSuffix(name);
+    var nm = suf.name;
+    var type = "";
+    var typeSource = "";
+    var typeOverride = "";
+    if (s === "defense") {
+      type = "defense";
+    } else {
+      var t = String(suf.type || o.typeOverride || o.type || "").toLowerCase();
+      if (t === "run" || t === "pass" || t === "rpo") {
+        type = t;
+        typeOverride = t;
+        typeSource = "override";
+      }
+    }
+    var hints = suggestTagsFromName(nm);
     return {
       id: id || null,
-      name: String(name || "").trim(),
+      name: nm,
       side: s,
-      type: s === "defense" ? "defense" : "pass",
+      type: type,
+      typeSource: typeSource,
+      typeOverride: typeOverride,
       family: fam,
       concept: fam,
       series: "",

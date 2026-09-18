@@ -130,6 +130,29 @@ if (shared) {
       console.log("ok: offgrd-sw.js keyed to v=" + shared);
     }
   }
+
+  /* Chip / build label — OFFGRD-config.js must match the shared pin (v365 chip on a v366 SW). */
+  const cfgPath = path.join(root, "OFFGRD-config.js");
+  if (fs.existsSync(cfgPath)) {
+    const cfg = fs.readFileSync(cfgPath, "utf8");
+    const cfgAsset = (cfg.match(/OFFGRD_ASSET_V\s*=\s*"(\d+)"/) || [])[1];
+    const cfgMeta = (cfg.match(/assetV:\s*"(\d+)"/) || [])[1];
+    if (cfgAsset !== shared || cfgMeta !== shared) {
+      console.error(
+        "FAIL: OFFGRD-config.js not keyed to v=" +
+          shared +
+          " (OFFGRD_ASSET_V=" +
+          cfgAsset +
+          ", assetV=" +
+          cfgMeta +
+          ")"
+      );
+      console.error("Run: node scripts/pin-assets.cjs " + shared);
+      failed = true;
+    } else {
+      console.log("ok: OFFGRD-config.js keyed to v=" + shared);
+    }
+  }
 }
 
 if (failed) {

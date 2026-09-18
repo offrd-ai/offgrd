@@ -222,19 +222,8 @@
     return row;
   }
 
-  function retargetGameId(from, to) {
-    if (!from || !to || String(from) === String(to)) return 0;
-    var n = 0;
-    Object.keys(mem).forEach(function (id) {
-      var r = mem[id];
-      if (!r || String(r.gameId) !== String(from)) return;
-      r.gameId = String(to);
-      n += 1;
-      if (idb) idbPut(idb, r);
-    });
-    if (n) persistLsMirror();
-    return n;
-  }
+  /* Build A: a game's events keep that game's id. Never re-parent.
+     retargetGameId deleted — no code path may rewrite an event's gameId. */
 
   function isFallbackOpp(name) {
     var Pin = global.OFFGRD_GAMEDAY_PIN;
@@ -585,7 +574,6 @@
     ready: ready,
     appendNow: appendNow,
     adopt: adopt,
-    retargetGameId: retargetGameId,
     stampFallbackOpponent: stampFallbackOpponent,
     allRows: allRows,
     activeEvents: activeEvents,
