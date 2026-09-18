@@ -919,15 +919,66 @@
     return false;
   }
 
-  /** iOS Safari (not the home-screen icon) is view-only. */
+  var SAFARI_UNLOCK_KEY = "offgrd_safari_log_anyway";
+
+  /** iOS browser tab (not the home-screen icon). */
+  function isBrowserCaller(nav, matchMediaFn) {
+    return isIosDevice(nav) && !isStandaloneDisplay(nav, matchMediaFn);
+  }
+
+  function safariUnlocked() {
+    try {
+      return !!(global.sessionStorage && sessionStorage.getItem(SAFARI_UNLOCK_KEY) === "1");
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * iOS Safari is view-only until this tab taps "Log here anyway".
+   * Unlock is sessionStorage — per tab, gone when the tab dies.
+   * The home-screen icon never needs it.
+   */
   function callerWritesAllowed(nav, matchMediaFn) {
     if (!isIosDevice(nav)) return true;
-    return isStandaloneDisplay(nav, matchMediaFn);
+    if (isStandaloneDisplay(nav, matchMediaFn)) return true;
+    return safariUnlocked();
+  }
+
+  function allowSafariLogging() {
+    try {
+      if (global.sessionStorage) sessionStorage.setItem(SAFARI_UNLOCK_KEY, "1");
+    } catch (e) {}
+    try {
+      if (typeof global.callerRenderFull === "function") global.callerRenderFull();
+    } catch (eO) {}
+    try {
+      if (global.OFFGRD_DCALLER && typeof global.OFFGRD_DCALLER.render === "function") {
+        global.OFFGRD_DCALLER.render();
+      }
+    } catch (eD) {}
+    try {
+      if (typeof global.refreshView === "function") global.refreshView();
+    } catch (eR) {}
   }
 
   function safariReadOnlyBannerHtml() {
-    if (callerWritesAllowed()) return "";
-    return '<p class="rd-gd-safari-ro" role="status" style="margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#fff3cd;color:#5c4300;font-weight:800">Open the OFFGRD icon to log. Safari is view-only.</p>';
+    if (!isBrowserCaller()) return "";
+    var box =
+      "margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#fff3cd;color:#5c4300;font-weight:800";
+    if (safariUnlocked()) {
+      return (
+        '<p class="rd-gd-safari-ro" role="status" style="' +
+        box +
+        '">Logging in this Safari tab. The OFFGRD icon is still the game-night path.</p>'
+      );
+    }
+    return (
+      '<p class="rd-gd-safari-ro" role="status" style="' +
+      box +
+      '">Open the OFFGRD icon to log. Safari is view-only. ' +
+      '<button type="button" class="ghost" style="margin-left:8px;min-height:44px;font-weight:800" onclick="OFFGRD_CALLER_SIDE.allowSafariLogging()">Log here anyway</button></p>'
+    );
   }
 
   global.OFFGRD_CALLER_SIDE = {
@@ -988,6 +1039,8 @@
     isIosDevice: isIosDevice,
     isStandaloneDisplay: isStandaloneDisplay,
     callerWritesAllowed: callerWritesAllowed,
+    isBrowserCaller: isBrowserCaller,
+    allowSafariLogging: allowSafariLogging,
     safariReadOnlyBannerHtml: safariReadOnlyBannerHtml,
     planLiveLibraryWrite: planLiveLibraryWrite,
     LIBRARY_SHRINK_REFUSAL: LIBRARY_SHRINK_REFUSAL,
