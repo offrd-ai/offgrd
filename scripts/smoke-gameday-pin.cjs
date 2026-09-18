@@ -148,6 +148,18 @@ check("D append stamps writeId", /PinW && PinW.writeId/.test(dc));
 check("O append stamps pin opponent", /Pin\.stampPayload/.test(html) && /Pin\.writeOpp/.test(html));
 check("D append stamps pin opponent", /PinW\.stampPayload/.test(dc) && /Pin\.writeOpp/.test(dc));
 check("O session opp prefers the pin over Live", /function callerSessionOpp\(\)\{[\s\S]*?writeOpp/.test(html));
+check(
+  "caller Expect/shortlist prefer pin over Scout sit.opp",
+  /function callerOppScope\(/.test(html) &&
+    /function callerOppRows\(/.test(html) &&
+    /callerOppRows\("def"\)/.test(html) &&
+    /Scout selection must not drive the caller/.test(html)
+);
+check(
+  "callerRankedCalls scopes ours rows to the pin",
+  /callerOppScope\(\)/.test(html) && /r\.opponent===scopeOpp/.test(html)
+);
+check("D expect opp prefers the pin", /Pin\.writeOpp/.test(dc) && /function opp\(\)/.test(dc));
 check("sync flush does not let a leftover cloud opponent overwrite the pin", /if \(game && !pinnedId\)/.test(sync));
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));

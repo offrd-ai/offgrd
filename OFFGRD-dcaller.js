@@ -113,6 +113,18 @@
   }
   function opp() {
     try {
+      var Pin = global.OFFGRD_GAMEDAY_PIN;
+      if (Pin && Pin.writeOpp) {
+        var pinned = Pin.writeOpp();
+        if (pinned) return pinned;
+      }
+    } catch (ePin) {}
+    try {
+      if (session && session.opp && session.opp !== "ANY" && session.opp !== "Live" && session.opp !== "opponent") {
+        return session.opp;
+      }
+    } catch (eSess) {}
+    try {
       if (typeof sit !== "undefined" && global.sit && global.sit.opp) return global.sit.opp;
     } catch (e) {}
     return (global.sit && global.sit.opp) || "ANY";
@@ -1754,8 +1766,15 @@
     var anyDb = !!opts.anyDb;
     var season = [];
     try {
-      if (typeof oppRows === "function") season = oppRows("off") || [];
+      if (typeof callerOppRows === "function") season = callerOppRows("off") || [];
+      else if (typeof oppRows === "function") season = oppRows("off") || [];
     } catch (e) {}
+    var want = opp();
+    if (want && want !== "ANY") {
+      season = (season || []).filter(function (r) {
+        return r && r.opponent === want;
+      });
+    }
     var live = liveRowsAsSnaps();
     var pool = season.concat(live);
 
