@@ -520,6 +520,12 @@
       }).length;
       var label = kind === "half" ? "Half" : "Q" + (qn || 1);
       var dPass = An && An.passShare ? An.passShare(log) : null;
+      var Out = O();
+      var pen = Out && Out.penaltyStats ? Out.penaltyStats(log) : null;
+      var penBit =
+        pen && (pen.us || pen.them)
+          ? " · Penalties " + pen.us + " on us / " + pen.them + " on them"
+          : "";
       var line =
         label +
         " marked · " +
@@ -527,7 +533,8 @@
         " D snaps" +
         (dPass != null
           ? " · they " + Math.round((1 - dPass) * 100) + "/" + Math.round(dPass * 100) + " run/pass"
-          : "");
+          : "") +
+        penBit;
       pushFeedEvent({ kind: "period", id: "period-" + kind + "-" + lastPi + "-" + breaks.length, line: line, playIndex: lastPi });
       liveExpanded = true;
       saveLocal();
@@ -1200,21 +1207,6 @@
     try {
       if (global.OFFGRD_BOOTHPACK && OFFGRD_BOOTHPACK.invalidate) OFFGRD_BOOTHPACK.invalidate();
     } catch (e) {}
-    if (!(opts && opts.fromCall)) return;
-    try {
-      if (typeof callerSyncToGames === "function") {
-        callerSyncToGames({
-          side: "defense",
-          log: log,
-          session: ensureSession(),
-          fromCall: true,
-        });
-      }
-    } catch (eSync) {
-      try {
-        console.warn("[dcaller] sync to def game", eSync && eSync.message);
-      } catch (e2) {}
-    }
   }
 
   function loadSession() {
@@ -1860,10 +1852,14 @@
 
   function passShare(rows) {
     if (!rows || !rows.length) return null;
-    var pass = rows.filter(function (r) {
+    var known = rows.filter(function (r) {
+      return r && r.result !== "penalty" && /pass|run/i.test(r.playType || "");
+    });
+    if (!known.length) return null;
+    var pass = known.filter(function (r) {
       return /pass/i.test(r.playType || "");
     }).length;
-    return pass / rows.length;
+    return pass / known.length;
   }
 
   function expectGrain(rows, opts) {
@@ -2196,15 +2192,31 @@
       return l.playIndex === playIndex;
     });
     if (!entry) return;
+    if (resultId === "penalty") {
+      penOpen(playIndex);
+      return;
+    }
     var next = entry.result === resultId ? null : resultId;
     var flags = entry.flags || [];
-    append("outcome", playIndex, {
+    var draft = penDraft(playIndex);
+    var declinedPen =
+      draft && draft.declined && draft.on
+        ? { on: draft.on, type: draft.type || null, yards: null, declined: true, auto1st: false }
+        : entry.penalty && entry.penalty.declined && next
+          ? entry.penalty
+          : null;
+    var payload = {
       result: next,
       flags: next ? flags : [],
       flag: next && flags[0] ? flags[0] : null,
       theirPlayType: entry.playType || null,
       theirDirection: entry.theirDirection || null,
-    });
+    };
+    if (next && declinedPen) payload.penalty = declinedPen;
+    else if (!next) payload.penalty = null;
+    else if (entry.penalty && entry.penalty.declined) payload.penalty = entry.penalty;
+    append("outcome", playIndex, payload);
+    if (next && declinedPen) delete _penDraft[playIndex];
     if (next) {
       maybeAdvance(playIndex);
       /* Fresh D call each snap — do not sticky-carry coverage/front/blitz. */
@@ -2220,6 +2232,8 @@
         });
         tickLiveEvents(graded || null);
       } catch (eTick) {}
+    } else {
+      delete _penDraft[playIndex];
     }
     render();
     /* Result = step 4 done — snap closed; hard-scroll to top (or try bar after TD). */
@@ -2240,6 +2254,111 @@
         } catch (e2) {}
       }
     }
+  }
+
+  function penOpen(playIndex) {
+    var entry = log.find(function (l) {
+      return l.playIndex === playIndex;
+    });
+    if (!entry) return;
+    if (entry.result === "penalty") {
+      append("outcome", playIndex, { result: null, flag: null, flags: [], penalty: null });
+      delete _penDraft[playIndex];
+      saveLocal();
+      render();
+      return;
+    }
+    if (_penDraft[playIndex]) {
+      delete _penDraft[playIndex];
+      render();
+      return;
+    }
+    _penDraft[playIndex] = {
+      on: (entry.penalty && entry.penalty.on) || null,
+      type: (entry.penalty && entry.penalty.type) || null,
+      declined: false,
+      auto1st: false,
+    };
+    render();
+  }
+
+  function penSetOn(playIndex, on) {
+    var d = _penDraft[playIndex] || { on: null, type: null, declined: false, auto1st: false };
+    d.on = d.on === on ? null : on;
+    _penDraft[playIndex] = d;
+    render();
+  }
+
+  function penSetType(playIndex, typeId) {
+    var d = _penDraft[playIndex] || { on: null, type: null, declined: false, auto1st: false };
+    d.type = d.type === typeId ? null : typeId;
+    _penDraft[playIndex] = d;
+    render();
+  }
+
+  function penCommit(playIndex, yards, auto1st) {
+    var entry = log.find(function (l) {
+      return l.playIndex === playIndex;
+    });
+    if (!entry) return;
+    var d = _penDraft[playIndex];
+    if (!d || !d.on) return;
+    var y = auto1st ? Math.abs(+yards || 15) : Math.abs(+yards);
+    if (!y || isNaN(y)) return;
+    append("outcome", playIndex, {
+      result: "penalty",
+      flag: null,
+      flags: [],
+      penalty: { on: d.on, type: d.type || null, yards: y, declined: false, auto1st: !!auto1st },
+      theirPlayType: entry.playType || null,
+      theirDirection: entry.theirDirection || null,
+    });
+    delete _penDraft[playIndex];
+    maybeAdvance(playIndex);
+    sit.coverage = null;
+    sit.front = null;
+    sit.pressure = null;
+    pendingDir = null;
+    saveLocal();
+    refreshDriveToast();
+    try {
+      var graded = log.find(function (l) {
+        return l.playIndex === playIndex;
+      });
+      tickLiveEvents(graded || null);
+    } catch (eTick) {}
+    render();
+    try {
+      jumpTop(true);
+    } catch (e) {}
+  }
+
+  function penDeclined(playIndex) {
+    var entry = log.find(function (l) {
+      return l.playIndex === playIndex;
+    });
+    if (!entry) return;
+    var d = _penDraft[playIndex];
+    if (!d || !d.on) return;
+    if (entry.result && entry.result !== "penalty") {
+      append("outcome", playIndex, {
+        result: entry.result,
+        flag: entry.flag || null,
+        flags: entry.flags || [],
+        conceptOverride: entry.conceptOverride || null,
+        penalty: { on: d.on, type: d.type || null, yards: null, declined: true, auto1st: false },
+        theirPlayType: entry.playType || null,
+        theirDirection: entry.theirDirection || null,
+      });
+      delete _penDraft[playIndex];
+      maybeAdvance(playIndex);
+      saveLocal();
+      render();
+      return;
+    }
+    d.declined = true;
+    _penDraft[playIndex] = d;
+    render();
   }
 
   function toggleFlag(playIndex, flagId) {
@@ -2342,8 +2461,10 @@
         flag: entry.flag,
         negated: entry.negated,
         movedChains: !!entry.movedChains,
+        penalty: entry.penalty || null,
       },
-      entry.playType
+      entry.playType,
+      { side: "defense" }
     );
     if (next.skip && !next.needsInput && !next.needsTry && !next.inferred) return;
     applyInfer(next);
@@ -3226,7 +3347,52 @@
     if (id === "chunk" || id === "explosive") return " is-chunk";
     if (id === "td") return " is-td";
     if (id === "turnover") return " is-to";
+    if (id === "penalty") return " is-pen";
     return "";
+  }
+
+  var _penDraft = Object.create(null);
+  function penDraft(pi) {
+    return _penDraft[pi] || null;
+  }
+
+  function penaltyDetailHtml(live, Out) {
+    if (!live || !Out) return "";
+    var pi = live.playIndex;
+    var draft = penDraft(pi);
+    var open = !!(draft || live.result === "penalty" || (live.penalty && live.penalty.declined));
+    if (!open) return "";
+    var on = draft && draft.on != null ? draft.on : (live.penalty && live.penalty.on) || null;
+    var type = draft && draft.type != null ? draft.type : (live.penalty && live.penalty.type) || null;
+    var declined = !!(draft && draft.declined) || !!(live.penalty && live.penalty.declined);
+    var yards = live.result === "penalty" && live.penalty ? live.penalty.yards : null;
+    var auto1st = !!(live.penalty && live.penalty.auto1st) || !!(draft && draft.auto1st);
+    var types = Out.PENALTY_TYPES || [];
+    var yds = Out.PENALTY_YARDS || [5, 10, 15];
+    var h = `<div class="rd-dc-pen-detail">`;
+    h += `<div class="rd-dc-yards-gl">On</div><div class="rd-dc-yards-row rd-dc-pen-on">`;
+    h += `<button type="button" class="caller-out-btn rd-dc-yard${on === "us" ? " on" : ""}" onclick="OFFGRD_DCALLER.penSetOn(${pi},'us')">On us</button>`;
+    h += `<button type="button" class="caller-out-btn rd-dc-yard${on === "them" ? " on" : ""}" onclick="OFFGRD_DCALLER.penSetOn(${pi},'them')">On them</button>`;
+    h += `</div><div class="rd-dc-yards-gl">Type <span class="foot">optional</span></div>`;
+    h += `<div class="rd-dc-yards-row rd-dc-pen-types">`;
+    types.forEach(function (t) {
+      h += `<button type="button" class="caller-out-btn rd-dc-yard${type === t.id ? " on" : ""}" onclick="OFFGRD_DCALLER.penSetType(${pi},'${t.id}')">${esc(t.label)}</button>`;
+    });
+    h += `</div>`;
+    if (on) {
+      h += `<div class="rd-dc-yards-gl">Yards</div><div class="rd-dc-yards-row rd-dc-pen-yards">`;
+      yds.forEach(function (y) {
+        h += `<button type="button" class="caller-out-btn rd-dc-yard is-pen${yards === y ? " on" : ""}" onclick="OFFGRD_DCALLER.penCommit(${pi},${y})">${y}</button>`;
+      });
+      h += `<button type="button" class="caller-out-btn rd-dc-yard is-pen${auto1st ? " on" : ""}" onclick="OFFGRD_DCALLER.penCommit(${pi},15,true)">Auto 1st</button>`;
+      h += `<button type="button" class="caller-out-btn rd-dc-yard is-pen${declined ? " on" : ""}" onclick="OFFGRD_DCALLER.penDeclined(${pi})">Declined</button>`;
+      h += `</div>`;
+      if (declined && !(live.result && live.result !== "penalty")) {
+        h += `<p class="foot" style="margin:6px 0 0">Declined — tap the play result (Stop / Yards / TD)</p>`;
+      }
+    }
+    h += `</div>`;
+    return h;
   }
 
   function yardsPadHtml(buckets, live, isTwo, Out) {
@@ -3234,6 +3400,7 @@
       { key: "stop", label: "Stop", ids: { loss: 1, no_gain: 1 } },
       { key: "gain", label: "Yards", ids: { short: 1, solid: 1, chunk: 1, explosive: 1 } },
       { key: "game", label: "Score / TO", ids: { td: 1, turnover: 1 } },
+      { key: "pen", label: "Penalty", ids: { penalty: 1 } },
     ];
     var used = {};
     var canGroup = !isTwo && buckets.some(function (b) {
@@ -3242,6 +3409,17 @@
     var h = `<div class="caller-out-results rd-dc-yards${canGroup ? " is-pad" : ""}">`;
     if (canGroup) {
       grouped.forEach(function (g) {
+        if (g.key === "pen") {
+          used.penalty = 1;
+          var penOn =
+            live.result === "penalty" || !!penDraft(live.playIndex) || !!(live.penalty && live.penalty.declined);
+          h += `<div class="rd-dc-yards-group rd-dc-yards-pen">`;
+          h += `<div class="rd-dc-yards-gl">${g.label}</div>`;
+          h += `<div class="rd-dc-yards-row">`;
+          h += `<button type="button" class="caller-out-btn rd-dc-yard is-pen${penOn ? " on" : ""}" onclick="OFFGRD_DCALLER.penOpen(${live.playIndex})">PENALTY</button>`;
+          h += `</div></div>`;
+          return;
+        }
         var items = buckets.filter(function (b) {
           return g.ids[b.id];
         });
@@ -3260,7 +3438,7 @@
       });
     }
     var leftover = buckets.filter(function (b) {
-      return !used[b.id];
+      return !used[b.id] && b.id !== "penalty";
     });
     if (leftover.length) {
       h += `<div class="rd-dc-yards-row rd-dc-yards-flat">`;
@@ -3273,6 +3451,7 @@
     if (!isTwo && Out && Out.movedChainsSituation) {
       h += `<button type="button" class="caller-out-btn caller-out-convert rd-dc-yard-convert${live.movedChains ? " on" : ""}" onclick="OFFGRD_DCALLER.movedChains(${live.playIndex})">Moved the chains</button>`;
     }
+    h += penaltyDetailHtml(live, Out);
     h += `</div>`;
     return h;
   }
@@ -3731,6 +3910,11 @@
       jump("dcaller-result-anchor", true);
     },
     grade: grade,
+    penOpen: penOpen,
+    penSetOn: penSetOn,
+    penSetType: penSetType,
+    penCommit: penCommit,
+    penDeclined: penDeclined,
     toggleFlag: toggleFlag,
     clear: clearLog,
     undoClear: undoClear,

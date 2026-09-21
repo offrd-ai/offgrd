@@ -105,6 +105,11 @@ CAS, shrink/grow refusals, client library writes, keep-prompts, Sync button.
 Census compares device ledger to server ack. Two-device soak with flapping
 wifi on the game iPads. Green = pin Thu Sep 24.
 
+**Deliverable #1 (started Sep 20 after Riverview):** server derive job
+`scripts/derive-live-library.cjs` folds `caller_events` → `scouting_games`
+Live rows. Riverview Gardens · Live 2026-09-18 backfilled (ours 42 / off 31).
+Client live writes become no-ops only after this job is on the post-sync path.
+
 Sep 25 game: the first no-rigmarole game. Airplane optional. No exports
 required (they still fire silently as insurance).
 

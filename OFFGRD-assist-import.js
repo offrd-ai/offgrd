@@ -22,6 +22,8 @@
     { key: "play_type", label: "Play type", optional: true },
     { key: "result", label: "Result", optional: true },
     { key: "gain", label: "Gain/Loss", optional: true },
+    { key: "penalty_type", label: "Penalty type", optional: true },
+    { key: "pen", label: "PEN (us/them)", optional: true },
     { key: "formation", label: "Off. formation", optional: true },
     { key: "play", label: "Off. play", optional: true },
     { key: "off_strength", label: "Off. strength", optional: true },
@@ -60,6 +62,8 @@
     play_type: ["play type", "playtype", "run/pass"],
     result: ["result", "play result", "outcome"],
     gain: ["gn/ls", "gain", "gnls", "gn ls", "yards", "yds"],
+    penalty_type: ["penalty type", "pen type", "penaltytype", "foul", "foul type"],
+    pen: ["pen", "penalty on", "pen on", "enforcement"],
     formation: ["off form", "off formation", "offensive formation", "formation", "form"],
     play: ["off play", "off. play", "offensive play", "play name", "concept"],
     off_strength: ["off str", "off strength", "offensive strength", "strength", "str"],
@@ -516,6 +520,28 @@
 
       var resultRaw = cellAt(cells, parsed.headers, map, "result");
       var result = resultRaw ? String(resultRaw).trim() : null;
+      var penTypeRaw = cellAt(cells, parsed.headers, map, "penalty_type");
+      var penOnRaw = cellAt(cells, parsed.headers, map, "pen");
+      var isHudlPenalty = !!(result && /penalt/i.test(result));
+      var penaltyObj = null;
+      if (isHudlPenalty) {
+        var onRaw = String(penOnRaw || "").toLowerCase();
+        var onSide =
+          /\b(us|off)\b/.test(onRaw) || /offense/.test(onRaw)
+            ? "us"
+            : /\b(them|def)\b/.test(onRaw) || /defense/.test(onRaw)
+              ? "them"
+              : null;
+        penaltyObj = {
+          on: onSide,
+          type: penTypeRaw ? String(penTypeRaw).trim() : null,
+          yards: gain != null && !isNaN(+gain) ? Math.abs(+gain) : null,
+          declined: /declin/i.test(String(result || "")) || /declin/i.test(onRaw),
+          auto1st: /auto|1st|first/i.test(onRaw),
+        };
+        result = "penalty";
+        success = null;
+      }
 
       var coverage = normCoverage(cellAt(cells, parsed.headers, map, "coverage"));
       var frontRaw = cellAt(cells, parsed.headers, map, "front");
@@ -563,6 +589,7 @@
         gain: gain,
         result: result, /* typed snap; scout_snaps has no result column — persists in raw */
         success: success,
+        penalty: penaltyObj,
         off_structure: resolved.structure,
         off_back_count: offBack,
         off_personnel: resolved.personnel,
@@ -585,7 +612,9 @@
         _odk: odk || null,
       };
       backfillFromRaw(builtSnap);
-      if (builtSnap.success == null) {
+      if (builtSnap.result === "penalty") {
+        builtSnap.success = null;
+      } else if (builtSnap.success == null) {
         builtSnap.success = isSuccessVal(
           builtSnap.down,
           builtSnap.distance,

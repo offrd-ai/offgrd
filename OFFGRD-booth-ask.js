@@ -19,6 +19,7 @@
     "redzone",
     "drives",
     "turnovers",
+    "penalties",
     "refuse",
   ];
 
@@ -79,6 +80,9 @@
     }
 
     /* In-scope chips — situation hooks before bare "what should I call". */
+    if (/\b(penalt(y|ies)|flags?|false start|offsides|holding)\b/.test(q)) {
+      return { intent: "penalties", confidence: 0.9, reason: "keyword" };
+    }
     if (/\b(drive chart|drives?|d series|series chart)\b/.test(q) || /\bhow (were|was) (the )?drives?\b/.test(q)) {
       return { intent: "drives", confidence: 0.9, reason: "keyword" };
     }

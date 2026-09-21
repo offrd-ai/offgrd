@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "370";
+  const ASSET_V = "371";
 
   function getScoutTool() {
     try {
@@ -1787,8 +1787,13 @@
       '}',
       'html.rd-on #view-dcaller .rd-dc-yards-stop .rd-dc-yards-row,html.rd-on #view-caller .rd-dc-yards-stop .rd-dc-yards-row,',
       'html.rd-on #view-dcaller .rd-dc-yards-game .rd-dc-yards-row,html.rd-on #view-caller .rd-dc-yards-game .rd-dc-yards-row{grid-template-columns:1fr 1fr;}',
+      'html.rd-on #view-dcaller .rd-dc-yards-pen .rd-dc-yards-row,html.rd-on #view-caller .rd-dc-yards-pen .rd-dc-yards-row{grid-template-columns:1fr;}',
       'html.rd-on #view-dcaller .rd-dc-yards-gain .rd-dc-yards-row,html.rd-on #view-caller .rd-dc-yards-gain .rd-dc-yards-row{grid-template-columns:repeat(4,minmax(0,1fr));}',
       'html.rd-on #view-dcaller .rd-dc-yards-flat,html.rd-on #view-caller .rd-dc-yards-flat{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));}',
+      'html.rd-on #view-dcaller .rd-dc-pen-detail,html.rd-on #view-caller .rd-dc-pen-detail{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(127,127,127,.25);}',
+      'html.rd-on #view-dcaller .rd-dc-pen-on,html.rd-on #view-caller .rd-dc-pen-on{grid-template-columns:1fr 1fr;}',
+      'html.rd-on #view-dcaller .rd-dc-pen-types,html.rd-on #view-caller .rd-dc-pen-types{grid-template-columns:repeat(auto-fit,minmax(100px,1fr));}',
+      'html.rd-on #view-dcaller .rd-dc-pen-yards,html.rd-on #view-caller .rd-dc-pen-yards{grid-template-columns:repeat(auto-fit,minmax(64px,1fr));}',
       '@media (max-width:380px){html.rd-on #view-dcaller .rd-dc-yards-gain .rd-dc-yards-row,html.rd-on #view-caller .rd-dc-yards-gain .rd-dc-yards-row{grid-template-columns:1fr 1fr;}}',
       'html.rd-on #view-dcaller .rd-dc-yard,html.rd-on #view-caller .rd-dc-yard{',
       'min-height:52px!important;width:100%;padding:8px 6px!important;',
@@ -1806,10 +1811,14 @@
       'html.rd-on #view-dcaller .rd-dc-yard.is-to{',
       'background:rgba(255,210,74,.12)!important;border-color:rgba(255,210,74,.55)!important;color:#FFD24A!important;',
       '}',
+      'html.rd-on #view-dcaller .rd-dc-yard.is-pen,html.rd-on #view-caller .rd-dc-yard.is-pen{',
+      'background:rgba(120,140,180,.14)!important;border-color:rgba(120,140,180,.5)!important;color:#B8C4DC!important;',
+      '}',
       'html.rd-on[data-base="day"] #view-dcaller .rd-dc-yard.is-stop{color:#1d7a45!important;}',
       'html.rd-on[data-base="day"] #view-dcaller .rd-dc-yard.is-chunk{color:#8A5A05!important;}',
       'html.rd-on[data-base="day"] #view-dcaller .rd-dc-yard.is-td{color:#a8112b!important;}',
       'html.rd-on[data-base="day"] #view-dcaller .rd-dc-yard.is-to{color:#8A5A05!important;}',
+      'html.rd-on[data-base="day"] #view-dcaller .rd-dc-yard.is-pen,html.rd-on[data-base="day"] #view-caller .rd-dc-yard.is-pen{color:#3a4a66!important;}',
       /* O Caller — same pad, offense-sided color (stuffed=bad, chunk/TD=good) */
       'html.rd-on #view-caller .rd-dc-yard.is-stop,html.rd-on #view-caller .rd-dc-yard.is-to{',
       'background:rgba(196,60,60,.16)!important;border-color:rgba(196,60,60,.55)!important;color:#FF8A8A!important;',

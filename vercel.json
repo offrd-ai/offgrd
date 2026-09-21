@@ -2,6 +2,12 @@
   "cleanUrls": false,
   "buildCommand": "node scripts/check-deploy-assets.cjs",
   "outputDirectory": ".",
+  "functions": {
+    "api/derive-live.js": {
+      "includeFiles": "OFFGRD-caller-*.js",
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

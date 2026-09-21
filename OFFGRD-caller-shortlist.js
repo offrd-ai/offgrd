@@ -210,6 +210,7 @@
   function addSnap(acc, row, opts) {
     opts = opts || {};
     acc = acc || emptyAcc();
+    if (row && row.result === "penalty") return acc;
     var hit = opts.hit;
     if (hit == null) hit = row && +row.success ? 1 : 0;
     acc.n += 1;
@@ -251,6 +252,7 @@
     var out = Object.create(null);
     (rows || []).forEach(function (row) {
       if (!row) return;
+      if (row.result === "penalty") return;
       var k = playOf(row);
       if (!k) return;
       if (dn != null && dn !== "ANY" && row.down != null && +row.down !== +dn) return;

@@ -138,7 +138,8 @@ check(
 );
 check("OFFGRD_SYNC refuses while pull is busy", /OFFGRD_SYNC=function\(\)\{[^}]*if\(_busy\) return/.test(account));
 check("APP.set saveGames is sync:false", /catch\(eSw2\)\{\}saveGames\(\{sync:false\}\)/.test(html.replace(/\s+/g, "")));
-check("html open gate still fromCall", /if\s*\(\s*!opts\.fromCall\s*\)/.test(html) && /open-is-readonly/.test(html));
+check("html has no callerSyncToGames", !/function callerSyncToGames/.test(html) && !/callerSyncToGames\(/.test(html));
+check("push skips live_call library writes", /source==="live_call"/.test(account) && /Cloud\.saveGame/.test(account));
 
 if (fails) {
   console.error(fails + " smoke-scouting-save-noop failure(s)");

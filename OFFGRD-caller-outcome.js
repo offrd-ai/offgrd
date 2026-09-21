@@ -16,7 +16,27 @@
     { id: "explosive", label: "15+", gain: 18 },
     { id: "td", label: "TD", gain: 40 },
     { id: "turnover", label: "TO", gain: 0 },
+    { id: "penalty", label: "PENALTY", gain: null },
   ];
+
+  /** Generic penalty types — program vocab later (same pattern as D calls). */
+  var PENALTY_TYPES = [
+    { id: "false_start", label: "False start", phase: "pre" },
+    { id: "hold", label: "Hold", phase: "live" },
+    { id: "illegal_formation", label: "Illegal formation/procedure", phase: "pre" },
+    { id: "illegal_shift", label: "Illegal shift/motion", phase: "pre" },
+    { id: "offsides", label: "Offsides/Encroachment", phase: "pre" },
+    { id: "pi", label: "PI", phase: "live" },
+    { id: "face_mask", label: "Face mask", phase: "live" },
+    { id: "personal_foul", label: "Personal foul / UNS", phase: "live" },
+    { id: "block_in_back", label: "Block in back", phase: "live" },
+    { id: "chop", label: "Chop/clip", phase: "live" },
+    { id: "delay", label: "Delay of game", phase: "pre" },
+    { id: "ineligible", label: "Ineligible downfield", phase: "live" },
+    { id: "other", label: "Other", phase: "live" },
+  ];
+
+  var PENALTY_YARDS = [5, 10, 15];
 
   var FLAGS = [
     { id: "drop", label: "Drop" },
@@ -261,11 +281,162 @@
     if (st) return st.spec.label;
     if (id === "hit") return "Hit";
     if (id === "miss") return "Miss";
+    if (id === "penalty") return "PENALTY";
     return id || "";
   }
 
   function isPenaltyFlag(flag) {
     return flag === "pen_us" || flag === "pen_them";
+  }
+
+  function penaltyTypeById(id) {
+    if (!id) return null;
+    for (var i = 0; i < PENALTY_TYPES.length; i++) {
+      if (PENALTY_TYPES[i].id === id) return PENALTY_TYPES[i];
+    }
+    return null;
+  }
+
+  function penaltyTypeLabel(id) {
+    var t = penaltyTypeById(id);
+    return t ? t.label : id || "";
+  }
+
+  function isPreSnapPenaltyType(id) {
+    var t = penaltyTypeById(id);
+    return !!(t && t.phase === "pre");
+  }
+
+  /**
+   * Normalize penalty payload. on is required ("us"|"them").
+   * yards is magnitude (5/10/15); declined keeps the play result.
+   */
+  function normalizePenalty(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    var on = raw.on === "us" || raw.on === "them" ? raw.on : null;
+    if (!on) return null;
+    var yards = raw.yards != null && raw.yards !== "" ? Math.abs(Math.round(+raw.yards)) : null;
+    if (yards != null && isNaN(yards)) yards = null;
+    var type = raw.type != null && raw.type !== "" ? String(raw.type) : null;
+    return {
+      on: on,
+      type: type,
+      yards: yards,
+      declined: !!raw.declined,
+      auto1st: !!raw.auto1st,
+    };
+  }
+
+  /** Accepted penalty snap (result id) — excludes from SR/avg/chunk/balance. */
+  function isPenaltyResult(entry) {
+    return !!(entry && entry.result === "penalty");
+  }
+
+  /**
+   * Offense foul vs defense foul from our-team "on" + caller side.
+   * O: on=us → offense foul; on=them → defense foul.
+   * D: on=them → offense foul (they fouled); on=us → defense foul.
+   */
+  function isOffenseFoul(penalty, side) {
+    if (!penalty || !penalty.on) return false;
+    var s = side === "defense" ? "defense" : "offense";
+    if (s === "offense") return penalty.on === "us";
+    return penalty.on === "them";
+  }
+
+  /**
+   * Next sit after an accepted penalty.
+   * Offense foul: same down, distance + yards.
+   * Defense foul: same down distance − yards, or auto 1st when flagged / yards cover.
+   */
+  function inferPenaltySituation(sit, penalty, side) {
+    sit = sit || {};
+    penalty = normalizePenalty(penalty) || penalty || {};
+    if (penalty.declined) return { skip: true, reason: "declined" };
+    var yards = penalty.yards != null ? Math.abs(+penalty.yards) : 0;
+    if (!yards || isNaN(yards)) {
+      return { skip: true, needsInput: true, reason: "penalty" };
+    }
+    var dist = seedEstYards(sit);
+    var dn = +sit.dn || 1;
+    var hash = sit.hash != null ? sit.hash : "ANY";
+    var zone = sit.zone != null ? sit.zone : "ANY";
+    var offenseFoul = isOffenseFoul(penalty, side);
+
+    if (offenseFoul) {
+      var nextDist = dist + yards;
+      var nextDb =
+        (sit.db === "GOAL" || zone === "REDZONE") && nextDist <= 10
+          ? "GOAL"
+          : yardsToDb(nextDist);
+      return {
+        dn: dn,
+        db: nextDb,
+        estYards: nextDb === "GOAL" ? clampGoalYards(nextDist) : nextDist,
+        hash: hash,
+        zone: zone,
+        inferred: true,
+        reason: "penalty_offense",
+      };
+    }
+
+    if (penalty.auto1st || yards >= dist) {
+      var fd = firstDownSituation(sit, { reason: "penalty_auto1st" });
+      return fd;
+    }
+    var left = dist - yards;
+    if (left < 1) left = 1;
+    var defDb =
+      (sit.db === "GOAL" || zone === "REDZONE") && left <= 10
+        ? "GOAL"
+        : yardsToDb(left);
+    return {
+      dn: dn,
+      db: defDb,
+      estYards: defDb === "GOAL" ? clampGoalYards(left) : left,
+      hash: hash,
+      zone: zone,
+      inferred: true,
+      reason: "penalty_defense",
+    };
+  }
+
+  /** Counts for marks / Ask Booth. */
+  function penaltyStats(log) {
+    log = log || [];
+    var us = 0;
+    var them = 0;
+    var pre = 0;
+    var live = 0;
+    var accepted = 0;
+    var declined = 0;
+    log.forEach(function (e) {
+      if (!e) return;
+      var pen = e.penalty || null;
+      if (e.result === "penalty") {
+        accepted += 1;
+        pen = pen || { on: null, type: null };
+      } else if (pen && pen.declined) {
+        declined += 1;
+      } else if (!pen) {
+        return;
+      } else {
+        accepted += 1;
+      }
+      if (pen.on === "us") us += 1;
+      else if (pen.on === "them") them += 1;
+      if (pen.type && isPreSnapPenaltyType(pen.type)) pre += 1;
+      else if (pen.type || e.result === "penalty" || pen.declined) live += 1;
+    });
+    return {
+      us: us,
+      them: them,
+      preSnap: pre,
+      liveBall: live,
+      accepted: accepted,
+      declined: declined,
+      total: us + them || accepted + declined,
+    };
   }
 
   function isExecFlag(flag) {
@@ -329,6 +500,7 @@
     payload = payload || {};
     sit = sit || {};
     var tags = outcomeFlags(payload);
+    var pen = normalizePenalty(payload.penalty);
     var raw = payload.result;
     if (raw == null || raw === "") {
       return {
@@ -340,6 +512,22 @@
         success: null,
         concept: null,
         conceptOverride: payload.conceptOverride || null,
+        penalty: pen,
+      };
+    }
+
+    /* Accepted penalty — graded, excluded from learning / SR / avg. */
+    if (raw === "penalty") {
+      return {
+        result: "penalty",
+        gain: null,
+        flag: tags.flag,
+        flags: tags.flags,
+        negated: true,
+        success: null,
+        concept: null,
+        conceptOverride: payload.conceptOverride || null,
+        penalty: pen,
       };
     }
 
@@ -347,42 +535,53 @@
     var stKind = isSpecialType(playType)
       ? playType
       : isSpecialType(sit.playType)
-      ? sit.playType
-      : null;
+        ? sit.playType
+        : null;
     var stInfo = stResultInfo(raw);
     if (stInfo && !stKind) stKind = stInfo.kind;
     if (stKind) {
-      var spec = stInfo ? stInfo.spec : null;
-      return {
-        result: raw,
-        gain: null,
-        flag: null,
-        negated: false,
-        success: null,
-        concept: null,
-        conceptOverride: null,
-        playType: stKind,
-        made: spec ? !!spec.made : false,
-        inside20: spec ? !!spec.inside20 : false,
-        fakeConverted: spec ? !!spec.fakeConverted : false,
-        fakeFailed: spec ? !!spec.fakeFailed : false,
-      };
-    }
-
-    /* Legacy hit/miss — keep readable; don't invent yards */
-    if (LEGACY[raw]) {
-      var successL = raw === "hit" ? 1 : 0;
-      var conceptL =
-        payload.conceptOverride || (successL === 1 ? "worked" : "didnt_work");
-      return {
+      var stSpec = stInfo ? stInfo.spec : null;
+      var stOut = {
         result: raw,
         gain: null,
         flag: tags.flag,
         flags: tags.flags,
         negated: false,
+        success: null,
+        concept: null,
+        conceptOverride: payload.conceptOverride || null,
+        playType: stKind,
+        penalty: pen,
+      };
+      if (stSpec) {
+        if (stSpec.made != null) stOut.made = stSpec.made;
+        if (stSpec.inside20) stOut.inside20 = true;
+        if (stSpec.fakeConverted) stOut.fakeConverted = true;
+        if (stSpec.fakeFailed) stOut.fakeFailed = true;
+      } else {
+        stOut.made = false;
+        stOut.inside20 = false;
+        stOut.fakeConverted = false;
+        stOut.fakeFailed = false;
+      }
+      return stOut;
+    }
+
+    if (LEGACY[raw]) {
+      var successL = raw === "hit" ? 1 : 0;
+      var conceptL =
+        payload.conceptOverride ||
+        deriveConcept(successL, tags.flag, isPenaltyFlag(tags.flag));
+      return {
+        result: raw,
+        gain: payload.gain != null ? payload.gain : null,
+        flag: tags.flag,
+        flags: tags.flags,
+        negated: isPenaltyFlag(tags.flag),
         success: successL,
         concept: conceptL,
         conceptOverride: payload.conceptOverride || null,
+        penalty: pen,
       };
     }
 
@@ -397,12 +596,15 @@
         success: null,
         concept: payload.conceptOverride || null,
         conceptOverride: payload.conceptOverride || null,
+        penalty: pen,
       };
     }
 
     var gain = payload.gain != null ? +payload.gain : bucketToGain(bucket);
     var flag = tags.flag;
-    var negated = isPenaltyFlag(flag);
+    /* Declined penalty keeps the play result for learning; only accepted result=penalty negates via id. */
+    var declinedPen = !!(pen && pen.declined);
+    var negated = !declinedPen && isPenaltyFlag(flag);
     /* Prefer chain estimate when present; success ≠ zero gain — concept is separate from advance. */
     var dist =
       sit.estYards != null && !isNaN(+sit.estYards)
@@ -413,7 +615,7 @@
     if (bucket === "turnover") would = 0;
     if (bucket === "td") would = 1;
 
-    var success = negated ? would : would; /* keep underlying; learning uses concept */
+    var success = would;
     var concept =
       payload.conceptOverride || deriveConcept(would, flag, negated);
 
@@ -426,12 +628,15 @@
       success: success,
       concept: concept,
       conceptOverride: payload.conceptOverride || null,
+      penalty: pen,
     };
   }
 
   /** What the suggester should learn: 1 / 0 / null (ungraded or exclude). */
   function learningSuccess(entry) {
     if (!entry) return null;
+    /* Accepted penalty snaps never move the suggester or SR. */
+    if (isPenaltyResult(entry)) return null;
     /* Special teams never move the offensive suggester. */
     if (isSpecialEntry(entry)) return null;
     var c = entry.conceptOverride || entry.concept;
@@ -448,7 +653,7 @@
   }
 
   function isExplosiveResult(entry) {
-    if (!entry || entry.negated) return false;
+    if (!entry || entry.negated || isPenaltyResult(entry)) return false;
     if (entry.result === "explosive" || entry.result === "td") return true;
     return entry.gain != null && +entry.gain >= 15;
   }
@@ -500,12 +705,19 @@
    * Tracks internal estYards (1st & 10 → 10; subtract gain-band midpoint; clamp ≥1;
    * new 1st resets to 10). Display/filter bucket is derived from that number.
    * Concept (worked / didn't work) never moves the chains — only the gain band does.
-   * Turnovers / negated penalties / TD / turnover-on-downs → no infer, needsInput.
+   * Turnovers / legacy flag-negated / TD / turnover-on-downs → no infer, needsInput.
+   * Accepted result=penalty → replay down from penalty yards (opts.side for on-us mapping).
    */
-  function inferNextSituation(sit, outcome, playType) {
+  function inferNextSituation(sit, outcome, playType, opts) {
     sit = sit || {};
     outcome = outcome || {};
+    opts = opts || {};
     if (!outcome.result) return { skip: true, reason: "ungraded" };
+
+    /* Accepted penalty — auto-advance from yards / auto1st. */
+    if (outcome.result === "penalty") {
+      return inferPenaltySituation(sit, outcome.penalty, opts.side || "offense");
+    }
 
     /* Special teams → change of possession (no offensive auto-advance), unless a fake converts. */
     var stKind = isSpecialType(playType) ? playType : null;
@@ -523,7 +735,9 @@
     if (outcome.result === "turnover") {
       return { skip: true, needsInput: true, reason: "turnover" };
     }
-    if (outcome.negated || isPenaltyFlag(outcome.flag)) {
+    /* Declined flag on a play result: advance from the play yards. Legacy pen_* flags still block. */
+    var declined = outcome.penalty && outcome.penalty.declined;
+    if (!declined && (outcome.negated || isPenaltyFlag(outcome.flag))) {
       return { skip: true, needsInput: true, reason: "penalty" };
     }
     if (outcome.result === "td") {
@@ -601,9 +815,9 @@
 
   function liveRates(log) {
     log = log || [];
-    /* Offensive headline only — special teams are excluded from success/explosive. */
+    /* Offensive headline only — special teams + accepted penalties excluded. */
     var graded = log.filter(function (e) {
-      return isGraded(e) && !isSpecialEntry(e);
+      return isGraded(e) && !isSpecialEntry(e) && !isPenaltyResult(e);
     });
     var learnable = graded.filter(function (e) {
       return learningSuccess(e) != null && !e.negated;
@@ -623,11 +837,14 @@
       explosiveRate: graded.length ? expl / graded.length : null,
       successN: srPool.length,
       explosiveN: expl,
+      learnableN: learnable.length,
     };
   }
 
   global.OFFGRD_CALLER_OUTCOME = {
     RESULT_BUCKETS: RESULT_BUCKETS,
+    PENALTY_TYPES: PENALTY_TYPES,
+    PENALTY_YARDS: PENALTY_YARDS,
     FLAGS: FLAGS,
     FG_RESULTS: FG_RESULTS,
     PUNT_RESULTS: PUNT_RESULTS,
@@ -645,6 +862,14 @@
     bucketToGain: bucketToGain,
     resultLabel: resultLabel,
     isPenaltyFlag: isPenaltyFlag,
+    isPenaltyResult: isPenaltyResult,
+    isOffenseFoul: isOffenseFoul,
+    normalizePenalty: normalizePenalty,
+    penaltyTypeById: penaltyTypeById,
+    penaltyTypeLabel: penaltyTypeLabel,
+    isPreSnapPenaltyType: isPreSnapPenaltyType,
+    inferPenaltySituation: inferPenaltySituation,
+    penaltyStats: penaltyStats,
     isExecFlag: isExecFlag,
     isSpecialType: isSpecialType,
     isSpecialEntry: isSpecialEntry,

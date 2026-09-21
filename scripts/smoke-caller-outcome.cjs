@@ -376,6 +376,107 @@ if (overScore.reason !== "td" || !overScore.needsTry || overScore.needsInput) {
   throw new Error("driveOver score " + JSON.stringify(overScore));
 }
 
+/* 19) Penalty as a result — graded, excluded, advances */
+const penAcc = O.finalizeOutcome(
+  { result: "penalty", penalty: { on: "us", type: "hold", yards: 10 } },
+  { dn: 1, db: "10+", estYards: 10 }
+);
+if (penAcc.result !== "penalty" || !penAcc.negated || penAcc.success != null) {
+  throw new Error("accepted penalty finalize " + JSON.stringify(penAcc));
+}
+if (O.learningSuccess(penAcc) != null) throw new Error("penalty learning must be null");
+if (!O.isGraded(penAcc)) throw new Error("penalty must be graded (not pending)");
+if (!O.isPenaltyResult(penAcc)) throw new Error("isPenaltyResult");
+
+const penOff = O.inferNextSituation(
+  { dn: 2, db: "7-9", estYards: 8, hash: "L", zone: "ANY" },
+  penAcc,
+  "Run",
+  { side: "offense" }
+);
+if (!penOff.inferred || penOff.dn !== 2 || penOff.estYards !== 18 || penOff.reason !== "penalty_offense") {
+  throw new Error("O on-us hold +10 → same down longer " + JSON.stringify(penOff));
+}
+
+const penDef = O.inferNextSituation(
+  { dn: 1, db: "10+", estYards: 10, hash: "M", zone: "ANY" },
+  O.finalizeOutcome(
+    { result: "penalty", penalty: { on: "them", type: "offsides", yards: 5 } },
+    { dn: 1, db: "10+", estYards: 10 }
+  ),
+  "Pass",
+  { side: "offense" }
+);
+if (!penDef.inferred || penDef.dn !== 1 || penDef.estYards !== 5 || penDef.reason !== "penalty_defense") {
+  throw new Error("O on-them 5 → same down shorter " + JSON.stringify(penDef));
+}
+
+const penAuto = O.inferNextSituation(
+  { dn: 3, db: "4-6", estYards: 5, hash: "R", zone: "ANY" },
+  O.finalizeOutcome(
+    { result: "penalty", penalty: { on: "them", type: "pi", yards: 15, auto1st: true } },
+    { dn: 3, db: "4-6", estYards: 5 }
+  ),
+  null,
+  { side: "offense" }
+);
+if (!penAuto.inferred || penAuto.dn !== 1 || penAuto.reason !== "penalty_auto1st") {
+  throw new Error("auto1st " + JSON.stringify(penAuto));
+}
+
+/* D: on=them is offense foul → longer for them */
+const penDThem = O.inferNextSituation(
+  { dn: 1, db: "10+", estYards: 10 },
+  O.finalizeOutcome(
+    { result: "penalty", penalty: { on: "them", type: "false_start", yards: 5 } },
+    { dn: 1, db: "10+", estYards: 10 }
+  ),
+  null,
+  { side: "defense" }
+);
+if (!penDThem.inferred || penDThem.estYards !== 15 || penDThem.reason !== "penalty_offense") {
+  throw new Error("D on-them → offense foul +yards " + JSON.stringify(penDThem));
+}
+
+const declined = O.finalizeOutcome(
+  { result: "solid", penalty: { on: "them", type: "hold", declined: true } },
+  { dn: 1, db: "10+", estYards: 10 }
+);
+if (declined.result !== "solid" || declined.negated || declined.success !== 1) {
+  throw new Error("declined keeps play result " + JSON.stringify(declined));
+}
+if (O.learningSuccess(declined) !== 1) throw new Error("declined still learns");
+
+const foldPen = C.foldCallerEvents([
+  ev({ eventId: "cPen", playIndex: 5, payload: { play: "HAWK", dn: 1, db: "10+" }, clientTs: 5000 }),
+  ev({
+    eventId: "oPen",
+    type: "outcome",
+    playIndex: 5,
+    payload: { result: "penalty", penalty: { on: "us", type: "false_start", yards: 5 } },
+    clientTs: 5100,
+    seq: 2,
+  }),
+  ev({ eventId: "cOk", playIndex: 6, payload: { play: "MESH", dn: 1, db: "10+" }, clientTs: 6000 }),
+  ev({
+    eventId: "oOk",
+    type: "outcome",
+    playIndex: 6,
+    payload: { result: "solid" },
+    clientTs: 6100,
+    seq: 2,
+  }),
+]);
+if (O.pendingEntries(foldPen.log).length !== 0) throw new Error("penalty clears pending");
+const ratesPen = O.liveRates(foldPen.log);
+if (ratesPen.n !== 1 || ratesPen.pending !== 0) {
+  throw new Error("rates exclude penalty from n " + JSON.stringify(ratesPen));
+}
+const stats = O.penaltyStats(foldPen.log);
+if (stats.us !== 1 || stats.preSnap !== 1) {
+  throw new Error("penaltyStats " + JSON.stringify(stats));
+}
+
 console.log(
-  "OK caller outcome model + fold + pending + learning + infer + special teams + chain advance + conversion/GOAL/drive-over"
+  "OK caller outcome model + fold + pending + learning + infer + special teams + chain advance + conversion/GOAL/drive-over + penalty"
 );

@@ -257,6 +257,9 @@
     ["result", "gain", "conceptOverride", "movedChains", "signal"].forEach(function (k) {
       if (hasOwn(next, k)) out[k] = next[k];
     });
+    if (hasOwn(next, "penalty")) {
+      out.penalty = next.penalty == null ? null : next.penalty;
+    }
     var hasFlags = hasOwn(next, "flags");
     var hasFlag = hasOwn(next, "flag");
     if (hasFlags) {
@@ -594,7 +597,7 @@
         pressure = p.dCallBlitz;
       }
       var Out = global.OFFGRD_CALLER_OUTCOME;
-      var fin = { result: null, gain: null, flag: null, flags: [], negated: false, success: null, concept: null, conceptOverride: null };
+      var fin = { result: null, gain: null, flag: null, flags: [], negated: false, success: null, concept: null, conceptOverride: null, penalty: null };
       var movedChains = false;
       if (slot.outcome && slot.outcome.payload) {
         movedChains = !!slot.outcome.payload.movedChains;
@@ -614,6 +617,7 @@
           fin.flag = rawTags.flag;
           fin.flags = rawTags.flags;
           fin.conceptOverride = slot.outcome.payload.conceptOverride || null;
+          fin.penalty = slot.outcome.payload.penalty || null;
           if (fin.result === "hit") fin.success = 1;
           else if (fin.result === "miss") fin.success = 0;
         }
@@ -637,6 +641,7 @@
         success: fin.success,
         concept: fin.concept,
         conceptOverride: fin.conceptOverride,
+        penalty: fin.penalty || null,
         movedChains: movedChains,
         dn: p.dn,
         db: p.db,

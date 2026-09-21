@@ -49,6 +49,7 @@
   /** Negated / penalty — must not end a drive (called-back TD). */
   function isNegated(e) {
     if (!e) return false;
+    if (e.result === "penalty") return true;
     if (e.negated) return true;
     var O = Out();
     if (O && O.isPenaltyFlag && O.isPenaltyFlag(e.flag)) return true;
@@ -232,6 +233,7 @@
   function passShare(rows) {
     if (!rows || !rows.length) return null;
     var known = rows.filter(function (r) {
+      if (r && r.result === "penalty") return false;
       var pt = String(r.playType || r.ptype || "").toLowerCase();
       return pt.indexOf("pass") >= 0 || pt.indexOf("run") >= 0;
     });
@@ -405,6 +407,38 @@
       lines.push(
         "They run/pass: " + fmtPct(1 - dPass) + " / " + fmtPct(dPass) + " (n=" + dLog.length + ")"
       );
+    }
+
+    var OutMod = Out();
+    if (OutMod && OutMod.penaltyStats) {
+      var oPen = OutMod.penaltyStats(oLog);
+      var dPen = OutMod.penaltyStats(dLog);
+      if (oPen && (oPen.us || oPen.them || oPen.accepted || oPen.declined)) {
+        facts.oPenalties = oPen;
+        lines.push(
+          "O penalties: " +
+            oPen.us +
+            " on us, " +
+            oPen.them +
+            " on them" +
+            (oPen.preSnap || oPen.liveBall
+              ? " (" + oPen.preSnap + " pre-snap / " + oPen.liveBall + " live)"
+              : "")
+        );
+      }
+      if (dPen && (dPen.us || dPen.them || dPen.accepted || dPen.declined)) {
+        facts.dPenalties = dPen;
+        lines.push(
+          "D penalties: " +
+            dPen.us +
+            " on us, " +
+            dPen.them +
+            " on them" +
+            (dPen.preSnap || dPen.liveBall
+              ? " (" + dPen.preSnap + " pre-snap / " + dPen.liveBall + " live)"
+              : "")
+        );
+      }
     }
 
     var o3 = oLog.filter(function (e) {
@@ -810,6 +844,27 @@
           pushLine("Total possession changes: " + turns.total + " (n=" + turns.total + ")", turns.total);
         }
       }
+    } else if (chipId === "penalties") {
+      var OutP = Out();
+      var logP = side === "offense" ? oLog : dLog;
+      var pen = OutP && OutP.penaltyStats ? OutP.penaltyStats(logP) : null;
+      if (!pen || !(pen.us || pen.them || pen.accepted || pen.declined)) {
+        pushLine("No penalties tagged yet.", 0);
+      } else {
+        pushLine(
+          pen.us + " on us, " + pen.them + " on them (n=" + (pen.us + pen.them) + ")",
+          pen.us + pen.them
+        );
+        if (pen.preSnap || pen.liveBall) {
+          pushLine(
+            pen.preSnap + " pre-snap / " + pen.liveBall + " live-ball (n=" + (pen.preSnap + pen.liveBall) + ")",
+            pen.preSnap + pen.liveBall
+          );
+        }
+        if (pen.declined) {
+          pushLine(pen.declined + " declined (n=" + pen.declined + ")", pen.declined);
+        }
+      }
     } else {
       pushLine("Unknown chip.", 0);
     }
@@ -851,6 +906,7 @@
       { id: "best_look", label: isO ? "Best look vs their top" : "Best look vs their top" },
       { id: "leaning", label: isO ? "What are they leaning on?" : "What are they leaning on?" },
       { id: "redzone", label: "Red zone?" },
+      { id: "penalties", label: "Penalties?" },
     ];
     if (opts.context === "final") {
       defs.push({ id: "drives", label: "Drive chart?" });

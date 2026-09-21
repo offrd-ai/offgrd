@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=370";
-import { openAuthModal } from "./OFFGRD-auth.js?v=370";
+import { Cloud } from "./OFFGRD-cloud.js?v=371";
+import { openAuthModal } from "./OFFGRD-auth.js?v=371";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=370";
+} from "./OFFGRD-invite-parse.js?v=371";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1488,9 +1488,11 @@ async function push(silent){
       if(typeof A.touch==="function") A.touch(items);
       else A.set(items);
     }
-    else {
+      else {
       const tombs = await loadTombstones(TEAM.id);
       for(const g of items){
+        /* Build B: devices never write Live library rows. Server derive owns them. */
+        if(g && (g.source==="live_call" || /^live\b/i.test(String(g.week||"")))) continue;
         if(isGameTombstonedLocal(g, tombs)){ rejected.push(Object.assign({reason:"TOMBSTONED"}, g)); continue; }
         try{
           const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {
