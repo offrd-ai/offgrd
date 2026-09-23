@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=371";
-import { openAuthModal } from "./OFFGRD-auth.js?v=371";
+import { Cloud } from "./OFFGRD-cloud.js?v=373";
+import { openAuthModal } from "./OFFGRD-auth.js?v=373";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=371";
+} from "./OFFGRD-invite-parse.js?v=373";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1496,8 +1496,7 @@ async function push(silent){
         if(isGameTombstonedLocal(g, tombs)){ rejected.push(Object.assign({reason:"TOMBSTONED"}, g)); continue; }
         try{
           const row = await Cloud.saveGame(TEAM.id, Object.assign({}, g, {
-            id:g.cid,
-            baseUpdatedAt:g.updatedAt||g.updated_at||null
+            id:g.cid
           }));
           g.cid = row.id;
           g.key = gameNaturalKey(g.opponent, g.week, g.side);
@@ -1518,31 +1517,6 @@ async function push(silent){
           if(eSave && eSave.code==="REFUSE_GROW"){
             try{ console.warn("[push] REFUSE_GROW", gameNaturalKey(g.opponent,g.week,g.side), eSave.message); }catch(eW){}
             continue;
-          }
-          if(eSave && eSave.code==="STALE_WRITE"){
-            try{
-              const cloudAll = await Cloud.listGames(TEAM.id);
-              const key = gameNaturalKey(g.opponent, g.week, g.side);
-              const server = (cloudAll||[]).find(function(r){
-                return gameNaturalKey(r.opponent, r.week, r.side)===key;
-              });
-              if(!server){ throw eSave; }
-              const mergedOne = mergeGames([server], [g])[0] || g;
-              const row2 = await Cloud.saveGame(TEAM.id, Object.assign({}, mergedOne, {
-                id:server.id||mergedOne.cid||g.cid,
-                baseUpdatedAt:server.updated_at||server.updatedAt||null
-              }));
-              g.cid = row2.id;
-              g.rows = mergedOne.rows;
-              g.key = key;
-              if(row2.updated_at) g.updatedAt = row2.updated_at;
-              try{ console.warn("[push] stale write recovered", key, "→", (g.rows&&g.rows.length)||0, "rows"); }catch(eW2){}
-              continue;
-            }catch(eRec){
-              rejected.push(Object.assign({reason:"STALE_WRITE"}, g));
-              try{ console.warn("[push] stale write skip", gameNaturalKey(g.opponent,g.week,g.side), eRec&&eRec.message); }catch(eW3){}
-              continue;
-            }
           }
           throw eSave;
         }

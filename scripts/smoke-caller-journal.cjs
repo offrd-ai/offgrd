@@ -162,6 +162,30 @@ check("census without gameId does not count the journal", J.census({ side: "defe
 check("empty is never green", J.census({ side: "offense", gameId: "none", log: [] }).reconciled === false);
 check("unsynced 60 is not reconciled", cen.reconciled === false && cen.tone !== "good");
 
+vm.runInNewContext(fs.readFileSync(path.join(root, "OFFGRD-caller-side.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(root, "OFFGRD-caller-outcome.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(root, "OFFGRD-caller-log.js"), "utf8"), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(root, "OFFGRD-caller-sync.js"), "utf8"), sandbox);
+const Sync = sandbox.OFFGRD_CALLER_SYNC_ENGINE;
+const friIds = [];
+for (let i = 0; i < 60; i++) friIds.push("e" + i);
+Sync.markSynced("defense", friIds);
+const green = J.census({ side: "defense", gameId: "fri-d", log: new Array(60) });
+check("acked journal is green", green.reconciled === true && green.tone === "good" && green.saved === 60 && green.synced === 60);
+sandbox.navigator.onLine = false;
+const off = J.census({ side: "defense", gameId: "fri-d", log: new Array(60) });
+check("offline acked rows are not green", off.reconciled === false && off.tone === "offline" && off.label === "0 queued · offline");
+sandbox.localStorage.setItem(Sync.SYNCED_KEY, "{}");
+Sync.markSynced("defense", friIds.slice(0, 10));
+sandbox.navigator.onLine = false;
+const queued = J.census({ side: "defense", gameId: "fri-d", log: new Array(60) });
+check("offline names the unacked count", queued.reconciled === false && queued.label === "50 queued · offline");
+sandbox.navigator.onLine = true;
+const partial = J.census({ side: "defense", gameId: "fri-d", log: new Array(60) });
+check("partial ack is not green", partial.reconciled === false && partial.tone === "amber");
+const mismatch = J.census({ side: "defense", gameId: "fri-d", log: new Array(59) });
+check("fold mismatch is not green", mismatch.reconciled === false && mismatch.tone === "bad");
+
 const payload = J.exportPayload("halftime");
 check("export reads the journal, not the view", payload.kind === "offgrd_caller_journal" && payload.rows.length >= 60);
 

@@ -6,8 +6,11 @@
  *   { "gameId": "<uuid>" }
  *   or a Supabase database-webhook body whose record.game_id is set.
  *
- * Idempotent. Does not run without the secret. Production stays on v370
- * until the Thu soak; point the webhook at this preview URL until then.
+ * Idempotent. Does not run without the secret. This route pins with Build B
+ * on Monday, not on a game-day Friday. The DB trigger (Vault secret, not a
+ * config row) posts to https://getoffrd.com/gameday/api/derive-live right
+ * after that pin. Manual derive covers the game before the pin.
+ * Do not point the trigger at a preview host.
  */
 "use strict";
 

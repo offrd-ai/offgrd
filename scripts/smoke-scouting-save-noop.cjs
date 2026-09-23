@@ -126,9 +126,11 @@ check("gain:null vs missing gain is unequal", eq([mcclureNorthRoundTrip], [witho
 check("jsonb number normalize 1.0 vs 1 is equal", eq([{ gain: 1.0 }], [{ gain: 1 }]) === true);
 check("source does not sort arrays", /if \(Array\.isArray\(v\)\) return v\.map\(canonScouting\)/.test(cloud) && !/v\.sort\(/.test(cloud.slice(start, end)));
 check("saveGame uses scoutingRowsEqual, not raw stringify of rows", /scoutingRowsEqual\(cur\.rows/.test(cloud) && !/JSON\.stringify\(cur\.rows/.test(cloud));
-check("saveGame refuses grow on the drill key", /scoutingRowCap/.test(cloud) && /REFUSE_GROW/.test(cloud) && /live\|live 2026-09-02\|ours/.test(cloud));
-check("push skips REFUSE_GROW without dropping the game", /REFUSE_GROW/.test(account) && /continue;/.test(account));
-check("CAS error with cur does not fall through to upsert", /if \(cur\) return cur;/.test(cloud));
+check("client row cap is gone", !/scoutingRowCap/.test(cloud) && !/live\|live 2026-09-02\|ours/.test(cloud));
+check("client refuse-shrink compare is gone", !/localN < serverN/.test(cloud));
+check("client CAS baseUpdatedAt is gone", !/baseUpdatedAt/.test(cloud));
+check("CAS lookup failure does not swallow the write", !/if \(cur\) return cur;/.test(cloud));
+check("push skips a server REFUSE_GROW without dropping the rest", /REFUSE_GROW/.test(account) && /continue;/.test(account));
 
 const pull = account.match(/async function pull\(silent\)\{[\s\S]*?\nasync function push/);
 check("pull exists", !!pull);

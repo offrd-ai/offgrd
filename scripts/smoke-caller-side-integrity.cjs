@@ -633,8 +633,8 @@ function evAt(id, seq) {
   };
   await Sync.flush(flushOpts);
   check(
-    "already-on-cloud rows advance the ledger without a re-push",
-    topLevelEventIds().length === 3 && pushedRows === 0
+    "already-on-cloud rows ack when this push returns them",
+    topLevelEventIds().length === 3 && pushedRows === 3
   );
   check("cloud stamp leaves no side-name keys", noSideKeys());
 
@@ -681,13 +681,13 @@ function evAt(id, seq) {
       return { session: { gameId: "g-o" }, events: [] };
     },
   });
-  check("offense flush lists the D-store game", listedGames.indexOf("g-d") >= 0);
+  check("offense flush does not pull a game outside the team window", listedGames.indexOf("g-d") < 0 && listedGames.indexOf("g-o") >= 0);
   check(
-    "offense flush stamps D-store ids already in cloud",
+    "offense flush acks D-store ids only from the push response",
     Sync.listSyncedIds().indexOf("d1") >= 0 &&
       Sync.listSyncedIds().indexOf("d2") >= 0 &&
       Sync.listSyncedIds().indexOf("d3") >= 0 &&
-      pushedRows === 0
+      pushedRows === 3
   );
   check("D-store stamp leaves no side-name keys", noSideKeys());
 

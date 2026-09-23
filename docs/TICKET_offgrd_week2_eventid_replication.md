@@ -34,7 +34,16 @@ derives Season / Live rows from that ledger. The client does not write
    - CLI: `node scripts/derive-live-library.cjs --game-id=<uuid> [--apply]`
    - Gap view (Matt apply): `docs/security/apply-offgrd-live-library-gaps-view.sql`
    - Client `planLiveLibraryWrite` / `callerSyncToGames` are **deleted** (B1a).
-     In-memory fold stays. Auto-derive on ingest is Monday (B1).
+     In-memory fold stays.
+   - `POST /api/derive-live` is on preview v371 for a manual check only.
+     It ships on the production pin Thursday. Until that pin, after any
+     game events land run:
+     `node scripts/derive-live-library.cjs --game-id=<uuid> --apply`
+   - Trigger SQL (apply after the pin, not before):
+     `docs/security/apply-offgrd-live-derive-notify.sql`.
+     URL is `https://getoffrd.com/gameday/api/derive-live`
+     (`/gameday/*` rewrites to the pinned deployment). Bearer comes from
+     Supabase Vault name `derive_live_secret`. No config row. No preview host.
 3. **Pin is the game_id.** Derivation keys by `caller_games.id`, then stamps
    opponent/date from the pin/game row — never from `session.opp = 'Live'`.
 4. **Empty is unknown.** A successful exact-count `0` may clear a dest.
@@ -45,13 +54,45 @@ derives Season / Live rows from that ledger. The client does not write
       `planLiveLibraryWrite` and `callerSyncToGames` are gone. O/D refold
       still fills the in-memory log. Season `push()` skips `source=live_call`
       and `week` matching `/^live/i`. Smoke: `scripts/smoke-caller-library-write.cjs`.
-- [ ] **B1 (Mon AM):** auto-derive within 60s of event ingest. Not green until
-      `live_library_gaps` empties with nobody running the Node job.
+- [ ] **B1:** auto-derive within 60s of event ingest. No Friday pin of the
+      derive route. It pins with Build B on Monday 9/28. Manual derive covers
+      Friday's game. Matt applies the Vault trigger right after that pin,
+      pointed at getoffrd.com. Not green until `live_library_gaps` empties
+      with nobody running the Node job.
+      Until the pin: manual `derive-live-library.cjs --apply` after events land.
+- [ ] **B2 (accepted 9/22, preview Wed 9/23 at v373):** ack map stores only ids
+      this device's push returned. Pull is active games plus archived games
+      inside 14 days. Sync button removed. A flap keeps retrying (online,
+      visible, 5s) and does not stop after eight failures. Deploy bumps the
+      pin so a v371 icon cannot keep the old scripts. Matt re-adds the icon.
+      Wednesday AM, Claude: pin SOAK TEST 6, log 5 snaps with dev-tools offline,
+      turn the network back on, header goes green with no tap.
+- [ ] **B3:** client CAS, refuse-shrink, refuse-grow, and unpinned `applyRemote`
+      session assignment are deleted. SQL refuse-shrink stays.
+- [ ] **B4:** census green only when pinned-game journal rows equal this device's
+      push-ack set and the count is > 0. Offline reads `N queued · offline` and
+      is never green. Header on both callers, both modes.
 - [x] **Derive Riverview Gardens · Live 2026-09-18** from cloud events
       (no journal): Our offense · 42, Their offense · 31.
       Script: `scripts/apply-riverview-918-bc5118b2.cjs --apply` (2026-09-20).
 - [x] Reusable server derive job + CLI (`derive-live-library.cjs`).
 - [x] `live_library_gaps` view SQL ready to apply.
+
+## Schedule (corrected 2026-09-23)
+
+No Friday pin of the derive route. It pins with Build B on Monday; manual
+derive covers Friday's game. Production stays v370 through Friday.
+
+- Wed 9/23 morning: deploy B2–B4 to the preview at **v373**. Matt re-adds the
+  test icon and verifies B2–B4 (ack semantics, SOAK TEST 6 flap, census).
+  EOD status table.
+- Then the soak. Any red line holds the pin.
+- Fri 9/25: no production pin. Manual `derive-live-library.cjs --apply` after
+  the game's events land.
+- Mon 9/28: pin Build B, including `/api/derive-live`. Matt applies the Vault
+  trigger right after, pointed at getoffrd.com.
+
+v372 and v376 are on `park/v372-v376`. They are not in this branch.
 
 ## Not in order until Build B (Sep 21)
 - Do not pin anything to production without a green game-iPad soak.

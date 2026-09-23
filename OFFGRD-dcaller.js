@@ -1339,20 +1339,9 @@
             Jr.adopt(events);
             Jr.adopt(merged || []);
           } catch (eAd) {}
-          var SideR = global.OFFGRD_CALLER_SIDE;
-          var PinR = global.OFFGRD_GAMEDAY_PIN;
-          var pinnedGid = PinR && PinR.writeId ? PinR.writeId() : null;
-          if (pinnedGid && session) {
-            /* Pinned: the pin is identity. A remote session never re-keys local. */
-          } else if (sess && session && SideR && SideR.sessionOpponentDiffers && SideR.sessionOpponentDiffers(session, sess.opp)) {
-            sess = session;
-          } else if (sess) {
-            session = sess;
-          }
           events = hydrateView(merged && merged.length ? merged : events);
         } else {
           events = merged || events;
-          if (sess) session = sess;
         }
         if (game && game.monday_focus) {
           var An = A();
@@ -2690,7 +2679,6 @@
       `<div class="rd-dc-sync no-print" role="status">` +
       `<span class="rd-dc-sync-dot${cls}" aria-hidden="true"></span>` +
       `<span><b>${esc(label)}</b>${cen && cen.tone === "bad" ? " · saved ≠ snaps" : st.detail ? " · " + esc(st.detail) : ""}</span>` +
-      `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.syncNow()">Sync now</button>` +
       `<button type="button" class="rd-dc-upload" onclick="OFFGRD_DCALLER.upload()">Export</button>` +
       action +
       `</div>` +

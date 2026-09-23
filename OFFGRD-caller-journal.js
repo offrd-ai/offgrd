@@ -449,24 +449,29 @@
       if (r.clientTs != null && (lastTs == null || r.clientTs > lastTs)) lastTs = r.clientTs;
     });
     var last = formatLast(lastTs);
-    var reconciled = snaps > 0 && saved === snaps && saved === synced;
+    var queued = saved - synced;
+    if (queued < 0) queued = 0;
+    var foldOk = !log || snaps === saved;
+    var reconciled = online && saved > 0 && saved === synced && foldOk;
     var tone = "neutral";
     var label;
-    if (saved !== snaps) {
+    if (!online) {
+      tone = "offline";
+      reconciled = false;
+      label = queued + " queued · offline";
+    } else if (!foldOk) {
       tone = "bad";
       label = letter + ": " + snaps + " snaps · " + saved + " saved · " + synced + " synced";
-    } else if (synced < saved) {
-      tone = online ? "amber" : "offline";
-      label = online
-        ? letter + ": " + snaps + " snaps · " + saved + " saved · " + synced + " synced"
-        : letter + ": " + snaps + " snaps · offline, " + (saved - synced) + " queued";
     } else if (reconciled) {
       tone = "good";
-      label = letter + ": " + snaps + " snaps · " + saved + " saved · " + synced + " synced";
+      label = letter + ": " + saved + " saved · " + synced + " synced";
+    } else if (saved === 0) {
+      label = letter + ": 0 saved · 0 synced";
     } else {
-      label = letter + ": " + snaps + " snaps · " + saved + " saved · " + synced + " synced";
+      tone = "amber";
+      label = letter + ": " + saved + " saved · " + synced + " synced";
     }
-    if (last && tone !== "offline") label += " · last " + last;
+    if (last && tone !== "offline" && tone !== "neutral") label += " · last " + last;
     return {
       side: side,
       gameId: gameId,

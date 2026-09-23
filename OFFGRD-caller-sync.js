@@ -299,31 +299,51 @@
     return /not-null|not null|null value|violates|invalid input|check constraint|22P02|23502|400\b/i.test(msg);
   }
 
+  /** Ids the server returned for this push. An empty return is unknown — not an ack. */
+  function ackIds(returned) {
+    if (!Array.isArray(returned)) return [];
+    var ids = [];
+    returned.forEach(function (row) {
+      if (!row) return;
+      if (typeof row === "string") ids.push(row);
+      else if (row.event_id) ids.push(String(row.event_id));
+      else if (row.eventId) ids.push(String(row.eventId));
+    });
+    return ids;
+  }
+
   /**
-   * Upsert in chunks. On chunk failure, retry row-by-row so one bad row
-   * quarantines itself instead of blocking the rest of the chunk.
+   * Upsert in chunks, in client_ts order. On chunk failure, retry row-by-row
+   * so one bad row quarantines itself instead of blocking the rest.
+   * synced = ids this push's response named. A row that already exists on
+   * the server is not an ack until this device's push returns it.
    */
   async function appendIsolated(events, upsertFn, opts) {
     opts = opts || {};
     var chunkSize = opts.chunkSize > 0 ? opts.chunkSize : UPSERT_CHUNK;
-    var list = Array.isArray(events) ? events : [];
+    var list = (Array.isArray(events) ? events : []).slice().sort(function (a, b) {
+      var ta = Number(a && a.clientTs) || 0;
+      var tb = Number(b && b.clientTs) || 0;
+      if (ta !== tb) return ta - tb;
+      return (Number(a && a.seq) || 0) - (Number(b && b.seq) || 0);
+    });
     var synced = [];
     var held = [];
     var unresolved = [];
-    var i, j, chunk, one;
+    var i, j, chunk, one, returned, acked;
     for (i = 0; i < list.length; i += chunkSize) {
       chunk = list.slice(i, i + chunkSize);
       try {
-        await upsertFn(chunk);
-        for (j = 0; j < chunk.length; j++) {
-          if (chunk[j] && chunk[j].eventId) synced.push(chunk[j].eventId);
-        }
+        returned = await upsertFn(chunk);
+        acked = ackIds(returned);
+        for (j = 0; j < acked.length; j++) synced.push(acked[j]);
       } catch (chunkErr) {
         for (j = 0; j < chunk.length; j++) {
           one = chunk[j];
           try {
-            await upsertFn([one]);
-            if (one && one.eventId) synced.push(one.eventId);
+            returned = await upsertFn([one]);
+            acked = ackIds(returned);
+            for (var k = 0; k < acked.length; k++) synced.push(acked[k]);
           } catch (rowErr) {
             if (isRowFault(rowErr) || isRowFault(chunkErr)) {
               held.push({
@@ -460,7 +480,7 @@
     if (!isOnline()) {
       return { reason: "no-network", detail: "no network" };
     }
-    return { reason: "held", detail: "tap Sync now" };
+    return { reason: "held", detail: "will retry" };
   }
 
   function leftoverSitEmpty(events, sit) {
@@ -521,13 +541,13 @@
       }
       return pack(
         held
-          ? formatN(held) + " events waiting — " + ((fault && fault.detail) || "tap Sync now")
+          ? formatN(held) + " events waiting — " + ((fault && fault.detail) || "will retry")
           : pending + " pending · will sync"
       );
     }
     if (held > 0) {
       if (fault && fault.reason === "session-mismatch") return pack(fault.detail, fault);
-      return pack(formatN(held) + " events waiting — " + ((fault && fault.detail) || "tap Sync now"), fault);
+      return pack(formatN(held) + " events waiting — " + ((fault && fault.detail) || "will retry"), fault);
     }
     if (rolled) {
       return pack(
@@ -555,15 +575,48 @@
     }
   }
 
+  var PULL_WINDOW_DAYS = 14;
+  var _optsBySide = Object.create(null);
+  var _pullT = null;
+
+  function ymd(d) {
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+  }
+
+  /** Active games always. Archived games only when game_date (else updated_at) is within 14 days. */
+  function gameInPullWindow(g, now) {
+    if (!g || !g.id) return false;
+    var status = String(g.status || "");
+    if (status === "active") return true;
+    if (status !== "archived") return false;
+    var nowDate = new Date(now || Date.now());
+    var cut = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() - PULL_WINDOW_DAYS);
+    var cutY = ymd(cut);
+    var day = g.game_date ? String(g.game_date).slice(0, 10) : "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) return day >= cutY;
+    var ts = Date.parse(g.updated_at || "");
+    if (!isFinite(ts)) return false;
+    return (now || Date.now()) - ts <= PULL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  function ensurePullTimer() {
+    if (_pullT) return;
+    _pullT = setInterval(function () {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (!isOnline()) return;
+      if (_backoffT || _flight) return;
+      Object.keys(_optsBySide).forEach(function (side) {
+        flush(_optsBySide[side]);
+      });
+    }, 5000);
+  }
+
   function scheduleBackoff(fn) {
     if (_backoffT) return;
-    if (_backoffN >= 8) {
-      try {
-        console.warn("[caller-sync] backoff gave up");
-      } catch (e) {}
-      return;
-    }
-    var delay = Math.min(MAX_BACKOFF, 500 * Math.pow(2, _backoffN));
+    var exp = _backoffN > 6 ? 6 : _backoffN;
+    var delay = Math.min(MAX_BACKOFF, 500 * Math.pow(2, exp));
     _backoffN++;
     _backoffT = setTimeout(function () {
       _backoffT = null;
@@ -741,20 +794,15 @@
       }
     }
 
-    var localAll = allLocalCallerEvents(events);
     var gameIds = Object.create(null);
-    if (gameId) gameIds[gameId] = 1;
-    localAll.forEach(function (e) {
-      if (e && e.gameId) gameIds[e.gameId] = 1;
-    });
-    if (cloud.activeCallerGame) {
-      try {
-        var og = await cloud.activeCallerGame(teamId, "offense");
-        var dg = await cloud.activeCallerGame(teamId, "defense");
-        if (og && og.id) gameIds[og.id] = 1;
-        if (dg && dg.id) gameIds[dg.id] = 1;
-      } catch (eGames) {}
+    var nowMs = Date.now();
+    if (cloud.listCallerGames) {
+      var teamGames = await cloud.listCallerGames(teamId);
+      (teamGames || []).forEach(function (g) {
+        if (gameInPullWindow(g, nowMs)) gameIds[g.id] = 1;
+      });
     }
+    if (gameId) gameIds[gameId] = 1;
     var remoteAll = [];
     if (cloud.listCallerEvents) {
       var gids = Object.keys(gameIds);
@@ -794,6 +842,9 @@
     merged.forEach(function (e) {
       liftSideFromRemote(e, remoteById);
     });
+    localUnion.forEach(function (e) {
+      liftSideFromRemote(e, remoteById);
+    });
     persistLiftedSides(remoteById);
     if (opts.applyRemote) {
       opts.applyRemote(merged, game, sess);
@@ -802,14 +853,6 @@
     Object.keys(remoteById).forEach(function (id) {
       remoteIds[id] = 1;
     });
-    var confirmed = [];
-    localUnion.forEach(function (e) {
-      if (e && e.eventId && remoteIds[e.eventId]) {
-        liftSideFromRemote(e, remoteById);
-        confirmed.push(e.eventId);
-      }
-    });
-    if (confirmed.length) markSynced(side, confirmed);
     pruneLedgerToLocal(uniqueLocalIds(merged));
     var heldStragglers = 0;
     localUnion.forEach(function (e) {
@@ -824,7 +867,7 @@
         console.warn("[caller-sync] held", heldStragglers, "local-only sideless straggler(s)");
       } catch (eSkip) {}
     }
-    var pending = pendingEvents(side, merged);
+    var pending = pendingEvents(side, localUnion);
     var toPush = pending;
     var syncable = [];
     (toPush || []).forEach(function (e) {
@@ -896,7 +939,7 @@
       pending: pendingCount(side, merged),
       pushed: pushed,
       held: heldN,
-      stamped: confirmed.length,
+      stamped: pushed,
       uniqueLocal: localUnion.length,
       remote: remote.length,
       mondayFocus: mondayWritten,
@@ -929,14 +972,24 @@
     }
     if (_bound[side]) return;
     _bound[side] = true;
+    _optsBySide[side] = opts;
+    ensurePullTimer();
 
     function kick() {
       flush(opts);
     }
 
-    window.addEventListener("online", kick);
+    window.addEventListener("online", function () {
+      _backoffN = 0;
+      clearBackoff();
+      kick();
+    });
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden && isOnline()) kick();
+      if (!document.hidden && isOnline()) {
+        _backoffN = 0;
+        clearBackoff();
+        kick();
+      }
     });
     window.addEventListener("focus", function () {
       if (isOnline()) kick();
@@ -970,6 +1023,8 @@
     clearAndArchiveGame: clearAndArchiveGame,
     eventToSyncRow: eventToSyncRow,
     appendIsolated: appendIsolated,
+    ackIds: ackIds,
+    gameInPullWindow: gameInPullWindow,
     isRowFault: isRowFault,
     UPSERT_CHUNK: UPSERT_CHUNK,
     HELD_KEY: HELD_KEY,

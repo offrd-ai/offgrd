@@ -899,10 +899,6 @@ export const Cloud = {
     const msg = String(err.message || err.details || err.hint || "");
     return /scouting_game tombstoned/i.test(msg) || /tombstoned/i.test(msg);
   },
-  scoutingRowCap(nk) {
-    if (nk === "live|live 2026-09-02|ours") return 24;
-    return null;
-  },
   async saveGame(teamId, game) {
     if (!OG) throw new Error("offgrd schema unavailable");
     const nk = this.gameNaturalKey(game.opponent, game.week, game.side);
@@ -910,13 +906,6 @@ export const Cloud = {
     if (await this.isGameTombstoned(teamId, game)) {
       const err = new Error("scouting_game tombstoned: " + nk);
       err.code = "TOMBSTONED";
-      throw err;
-    }
-    const cap = this.scoutingRowCap(nk);
-    const localCapN = Array.isArray(game.rows) ? game.rows.length : 0;
-    if (cap != null && localCapN > cap) {
-      const err = new Error("scouting_game refuse grow: " + nk + " " + localCapN + " cap " + cap);
-      err.code = "REFUSE_GROW";
       throw err;
     }
     const row = {
@@ -946,19 +935,11 @@ export const Cloud = {
       }
     }
 
-    /*
-     * Durability (v249): refuse blind last-writer-wins when the server blob moved
-     * since this client last pulled (baseUpdatedAt), or when an old client with no
-     * base tries to shrink a larger cloud blob (St Mary's 61→44 clobber class).
-     * Intentional shrink after a fresh pull still works — base matches server.
-     *
-     * v340: identical-content no-op is canonical (sorted keys), not JSON.stringify.
-     * A CAS lookup error must not fall through to upsert — that restamps updated_at.
-     */
-    let cur = null;
+    /* Identical rows skip the write so updated_at does not move.
+       Shrink and grow are the SQL triggers' job, not this client's. */
     try {
       let curQ = OG.from("scouting_games")
-        .select("id, updated_at, rows, week")
+        .select("id, rows, week")
         .eq("team_id", teamId);
       if (row.id) curQ = curQ.eq("id", row.id);
       else {
@@ -969,33 +950,15 @@ export const Cloud = {
           .order("updated_at", { ascending: false })
           .limit(1);
       }
-      const { data: curData, error: curErr } = await curQ.maybeSingle();
+      const { data: cur, error: curErr } = await curQ.maybeSingle();
       if (curErr) throw curErr;
-      cur = curData;
       if (cur) {
         if (!row.id) row.id = cur.id;
-        const serverN = Array.isArray(cur.rows) ? cur.rows.length : 0;
-        const localN = Array.isArray(game.rows) ? game.rows.length : 0;
-        const serverT = Date.parse(cur.updated_at || "");
-        const baseRaw = game.baseUpdatedAt || game.updatedAt || null;
-        const baseT = baseRaw ? Date.parse(baseRaw) : NaN;
-        const serverNewer =
-          Number.isFinite(serverT) && Number.isFinite(baseT) && serverT > baseT + 750;
-        const blindShrink = !Number.isFinite(baseT) && serverN > localN;
         if (cur.week && game.week && String(cur.week) !== String(game.week)) {
           const err = new Error(
             "scouting_game week immutable: " + cur.week + " → " + game.week
           );
           err.code = "REFUSE_WEEK_MUTATION";
-          err.server = { id: cur.id, week: cur.week, n: serverN };
-          throw err;
-        }
-        if (!game.allowShrink && localN < serverN) {
-          const err = new Error(
-            "scouting_game refuse shrink: " + nk + " (server " + serverN + " → local " + localN + ")"
-          );
-          err.code = "REFUSE_SHRINK";
-          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
           throw err;
         }
         if (
@@ -1004,25 +967,9 @@ export const Cloud = {
         ) {
           return cur;
         }
-        if (serverNewer || blindShrink) {
-          const err = new Error(
-            "scouting_game stale write: " +
-              nk +
-              " (server " +
-              serverN +
-              " rows @ " +
-              (cur.updated_at || "?") +
-              ")"
-          );
-          err.code = "STALE_WRITE";
-          err.server = { id: cur.id, updated_at: cur.updated_at, n: serverN };
-          throw err;
-        }
       }
-    } catch (eCas) {
-      if (eCas && (eCas.code === "STALE_WRITE" || eCas.code === "REFUSE_SHRINK" || eCas.code === "REFUSE_GROW" || eCas.code === "REFUSE_WEEK_MUTATION")) throw eCas;
-      /* Have a server row and lookup/compare failed — do not blind-upsert. */
-      if (cur) return cur;
+    } catch (eRead) {
+      if (eRead && eRead.code === "REFUSE_WEEK_MUTATION") throw eRead;
     }
 
     const { data, error } = await OG.from("scouting_games").upsert(row).select().single();
@@ -1406,7 +1353,9 @@ export const Cloud = {
       } catch (eSkip) {}
     }
     if (!rows.length) return [];
-    const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id", ignoreDuplicates: true }).select("event_id");
+    /* Return every accepted id, including a retry of a row already stored.
+       ignoreDuplicates omits those ids, so a lost response would never ack. */
+    const { data, error } = await OG.from("caller_events").upsert(rows, { onConflict: "event_id" }).select("event_id");
     if (error) throw error;
     return data || [];
   },
