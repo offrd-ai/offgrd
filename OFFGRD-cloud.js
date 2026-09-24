@@ -19,6 +19,24 @@ if (!sb && createClient) {
    project. Table calls go through OG (schema-qualified); RPCs use the public.offgrd_* wrappers. */
 const OG = sb ? sb.schema("offgrd") : null;
 
+/* === scout-snap-pages === */
+/** One page of the corpus fetch. A repeated id means Range was ignored — stop. A short page is the end. */
+function takeScoutSnapPage(rows, seen, page, pageSize) {
+  const list = page || [];
+  const size = pageSize > 0 ? pageSize : 1000;
+  let fresh = 0;
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    const id = row && row.id != null ? String(row.id) : "";
+    if (id && seen[id]) continue;
+    if (id) seen[id] = 1;
+    rows.push(row);
+    fresh += 1;
+  }
+  return fresh === 0 || list.length < size;
+}
+/* === /scout-snap-pages === */
+
 /** Stamp list.confirmedEmpty from PostgREST exact count — never from "[] and no throw". */
 function stampConfirmedEmpty(rows, count) {
   const list = Array.isArray(rows) ? rows : [];
@@ -1947,15 +1965,24 @@ export const Cloud = {
   /**
    * Review-gated scout_snaps corpus (Predict/Tendencies cutover).
    * public.offgrd_scout_snaps_for_team — needs_review=false + review_hold=false.
+   * PostgREST caps one response at 1,000. Page by id until a short page.
    */
   async listScoutSnaps(teamId) {
     if (!sb || !teamId) return stampConfirmedEmpty([], null);
-    const { data, error } = await sb.rpc("offgrd_scout_snaps_for_team", { t: teamId });
-    if (error) {
-      console.warn("[Cloud.listScoutSnaps]", error.message);
-      throw error;
+    const pageSize = 1000;
+    const rows = [];
+    const seen = Object.create(null);
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await sb
+        .rpc("offgrd_scout_snaps_for_team", { t: teamId })
+        .order("id", { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) {
+        console.warn("[Cloud.listScoutSnaps]", error.message);
+        throw error;
+      }
+      if (takeScoutSnapPage(rows, seen, data || [], pageSize)) break;
     }
-    const rows = data || [];
     if (rows.length > 0) return stampConfirmedEmpty(rows, rows.length);
     /* RPC [] is unknown until a matching head count says 0. Same gates as the RPC. */
     if (!OG) return stampConfirmedEmpty(rows, null);
