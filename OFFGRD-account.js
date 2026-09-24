@@ -1,8 +1,8 @@
 /* OFFGRD account + team/roster management — shared by Scout and Playbook.
    Each app sets window.OFFGRD_APP = { kind:'playbook'|'scout', get:()=>items, set:(items)=>void }.
    Roles: owner (Admin) · coach_edit · coach_view · player. Edit = owner/coach_edit. */
-import { Cloud } from "./OFFGRD-cloud.js?v=373";
-import { openAuthModal } from "./OFFGRD-auth.js?v=373";
+import { Cloud } from "./OFFGRD-cloud.js?v=374";
+import { openAuthModal } from "./OFFGRD-auth.js?v=374";
 import {
   PLAYER_IMPORT_CAP,
   parseInviteCsv,
@@ -12,7 +12,7 @@ import {
   isInviteToken,
   readInviteToken,
   ROLES
-} from "./OFFGRD-invite-parse.js?v=373";
+} from "./OFFGRD-invite-parse.js?v=374";
 void ROLES;
 
 const A = window.OFFGRD_APP || {};
@@ -1535,8 +1535,9 @@ async function push(silent){
       }
     }
     syncStamp();
-    /* Classic import → scouting_games → sync trigger → scout_snaps; re-fetch for Predict. */
-    try{ if(A.kind==="scout") await refreshScoutSnaps(); }catch(eSnap){}
+    /* Classic import → scouting_games → sync trigger → scout_snaps; re-fetch for Predict.
+       force: a same-length refetch must not keep the pre-commit corpus. */
+    try{ if(A.kind==="scout") await refreshScoutSnaps({ force:true }); }catch(eSnap){}
     if(rejected.length){
       const labels=rejected.map(function(g){
         return (g.opponent||"?")+" · "+(g.week||"?")+" · "+(g.side||"?")+" ("+(g.reason||"blocked")+")";
@@ -2402,10 +2403,17 @@ let _lastScoutCorpusFp = "";
 let _lastScoutCorpusTeam = "";
 let _scoutCorpusHydrated = false;
 
+function invalidateScoutCorpus(){
+  _lastScoutCorpusFp = "";
+  _scoutCorpusHydrated = false;
+}
+window.OFFGRD_INVALIDATE_SCOUT_CORPUS = invalidateScoutCorpus;
+
 /** Pull review-gated scout_snaps → SNAP_CORPUS for Predict/Tendencies cutover. */
-async function refreshScoutSnaps(){
+async function refreshScoutSnaps(opts){
   if(!TEAM || !Cloud.listScoutSnaps || !Cloud.scoutSnapToRow) return;
   if(isOffline()) return;
+  const force = !!(opts && opts.force);
   try{
     const raw = await Cloud.listScoutSnaps(TEAM.id);
     const mapped = (raw || []).map(function(s){ return Cloud.scoutSnapToRow(s); }).filter(Boolean);
@@ -2417,7 +2425,7 @@ async function refreshScoutSnaps(){
     }
     const fp = scoutCorpusFp(raw);
     const sameTeam = _lastScoutCorpusTeam === (TEAM.id || "");
-    if(sameTeam && _scoutCorpusHydrated && fp === _lastScoutCorpusFp){
+    if(!force && sameTeam && _scoutCorpusHydrated && fp === _lastScoutCorpusFp){
       /* Sync poll / duplicate boot — corpus unchanged; skip full report rebuild. */
       return;
     }

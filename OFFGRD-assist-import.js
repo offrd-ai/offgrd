@@ -1118,8 +1118,11 @@
     }
     /* Cutover: Predict/Tendencies read scout_snaps — refresh corpus now. */
     try {
+      if (typeof root.OFFGRD_INVALIDATE_SCOUT_CORPUS === "function") {
+        root.OFFGRD_INVALIDATE_SCOUT_CORPUS();
+      }
       if (typeof root.OFFGRD_REFRESH_SCOUT_SNAPS === "function") {
-        await root.OFFGRD_REFRESH_SCOUT_SNAPS();
+        await root.OFFGRD_REFRESH_SCOUT_SNAPS({ force: true });
       }
     } catch (eRefresh) {
       console.warn("[assist-import] refresh snaps", eRefresh && eRefresh.message);

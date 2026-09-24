@@ -134,4 +134,32 @@ const X = box.OFFGRD_DCALLER_EXPECT;
 const grain = X.build(filled);
 ok(grain.text === "Pass 55% · Run 45% → your R 70%", "hydrated corpus paints South line: " + grain.text);
 
+const lagStart = html.indexOf("function corpusLagsLibrary(");
+const lagEnd = html.indexOf("function snapRows(");
+ok(lagStart >= 0 && lagEnd > lagStart, "HTML defines corpusLagsLibrary");
+ok(/if\(SNAP_CORPUS_READY && !corpusLagsLibrary\(SNAP_CORPUS, GAMES, side\)\)/.test(html), "snapRows falls back when the corpus lags the library");
+ok(/OFFGRD_INVALIDATE_SCOUT_CORPUS/.test(html), "classic commit drops the corpus fingerprint");
+const account = fs.readFileSync(path.join(ROOT, "OFFGRD-account.js"), "utf8");
+ok(/refreshScoutSnaps\(\{ force:true \}\)/.test(account), "push refetch is forced");
+ok(/opts && opts.force/.test(account) && /OFFGRD_INVALIDATE_SCOUT_CORPUS/.test(account), "force skips the unchanged fingerprint");
+const assist = fs.readFileSync(path.join(ROOT, "OFFGRD-assist-import.js"), "utf8");
+ok(/OFFGRD_REFRESH_SCOUT_SNAPS\(\{ force: true \}\)/.test(assist), "auto-scout commit forces a corpus rebuild");
+
+const lagBox = { console };
+vm.runInNewContext(html.slice(lagStart, lagEnd), lagBox);
+const lags = lagBox.corpusLagsLibrary;
+const kirk = [];
+for (let i = 0; i < 48; i++) kirk.push({ opponent: "Hazelwood East", side: "def", week: "vs Kirkwood 2026" });
+const games = [
+  { opponent: "Hazelwood East", week: "vs Kirkwood 2026", side: "def", source: "import", rows: new Array(49) },
+  { opponent: "Hazelwood East", week: "vs Ritenour 2026", side: "def", source: "import", rows: new Array(40) },
+  { opponent: "Hazelwood East", week: "Live 2026-09-18", side: "def", source: "live_call", rows: new Array(12) },
+];
+ok(lags(kirk, games, "def") === true, "Kirkwood-only corpus lags the Ritenour library");
+const full = kirk.concat([]);
+for (let i = 0; i < 1; i++) full.push({ opponent: "Hazelwood East", side: "def", week: "vs Kirkwood 2026" });
+for (let i = 0; i < 40; i++) full.push({ opponent: "Hazelwood East", side: "def", week: "vs Ritenour 2026" });
+ok(lags(full, games, "def") === false, "matching library counts are not a lag");
+ok(lags(full, [{ opponent: "Hazelwood East", week: "Live 2026-09-18", side: "def", source: "live_call", rows: new Array(12) }], "def") === false, "a live log does not make the corpus old");
+
 console.log("ok: corpus-season-hydrate");
