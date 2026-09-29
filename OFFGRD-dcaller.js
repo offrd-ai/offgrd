@@ -200,6 +200,11 @@
     var pin = Pin && Pin.get ? Pin.get() : null;
     if (pin) {
       if (session.gameId !== pin.gameId) {
+        /* A session with unacked events stays put. A new pin does not drain it. */
+        if (Pin.queuedCount && Pin.queuedCount(session.gameId, "defense") > 0) {
+          session.side = "defense";
+          return session;
+        }
         /* Build A: never re-key a leftover session. Build a fresh session on
            the pin's identity; the leftover's events stay under their own id. */
         session = {
@@ -226,6 +231,10 @@
 
   function applyPin(pin, rotatePrior) {
     if (!pin || !pin.gameId) return session;
+    var Pin = global.OFFGRD_GAMEDAY_PIN;
+    if (session && session.gameId && String(session.gameId) !== String(pin.gameId) && Pin && Pin.queuedCount && Pin.queuedCount(session.gameId, "defense") > 0) {
+      return session;
+    }
     var Side = global.OFFGRD_CALLER_SIDE;
     var J = global.OFFGRD_CALLER_JOURNAL;
     var rotate = !!rotatePrior && session && Side && Side.sessionOpponentDiffers && Side.sessionOpponentDiffers(session, pin.opponent);

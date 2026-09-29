@@ -114,6 +114,8 @@
   function stampSession(sess) {
     var pin = get();
     if (!pin || !sess) return sess;
+    /* A session still holding unacked events keeps its game. A new pin does not drain it. */
+    if (sess.gameId && String(sess.gameId) !== String(pin.gameId) && queuedCount(sess.gameId, sess.side) > 0) return sess;
     sess.opp = pin.opponent;
     sess.gameId = pin.gameId;
     sess.game_date = pin.date;
@@ -209,6 +211,91 @@
     return gameIdFor(opp, date);
   }
 
+  function isLedgerRow(row) {
+    var J = global.OFFGRD_CALLER_JOURNAL;
+    if (J && J.isLedgerEvent) return J.isLedgerEvent(row);
+    if (!row || !row.eventId) return false;
+    return row.type !== "clear" && row.type !== "undo_clear";
+  }
+
+  /** Unacked ledger rows for a game. Missing ack map counts as queued — empty is not synced. */
+  function queuedCount(gameId, side) {
+    var J = global.OFFGRD_CALLER_JOURNAL;
+    var Sync = global.OFFGRD_CALLER_SYNC_ENGINE;
+    if (!J || !J.eventsForGame || !gameId) return 0;
+    var n = 0;
+    (J.eventsForGame(gameId) || []).forEach(function (r) {
+      if (!isLedgerRow(r)) return;
+      if (side && r.side && r.side !== side) return;
+      var s = r.side === "defense" ? "defense" : "offense";
+      if (Sync && Sync.isSynced && Sync.isSynced(s, r.eventId)) return;
+      n += 1;
+    });
+    return n;
+  }
+
+  function journalQueuedCards() {
+    var J = global.OFFGRD_CALLER_JOURNAL;
+    if (!J || !J.allRows) return [];
+    var by = Object.create(null);
+    (J.allRows() || []).forEach(function (r) {
+      if (!r || !r.gameId || !isLedgerRow(r)) return;
+      var id = String(r.gameId);
+      if (!by[id]) by[id] = [];
+      by[id].push(r);
+    });
+    var cards = [];
+    Object.keys(by).forEach(function (id) {
+      var n = queuedCount(id);
+      if (n <= 0) return;
+      var sample = null;
+      by[id].forEach(function (r) {
+        var p = r.payload || {};
+        if (!p.opponent || isFallbackOpp(p.opponent)) return;
+        if (!sample) sample = r;
+        if (p.date) sample = r;
+      });
+      var p = (sample && sample.payload) || {};
+      var opp = p.opponent ? String(p.opponent).trim() : "";
+      if (!opp || isFallbackOpp(opp)) return;
+      var date = p.date ? String(p.date).slice(0, 10) : "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) && sample && sample.clientTs) {
+        try {
+          date = new Date(sample.clientTs).toISOString().slice(0, 10);
+        } catch (eDate) {
+          date = "";
+        }
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      cards.push({ opponent: opp, date: date, ha: "H", gameId: id, queued: n });
+    });
+    return cards;
+  }
+
+  function sessionHoldsQueue(sess, side) {
+    return !!(sess && sess.gameId && queuedCount(sess.gameId, side) > 0);
+  }
+
+  function pinReplaceBlock(nextGameId) {
+    var sessions = [];
+    if (global.CALLER_SESSION && global.CALLER_SESSION.gameId) {
+      sessions.push({ side: "offense", gameId: global.CALLER_SESSION.gameId, opp: global.CALLER_SESSION.opp });
+    }
+    try {
+      var D = global.OFFGRD_DCALLER;
+      var s = D && D.getSession ? D.getSession() : null;
+      if (s && s.gameId) sessions.push({ side: "defense", gameId: s.gameId, opp: s.opp });
+    } catch (eSess) {}
+    var i, sess, n;
+    for (i = 0; i < sessions.length; i++) {
+      sess = sessions[i];
+      if (String(sess.gameId) === String(nextGameId)) continue;
+      n = queuedCount(sess.gameId, sess.side);
+      if (n > 0) return { n: n, side: sess.side, gameId: sess.gameId, opp: sess.opp || "this game" };
+    }
+    return null;
+  }
+
   /** Schedule lives in OFFGRD.html as a script-scoped let. Read via OFFGRD_SCHEDULE.get,
       then localStorage, then a global.SCHEDULE fallback (smokes / older hosts). */
   function scheduleRows() {
@@ -234,15 +321,26 @@
     var hi = addDays(today, 7);
     var seen = Object.create(null);
     var out = [];
+    var queuedCards = journalQueuedCards();
+    function queuedHit(opponent, date) {
+      var k = scheduleKey(opponent, date);
+      for (var i = 0; i < queuedCards.length; i++) {
+        if (scheduleKey(queuedCards[i].opponent, queuedCards[i].date) === k) return queuedCards[i];
+      }
+      return null;
+    }
     function add(g, force) {
       if (!g || isFallbackOpp(g.opponent)) return;
       var date = parseGameDate(g.date || g.game_date, today) || (force ? today : "");
       if (!date) return;
-      if (!force && (date < lo || date > hi)) return;
+      var q = queuedHit(g.opponent, date);
+      /* A game with unacked local events stays on the card. The date window does not end it. */
+      if (!force && (date < lo || date > hi) && !(q && q.queued > 0)) return;
       var k = scheduleKey(g.opponent, date);
       if (seen[k]) return;
       seen[k] = 1;
-      var gid = existingGameId(g.opponent, date);
+      var gid = q && q.gameId ? q.gameId : existingGameId(g.opponent, date);
+      var qn = q ? q.queued : queuedCount(gid);
       var snaps = snapCountFor(gid, "offense") + snapCountFor(gid, "defense");
       out.push({
         opponent: String(g.opponent).trim(),
@@ -251,6 +349,7 @@
         gameId: gid,
         snaps: snaps,
         live: snaps > 0,
+        queued: qn,
       });
     }
     var sched = scheduleRows();
@@ -258,6 +357,9 @@
     if (!out.length && Array.isArray(sched)) sched.forEach(function (g) { add(g, true); });
     var pin = get();
     if (pin) add({ opponent: pin.opponent, date: pin.date || today, ha: pin.ha || "H" });
+    queuedCards.forEach(function (c) {
+      add({ opponent: c.opponent, date: c.date, ha: c.ha || "H" }, true);
+    });
     out.sort(function (a, b) {
       return String(a.date).localeCompare(String(b.date)) || a.opponent.localeCompare(b.opponent);
     });
@@ -289,7 +391,10 @@
       return pin.gameId;
     };
     try {
-      if (rotatePrior && global.CALLER_SESSION && Side && Side.sessionOpponentDiffers && Side.sessionOpponentDiffers(global.CALLER_SESSION, pin.opponent)) {
+      var holdO = sessionHoldsQueue(global.CALLER_SESSION, "offense") && String(global.CALLER_SESSION.gameId) !== String(pin.gameId);
+      if (holdO) {
+        /* Queued offense stays on its game until those events ack. */
+      } else if (rotatePrior && global.CALLER_SESSION && Side && Side.sessionOpponentDiffers && Side.sessionOpponentDiffers(global.CALLER_SESSION, pin.opponent)) {
         var rotated = Side.endAndMintForOpponent(
           global.CALLER_SESSION,
           { opp: pin.opponent, week: "Live " + pin.date, game_date: pin.date, side: "offense" },
@@ -317,7 +422,9 @@
     } catch (eO) {}
     try {
       var D = global.OFFGRD_DCALLER;
-      if (D && D.applyPin) D.applyPin(pin, rotatePrior);
+      var ds = D && D.getSession ? D.getSession() : null;
+      var holdD = sessionHoldsQueue(ds, "defense") && String(ds.gameId) !== String(pin.gameId);
+      if (!holdD && D && D.applyPin) D.applyPin(pin, rotatePrior);
     } catch (eD) {}
     stampLiveOpponent(pin);
   }
@@ -327,7 +434,18 @@
     if (!game || isFallbackOpp(game.opponent)) return null;
     var date = String(game.date || todayISO()).slice(0, 10);
     var fresh = !!opts.fresh;
-    var gameId = fresh ? gameIdFor(game.opponent, date + "|new|" + Date.now()) : existingGameId(game.opponent, date);
+    var gameId = fresh ? gameIdFor(game.opponent, date + "|new|" + Date.now()) : (game.gameId || existingGameId(game.opponent, date));
+    var block = pinReplaceBlock(gameId);
+    if (block) {
+      pickNotice = block.n + " queued · sync this game before starting another";
+      try {
+        var flush = global.OFFGRD_CALLER_SYNC;
+        if (typeof flush === "function") flush();
+      } catch (eFlush) {}
+      renderPicker();
+      return null;
+    }
+    pickNotice = "";
     var prior = get();
     var rotate = !!(prior && normalizeOpp(prior.opponent) !== normalizeOpp(game.opponent));
     var pin = save({
@@ -410,7 +528,9 @@
       ".rd-gd-pick-body b{font-size:20px;font-weight:800}" +
       ".rd-gd-pick-cta{font-size:13px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--rd-accent,#0856ff)}" +
       ".rd-gd-pick-card .live{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;" +
-      "background:#c8102e;color:#fff;font-size:11px;font-weight:800;letter-spacing:.06em}";
+      "background:#c8102e;color:#fff;font-size:11px;font-weight:800;letter-spacing:.06em}" +
+      ".rd-gd-pick-card .queued{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;" +
+      "background:#c9a227;color:#1a1404;font-size:11px;font-weight:800;letter-spacing:.04em}";
     document.head.appendChild(s);
   }
 
@@ -428,6 +548,7 @@
     var crest = typeof global.crest === "function" ? global.crest : function () { return ""; };
     var h = '<div class="rd-gd rd-gd-pick">';
     h += '<div class="rd-gd-pick-head"><b>Tonight\'s game</b><span class="foot">Pick once. ' + esc(sideLbl) + " opens on that pin.</span></div>";
+    if (pickNotice) h += '<p class="foot">' + esc(pickNotice) + "</p>";
     var libs = !games.length ? libraryOpponents() : [];
     if (!games.length) {
       /* Maple Lake: zero games is never a dead end. Offer both paths —
@@ -450,15 +571,17 @@
     }
     games.forEach(function (g) {
       var vs = (g.ha === "A" ? "@ " : "vs ") + g.opponent;
-      var action = g.live ? "Resume" : "Start";
+      var action = g.live || g.queued ? "Resume" : "Start";
       var meta = [fmtWhen(g.date), haLabel(g.ha)];
       if (g.live) meta.push(g.snaps + " snap" + (g.snaps === 1 ? "" : "s"));
+      if (g.queued) meta.push(g.queued + " queued");
       if (g.live && pin && String(pin.gameId) === String(g.gameId) && pin.pinnedAt) {
         var started = fmtTime(pin.pinnedAt);
         if (started) meta.push("started " + started);
       }
       if (pin && String(pin.gameId) === String(g.gameId)) meta.push("pinned");
       var liveBadge = g.live ? '<span class="live">Live</span>' : "";
+      var queuedBadge = g.queued ? '<span class="queued">' + esc(g.queued) + " queued</span>" : "";
       var cls = "rd-gd-pick-card" + (g.highlight ? " is-next" : "") + (pin && String(pin.gameId) === String(g.gameId) ? " is-pin" : "");
       h +=
         '<button type="button" class="' +
@@ -474,6 +597,7 @@
         '<span class="rd-gd-pick-body"><b>' +
         esc(vs) +
         liveBadge +
+        queuedBadge +
         "</b><span class=\"foot\">" +
         esc(meta.join(" · ")) +
         "</span><span class=\"rd-gd-pick-cta\">" +
@@ -497,7 +621,13 @@
     host.innerHTML = h;
     host.querySelectorAll(".rd-gd-pick-card").forEach(function (btn) {
       btn.onclick = function () {
-        pick({ opponent: btn.getAttribute("data-opp"), date: btn.getAttribute("data-date"), ha: btn.getAttribute("data-ha") }, { side: side });
+        var opp = btn.getAttribute("data-opp");
+        var date = btn.getAttribute("data-date");
+        var card = null;
+        games.forEach(function (x) {
+          if (x.opponent === opp && x.date === date) card = x;
+        });
+        pick(card || { opponent: opp, date: date, ha: btn.getAttribute("data-ha") }, { side: side });
       };
     });
     var fresh = host.querySelector("#gdPickFresh");
@@ -567,6 +697,7 @@
   }
 
   var typedDraft = "";
+  var pickNotice = "";
 
   function refreshIfPick() {
     wrapScheduleSet();
@@ -614,5 +745,6 @@
     pendingSide: pendingSide,
     renderPicker: renderPicker,
     snapCountFor: snapCountFor,
+    queuedCount: queuedCount,
   };
 })(typeof window !== "undefined" ? window : globalThis);

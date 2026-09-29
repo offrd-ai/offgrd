@@ -55,23 +55,26 @@ derives Season / Live rows from that ledger. The client does not write
       still fills the in-memory log. Season `push()` skips `source=live_call`
       and `week` matching `/^live/i`. Smoke: `scripts/smoke-caller-library-write.cjs`.
 - [ ] **B1:** auto-derive within 60s of event ingest. No Friday pin of the
-      derive route. It pins with Build B on Monday 9/28. Manual derive covers
-      Friday's game. Matt applies the Vault trigger right after that pin,
-      pointed at getoffrd.com. Not green until `live_library_gaps` empties
-      with nobody running the Node job.
+      derive route. It pins with the rest of Build B, one pin, after the
+      game-iPad soak is green (not the night the preview deploys). Manual
+      derive covered Friday. Matt sets `derive_live_secret` in Vault and
+      applies the notify SQL right after that pin, pointed at
+      getoffrd.com/gameday/api/derive-live. Green means one logged test
+      event and `live_library_gaps` empty within 60s with no manual job.
       Until the pin: manual `derive-live-library.cjs --apply` after events land.
-- [ ] **B2 (accepted 9/22, preview Wed 9/23 at v373):** ack map stores only ids
-      this device's push returned. Pull is active games plus archived games
-      inside 14 days. Sync button removed. A flap keeps retrying (online,
-      visible, 5s) and does not stop after eight failures. Deploy bumps the
-      pin so a v371 icon cannot keep the old scripts. Matt re-adds the icon.
-      Wednesday AM, Claude: pin SOAK TEST 6, log 5 snaps with dev-tools offline,
-      turn the network back on, header goes green with no tap.
-- [ ] **B3:** client CAS, refuse-shrink, refuse-grow, and unpinned `applyRemote`
-      session assignment are deleted. SQL refuse-shrink stays.
-- [ ] **B4:** census green only when pinned-game journal rows equal this device's
-      push-ack set and the count is > 0. Offline reads `N queued · offline` and
-      is never green. Header on both callers, both modes.
+- [x] **B2 (browser 2026-09-23, preview v373):** ack map stores only ids
+      this device's push returned. SOAK TEST 6: five snaps offline read
+      `5 queued · offline`, nothing green. Network back, no tap: `5 saved · 0 synced`
+      at 0s and 5s, then `5 saved · 5 synced` at 10s and it stayed. All 10 event
+      ids (5 calls + 5 outcomes) are in this device's push-ack set. Sync button gone.
+- [x] **B3 (browser 2026-09-23, preview v373):** client CAS, refuse-shrink,
+      refuse-grow, and unpinned `applyRemote` session assignment are deleted.
+      SQL refuse-shrink stays.
+- [x] **B4 (browser 2026-09-23, preview v373):** census green only when the
+      pinned game's snap rows equal this device's push-ack set and the count
+      is > 0. Offline reads `N queued · offline` and is never green. The five
+      outcomes are acked with the calls; the header counts snaps, so 5 saved
+      and 10 acked ids is the same game.
 - [x] **Derive Riverview Gardens · Live 2026-09-18** from cloud events
       (no journal): Our offense · 42, Their offense · 31.
       Script: `scripts/apply-riverview-918-bc5118b2.cjs --apply` (2026-09-20).
@@ -80,17 +83,24 @@ derives Season / Live rows from that ledger. The client does not write
 
 ## Schedule (corrected 2026-09-23)
 
-No Friday pin of the derive route. It pins with Build B on Monday; manual
-derive covers Friday's game. Production stays v370 through Friday.
+No Friday pin of the derive route. It pins with Build B, one pin, after the
+game-iPad soak is green. Production stays v370 until then.
 
-- Wed 9/23 morning: deploy B2–B4 to the preview at **v373**. Matt re-adds the
-  test icon and verifies B2–B4 (ack semantics, SOAK TEST 6 flap, census).
-  EOD status table.
-- Then the soak. Any red line holds the pin.
-- Fri 9/25: no production pin. Manual `derive-live-library.cjs --apply` after
-  the game's events land.
-- Mon 9/28: pin Build B, including `/api/derive-live`. Matt applies the Vault
-  trigger right after, pointed at getoffrd.com.
+- Wed 9/23: preview **v373** is Ready. Browser check passed (ack semantics,
+  flap with no tap, census green on its own). Pin 373. Sync button gone.
+  Judges gone.
+- Then the soak on the game iPads. Any red line holds the Monday pin.
+- Fri 9/25: no production pin. Hazelwood East recovered Monday night from the
+  D iPad journal: Our offense 22, Their offense 45, under
+  `576d2d63-fdbc-4f18-88d9-65819864f5da`. Thursday's test events superseded.
+  Thursday's Live tombstones lifted (they blocked the same natural key).
+- Production pin, one pin, only after the game-iPad soak is green. Order:
+  Build B (B1 derive route, B2, B3, B4, penalty), Scout paging + library
+  fallback, picker queued-badge and no pin-replace of a queued session.
+  Then Matt sets the Vault secret and applies the notify SQL at
+  getoffrd.com. B1 green: one test event, gaps view empty within 60s,
+  no manual job. Preview tonight is that exact bit set so the soak matches
+  the pin. Production stays v370 until the soak is green.
 
 v372 and v376 are on `park/v372-v376`. They are not in this branch.
 

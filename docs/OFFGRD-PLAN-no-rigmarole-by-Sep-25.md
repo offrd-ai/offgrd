@@ -103,7 +103,8 @@ pull unseen rows, idempotent, retries on flap, runs whenever any
 connectivity exists); server derives Live/library rows from events; delete
 CAS, shrink/grow refusals, client library writes, keep-prompts, Sync button.
 Census compares device ledger to server ack. Two-device soak with flapping
-wifi on the game iPads. Green = pin Monday Sep 28. No production pin on Friday.
+wifi on the game iPads. No production pin on Friday. The Monday pin is one
+pin, and only after that soak is green. Scope is under "After Friday 9/25."
 
 **Deliverable #1 (started Sep 20 after Riverview):** server derive job
 `scripts/derive-live-library.cjs` folds `caller_events` → `scouting_games`
@@ -140,3 +141,46 @@ perspective, done. Lafayette first. The queue resumes.
 
 Another feature or "quick fix" landing in the same two weeks. That is the
 only thing that has ever slipped this.
+
+## After Friday 9/25 (written Monday night 2026-09-28)
+
+Hazelwood East · Live 2026-09-25 is closed from the ledger: Our offense 22,
+Their offense 45. Thursday's test events on that game are superseded. The
+Thursday `user_delete` tombstones on both Live keys were lifted so the
+Friday fold could land. Production stays v370. The preview is the soak host
+and carries the bits that will pin.
+
+### Monday pin — one pin, after the game-iPad soak is green
+
+A red soak holds the pin. Do not pin production the night the preview goes up.
+
+One pin, this order, same deployment:
+
+1. Build B: B1 derive route, B2 replication + ack map, B3 client judges
+   deleted, B4 ack census, penalty.
+2. Scout paging + library fallback.
+3. Picker: a game with unsynced local events stays visible with an
+   "N queued" badge regardless of date. A session with queued events is
+   not replaced by a new pin until those events drain.
+
+Then Matt sets `derive_live_secret` in Vault and applies
+`docs/security/apply-offgrd-live-derive-notify.sql`, pointed at
+`https://getoffrd.com/gameday/api/derive-live`. B1 is green only when one
+logged test event makes `live_library_gaps` empty within 60 seconds with
+no manual job.
+
+v372 and v376 stay on `park/v372-v376`. Do not reuse those pin numbers.
+
+### Two rules from this weekend
+
+1. Never test against a real upcoming opponent. The picker gets a permanent
+   PRACTICE card. Its opponent is a reserved name, not a school on the
+   schedule, so the Live natural key (`opponent | Live {date} | side`)
+   cannot match a scheduled game. Thursday's test was logged as Hazelwood
+   East on 2026-09-25. Deleting those test Live rows tombstoned the key
+   Friday's real game needed.
+2. A tombstone on a Live key must tell the coach. It must not silently
+   refuse the derive. The gaps view and the library show: "this game was
+   deleted on {date}; restore?" The date is the tombstone's `created_at`.
+
+BEST NOW, after the pin: `docs/TICKET_offgrd_hero_is_row_one.md`.

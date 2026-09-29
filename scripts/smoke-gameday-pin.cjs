@@ -252,6 +252,90 @@ check("a caller never opens on Live: fallback pin is refused by get()", (functio
   return PinW.get() === null && PinW.writeOpp() === null;
 })());
 
+check("picker badge is N queued", /class="queued"/.test(pinSrc) && /queued<\/span>/.test(pinSrc));
+check("pick reopens the card's gameId", /game\.gameId \|\| existingGameId/.test(pinSrc));
+check("a queued session blocks a new pin", /pinReplaceBlock/.test(pinSrc) && /sessionHoldsQueue/.test(pinSrc));
+check(
+  "D applyPin and ensureSession refuse to replace a queued session",
+  /queuedCount\(session\.gameId, "defense"\)/.test(dc)
+);
+check(
+  "O ensureSession refuses to replace a queued session",
+  /queuedCount\(CALLER_SESSION\.gameId,"offense"\)/.test(html)
+);
+
+const q = makeSandbox();
+load(q);
+const PinQ = q.OFFGRD_GAMEDAY_PIN;
+const southId = "576d2d63-fdbc-4f18-88d9-65819864f5da";
+const friday = [
+  {
+    eventId: "ev-friday-1",
+    gameId: southId,
+    side: "defense",
+    type: "call",
+    playIndex: 0,
+    payload: { opponent: "Hazelwood East", date: "2026-09-25", play: "Run" },
+    clientTs: Date.parse("2026-09-25T23:02:01.961Z"),
+  },
+  {
+    eventId: "ev-friday-2",
+    gameId: southId,
+    side: "defense",
+    type: "outcome",
+    playIndex: 0,
+    payload: { opponent: "Hazelwood East", date: "2026-09-25" },
+    clientTs: Date.parse("2026-09-25T23:02:10.000Z"),
+  },
+  {
+    eventId: "clear-" + southId + "-1",
+    gameId: southId,
+    side: "defense",
+    type: "clear",
+    payload: { undoUntil: 1 },
+    clientTs: Date.parse("2026-09-25T23:30:00.000Z"),
+  },
+];
+q.OFFGRD_CALLER_JOURNAL = {
+  allRows: function () { return friday; },
+  eventsForGame: function (id) {
+    return friday.filter(function (r) { return r.gameId === id && r.type !== "clear" && r.type !== "undo_clear"; });
+  },
+  isLedgerEvent: function (r) { return !!(r && r.eventId && r.type !== "clear" && r.type !== "undo_clear"); },
+  snapRowsForGame: function () { return friday.filter(function (r) { return r.type === "call"; }); },
+  hydrateView: function () { return []; },
+};
+q.OFFGRD_CALLER_SYNC_ENGINE = { isSynced: function () { return false; } };
+q.SCHEDULE = [
+  { opponent: "Hazelwood East", date: "2026-09-25", ha: "A" },
+  { opponent: "Parkway Central", date: "2026-09-10", ha: "H" },
+];
+const aged = PinQ.listGames(new Date(2026, 8, 28));
+const hazel = aged.filter(function (g) { return g.opponent === "Hazelwood East"; })[0];
+check("Friday's card stays visible on Monday when events are queued", !!hazel);
+check("queued card reopens the journal game id", hazel && hazel.gameId === southId);
+check("queued badge counts ledger rows, not the clear", hazel && hazel.queued === 2, hazel && String(hazel.queued));
+const central = aged.filter(function (g) { return g.opponent === "Parkway Central"; })[0];
+check("an aged card with no queue stays off the Monday list", !central || central.date >= "2026-09-27");
+
+const reopened = PinQ.pick(hazel, { side: "defense" });
+check("reopening the queued game is allowed", reopened && reopened.gameId === southId);
+q.CALLER_SESSION = { opp: "Hazelwood East", gameId: southId, side: "offense" };
+q.OFFGRD_DCALLER._sess = { opp: "Hazelwood East", gameId: southId, side: "defense" };
+const blocked = PinQ.pick({ opponent: "Parkway Central", date: "2026-10-02", ha: "H" }, { side: "defense" });
+check("a new pin is refused while the session still has queued events", blocked === null);
+check("the refused pin did not replace the queued game", PinQ.get() && PinQ.get().gameId === southId);
+check("D applyPin was not called for the new opponent", q.OFFGRD_DCALLER.lastPin && q.OFFGRD_DCALLER.lastPin.gameId === southId);
+
+q.OFFGRD_CALLER_SYNC_ENGINE.isSynced = function () { return true; };
+q.localStorage.removeItem(PinQ.PIN_KEY);
+q.SCHEDULE.push({ opponent: "Parkway North", date: "2026-10-02", ha: "A" });
+const drained = PinQ.listGames(new Date(2026, 8, 28));
+check(
+  "once every row is acked, Friday ages off the Monday list",
+  !drained.some(function (g) { return g.opponent === "Hazelwood East"; })
+);
+
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");
   process.exit(1);
