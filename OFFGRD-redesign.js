@@ -277,7 +277,7 @@
   }
 
   /* ---- page / cache-bust helpers (sub-app shell) ---- */
-  const ASSET_V = "379";
+  const ASSET_V = "380";
 
   function getScoutTool() {
     try {
@@ -681,11 +681,11 @@
       '}',
       /* ---- Phase 2: Scout body (presentation only) ---- */
       'html.rd-on #view-scout{gap:10px;}',
-      'html.rd-on #view-scout > .panel{',
+      'html.rd-on #view-scout > .panel,html.rd-on #view-scout > .scout-top > .panel{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-radius:var(--radius-card);',
       'box-shadow:none;padding:12px 14px;margin-bottom:0;',
       '}',
-      'html.rd-on #view-scout > .panel.result{',
+      'html.rd-on #view-scout > .panel.result,html.rd-on #view-scout > .scout-top > .panel.result{',
       'background:var(--rd-surface);border:1px solid var(--rd-border);border-left:5px solid var(--rd-accent);',
       'border-radius:var(--radius-card);padding:14px 16px;',
       '}',
@@ -811,10 +811,11 @@
       '@media (max-width:900px){',
       /* Only when Scout is the active tab — never override setView display:none. */
       'html.rd-on #view-scout.rd-view-active{display:flex;flex-direction:column;gap:10px;}',
-      'html.rd-on #view-scout.rd-view-active > .result{',
+      'html.rd-on #view-scout.rd-view-active > .scout-top{display:contents;}',
+      'html.rd-on #view-scout.rd-view-active > .result,html.rd-on #view-scout.rd-view-active > .scout-top > .result{',
       'order:-1;position:static!important;max-height:none!important;grid-column:auto!important;grid-row:auto!important;',
       '}',
-      'html.rd-on #view-scout.rd-view-active > .panel{grid-column:auto!important;}',
+      'html.rd-on #view-scout.rd-view-active > .panel,html.rd-on #view-scout.rd-view-active > .scout-top > .panel{grid-column:auto!important;}',
       '}',
       /* ---- Phase 3: Plan body — Game Plan + Package (presentation only) ---- */
       'html.rd-on #view-plan,html.rd-on #view-package{gap:10px;}',
