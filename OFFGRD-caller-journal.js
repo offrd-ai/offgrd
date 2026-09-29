@@ -7,7 +7,9 @@
   "use strict";
 
   var DB_NAME = "offgrd_caller_journal_v1";
+  var DB_VERSION = 2;
   var STORE = "events";
+  var EXPORT_STORE = "exports";
   var LS_KEY = "offgrd_caller_journal_ls_v1";
   var META_KEY = "offgrd_caller_journal_meta_v1";
   var UNDO_MS = 30 * 60 * 1000;
@@ -17,6 +19,7 @@
   var readyP = null;
   var idb = null;
   var lastExportN = 0;
+  var exportLatch = Object.create(null);
 
   function now() {
     return Date.now();
@@ -111,7 +114,7 @@
     return new Promise(function (resolve) {
       var req;
       try {
-        req = indexedDB.open(DB_NAME, 1);
+        req = indexedDB.open(DB_NAME, DB_VERSION);
       } catch (e) {
         resolve(null);
         return;
@@ -120,6 +123,9 @@
         var db = req.result;
         if (!db.objectStoreNames.contains(STORE)) {
           db.createObjectStore(STORE, { keyPath: "eventId" });
+        }
+        if (!db.objectStoreNames.contains(EXPORT_STORE)) {
+          db.createObjectStore(EXPORT_STORE, { keyPath: "id" });
         }
       };
       req.onsuccess = function () {
@@ -148,6 +154,31 @@
         };
       } catch (e) {
         resolve([]);
+      }
+    });
+  }
+
+  function idbPutExport(db, rec) {
+    if (!db || !rec) return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      try {
+        if (!db.objectStoreNames.contains(EXPORT_STORE)) {
+          resolve(false);
+          return;
+        }
+        var tx = db.transaction(EXPORT_STORE, "readwrite");
+        tx.oncomplete = function () {
+          resolve(true);
+        };
+        tx.onerror = function () {
+          resolve(false);
+        };
+        tx.onabort = function () {
+          resolve(false);
+        };
+        tx.objectStore(EXPORT_STORE).put(rec);
+      } catch (e) {
+        resolve(false);
       }
     });
   }
@@ -526,18 +557,87 @@
     }
   }
 
+  /* Desktop (not the home-screen icon, not iOS) never downloads on its own.
+     The journal is already in IndexedDB; a background/halftime/final/snap
+     export only refreshes the exports store. A file is an explicit Export tap.
+     iPad / standalone still saves halftime, final, and background files,
+     once per trigger at the current snap count (hide fires two events). */
+  function sidelineFileExport() {
+    var Side = global.OFFGRD_CALLER_SIDE;
+    if (!Side) return false;
+    try {
+      if (typeof Side.isIosDevice === "function" && Side.isIosDevice()) return true;
+      if (typeof Side.isStandaloneDisplay === "function" && Side.isStandaloneDisplay()) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function explicitExportReason(reason) {
+    return reason === "manual" || reason === "export";
+  }
+
+  function latchToken(reason, snapCount) {
+    var n = snapCount != null ? +snapCount : activeEvents(null).length;
+    if (!isFinite(n) || n < 0) n = 0;
+    return String(reason || "") + "@" + n;
+  }
+
+  function storeExport(payload) {
+    saveMeta({
+      lastExportAt: now(),
+      lastExportReason: payload.reason,
+      lastExportN: payload.rows.length,
+    });
+    var rec = {
+      id: String(payload.reason || "background"),
+      kind: payload.kind,
+      reason: payload.reason,
+      exportedAt: payload.exportedAt,
+      rows: payload.rows,
+      census: payload.census,
+    };
+    if (idb) {
+      idbPutExport(idb, rec);
+    } else if (readyP) {
+      readyP.then(function () {
+        if (idb) idbPutExport(idb, rec);
+      });
+    }
+    return {
+      ok: true,
+      rows: payload.rows.length,
+      reason: payload.reason,
+      stored: "indexeddb",
+      downloaded: false,
+    };
+  }
+
   function exportNow(reason) {
     var payload = exportPayload(reason);
-    if (!payload.rows.length) return { ok: false, reason: "empty", skipped: true };
+    if (!payload.rows.length) return { ok: false, reason: "empty", skipped: true, downloaded: false };
+    if (!explicitExportReason(reason) && !sidelineFileExport()) return storeExport(payload);
     var day = new Date().toISOString().slice(0, 10);
     var name = "offgrd-journal-" + day + "-" + String(reason || "manual").replace(/\s+/g, "-") + ".json";
     var r = downloadJson(name, payload);
     saveMeta({ lastExportAt: now(), lastExportReason: reason, lastExportN: payload.rows.length });
-    return Object.assign({ ok: true, rows: payload.rows.length, reason: reason }, r);
+    return Object.assign(
+      { ok: true, rows: payload.rows.length, reason: reason, downloaded: !!(r && r.ok), stored: "file" },
+      r
+    );
   }
 
   function maybeAutoExport(reason, snapCount) {
     if (reason === "halftime" || reason === "final" || reason === "background") {
+      if (sidelineFileExport()) {
+        var token = latchToken(reason, snapCount);
+        if (exportLatch[token]) {
+          return { ok: true, skipped: true, latched: true, downloaded: false, reason: reason };
+        }
+        exportLatch[token] = true;
+        var saved = exportNow(reason);
+        if (!saved || saved.ok === false || saved.downloaded === false) delete exportLatch[token];
+        return saved;
+      }
       return exportNow(reason);
     }
     var n = snapCount != null ? +snapCount : activeEvents(null).length;
@@ -545,7 +645,7 @@
       lastExportN = n;
       return exportNow("snap-" + n);
     }
-    return { ok: true, skipped: true };
+    return { ok: true, skipped: true, downloaded: false };
   }
 
   function bindAutoExport() {

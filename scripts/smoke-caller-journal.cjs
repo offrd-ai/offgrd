@@ -189,6 +189,60 @@ check("fold mismatch is not green", mismatch.reconciled === false && mismatch.to
 const payload = J.exportPayload("halftime");
 check("export reads the journal, not the view", payload.kind === "offgrd_caller_journal" && payload.rows.length >= 60);
 
+let downloads = 0;
+sandbox.document.body = { appendChild() {} };
+sandbox.document.createElement = function () {
+  return {
+    href: "",
+    download: "",
+    click() {
+      downloads += 1;
+    },
+    remove() {},
+  };
+};
+sandbox.Blob = function Blob(parts) {
+  this.parts = parts;
+};
+sandbox.URL = {
+  createObjectURL() {
+    return "blob:journal";
+  },
+  revokeObjectURL() {},
+};
+sandbox.setTimeout = function () {};
+sandbox.navigator.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+sandbox.navigator.platform = "Win32";
+sandbox.navigator.maxTouchPoints = 0;
+sandbox.matchMedia = function () {
+  return { matches: false };
+};
+const deskBg = J.maybeAutoExport("background");
+const deskBg2 = J.maybeAutoExport("background");
+check(
+  "desktop background writes IndexedDB and does not download",
+  downloads === 0 && deskBg.downloaded === false && deskBg.stored === "indexeddb" && deskBg2.downloaded === false
+);
+const deskHalf = J.maybeAutoExport("halftime", 60);
+check("desktop halftime does not download", downloads === 0 && deskHalf.downloaded === false);
+const deskManual = J.exportNow("manual");
+check("desktop explicit export still downloads", downloads === 1 && deskManual.downloaded === true);
+sandbox.navigator.userAgent = "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)";
+sandbox.navigator.platform = "MacIntel";
+sandbox.navigator.maxTouchPoints = 5;
+const ipadBg = J.maybeAutoExport("background");
+const ipadBg2 = J.maybeAutoExport("background");
+check(
+  "iPad background saves once per snap count",
+  downloads === 2 && ipadBg.downloaded === true && ipadBg2.latched === true && ipadBg2.downloaded === false
+);
+const ipadHalf = J.maybeAutoExport("halftime", 60);
+const ipadHalf2 = J.maybeAutoExport("halftime", 60);
+check(
+  "iPad halftime saves once per snap count",
+  downloads === 3 && ipadHalf.downloaded === true && ipadHalf2.latched === true
+);
+
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
 const sw = fs.readFileSync(path.join(root, "offgrd-sw.js"), "utf8");
 const dc = fs.readFileSync(path.join(root, "OFFGRD-dcaller.js"), "utf8");
