@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#13294B" />
 <title>OFFGRD &#8212; Never off guard</title>
-<!-- v378: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
+<!-- v379: pin-assets — all HTML + SW keyed; qb queue duplicate=success -->
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --ink:#16181d; --muted:#5b626e; --line:#e2e5ea;
@@ -345,14 +345,58 @@
     #view-scout>*{min-width:0;grid-column:1}
     #view-scout>.result{grid-column:2;grid-row:1/span 2;position:sticky;top:12px;max-height:calc(100vh - 28px);overflow:auto;margin-bottom:0}
     #view-scout>.panel:has(#gridDetails){grid-column:1/-1}
+    #view-scout>#offgrd-seq,#view-scout>#offgrd-tells{grid-column:1/-1}
     #view-scout>p.foot,#view-scout>.foot{grid-column:1/-1}
     #view-scout #grid{overflow-x:auto}
   }
+  #offgrd-seq,#offgrd-tells{scroll-margin-top:288px}
+  .offgrd-jumps{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1 1 100%}
+  .offgrd-jump{appearance:none;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer}
+  .yt-lead{margin:4px 0 12px;color:var(--muted);font-size:13px;line-height:1.45}
+  .yt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .yt-card{border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;background:var(--bg);min-width:0}
+  .yt-card.is-run{box-shadow:inset 3px 0 0 #2db86a}
+  .yt-card.is-pass{box-shadow:inset 3px 0 0 #5B8DEF}
+  .yt-card.is-run .yt-big,.yt-card.is-run .yt-lean,.yt-pair .is-run b{color:#3fc777}
+  .yt-card.is-pass .yt-big,.yt-card.is-pass .yt-lean,.yt-pair .is-pass b{color:#8eb4ff}
+  .yt-card-h{display:flex;align-items:flex-start;gap:8px;font-weight:800;font-size:14px;line-height:1.25}
+  .yt-title{flex:1;min-width:0}
+  .yt-n{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .yt-lean{font-weight:800;font-size:15px;margin-top:10px}
+  .yt-big{font-size:40px;font-weight:800;letter-spacing:-.04em;line-height:1;margin-top:6px}
+  .yt-big span{font-size:18px;margin-left:1px}
+  .yt-pair{display:flex;gap:16px;margin-top:8px}
+  .yt-pair b{display:block;font-size:28px;letter-spacing:-.03em;line-height:1}
+  .yt-pair span{font-size:12px;color:var(--muted);font-weight:700}
+  .yt-sub,.yt-note{font-size:13px;color:var(--muted);margin-top:4px}
+  .yt-kicker{margin-top:12px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .yt-calls{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .yt-calls li{display:flex;gap:8px;align-items:baseline;font-size:13px}
+  .yt-rank{width:1.1em;color:var(--muted);font-variant-numeric:tabular-nums}
+  .yt-call{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .yt-share{font-weight:800;font-variant-numeric:tabular-nums}
+  .yt-muted{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.4}
+  .yt-thin,.yt-flag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:999px;background:#fff4e5;color:#9a5b00;border:1px solid #f0c48a;vertical-align:middle;white-space:nowrap}
+  .yt-flag.is-run{background:rgba(45,190,108,.16);color:#3fc777;border-color:rgba(45,190,108,.45)}
+  .yt-flag.is-pass{background:rgba(91,141,239,.18);color:#9ebcff;border-color:rgba(91,141,239,.5)}
+  html.rd-on[data-base="day"] .yt-card.is-run .yt-big,
+  html.rd-on[data-base="day"] .yt-card.is-run .yt-lean,
+  html.rd-on[data-base="day"] .yt-pair .is-run b,
+  html.rd-on[data-base="day"] .yt-flag.is-run{color:#1d7a45}
+  html.rd-on[data-base="day"] .yt-flag.is-run{background:#e7f6ee;border-color:#b7e0c8}
+  html.rd-on[data-base="day"] .yt-card.is-pass .yt-big,
+  html.rd-on[data-base="day"] .yt-card.is-pass .yt-lean,
+  html.rd-on[data-base="day"] .yt-pair .is-pass b,
+  html.rd-on[data-base="day"] .yt-flag.is-pass{color:#2457b5}
+  html.rd-on[data-base="day"] .yt-flag.is-pass{background:#e8f0fc;border-color:#c5d7f6}
+  .yt-own-seq{margin-top:16px}
+  html.rd-on .yt-card{background:var(--rd-surface-2);border-color:var(--rd-border)}
+  html.rd-on .offgrd-jump{border-color:var(--rd-border);color:var(--rd-text);background:var(--rd-surface-2)}
 </style>
-<script src="OFFGRD-config.js?v=378"></script>
-<script src="OFFGRD-brand-persist.js?v=378"></script>
-<script src="supabase.js?v=378"></script>
-<script src="OFFGRD-cache-gate.js?v=378"></script>
+<script src="OFFGRD-config.js?v=379"></script>
+<script src="OFFGRD-brand-persist.js?v=379"></script>
+<script src="supabase.js?v=379"></script>
+<script src="OFFGRD-cache-gate.js?v=379"></script>
 <script>
 /* Cold-boot paint seed — BEFORE redesign.js. Never wait on RPC/session for chrome.
    Network hydrate may correct role later; it must not gate first paint (black rd-neutral). */
@@ -394,51 +438,52 @@
   } catch (e3) {}
 })();
 </script>
-<script src="OFFGRD-render.js?v=378"></script>
-<script src="OFFGRD-pos-glossary.js?v=378"></script>
-<script src="OFFGRD-autoderive.js?v=378"></script>
-<script src="OFFGRD-matchup.js?v=378"></script>
-<script src="OFFGRD-scoutcards.js?v=378"></script>
-<script src="OFFGRD-tendencies.js?v=378"></script>
-<script src="OFFGRD-scout-report.js?v=378"></script>
-<script src="OFFGRD-week-autotest.js?v=378"></script>
-<script src="OFFGRD-weeklypackage.js?v=378"></script>
-<script src="OFFGRD-telestrate.js?v=378"></script>
-<script src="OFFGRD-redesign.js?v=378"></script>
-<script src="OFFGRD-shell.js?v=378"></script>
-<script src="OFFGRD-caller-outcome.js?v=378"></script>
-<script src="OFFGRD-caller-sit.js?v=378"></script>
-<script src="OFFGRD-formations-data.js?v=378"></script>
-<script src="OFFGRD-formation-canon.js?v=378"></script>
-<script src="OFFGRD-assist-import.js?v=378"></script>
-<script src="OFFGRD-schedule-import.js?v=378"></script>
-<script src="OFFGRD-opp-shells.js?v=378"></script>
-<script src="OFFGRD-formation-map.js?v=378"></script>
-<script src="OFFGRD-play-map.js?v=378"></script>
-<script src="OFFGRD-play-type.js?v=378"></script>
-<script src="OFFGRD-play-stubs.js?v=378"></script>
-<script src="OFFGRD-play-direction.js?v=378"></script>
-<script src="OFFGRD-caller-shortlist.js?v=378"></script>
-<script src="OFFGRD-caller-game.js?v=378"></script>
-<script src="OFFGRD-cv-review.js?v=378"></script>
-<script src="OFFGRD-frame-capture.js?v=378"></script>
-<script src="OFFGRD-caller-side.js?v=378"></script>
-<script src="OFFGRD-gameday-pin.js?v=378"></script>
-<script src="OFFGRD-caller-log.js?v=378"></script>
-<script src="OFFGRD-caller-journal.js?v=378"></script>
-<script src="OFFGRD-caller-sync.js?v=378"></script>
-<script src="OFFGRD-caller-recovery.js?v=378"></script>
-<script src="OFFGRD-caller-analysis.js?v=378"></script>
-<script src="OFFGRD-caller-summary-llm.js?v=378"></script>
-<script src="OFFGRD-booth-ask.js?v=378"></script>
-<script src="OFFGRD-boothpack.js?v=378"></script>
-<script src="OFFGRD-booth-chat.js?v=378"></script>
-<script src="OFFGRD-empty-unknown.js?v=378"></script>
-<script src="OFFGRD-caller-select.js?v=378"></script>
-<script src="OFFGRD-dcaller-perspective.js?v=378"></script>
-<script src="OFFGRD-dcaller-expect.js?v=378"></script>
-<script src="OFFGRD-d-vocab.js?v=378"></script>
-<script src="OFFGRD-dcaller.js?v=378"></script>
+<script src="OFFGRD-render.js?v=379"></script>
+<script src="OFFGRD-pos-glossary.js?v=379"></script>
+<script src="OFFGRD-autoderive.js?v=379"></script>
+<script src="OFFGRD-matchup.js?v=379"></script>
+<script src="OFFGRD-scoutcards.js?v=379"></script>
+<script src="OFFGRD-tendencies.js?v=379"></script>
+<script src="OFFGRD-self-tells.js?v=379"></script>
+<script src="OFFGRD-scout-report.js?v=379"></script>
+<script src="OFFGRD-week-autotest.js?v=379"></script>
+<script src="OFFGRD-weeklypackage.js?v=379"></script>
+<script src="OFFGRD-telestrate.js?v=379"></script>
+<script src="OFFGRD-redesign.js?v=379"></script>
+<script src="OFFGRD-shell.js?v=379"></script>
+<script src="OFFGRD-caller-outcome.js?v=379"></script>
+<script src="OFFGRD-caller-sit.js?v=379"></script>
+<script src="OFFGRD-formations-data.js?v=379"></script>
+<script src="OFFGRD-formation-canon.js?v=379"></script>
+<script src="OFFGRD-assist-import.js?v=379"></script>
+<script src="OFFGRD-schedule-import.js?v=379"></script>
+<script src="OFFGRD-opp-shells.js?v=379"></script>
+<script src="OFFGRD-formation-map.js?v=379"></script>
+<script src="OFFGRD-play-map.js?v=379"></script>
+<script src="OFFGRD-play-type.js?v=379"></script>
+<script src="OFFGRD-play-stubs.js?v=379"></script>
+<script src="OFFGRD-play-direction.js?v=379"></script>
+<script src="OFFGRD-caller-shortlist.js?v=379"></script>
+<script src="OFFGRD-caller-game.js?v=379"></script>
+<script src="OFFGRD-cv-review.js?v=379"></script>
+<script src="OFFGRD-frame-capture.js?v=379"></script>
+<script src="OFFGRD-caller-side.js?v=379"></script>
+<script src="OFFGRD-gameday-pin.js?v=379"></script>
+<script src="OFFGRD-caller-log.js?v=379"></script>
+<script src="OFFGRD-caller-journal.js?v=379"></script>
+<script src="OFFGRD-caller-sync.js?v=379"></script>
+<script src="OFFGRD-caller-recovery.js?v=379"></script>
+<script src="OFFGRD-caller-analysis.js?v=379"></script>
+<script src="OFFGRD-caller-summary-llm.js?v=379"></script>
+<script src="OFFGRD-booth-ask.js?v=379"></script>
+<script src="OFFGRD-boothpack.js?v=379"></script>
+<script src="OFFGRD-booth-chat.js?v=379"></script>
+<script src="OFFGRD-empty-unknown.js?v=379"></script>
+<script src="OFFGRD-caller-select.js?v=379"></script>
+<script src="OFFGRD-dcaller-perspective.js?v=379"></script>
+<script src="OFFGRD-dcaller-expect.js?v=379"></script>
+<script src="OFFGRD-d-vocab.js?v=379"></script>
+<script src="OFFGRD-dcaller.js?v=379"></script>
 </head>
 <body>
   <div class="topbar no-print">
@@ -484,6 +529,10 @@
     <div style="flex:0 1 320px">
       <div class="lbl" style="margin-bottom:7px">Game / opponent</div>
       <div class="gamepick"><span id="topOppCrest"></span><select id="topOpp"></select></div>
+    </div>
+    <div class="offgrd-jumps">
+      <button type="button" class="offgrd-jump" data-jump="offgrd-seq">Opponent sequence</button>
+      <button type="button" class="offgrd-jump" data-jump="offgrd-tells">Your tells</button>
     </div>
   </div>
 
@@ -536,6 +585,9 @@
       <div id="grid"></div>
     </details>
   </div>
+
+  <div class="panel" id="offgrd-seq"></div>
+  <div class="panel" id="offgrd-tells"></div>
 
   <div class="foot panel" style="box-shadow:none;background:transparent;border:none;padding:0 4px">
     Coverage % is the share of matching snaps · a probability from this DC's history, not a guarantee. Confidence reflects how many snaps it's based on and how clear the top call is. Small-sample situations are widened automatically and flagged. Everything runs locally; no internet required during a game.
@@ -1222,7 +1274,8 @@ function parseOffense(text){
   const find=arr=>{ for(const a of arr){ const i=lc.indexOf(a); if(i>=0) return i; } return -1; };
   const ci={ play:find(PLAY), down:find(ALIASES.down), dist:find(ALIASES.distance), cov:find(ALIASES.coverage),
     gain:find(ALIASES.gnls), ptype:find(ALIASES.playtype), odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent),
-    qtr:find(ALIASES.qtr), yl:find(ALIASES.yardline), fz:find(ALIASES.fieldZone), result:find(ALIASES.result) };
+    qtr:find(ALIASES.qtr), yl:find(ALIASES.yardline), fz:find(ALIASES.fieldZone), result:find(ALIASES.result),
+    playIndex:find(ALIASES.play_index) };
   const cols=colResolve(head);
   const colIdx=f=>(cols[f]&&cols[f].idx!=null)?cols[f].idx:-1;
   const formI=colIdx("formation"), persI=colIdx("personnel"), hashI=colIdx("hash");
@@ -1251,8 +1304,10 @@ function parseOffense(text){
     else fz="";
     if(!fz) fz=zoneFromYardLine(at(c,ci.yl));
     const qtr=at(c,ci.qtr).replace(/[^0-9]/g,"")||"";
+    const piRaw=at(c,ci.playIndex); const piNum=piRaw.replace(/[^0-9.\-]/g,"");
+    const play_index=(piRaw!=="" && piNum!=="" && !isNaN(+piNum))?+piNum:null;
     const covParts=coverageParts(at(c,ci.cov));
-    const row={date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:fz||"",qtr:qtr,coverage:covParts.coverage,coverageRaw:covParts.coverageRaw,coverageMod:covParts.coverageMod,front:"",play:play,playType:at(c,ci.ptype),gain:gain,result:at(c,ci.result),success:isSuccessVal(down,distance,gain),formation:formI>=0?at(c,formI):""};
+    const row={date:at(c,ci.date),opponent:at(c,ci.opp),down:down,distance:distance,fieldZone:fz||"",qtr:qtr,play_index:play_index,coverage:covParts.coverage,coverageRaw:covParts.coverageRaw,coverageMod:covParts.coverageMod,front:"",play:play,playType:at(c,ci.ptype),gain:gain,result:at(c,ci.result),success:isSuccessVal(down,distance,gain),formation:formI>=0?at(c,formI):""};
     if(persI>=0) row.personnel=at(c,persI);
     if(hashI>=0) row.hash=(at(c,hashI)||"").toUpperCase().slice(0,1);
     if(structI>=0) row.offStructure=at(c,structI);
@@ -1667,10 +1722,12 @@ function parseScout(text,forceKeep){
   if(!lines.length){ LAST_MAPPING=""; return []; }
   const head=splitCSVLine(lines[0]).map(h=>h.trim()); const lc=head.map(h=>h.toLowerCase());
   const find=arr=>{ for(const a of arr){ const i=lc.indexOf(a); if(i>=0) return i; } return -1; };
+  const PLAY=["off play","off. play","offensive play","play name","concept","play call","playcall","o play","play"];
   const ci={ ptype:find(ALIASES.playtype), dir:find(ALIASES.direction), motion:find(ALIASES.motion),
     down:find(ALIASES.down), dist:find(ALIASES.distance), hash:find(ALIASES.hash), zone:find(ALIASES.fieldZone),
     yl:find(ALIASES.yardline), pers:find(ALIASES.personnel), form:find(ALIASES.formation),
     odk:find(ALIASES.odk), date:find(ALIASES.date), opp:find(ALIASES.opponent), gain:find(ALIASES.gnls),
+    qtr:find(ALIASES.qtr), result:find(ALIASES.result), playIndex:find(ALIASES.play_index), play:find(PLAY),
     motAdj:find(ALIASES.defense_response), formTag:find(ALIASES.formTag), gap:find(ALIASES.gap), passZone:find(ALIASES.passZone) };
   const at=(c,i)=> (i>=0&&c[i]!=null)?String(c[i]).trim():"";
   const cand=[];
@@ -1683,6 +1740,10 @@ function parseScout(text,forceKeep){
   if(ci.odk>=0){ if(forceKeep){ keep=forceKeep; } else { const nd=cand.filter(x=>x.odk==="D").length, no=cand.filter(x=>x.odk==="O").length; keep = nd>0?"D":(no>0?"O":null); } }
   const out=[]; const mapped=[];
   if(ci.ptype>=0)mapped.push('play type?"'+head[ci.ptype]+'"');
+  if(ci.play>=0)mapped.push('off play?"'+head[ci.play]+'"');
+  if(ci.playIndex>=0)mapped.push('play #?"'+head[ci.playIndex]+'"');
+  if(ci.qtr>=0)mapped.push('qtr?"'+head[ci.qtr]+'"');
+  if(ci.result>=0)mapped.push('result?"'+head[ci.result]+'"');
   if(ci.dir>=0)mapped.push('direction?"'+head[ci.dir]+'"');
   if(ci.motion>=0)mapped.push('motion?"'+head[ci.motion]+'"');
   if(ci.form>=0)mapped.push('formation?"'+head[ci.form]+'"');
@@ -1701,7 +1762,9 @@ function parseScout(text,forceKeep){
       distance:(+at(c,ci.dist).replace(/[^0-9]/g,""))||10, fieldZone:fz, hash:(at(c,ci.hash)||"M").toUpperCase().slice(0,1),
       personnel:at(c,ci.pers), formation:at(c,ci.form), playType:x.pt,
       direction:(at(c,ci.dir).toUpperCase().slice(0,1).match(/[RLM]/)||[""])[0], motion:motion, motionType:motionType,
-      gain:(gs===""?null:+gs), result:at(c,find(ALIASES.result||["result"])),
+      gain:(gs===""?null:+gs), result:at(c,ci.result), play:at(c,ci.play),
+      qtr:at(c,ci.qtr).replace(/[^0-9]/g,"")||"",
+      play_index:(function(){ const raw=at(c,ci.playIndex); const n=raw.replace(/[^0-9.\-]/g,""); return (raw!==""&&n!==""&&!isNaN(+n))?+n:null; })(),
       defense_response:at(c,ci.motAdj), formTag:at(c,ci.formTag), gap:at(c,ci.gap), passZone:at(c,ci.passZone)});
   });
   LAST_MAPPING=(mapped.length?"Mapped: "+mapped.join(", ")+". ":"")+(keep?"Using ODK="+keep+" rows (your "+(keep==="D"?"defense vs their offense":"offense")+"). ":"")+(ci.ptype<0?"• No PLAY TYPE (run/pass) column found · required. ":"");
@@ -1818,6 +1881,12 @@ function corpusDirOf(r){
 function corpusGapOf(r){ return String((r&&(r.gap||r.GAP))||"").trim(); }
 function corpusPassZoneOf(r){ return String((r&&(r.passZone||r.pass_zone))||"").trim(); }
 function corpusOffStrOf(r){ return String((r&&(r.offStrength||r.off_strength))||"").trim(); }
+function corpusBlank(v){ return v==null || String(v).trim()===""; }
+function corpusPlayIndexOf(r){
+  if(!r || r.play_index==null || r.play_index==="") return null;
+  const n=+r.play_index;
+  return isNaN(n)?null:n;
+}
 function corpusSnapId(r){
   if(!r) return "";
   return String(r.id||r.snap_id||r.snapId||"").trim();
@@ -1878,7 +1947,11 @@ function hydrateCorpusFromSeason(corpus, seasonRows){
     const needGap=!corpusGapOf(c);
     const needPz=!corpusPassZoneOf(c);
     const needStr=!corpusOffStrOf(c);
-    if(!needDir&&!needGap&&!needPz&&!needStr) return c;
+    const needPlay=corpusBlank(c.play);
+    const needResult=corpusBlank(c.result);
+    const needQtr=corpusBlank(c.qtr);
+    const needIdx=corpusPlayIndexOf(c)==null;
+    if(!needDir&&!needGap&&!needPz&&!needStr&&!needPlay&&!needResult&&!needQtr&&!needIdx) return c;
     let hit=null;
     const id=corpusSnapId(c);
     if(id&&byId[id]){
@@ -1899,6 +1972,10 @@ function hydrateCorpusFromSeason(corpus, seasonRows){
     if(needGap&&corpusGapOf(hit)) out.gap=corpusGapOf(hit);
     if(needPz&&corpusPassZoneOf(hit)) out.passZone=corpusPassZoneOf(hit);
     if(needStr&&corpusOffStrOf(hit)) out.offStrength=corpusOffStrOf(hit);
+    if(needPlay&&!corpusBlank(hit.play)) out.play=String(hit.play).trim();
+    if(needResult&&!corpusBlank(hit.result)) out.result=String(hit.result).trim();
+    if(needQtr&&!corpusBlank(hit.qtr)) out.qtr=hit.qtr;
+    if(needIdx&&corpusPlayIndexOf(hit)!=null) out.play_index=corpusPlayIndexOf(hit);
     return out;
   });
 }
@@ -2789,6 +2866,7 @@ function updateDatBadge(){
   const nGames=uniq(def.concat(off).map(r=>r.date)).filter(Boolean).length;
   const oppBit=(sit.opp&&sit.opp!=="ANY")?(" \u00B7 "+sit.opp):"";
   el.textContent=def.length+" D \u00B7 "+off.length+" O \u00B7 "+nGames+" games"+oppBit;
+  try{ paintScoutExtras(); }catch(eBadge){}
 }
 function runShare(rows){ const r=rows.filter(x=>/run/i.test(x.playType)); return rows.length?r.length/rows.length:0; }
 function refreshView(){
@@ -2801,6 +2879,35 @@ function refreshView(){
   else if(CURRENT_VIEW==="practice")renderPractice();
   else if(CURRENT_VIEW==="pick"){ try{ if(window.OFFGRD_GAMEDAY_PIN) OFFGRD_GAMEDAY_PIN.renderPicker(); }catch(ePk){} }
   else render();
+  try{ paintScoutExtras(); }catch(eSx){}
+}
+let _tellsScrolled=false;
+if(!window._offgrdJumpBound){
+  window._offgrdJumpBound=true;
+  document.addEventListener("click",function(ev){
+    var b=ev.target&&ev.target.closest?ev.target.closest("[data-jump]"):null;
+    if(!b) return;
+    var el=document.getElementById(b.getAttribute("data-jump"));
+    if(el&&el.scrollIntoView) el.scrollIntoView({block:"start"});
+  });
+}
+function paintScoutExtras(){
+  if(typeof CURRENT_VIEW!=="undefined" && CURRENT_VIEW!=="scout") return;
+  var seq=document.getElementById("offgrd-seq");
+  var tells=document.getElementById("offgrd-tells");
+  if(seq && window.OFFGRD_TENDENCIES && OFFGRD_TENDENCIES.mountSequence){
+    var rows=(typeof scopedOppRows==="function")?scopedOppRows("off"):[];
+    OFFGRD_TENDENCIES.mountSequence(seq, rows);
+  }
+  if(tells && window.OFFGRD_SELF_TELLS && OFFGRD_SELF_TELLS.mount){
+    OFFGRD_SELF_TELLS.mount(tells);
+  }
+  try{
+    if(!_tellsScrolled && tells && /[?&]panel=tells(?:&|$)/.test(location.search||"") && tells.scrollIntoView){
+      _tellsScrolled=true;
+      tells.scrollIntoView({block:"start"});
+    }
+  }catch(eDl){}
 }
 function setView(v){
   const Pin=window.OFFGRD_GAMEDAY_PIN;
@@ -7857,6 +7964,7 @@ const ALIASES={
   gap:["gap"],
   passZone:["pass zone","pass zon","passzone"],
   playnum:["play #","play#","play no","play number","play num","hudl play #"],
+  play_index:["play #","play#","play no","play number","play num","hudl play #","play index","play_index"],
   offStructure:["off structure","off. structure","offensive structure","structure"],
   offBackfield:["off backfield","offensive backfield"],
   offBackCount:["off back count","off backcount","back count","backs"],
@@ -7996,6 +8104,7 @@ function parseCSV(text,forceKeep){
       presnapSafeties:at(c,"presnapSafeties"),
       result:at(c,"result"),
       playNum:playNum,
+      play_index:playNum,
       defense_response:at(c,"defense_response"),
       formTag:at(c,"formTag"),
       gap:at(c,"gap"),
@@ -8115,7 +8224,7 @@ function ensureXLSX(cb){
   if(window.XLSX) return cb();
   const tryLoad=(src,onFail)=>{ const s=document.createElement("script"); s.src=src; s.onload=()=>cb(); s.onerror=onFail; document.head.appendChild(s); };
   /* local (vendored, works offline) first; CDN as fallback */
-  tryLoad("xlsx.full.min.js?v=378", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
+  tryLoad("xlsx.full.min.js?v=379", ()=>tryLoad("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", ()=>cb("noload")));
 }
 /* Excel coerces Hudl DEF FRONT "4-3"→Apr 3→"3-Apr". Reverse locale month-day labels. */
 function normalizeDefFront(value){
@@ -9028,9 +9137,9 @@ try{
   });
 }catch(e6){}
 </script>
-<script type="module" src="OFFGRD-account.js?v=378"></script>
-<script src="OFFGRD-role-gate.js?v=378"></script>
-<script src="OFFGRD-mobile.js?v=378"></script>
+<script type="module" src="OFFGRD-account.js?v=379"></script>
+<script src="OFFGRD-role-gate.js?v=379"></script>
+<script src="OFFGRD-mobile.js?v=379"></script>
 <script>
 /* Sideline airplane survival: host sends Cache-Control max-age=0 - SW caches
    shell + first-party assets on install so cold-boot works offline.
@@ -9039,7 +9148,7 @@ try{
    install+warm must happen in the same surface you reopen offline. */
 (function(){
   if(!("serviceWorker" in navigator)) return;
-  var swUrl = "offgrd-sw.js?v=378";
+  var swUrl = "offgrd-sw.js?v=379";
   try{
     navigator.serviceWorker.register(swUrl, { scope: "./", updateViaCache: "none" }).then(function(reg){
       try{ if(reg && reg.update) reg.update(); }catch(e0){}

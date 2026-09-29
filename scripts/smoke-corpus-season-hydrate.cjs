@@ -162,4 +162,19 @@ for (let i = 0; i < 40; i++) full.push({ opponent: "Hazelwood East", side: "def"
 ok(lags(full, games, "def") === false, "matching library counts are not a lag");
 ok(lags(full, [{ opponent: "Hazelwood East", week: "Live 2026-09-18", side: "def", source: "live_call", rows: new Array(12) }], "def") === false, "a live log does not make the corpus old");
 
+const seq = H(
+  [{ id: "s1", opponent: "Hazelwood East", side: "off", down: 1, distance: 10, playType: "Pass", formation: "3x1 wing", gain: 8, hash: "L", play: "", result: "", qtr: null, direction: "L" }],
+  [{ id: "s1", opponent: "Hazelwood East", side: "off", down: 1, distance: 10, playType: "Pass", formation: "3x1 wing", gain: 8, hash: "L", play: "MESH", result: "Complete", qtr: "1", play_index: 14, direction: "R" }]
+);
+ok(seq[0].play === "MESH", "hydrate copies OFF PLAY");
+ok(seq[0].result === "Complete", "hydrate copies RESULT");
+ok(String(seq[0].qtr) === "1", "hydrate copies QTR");
+ok(seq[0].play_index === 14, "hydrate copies PLAY #");
+ok(seq[0].direction === "L", "sequence fill does not overwrite a corpus direction");
+const keptIdx = H(
+  [{ id: "s1", opponent: "Hazelwood East", side: "off", down: 1, distance: 10, playType: "Run", formation: "PRO", gain: 3, play_index: 4, play: "ZONE", result: "Rush", qtr: 2 }],
+  [{ id: "s1", opponent: "Hazelwood East", side: "off", down: 1, distance: 10, playType: "Run", formation: "PRO", gain: 3, play_index: 9, play: "OTHER", result: "Other", qtr: 4 }]
+);
+ok(keptIdx[0].play_index === 4 && keptIdx[0].play === "ZONE" && keptIdx[0].result === "Rush" && String(keptIdx[0].qtr) === "2", "does not overwrite a corpus play #");
+
 console.log("ok: corpus-season-hydrate");

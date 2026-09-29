@@ -82,6 +82,20 @@ check("scout stores MOT ADJ", scout[0] && scout[0].defense_response === "PASS OF
 check("scout stores FORM TAG", scout[0] && scout[0].formTag === "TIGHT");
 check("scout stores GAP + PASS ZONE", scout[0] && scout[0].gap === "A" && scout[0].passZone === "CURL");
 
+const hudlCsv = [
+  "PLAY #,QTR,RESULT,OFF PLAY,ODK,PLAY TYPE,GN/LS,OFF FORM",
+  "1,1,Rush,INSIDE ZONE,O,Run,4,3x1 wing",
+  "2,1,Complete,MESH,O,Pass,8,2x2",
+  "3,1,Punt,PUNT,K,Special,0,",
+  "4,1,Rush,POWER,D,Run,2,PRO",
+].join("\n");
+const hudl = sandbox.parseScout(hudlCsv, "O");
+check("hudl PLAY # stays", hudl[0] && hudl[0].play_index === 1 && hudl[1] && hudl[1].play_index === 2);
+check("hudl QTR stays", hudl[0] && String(hudl[0].qtr) === "1");
+check("hudl RESULT stays", hudl[0] && hudl[0].result === "Rush" && hudl[1].result === "Complete");
+check("hudl OFF PLAY stays", hudl[0] && hudl[0].play === "INSIDE ZONE" && hudl[1].play === "MESH");
+check("offense keep drops K and D", hudl.length === 2);
+
 const defCsv = [
   "ODK,COVERAGE,FRONT,MOT ADJ,FORM TAG,GAP,PASS ZONE,FORMATION",
   "O,Cover 3,4-3,MAN FOLLOW,FLEXED H,B,HOOK,RED 40",

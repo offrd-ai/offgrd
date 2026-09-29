@@ -2056,6 +2056,26 @@ export const Cloud = {
       pass_zone: ["pass zone", "pass zon", "passzone"],
       result: ["result", "play result", "outcome"],
       blitz: ["blitz", "pressure type", "def blitz", "blitz/stunt", "blitz call"],
+      play_index: [
+        "play #",
+        "play#",
+        "play number",
+        "play no",
+        "play num",
+        "hudl play #",
+        "play index",
+        "play_index",
+      ],
+      play: [
+        "off play",
+        "off. play",
+        "offensive play",
+        "play name",
+        "concept",
+        "o play",
+        "play call",
+        "playcall",
+      ],
     });
     if (!blitz) {
       const rawBlitz = String(rawPick.blitz || "").trim();
@@ -2073,10 +2093,22 @@ export const Cloud = {
     );
     const gap = String(s.gap || rawPick.gap || "").trim();
     let qtr = null;
-    if (rawPick.qtr != null && String(rawPick.qtr).trim() !== "") {
-      const qn = parseInt(String(rawPick.qtr).replace(/[^0-9]/g, ""), 10);
+    const qSrc =
+      s.qtr != null && String(s.qtr).trim() !== "" ? s.qtr : rawPick.qtr;
+    if (qSrc != null && String(qSrc).trim() !== "") {
+      const qn = parseInt(String(qSrc).replace(/[^0-9]/g, ""), 10);
       if (!isNaN(qn)) qtr = qn;
     }
+    let playIndex = null;
+    const piSrc =
+      s.play_index != null && String(s.play_index).trim() !== ""
+        ? s.play_index
+        : rawPick.play_index;
+    if (piSrc != null && String(piSrc).trim() !== "") {
+      const pn = parseInt(String(piSrc).replace(/[^0-9-]/g, ""), 10);
+      if (!isNaN(pn)) playIndex = pn;
+    }
+    const playName = (s.play && String(s.play).trim()) || rawPick.play || "";
     const series = rawPick.series || "";
     const personnel =
       (s.off_personnel && String(s.off_personnel).trim()) ||
@@ -2123,7 +2155,8 @@ export const Cloud = {
       pressure: pressure,
       blitz: blitz,
       playType: s.play_type || "",
-      play: s.play || "",
+      play: playName,
+      play_index: playIndex,
       result: (s.result && String(s.result).trim()) || rawPick.result || "",
       formation: s.formation || "",
       formation_family: s.formation_family || "",

@@ -623,9 +623,312 @@
     return built;
   }
 
+  /* Sequence slices — pure. Caller passes one side of one opponent. No storage. */
+  var EXPLOSIVE_RUN = 10;
+  var EXPLOSIVE_PASS = 15;
+  var SAMPLE_FLOOR = 4;
+  var DRIVE_ENDERS = ["td", "punt", "int", "interception", "fumble lost", "turnover", "downs", "fg", "field goal"];
+  var TURNOVER_ENDERS = ["int", "interception", "fumble lost", "turnover"];
+  var SLICE_LABEL = {
+    AFTER_EXPLOSIVE: "After Explosive",
+    AFTER_NEGATIVE: "After Negative",
+    FIRST_OF_DRIVE: "1st of Drive",
+    SUDDEN_CHANGE: "Sudden Change"
+  };
+
+  function playIndexOf(r) {
+    if (!r || r.play_index == null || r.play_index === "") return null;
+    var n = +r.play_index;
+    return isNaN(n) ? null : n;
+  }
+  function qtrOf(r) {
+    if (!r || r.qtr == null || String(r.qtr).trim() === "") return null;
+    var digits = String(r.qtr).replace(/[^0-9]/g, "");
+    if (!digits) return null;
+    var n = +digits;
+    return isNaN(n) ? null : n;
+  }
+  function gameKeyOf(r) {
+    if (r.gameId || r.game_id) return String(r.gameId || r.game_id);
+    return String(r.date || "") + "|" + String(r.opponent || "");
+  }
+  function gainOf(r) {
+    if (!r || r.gain == null || r.gain === "") return null;
+    var g = +r.gain;
+    return isNaN(g) ? null : g;
+  }
+  function rpOf(r) {
+    var t = String((r && (r.playType || r.play_type)) || "").toLowerCase();
+    if (t.indexOf("pass") >= 0) return "pass";
+    if (t.indexOf("run") >= 0 || t.indexOf("rush") >= 0) return "run";
+    return "";
+  }
+  function callNameOf(r) {
+    var p = r.play != null ? r.play : (r.offPlay != null ? r.offPlay : r.call);
+    return String(p == null ? "" : p).trim();
+  }
+  function resultHas(result, tokens) {
+    var s = String(result || "").toLowerCase();
+    if (!s) return false;
+    for (var i = 0; i < tokens.length; i++) {
+      if (s.indexOf(tokens[i]) >= 0) return true;
+    }
+    return false;
+  }
+  function isExplosivePlay(r) {
+    var g = gainOf(r);
+    if (g == null) return false;
+    var k = rpOf(r);
+    if (k === "pass") return g >= EXPLOSIVE_PASS;
+    if (k === "run") return g >= EXPLOSIVE_RUN;
+    return false;
+  }
+  function isNegativePlay(r) {
+    var g = gainOf(r);
+    return g != null && g < 0;
+  }
+  function thinOf(n) {
+    if (n == null) return false;
+    var SR = root.OFFGRD_SCOUT_REPORT;
+    if (SR && typeof SR.confLevel === "function") {
+      var c = SR.confLevel(n);
+      return !!(c && c.thin);
+    }
+    return false;
+  }
+  function topCallsOf(rows) {
+    var tally = {};
+    (rows || []).forEach(function (r) {
+      var name = callNameOf(r);
+      if (!name) return;
+      tally[name] = (tally[name] || 0) + 1;
+    });
+    return Object.keys(tally).map(function (k) { return { name: k, n: tally[k] }; })
+      .sort(function (a, b) { return b.n - a.n || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); })
+      .slice(0, 3);
+  }
+  function leanOf(rows) {
+    var run = 0, pass = 0;
+    (rows || []).forEach(function (r) {
+      var k = rpOf(r);
+      if (k === "run") run++;
+      else if (k === "pass") pass++;
+    });
+    var n = (rows || []).length;
+    return {
+      runPct: n ? run / n : 0,
+      passPct: n ? pass / n : 0,
+      lean: run === pass ? "Even" : (run > pass ? "Run" : "Pass")
+    };
+  }
+  function successRateOf(rows) {
+    var hit = 0, tot = 0;
+    (rows || []).forEach(function (r) {
+      var s = isSuccess(r.down, r.distance, r.gain);
+      if (s === true) { hit++; tot++; }
+      else if (s === false) tot++;
+    });
+    return tot ? hit / tot : null;
+  }
+  function decorateSlice(id, members, corpus, setAside) {
+    var n = members.length;
+    var excluded = corpus - setAside - n;
+    var sampleOnly = n < SAMPLE_FLOOR;
+    var stats = leanOf(members);
+    return {
+      id: id,
+      label: SLICE_LABEL[id] || id,
+      n: n,
+      runPct: sampleOnly ? null : stats.runPct,
+      passPct: sampleOnly ? null : stats.passPct,
+      lean: sampleOnly ? null : stats.lean,
+      topCalls: topCallsOf(members),
+      successPct: sampleOnly ? null : successRateOf(members),
+      sampleOnly: sampleOnly,
+      thin: sampleOnly || thinOf(n),
+      setAside: setAside,
+      excluded: excluded,
+      corpus: corpus,
+      refused: false,
+      needsResult: false,
+      hint: sampleOnly ? (n + " play" + (n === 1 ? "" : "s") + " — too few to lean") : "",
+      reconciles: n + excluded + setAside === corpus
+    };
+  }
+  function refusedSlice(id, corpus, setAside) {
+    return {
+      id: id,
+      label: SLICE_LABEL[id] || id,
+      n: null,
+      runPct: null,
+      passPct: null,
+      lean: null,
+      topCalls: [],
+      successPct: null,
+      sampleOnly: false,
+      thin: false,
+      setAside: setAside,
+      excluded: null,
+      corpus: corpus,
+      refused: true,
+      needsResult: true,
+      hint: "needs RESULT charting",
+      reconciles: true
+    };
+  }
+
+  function computeSequences(rows) {
+    var input = rows || [];
+    var corpus = input.length;
+    var ordered = [];
+    var setAside = 0;
+    input.forEach(function (r) {
+      if (playIndexOf(r) == null || qtrOf(r) == null) setAside++;
+      else ordered.push(r);
+    });
+    ordered.sort(function (a, b) {
+      var ga = gameKeyOf(a), gb = gameKeyOf(b);
+      if (ga < gb) return -1;
+      if (ga > gb) return 1;
+      var qa = qtrOf(a), qb = qtrOf(b);
+      if (qa !== qb) return qa - qb;
+      return playIndexOf(a) - playIndexOf(b);
+    });
+    var byGame = {};
+    var gameOrder = [];
+    ordered.forEach(function (r) {
+      var k = gameKeyOf(r);
+      if (!byGame[k]) { byGame[k] = []; gameOrder.push(k); }
+      byGame[k].push(r);
+    });
+    var anyBoundary = false;
+    gameOrder.forEach(function (k) {
+      var g = byGame[k];
+      var bounds = 0;
+      g.forEach(function (r) { if (resultHas(r.result, DRIVE_ENDERS)) bounds++; });
+      g._bounds = bounds;
+      if (bounds > 0) anyBoundary = true;
+    });
+    var afterExp = [], afterNeg = [], first = [], sudden = [];
+    gameOrder.forEach(function (k) {
+      var g = byGame[k];
+      for (var i = 0; i < g.length; i++) {
+        if (i > 0 && isExplosivePlay(g[i - 1])) afterExp.push(g[i]);
+        if (i > 0 && isNegativePlay(g[i - 1])) afterNeg.push(g[i]);
+        if (g._bounds > 0) {
+          if (i === 0 || resultHas(g[i - 1].result, DRIVE_ENDERS)) first.push(g[i]);
+          if (i > 0 && resultHas(g[i - 1].result, TURNOVER_ENDERS)) sudden.push(g[i]);
+        }
+      }
+    });
+    return {
+      corpus: corpus,
+      setAside: setAside,
+      ordered: ordered.length,
+      slices: {
+        AFTER_EXPLOSIVE: decorateSlice("AFTER_EXPLOSIVE", afterExp, corpus, setAside),
+        AFTER_NEGATIVE: decorateSlice("AFTER_NEGATIVE", afterNeg, corpus, setAside),
+        FIRST_OF_DRIVE: anyBoundary ? decorateSlice("FIRST_OF_DRIVE", first, corpus, setAside) : refusedSlice("FIRST_OF_DRIVE", corpus, setAside),
+        SUDDEN_CHANGE: anyBoundary ? decorateSlice("SUDDEN_CHANGE", sudden, corpus, setAside) : refusedSlice("SUDDEN_CHANGE", corpus, setAside)
+      }
+    };
+  }
+
+  function pctOf(x) {
+    return Math.round((x || 0) * 100);
+  }
+  function callListHtml(calls, n) {
+    if (!calls || !calls.length || !n) return "";
+    var h = '<div class="yt-kicker">Top calls</div><ol class="yt-calls">';
+    calls.forEach(function (c, i) {
+      var share = Math.round(100 * c.n / n);
+      h += '<li><span class="yt-rank">' + (i + 1) + '</span><span class="yt-call">' + esc(c.name) + '</span><span class="yt-share">' + share + "%</span></li>";
+    });
+    return h + "</ol>";
+  }
+  function sequenceCardHtml(sl, rep) {
+    var unordered = !!(rep && rep.corpus > 0 && rep.setAside === rep.corpus);
+    var side = (!unordered && !sl.refused && !sl.sampleOnly && (sl.lean === "Run" || sl.lean === "Pass")) ? sl.lean.toLowerCase() : "";
+    var h = '<article class="yt-card' + (unordered || sl.refused || sl.sampleOnly ? " is-empty" : "") + (side ? (" is-" + side) : "") + '">';
+    h += '<header class="yt-card-h"><span class="yt-title">' + esc(sl.label) + "</span>";
+    if (sl.thin && sl.n > 0 && !sl.refused && !unordered) h += '<span class="yt-thin">THIN</span>';
+    if (!sl.refused && !sl.sampleOnly && !unordered) h += '<span class="yt-n">' + sl.n + " plays</span>";
+    h += "</header>";
+    if (unordered) {
+      h += '<p class="yt-muted">Order unknown</p>';
+      h += "</article>";
+      return h;
+    }
+    if (sl.refused) {
+      h += '<p class="yt-muted">Needs result charting</p>';
+      h += '<p class="yt-sub">The result has to say punt, TD, turnover, downs, or field goal.</p>';
+      h += "</article>";
+      return h;
+    }
+    if (sl.sampleOnly) {
+      h += '<p class="yt-muted">' + esc(sl.n === 0 ? "No plays in this spot" : sl.hint) + "</p>";
+      h += "</article>";
+      return h;
+    }
+    var lean = sl.lean === "Run" ? "Run leaning" : sl.lean === "Pass" ? "Pass leaning" : "Balanced";
+    h += '<div class="yt-lean">' + lean + "</div>";
+    if (sl.lean === "Even") {
+      h += '<div class="yt-pair"><div class="is-run"><b>' + pctOf(sl.runPct) + '%</b><span>run</span></div><div class="is-pass"><b>' + pctOf(sl.passPct) + '%</b><span>pass</span></div></div>';
+    } else {
+      var headline = sl.lean === "Pass" ? sl.passPct : sl.runPct;
+      var side = sl.lean === "Pass" ? "pass" : "run";
+      h += '<div class="yt-big">' + pctOf(headline) + "<span>%</span></div>";
+      h += '<div class="yt-sub">' + side + " · " + pctOf(sl.runPct) + "% run · " + pctOf(sl.passPct) + "% pass</div>";
+    }
+    h += callListHtml(sl.topCalls, sl.n);
+    h += "</article>";
+    return h;
+  }
+
+  function sequenceLead(rep, title) {
+    var own = title === "Your sequence";
+    if (!rep || !rep.corpus) return own ? "No own-offense snaps in this scope." : "No opponent offense snaps in this scope.";
+    if (rep.setAside === rep.corpus) {
+      return "These snaps have no play # or quarter, so the order is unknown. Re-import that file and this fills in.";
+    }
+    var bits = own
+      ? "What you call next, after a big gain or a loss."
+      : "What they call next, after a big gain, a loss, a new drive, or a turnover.";
+    if (rep.setAside > 0) bits += " " + rep.setAside + (rep.setAside === 1 ? " snap left out" : " snaps left out") + " — no play # or quarter.";
+    return bits;
+  }
+
+  function sequenceHtml(rep, title) {
+    var name = title || "Opponent sequence";
+    var order = name === "Your sequence"
+      ? ["AFTER_EXPLOSIVE", "AFTER_NEGATIVE"]
+      : ["AFTER_EXPLOSIVE", "AFTER_NEGATIVE", "FIRST_OF_DRIVE", "SUDDEN_CHANGE"];
+    var h = '<div class="lbl">' + esc(name) + '</div><p class="yt-lead">' + esc(sequenceLead(rep, name)) + '</p><div class="yt-grid">';
+    order.forEach(function (id) {
+      var sl = rep && rep.slices && rep.slices[id];
+      if (sl) h += sequenceCardHtml(sl, rep);
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function mountSequence(host, rows) {
+    if (!host) return null;
+    var rep = computeSequences(rows || []);
+    host.innerHTML = sequenceHtml(rep);
+    return rep;
+  }
+
   root.OFFGRD_TENDENCIES = {
     isTendency, distBucket, filterRows, fieldDist, pressureRate, blitzRate, runShare,
     ddMatrix, blitzByPersDd, runPassByFormation, runPassByDd, runByDirection, summaryTile,
-    buildReportHtml, injectInto, printReport, publishSnapshot, defPersGroup, hashLane
+    buildReportHtml, injectInto, printReport, publishSnapshot, defPersGroup, hashLane,
+    EXPLOSIVE_RUN: EXPLOSIVE_RUN,
+    EXPLOSIVE_PASS: EXPLOSIVE_PASS,
+    SAMPLE_FLOOR: SAMPLE_FLOOR,
+    DRIVE_ENDERS: DRIVE_ENDERS,
+    computeSequences: computeSequences,
+    sequenceHtml: sequenceHtml,
+    mountSequence: mountSequence
   };
 })(typeof window !== "undefined" ? window : globalThis);

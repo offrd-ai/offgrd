@@ -183,6 +183,28 @@ ok(typedCol.direction === "L", "typed play_dir survives empty raw: " + typedCol.
 ok(typedCol.gap === "B", "typed gap survives empty raw");
 ok(typedCol.passZone === "Deep Left", "typed pass_zone survives empty raw");
 ok(typedCol.offStrength === "right", "typed off_strength survives empty raw");
+const seqCol = Cloud.scoutSnapToRow({
+  play_type: "Pass",
+  play: "MESH",
+  play_index: 14,
+  qtr: 1,
+  result: "Complete",
+  raw: { "PLAY #": "99", "OFF PLAY": "ZONE", QTR: "4", RESULT: "Rush" },
+});
+ok(seqCol.play_index === 14, "typed play_index wins over raw PLAY #: " + seqCol.play_index);
+ok(seqCol.play === "MESH", "typed play wins over raw OFF PLAY");
+ok(seqCol.qtr === 1, "typed qtr wins over raw");
+ok(seqCol.result === "Complete", "typed result wins");
+const rawSeq = Cloud.scoutSnapToRow({
+  play_type: "Run",
+  snap_index: 0,
+  raw: { "PLAY #": "7", "OFF PLAY": "INSIDE ZONE", QTR: "2", RESULT: "Rush" },
+});
+ok(rawSeq.play_index === 7, "raw PLAY # becomes play_index: " + rawSeq.play_index);
+ok(rawSeq.play === "INSIDE ZONE", "raw OFF PLAY becomes play");
+ok(rawSeq.qtr === 2, "raw QTR becomes qtr");
+ok(rawSeq.result === "Rush", "raw RESULT becomes result");
+ok(rawSeq.play_index !== rawSeq.snap_index, "snap_index is not used as play #");
 const seasonShaped = Cloud.scoutSnapToRow({
   play_type: "Run",
   direction: "R",
