@@ -912,10 +912,59 @@
     return h;
   }
 
+  function formationCardsHtml(rows, title) {
+    var buckets = Object.create(null);
+    var names = [];
+    (rows || []).forEach(function (r) {
+      var name = String((r && r.formation) || "").trim() || "Untagged";
+      if (!buckets[name]) {
+        buckets[name] = [];
+        names.push(name);
+      }
+      buckets[name].push(r);
+    });
+    if (!names.length) return "";
+    names.sort(function (a, b) { return buckets[b].length - buckets[a].length || (a < b ? -1 : 1); });
+    var shown = names.slice(0, 12);
+    var h = '<div class="lbl">' + esc(title || "Formations") + "</div>";
+    h += '<p class="yt-lead">What they call from each formation. The big number is the lean. The count is on the card.</p><div class="yt-grid">';
+    shown.forEach(function (name) {
+      var list = buckets[name];
+      var lean = leanOf(list);
+      var side = lean.lean === "Pass" ? "pass" : lean.lean === "Run" ? "run" : "";
+      var headline = lean.lean === "Pass" ? lean.passPct : lean.runPct;
+      var word = lean.lean === "Pass" ? "pass" : "run";
+      h += '<article class="yt-card' + (side ? " is-" + side : "") + '">';
+      h += '<header class="yt-card-h"><span class="yt-title">' + esc(name) + "</span>";
+      if (list.length < SAMPLE_FLOOR) h += '<span class="yt-thin">THIN</span>';
+      h += '<span class="yt-n">' + list.length + " plays</span></header>";
+      h += '<div class="yt-big">' + pctOf(headline) + "<span>%</span></div>";
+      h += '<div class="yt-sub">' + word + " · " + pctOf(lean.runPct) + "% run · " + pctOf(lean.passPct) + "% pass</div>";
+      h += callListHtml(topCallsOf(list), list.length);
+      h += "</article>";
+    });
+    h += "</div>";
+    if (names.length > shown.length) {
+      h += '<p class="yt-note">Also charted: ' + names.slice(shown.length).map(function (name) {
+        return esc(name) + " · " + buckets[name].length;
+      }).join(" · ") + "</p>";
+    }
+    return h;
+  }
+
   function mountSequence(host, rows) {
     if (!host) return null;
-    var rep = computeSequences(rows || []);
-    host.innerHTML = sequenceHtml(rep);
+    var list = rows || [];
+    var rep = computeSequences(list);
+    var opp = "";
+    list.some(function (r) {
+      if (r && r.opponent) {
+        opp = String(r.opponent).trim();
+        return true;
+      }
+      return false;
+    });
+    host.innerHTML = formationCardsHtml(list, opp ? opp + " formations" : "Formations") + sequenceHtml(rep);
     return rep;
   }
 
@@ -929,6 +978,7 @@
     DRIVE_ENDERS: DRIVE_ENDERS,
     computeSequences: computeSequences,
     sequenceHtml: sequenceHtml,
+    formationCardsHtml: formationCardsHtml,
     mountSequence: mountSequence
   };
 })(typeof window !== "undefined" ? window : globalThis);

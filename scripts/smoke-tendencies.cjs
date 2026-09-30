@@ -89,6 +89,17 @@ const rich = T.sequenceHtml(T.computeSequences(richRows));
 if (rich.indexOf("Pass leaning") < 0) throw new Error("six passes after explosives should read Pass leaning");
 if (rich.indexOf("VERTS") < 0 || rich.indexOf("%") < 0) throw new Error("top call should show a share");
 
+const formHtml = T.formationCardsHtml([
+  { opponent: "Parkway North", formation: "3x1", playType: "Run", play: "POWER", gain: 4 },
+  { opponent: "Parkway North", formation: "3x1", playType: "Run", play: "POWER", gain: 2 },
+  { opponent: "Parkway North", formation: "3x1", playType: "Pass", play: "MESH", gain: 8 },
+  { opponent: "Parkway North", formation: "Empty", playType: "Pass", play: "STICK", gain: 5 },
+], "Parkway North formations");
+if (formHtml.indexOf("Parkway North formations") < 0) throw new Error("formation cards should name the opponent");
+if (formHtml.indexOf("67%") < 0) throw new Error("3x1 should show the run lean without a play number");
+if (formHtml.indexOf("POWER") < 0) throw new Error("formation card should list the top call");
+if (formHtml.indexOf("Order unknown") >= 0) throw new Error("formation cards must not wait on play number");
+
 const src = fs.readFileSync(path.join(ROOT, "OFFGRD-tendencies.js"), "utf8");
 if (/fetch\s*\(/.test(src)) throw new Error("tendencies must not fetch");
 const leaked = src.split(/\n/).filter(function (line) {
