@@ -395,30 +395,27 @@ const sampleTombs = [
   { game_id: "b0ef2adf-3ac7-424c-9a41-482320c8cf9c", opponent: "Parkway North", week: "Wk?" },
 ];
 const idSet = Sync.tombstoneGameIdSet(sampleTombs);
-const nameSet = Sync.tombstoneOpenTestKeys(sampleTombs);
 check(
   "a tombstone game id matches that caller game",
-  Sync.eventMatchesTombstone({ gameId: soakId, payload: {} }, idSet, nameSet)
+  Sync.eventMatchesTombstone({ gameId: soakId, payload: {} }, idSet)
 );
 check(
-  "Soak Test 7 matches by name when the tombstone has no game id",
-  Sync.eventMatchesTombstone(
+  "a tombstone with no game id does not match by opponent name",
+  !Sync.eventMatchesTombstone(
     { gameId: "local-7", payload: { opponent: "Soak Test 7", date: "2026-09-28" } },
-    idSet,
-    nameSet
-  )
+    idSet
+  ) && typeof Sync.tombstoneOpenTestKeys !== "function"
 );
 check(
-  "Parkway North does not match by opponent name",
+  "Parkway North does not match unless its game id is the tombstone",
   !Sync.eventMatchesTombstone(
     { gameId: "real-north", payload: { opponent: "Parkway North", date: "2026-10-02" } },
-    idSet,
-    nameSet
+    idSet
   )
 );
 check(
   "an unknown tombstone pull matches nothing",
-  !Sync.eventMatchesTombstone({ gameId: soakId, payload: { opponent: "TEST SOAK 4", date: "2026-09-21" } }, null, null)
+  !Sync.eventMatchesTombstone({ gameId: soakId, payload: { opponent: "TEST SOAK 4", date: "2026-09-21" } }, null)
 );
 const syncSrc = fs.readFileSync(path.join(root, "OFFGRD-caller-sync.js"), "utf8");
 check(
