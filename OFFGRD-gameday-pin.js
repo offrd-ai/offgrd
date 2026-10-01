@@ -225,7 +225,7 @@
     if (!J || !J.eventsForGame || !gameId) return 0;
     var n = 0;
     (J.eventsForGame(gameId) || []).forEach(function (r) {
-      if (!isLedgerRow(r)) return;
+      if (!isLedgerRow(r) || r.superseded) return;
       if (side && r.side && r.side !== side) return;
       var s = r.side === "defense" ? "defense" : "offense";
       if (Sync && Sync.isSynced && Sync.isSynced(s, r.eventId)) return;
@@ -239,7 +239,7 @@
     if (!J || !J.allRows) return [];
     var by = Object.create(null);
     (J.allRows() || []).forEach(function (r) {
-      if (!r || !r.gameId || !isLedgerRow(r)) return;
+      if (!r || !r.gameId || r.superseded || !isLedgerRow(r)) return;
       var id = String(r.gameId);
       if (!by[id]) by[id] = [];
       by[id].push(r);

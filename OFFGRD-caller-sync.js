@@ -435,9 +435,12 @@
   }
 
   function pendingEvents(side, events) {
+    var J = global.OFFGRD_CALLER_JOURNAL;
     var out = [];
     (events || []).forEach(function (e) {
-      if (e && e.eventId && !isSynced(side, e.eventId) && !isHeld(side, e.eventId) && eventToSyncRow(e, null)) {
+      if (!e || !e.eventId || e.superseded) return;
+      if (J && J.isSuperseded && J.isSuperseded(e.eventId)) return;
+      if (!isSynced(side, e.eventId) && !isHeld(side, e.eventId) && eventToSyncRow(e, null)) {
         out.push(e);
       }
     });
@@ -585,6 +588,76 @@
     return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
   }
 
+  function tombstoneGameIdSet(rows) {
+    var set = Object.create(null);
+    (rows || []).forEach(function (t) {
+      if (t && t.game_id) set[String(t.game_id)] = 1;
+    });
+    return set;
+  }
+
+  /* A tombstone with no game id cannot be matched to a caller uuid.
+     Only an obvious soak / notify-test name is matched by opponent + week.
+     A named opponent stays until its game id is on the tombstone. */
+  function tombstoneOpenTestKeys(rows) {
+    var set = Object.create(null);
+    (rows || []).forEach(function (t) {
+      if (!t || t.game_id) return;
+      var opp = String(t.opponent || "").trim();
+      if (!/soak|notify test/i.test(opp)) return;
+      var week = String(t.week || "").trim().toLowerCase();
+      if (!week) return;
+      set[opp.toLowerCase() + "|" + week] = 1;
+    });
+    return set;
+  }
+
+  function eventTombstoneKey(e) {
+    var p = (e && e.payload) || {};
+    var opp = String(p.opponent || "").trim().toLowerCase();
+    var week = String(p.week || "").trim().toLowerCase();
+    if (!week) {
+      var date = p.date ? String(p.date).slice(0, 10) : "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) week = "live " + date;
+    }
+    if (!opp || !week) return "";
+    return opp + "|" + week;
+  }
+
+  function eventMatchesTombstone(e, idSet, nameSet) {
+    if (!e) return false;
+    if (e.gameId && idSet && idSet[String(e.gameId)]) return true;
+    var key = eventTombstoneKey(e);
+    return !!(key && nameSet && nameSet[key]);
+  }
+
+  function sessionTombstoneProbe(sess) {
+    sess = sess || {};
+    return {
+      gameId: sess.gameId || null,
+      payload: {
+        opponent: sess.opp || "",
+        week: sess.week || "",
+        date: sess.game_date || "",
+      },
+    };
+  }
+
+  function markTombstonedLocalGames(events, idSet, nameSet) {
+    var J = global.OFFGRD_CALLER_JOURNAL;
+    var doomed = Object.create(null);
+    function note(e) {
+      if (!eventMatchesTombstone(e, idSet, nameSet) || !e.gameId) return;
+      doomed[String(e.gameId)] = 1;
+    }
+    (events || []).forEach(note);
+    if (J && J.allRows) (J.allRows() || []).forEach(note);
+    Object.keys(doomed).forEach(function (gid) {
+      if (J && J.markGameSuperseded) J.markGameSuperseded(gid);
+    });
+    return doomed;
+  }
+
   /** Active games always. Archived games only when game_date (else updated_at) is within 14 days. */
   function gameInPullWindow(g, now) {
     if (!g || !g.id) return false;
@@ -702,6 +775,22 @@
     clearBackoff();
 
     var cloud = b.cloud;
+    var tombPull = { ok: false, rows: null };
+    if (cloud.listGameTombstonesResult) {
+      try {
+        tombPull = await cloud.listGameTombstonesResult(teamId);
+      } catch (eTomb) {
+        tombPull = { ok: false, rows: null };
+      }
+    }
+    var tombOk = !!(tombPull && tombPull.ok && Array.isArray(tombPull.rows));
+    var tombIds = tombOk ? tombstoneGameIdSet(tombPull.rows) : null;
+    var tombNames = tombOk ? tombstoneOpenTestKeys(tombPull.rows) : null;
+    if (tombOk) markTombstonedLocalGames(events, tombIds, tombNames);
+    if (tombOk && eventMatchesTombstone(sessionTombstoneProbe(sess), tombIds, tombNames)) {
+      return { ok: true, tombstoned: true, pushed: 0 };
+    }
+
     var game = null;
     if (cloud.ensureCallerGame) {
       game = await cloud.ensureCallerGame(teamId, {
@@ -759,10 +848,12 @@
     var gameId = sess.gameId;
     if (!gameId) return { ok: false, reason: "no-game" };
 
-    if (cloud.ensureCallerGameRow && events.length) {
+    if (tombOk && cloud.ensureCallerGameRow && events.length) {
       var orphanIds = Object.create(null);
       events.forEach(function (e) {
-        if (e && e.gameId && String(e.gameId) !== String(gameId)) orphanIds[e.gameId] = 1;
+        if (!e || !e.gameId || String(e.gameId) === String(gameId)) return;
+        if (eventMatchesTombstone(e, tombIds, tombNames)) return;
+        orphanIds[e.gameId] = 1;
       });
       var oids = Object.keys(orphanIds);
       for (var oi = 0; oi < oids.length; oi++) {
@@ -1025,6 +1116,9 @@
     appendIsolated: appendIsolated,
     ackIds: ackIds,
     gameInPullWindow: gameInPullWindow,
+    tombstoneGameIdSet: tombstoneGameIdSet,
+    tombstoneOpenTestKeys: tombstoneOpenTestKeys,
+    eventMatchesTombstone: eventMatchesTombstone,
     isRowFault: isRowFault,
     UPSERT_CHUNK: UPSERT_CHUNK,
     HELD_KEY: HELD_KEY,

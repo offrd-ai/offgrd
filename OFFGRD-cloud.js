@@ -898,6 +898,21 @@ export const Cloud = {
     }
     return data || [];
   },
+  /**
+   * Pull for the picker. ok:false is unknown — the caller must not treat it as
+   * an empty tombstone list. confirmedEmpty is a successful exact count of 0.
+   */
+  async listGameTombstonesResult(teamId) {
+    if (!OG || !teamId) return { ok: false, rows: null, confirmedEmpty: false };
+    const { data, error, count } = await OG.from("scouting_game_tombstones")
+      .select("id,game_id,opponent,week,side,reason", { count: "exact" })
+      .eq("team_id", teamId);
+    if (error || count == null) {
+      if (error) console.warn("[Cloud.listGameTombstonesResult]", error.message);
+      return { ok: false, rows: null, confirmedEmpty: false };
+    }
+    return { ok: true, rows: data || [], confirmedEmpty: count === 0 };
+  },
   async isGameTombstoned(teamId, game, tombs) {
     if (!teamId || !game) return false;
     const list = Array.isArray(tombs) ? tombs : await this.listGameTombstones(teamId);

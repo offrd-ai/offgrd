@@ -1,7 +1,9 @@
 /* OFFGRD caller journal — append-only ledger. Source of truth for O/D taps.
    IndexedDB primary; localStorage mirror written in the same tap turn so a
    force-quit cannot lose the row while IDB is still committing.
-   Rows are never updated or deleted. Clear / undo are new rows.
+   Rows are never updated or deleted, except the superseded flag: a pull that
+   proves the game id is tombstoned sets it in place. gameId is never rewritten.
+   Clear / undo are new rows.
    The localStorage "store" is a derived view rebuilt from this journal. */
 (function (global) {
   "use strict";
@@ -226,6 +228,7 @@
         (rows || []).forEach(function (r) {
           if (!r || !r.eventId) return;
           if (!mem[r.eventId]) mem[r.eventId] = r;
+          else if (r.superseded) mem[r.eventId].superseded = true;
         });
         persistLsMirror();
         return true;
@@ -277,6 +280,41 @@
     });
     if (n) persistLsMirror();
     return n;
+  }
+
+  function idbPutSuperseded(db, row) {
+    if (!db || !row) return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      try {
+        var tx = db.transaction(STORE, "readwrite");
+        tx.oncomplete = function () { resolve(true); };
+        tx.onerror = function () { resolve(false); };
+        tx.onabort = function () { resolve(false); };
+        tx.objectStore(STORE).put(row);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  /** Tombstone pull only. Sets the flag. Does not delete the row or change gameId. */
+  function markGameSuperseded(gameId) {
+    if (!gameId) return 0;
+    var n = 0;
+    Object.keys(mem).forEach(function (id) {
+      var r = mem[id];
+      if (!r || String(r.gameId) !== String(gameId) || r.superseded) return;
+      r.superseded = true;
+      n += 1;
+      if (idb) idbPutSuperseded(idb, r);
+    });
+    if (n) persistLsMirror();
+    return n;
+  }
+
+  function isSuperseded(eventId) {
+    var r = eventId ? mem[String(eventId)] : null;
+    return !!(r && r.superseded);
   }
 
   function adopt(events) {
@@ -679,6 +717,8 @@
     ready: ready,
     appendNow: appendNow,
     adopt: adopt,
+    markGameSuperseded: markGameSuperseded,
+    isSuperseded: isSuperseded,
     stampFallbackOpponent: stampFallbackOpponent,
     allRows: allRows,
     activeEvents: activeEvents,

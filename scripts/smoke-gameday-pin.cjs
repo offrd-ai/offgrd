@@ -336,6 +336,97 @@ check(
   !drained.some(function (g) { return g.opponent === "Hazelwood East"; })
 );
 
+const tomb = makeSandbox();
+load(tomb);
+const soakId = "c7c38b25-8d62-4f6e-8c9a-94aa754ff726";
+const tombRows = [
+  {
+    eventId: "soak-1",
+    gameId: soakId,
+    side: "offense",
+    type: "call",
+    payload: { opponent: "TEST SOAK 4", date: "2026-09-21" },
+    clientTs: Date.parse("2026-09-21T18:00:00Z"),
+    superseded: true,
+  },
+  {
+    eventId: "real-1",
+    gameId: southId,
+    side: "defense",
+    type: "call",
+    payload: { opponent: "Hazelwood East", date: "2026-09-25" },
+    clientTs: Date.parse("2026-09-25T23:00:00Z"),
+  },
+];
+tomb.OFFGRD_CALLER_JOURNAL = {
+  allRows: function () { return tombRows; },
+  eventsForGame: function (id) {
+    return tombRows.filter(function (r) { return r.gameId === id; });
+  },
+  isLedgerEvent: function (r) { return !!(r && r.eventId); },
+  snapRowsForGame: function () { return []; },
+  hydrateView: function () { return []; },
+};
+tomb.OFFGRD_CALLER_SYNC_ENGINE = { isSynced: function () { return false; } };
+tomb.SCHEDULE = [{ opponent: "Parkway North", date: "2026-10-02", ha: "A" }];
+const shown = tomb.OFFGRD_GAMEDAY_PIN.listGames(new Date(2026, 8, 30));
+check(
+  "a superseded soak card drops while its rows are still unacked",
+  !shown.some(function (g) { return g.opponent === "TEST SOAK 4"; })
+);
+check(
+  "an unacked real game stays on the card",
+  shown.some(function (g) { return g.opponent === "Hazelwood East" && g.queued === 1; })
+);
+
+const syncBox = {
+  console: console,
+  localStorage: ls(),
+  document: { addEventListener: function () {}, hidden: false, visibilityState: "visible" },
+  navigator: { onLine: true },
+};
+syncBox.window = syncBox;
+syncBox.globalThis = syncBox;
+vm.runInNewContext(fs.readFileSync(path.join(root, "OFFGRD-caller-sync.js"), "utf8"), syncBox);
+const Sync = syncBox.OFFGRD_CALLER_SYNC_ENGINE;
+const sampleTombs = [
+  { game_id: soakId, opponent: "TEST SOAK 4", week: "Live 2026-09-21" },
+  { game_id: null, opponent: "Soak Test 7", week: "Live 2026-09-28" },
+  { game_id: "b0ef2adf-3ac7-424c-9a41-482320c8cf9c", opponent: "Parkway North", week: "Wk?" },
+];
+const idSet = Sync.tombstoneGameIdSet(sampleTombs);
+const nameSet = Sync.tombstoneOpenTestKeys(sampleTombs);
+check(
+  "a tombstone game id matches that caller game",
+  Sync.eventMatchesTombstone({ gameId: soakId, payload: {} }, idSet, nameSet)
+);
+check(
+  "Soak Test 7 matches by name when the tombstone has no game id",
+  Sync.eventMatchesTombstone(
+    { gameId: "local-7", payload: { opponent: "Soak Test 7", date: "2026-09-28" } },
+    idSet,
+    nameSet
+  )
+);
+check(
+  "Parkway North does not match by opponent name",
+  !Sync.eventMatchesTombstone(
+    { gameId: "real-north", payload: { opponent: "Parkway North", date: "2026-10-02" } },
+    idSet,
+    nameSet
+  )
+);
+check(
+  "an unknown tombstone pull matches nothing",
+  !Sync.eventMatchesTombstone({ gameId: soakId, payload: { opponent: "TEST SOAK 4", date: "2026-09-21" } }, null, null)
+);
+const syncSrc = fs.readFileSync(path.join(root, "OFFGRD-caller-sync.js"), "utf8");
+check(
+  "pull reads tombstones before an orphan game can be inserted",
+  syncSrc.indexOf("listGameTombstonesResult") > 0 &&
+    syncSrc.indexOf("listGameTombstonesResult") < syncSrc.indexOf("ensureCallerGameRow")
+);
+
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");
   process.exit(1);

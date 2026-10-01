@@ -257,6 +257,36 @@ check("D hydrate is scoped by gameId", /hydrateView/.test(dc) && /applyPin/.test
 check("O ensureSession does not rotate", !/shouldRotateForOpponent/.test(html));
 check("D ensureSession does not rotate", !/shouldRotateForOpponent/.test(dc));
 
+J.appendNow({
+  eventId: "keep-real",
+  gameId: "576d2d63-fdbc-4f18-88d9-65819864f5da",
+  side: "defense",
+  type: "call",
+  payload: { opponent: "Hazelwood East" },
+  clientTs: 1,
+});
+J.appendNow({
+  eventId: "drop-soak",
+  gameId: "c7c38b25-8d62-4f6e-8c9a-94aa754ff726",
+  side: "offense",
+  type: "call",
+  payload: { opponent: "TEST SOAK 4" },
+  clientTs: 2,
+});
+check(
+  "tombstone mark flags the soak game only",
+  J.markGameSuperseded("c7c38b25-8d62-4f6e-8c9a-94aa754ff726") === 1
+);
+check(
+  "flagged row stays in the journal",
+  J.isSuperseded("drop-soak") && J.allRows().some(function (r) { return r.eventId === "drop-soak"; })
+);
+check(
+  "Hazelwood game id is not flagged",
+  !J.isSuperseded("keep-real")
+);
+check("flagging the same game again changes nothing", J.markGameSuperseded("c7c38b25-8d62-4f6e-8c9a-94aa754ff726") === 0);
+
 if (fails) {
   console.error(fails + " journal smoke(s) failed");
   process.exit(1);
