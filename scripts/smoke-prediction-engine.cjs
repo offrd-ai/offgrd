@@ -134,5 +134,75 @@ const ordered = E.orderCallerList({
 if (!ordered.hero || ordered.hero.play !== "HAMMER") throw new Error("orderCallerList hero");
 if (ordered.shortlist[0] !== ordered.list[0]) throw new Error("orderCallerList shortlist");
 if (ordered.hero.play !== ordered.shortlist[0].play) throw new Error("BEST NOW diverged");
+if (ordered.hero.engineExplain !== ordered.shortlist[0].engineExplain) throw new Error("BEST NOW text diverged");
+
+/* Own history is the full fold. Opponent scope stays on the book. Badge is rank()'s rung. */
+if (!/foldRows\(oursRaw, book\)/.test(html)) throw new Error("own history is not the unscoped fold");
+if (!/own:oursAll/.test(html)) throw new Error("engine own is not the full pool");
+if (/own:ours[,}\n]/.test(html)) throw new Error("engine still receives the opponent-scoped ours");
+if (!/baseMeta\.badge=ordered\.rungLabel/.test(html)) throw new Error("BEST NOW badge is not rank()'s rung");
+if (/badge=ordered\.prediction\.rungLabel/.test(html)) throw new Error("badge still quotes predict()");
+
+const bookThin = [];
+for (var bt = 0; bt < 8; bt++) bookThin.push({ down: 1, distance: 10, playType: "run", coverage: "Cover 0", opponent: "Hazelwood East" });
+const ownSeason = [];
+for (var hs = 0; hs < 13; hs++) ownSeason.push(snap("HAMMER", { down: 1, distance: 12, success: 1, gain: 8, coverage: "Cover 3", opponent: "Fox" }));
+for (var hf = 0; hf < 4; hf++) ownSeason.push(snap("HAMMER", { down: 1, distance: 12, success: 0, gain: 2, coverage: "Cover 3", opponent: "Ladue" }));
+const seasonOrder = E.orderCallerList({
+  context: { down: 1, dist: "10+" },
+  book: bookThin,
+  own: ownSeason,
+  entries: [
+    { play: "MEMPHIS", kind: "Pass", ev: 0.99, n: 0 },
+    { play: "HAMMER", kind: "Run", ev: 0.1, n: 2 }
+  ]
+});
+if (!seasonOrder.hero || seasonOrder.hero.play !== "HAMMER") throw new Error("full pool hero " + (seasonOrder.hero && seasonOrder.hero.play));
+if (seasonOrder.hero.n !== 17) throw new Error("full pool n " + seasonOrder.hero.n);
+if (!/76%/.test(seasonOrder.hero.engineLabel)) throw new Error("full pool label " + seasonOrder.hero.engineLabel);
+if (!/17 snaps/.test(seasonOrder.rungLabel)) throw new Error("badge is not rank n: " + seasonOrder.rungLabel);
+if (seasonOrder.rungLabel === seasonOrder.prediction.rungLabel) throw new Error("badge collapsed onto predict()");
+if (/8 snaps/.test(seasonOrder.rungLabel)) throw new Error("badge used the book n");
+
+/* Spec §9: BEST NOW text == shortlist row 1 on 20 situations. */
+function mulberry(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry(20261006);
+const sitDowns = [1, 2, 3, 4];
+const sitDists = ["1-3", "4-6", "7-9", "10+"];
+const sitPlays = ["HAMMER", "MIAMI", "ST LOUIS", "HOUSTON", "THUNDER", "POWER", "ISO", "MEMPHIS"];
+for (var sit = 0; sit < 20; sit++) {
+  var dist = sitDists[Math.floor(rand() * sitDists.length)];
+  var yards = dist === "1-3" ? 2 : dist === "4-6" ? 5 : dist === "7-9" ? 8 : 12;
+  var ctx = { down: sitDowns[Math.floor(rand() * sitDowns.length)], dist: dist, hash: rand() > 0.5 ? "L" : "", zone: rand() > 0.5 ? "PLUS" : "" };
+  var pool = [];
+  sitPlays.forEach(function (name, ni) {
+    var count = 2 + Math.floor(rand() * 14);
+    for (var k = 0; k < count; k++) {
+      pool.push(snap(name, {
+        down: ctx.down,
+        distance: yards,
+        success: rand() > (0.2 + ni * 0.04) ? 1 : 0,
+        gain: 3 + ni,
+        coverage: rand() > 0.75 ? "Cover 0" : "Cover 3",
+        opponent: rand() > 0.5 ? "Fox" : "Hazelwood East"
+      }));
+    }
+  });
+  var sitBook = [];
+  for (var sb = 0; sb < 6; sb++) sitBook.push({ down: ctx.down, distance: yards, playType: "pass", coverage: "Cover 0", opponent: "Hazelwood East" });
+  var sitRank = E.rank(ctx, pool, E.predict(ctx, sitBook), sitPlays.map(function (name, ni) {
+    return { name: name, kind: ni % 2 ? "Pass" : "Run", conceptScore: 0.9 - ni * 0.05 };
+  }));
+  if (sitRank.shortlist[0] !== sitRank.list[0]) throw new Error("situation " + sit + " shortlist diverged");
+  if (!sitRank.hero || sitRank.hero.explain !== sitRank.shortlist[0].explain) throw new Error("situation " + sit + " text diverged");
+}
 
 console.log("ok prediction engine");
