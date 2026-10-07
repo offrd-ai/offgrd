@@ -555,11 +555,16 @@
       }
       out.push(copy);
     });
+    var slice = ranked.slice || {};
     return {
       list: out,
       hero: out[0] || null,
       shortlist: out.slice(0, gates().SHORTLIST_MAX),
-      prediction: prediction
+      prediction: prediction,
+      rung: slice.rung,
+      widened: !!slice.widened,
+      sampleN: slice.n || 0,
+      rungLabel: slice.rungLabel || ""
     };
   }
 

@@ -6856,10 +6856,12 @@ function callerRankedCalls(){
     const liveBook=(Array.isArray(LIVE_SNAPS)?LIVE_SNAPS:[]).filter(function(r){
       return scopeOpp==="ANY"||(r&&r.opponent===scopeOpp);
     }).map(function(r){ return Object.assign({live:true}, r); });
+    /* H is every own snap, all opponents. scopeOpp stays on the book only. */
+    const oursAll=Dir&&Dir.foldRows?Dir.foldRows(oursRaw, book):oursRaw;
     const ordered=Eng.orderCallerList({
       context:{ down:+cs.dn, dist:dbF, hash:cs.hash, zone:cs.zone, formation:cs.formation||cs.form||"" },
       book:(ex.def||[]).concat(liveBook),
-      own:ours,
+      own:oursAll,
       entries:list,
       getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null
     });
@@ -6867,11 +6869,11 @@ function callerRankedCalls(){
       list=ordered.list;
       baseMeta.engine=true;
       baseMeta.enginePrediction=ordered.prediction||null;
-      if(ordered.prediction){
-        baseMeta.rung=ordered.prediction.rung;
-        baseMeta.widened=!!ordered.prediction.widened;
-        baseMeta.sampleN=ordered.prediction.n||0;
-        baseMeta.badge=ordered.prediction.rungLabel||baseMeta.badge;
+      if(ordered.rungLabel){
+        baseMeta.rung=ordered.rung;
+        baseMeta.widened=!!ordered.widened;
+        baseMeta.sampleN=ordered.sampleN||0;
+        baseMeta.badge=ordered.rungLabel;
       }
     }
   }
