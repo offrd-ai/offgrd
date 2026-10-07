@@ -2041,8 +2041,17 @@ async function tombstoneCloudGames(games, reason){
   try{ if(window.OFFGRD_LOAD_TOMBSTONES) await window.OFFGRD_LOAD_TOMBSTONES(teamId); }catch(e2){}
   return { mode:"cloud", errors:errors };
 }
+function isLiveLibraryGame(g){
+  if(!g) return false;
+  if(g.source==="live_call") return true;
+  return /^live\b/i.test(String(g.week||""));
+}
+function isLiveCallerSession(){
+  return /^live\b/i.test(String(callerSessionWeek()||""));
+}
 async function deleteGameIdx(i){
   const g=GAMES[i]; if(!g) return;
+  if(isLiveLibraryGame(g)) return;
   if(typeof confirm==="function" && !confirm("Delete "+g.opponent+" · "+g.week+" ("+(SIDE_LBL[g.side]||g.side)+")?\n\nThis tombstones the cloud copy so Sync cannot restore it.")) return;
   const msg=document.getElementById("mgrMsg");
   const C=mgrCloud(); const teamId=mgrTeamId();
@@ -2242,7 +2251,10 @@ function renderManager(){
       const sideStr=[tot.off?("off "+tot.off):"",tot.def?("def "+tot.def):"",tot.ours?("you "+tot.ours):""].filter(Boolean).join(" · ")||"no snaps";
       const isNext=WEEK&&WEEK.opponent===opp;
       const nextBadge=isNext?'<span class="wb" style="min-width:auto;padding:1px 9px;background:var(--good);color:#fff;border-radius:6px">\u25b6 NEXT'+(weekCountdown()?" \u00b7 "+esc(weekCountdown()):"")+'</span>':"";
-      const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>'<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td><button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button></td></tr>').join("");
+      const grows=list.slice().sort((a,b)=>(((b.rows[0]&&b.rows[0].date)||"")+"").localeCompare(((a.rows[0]&&a.rows[0].date)||"")+"")).map(g=>{
+        const act=isLiveLibraryGame(g)?'<span class="foot">From the log</span>':'<button class="ghost" style="padding:3px 9px" onclick="deleteGameIdx('+g._i+')">Delete</button>';
+        return '<tr class="tagrow"><td>'+esc(g.week)+'</td><td>'+(SIDE_LBL[g.side]||g.side)+'</td><td>'+g.rows.length+' snaps</td><td>'+esc(g.source||"")+'</td><td>'+act+'</td></tr>';
+      }).join("");
       html+='<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+crest(opp,24)+'<b style="font-size:15px">'+esc(opp)+'</b>'
         +'<span class="foot">'+nG+' game'+(nG===1?"":"s")+(range?' · '+esc(range):"")+'</span>'+nextBadge
@@ -7293,7 +7305,7 @@ function callerGuidedMoreHtml(){
     h+=`<button type="button" class="rd-gd-tool-btn" onclick="callerExport()">Export</button>`;
     h+=`<button type="button" class="rd-gd-tool-btn" onclick="callerExportAllSessions()">Export all sessions</button>`;
     h+=`<button type="button" class="rd-gd-tool-btn" onclick="callerReplaySessions()">Replay to cloud</button>`;
-    h+=`<button type="button" class="rd-gd-tool-btn" onclick="callerClear()">Clear game</button>`;
+    if(!isLiveCallerSession()) h+=`<button type="button" class="rd-gd-tool-btn" onclick="callerClear()">Clear game</button>`;
     h+=`</div>`;
     h+=callerSessionPickerHtml();
     h+=`<p class="foot">${sync?esc(sync)+" · ":""}${esc(build)} · Export all sessions dumps every gameId before a restamp</p>`;
@@ -7499,7 +7511,7 @@ function renderCaller(opts){
     h+=callerComebackHtml();
     h+=`<div id="caller-pending-anchor">`+callerPendingQueueHtml({skipPlayIndex:thisPlayPi})+`</div>`;
     if(CALLER_LOG.length){
-      h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span><button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button></div>`;
+      h+=`<div class="rd-gd-calllog" style="margin-top:12px"><div class="persp" style="border:none;padding:0;margin-bottom:4px"><span class="pl"><b>Call log</b></span>`+(isLiveCallerSession()?"":`<button type="button" class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>`)+`</div>`;
       h+=`<p class="foot">${CALLER_LOG.length} calls \u00b7 tap Edit to fix any snap</p>`;
       h+=callerLogForUi().map((l,i)=>callerCallItemHtml(l,i,{})).join("");
       h+=`</div>`;
@@ -7552,7 +7564,7 @@ function renderCaller(opts){
   h+=callerRatesHtml();
   h+=callerStStatsHtml();
   h+=callerPendingQueueHtml();
-  h+=`<div class="persp" style="border:none;padding:0;margin-top:10px"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
+  h+=`<div class="persp" style="border:none;padding:0;margin-top:10px"><span class="pl"><b>Call log</b></span>${CALLER_LOG.length&&!isLiveCallerSession()?'<button class="ghost no-print" style="margin-left:auto" onclick="callerClear()">Clear</button>':''}</div>`;
   if(CALLER_LOG.length){
     h+=`<p class="foot">${CALLER_LOG.length} calls</p>`;
     h+=callerLogForUi().map((l,i)=>callerCallItemHtml(l,i,{compact:true})).join("");
@@ -7858,6 +7870,7 @@ function callerResult(i,res){
   callerRenderFull();
 }
 function callerClear(){
+  if(isLiveCallerSession()) return;
   if(typeof confirm==="function" && !confirm("Clear this O Caller game?\n\nCloses the cloud game so the next session starts fresh. Past snaps stay archived — they are not deleted.")) return;
   const sess=CALLER_SESSION;
   const gameId=sess&&sess.gameId;

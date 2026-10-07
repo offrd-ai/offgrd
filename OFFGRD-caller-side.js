@@ -753,15 +753,15 @@
 
   function safariUnlocked() {
     try {
-      return !!(global.sessionStorage && sessionStorage.getItem(SAFARI_UNLOCK_KEY) === "1");
+      return !!(global.localStorage && localStorage.getItem(SAFARI_UNLOCK_KEY) === "1");
     } catch (e) {
       return false;
     }
   }
 
   /**
-   * iOS Safari is view-only until this tab taps "Log here anyway".
-   * Unlock is sessionStorage — per tab, gone when the tab dies.
+   * iOS Safari is view-only until this install taps "Log here anyway".
+   * Unlock is localStorage — once per device, still there after the tab closes.
    * The home-screen icon never needs it.
    */
   function callerWritesAllowed(nav, matchMediaFn) {
@@ -772,7 +772,7 @@
 
   function allowSafariLogging() {
     try {
-      if (global.sessionStorage) sessionStorage.setItem(SAFARI_UNLOCK_KEY, "1");
+      if (global.localStorage) localStorage.setItem(SAFARI_UNLOCK_KEY, "1");
     } catch (e) {}
     try {
       if (typeof global.callerRenderFull === "function") global.callerRenderFull();

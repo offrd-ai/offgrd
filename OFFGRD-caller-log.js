@@ -11,8 +11,6 @@
   var STORE_KEY = "offgrd_caller_events_v2";
   var DCALLER_STORE_KEY = "offgrd_dcaller_events_v2";
   var DEVICE_KEY = "offgrd_device_id";
-  var DEVICE_KEY_SAFARI_TAB = "offgrd_device_id_safari_tab";
-  var _tabDeviceMem = null;
 
   function eventSideOf(e) {
     var S = global.OFFGRD_CALLER_SIDE;
@@ -212,25 +210,8 @@
     });
   }
 
-  /** Safari browser tabs get a sessionStorage id so they never share the icon's device. */
-  function safariTabDeviceId() {
-    try {
-      if (global.sessionStorage) {
-        var d = sessionStorage.getItem(DEVICE_KEY_SAFARI_TAB);
-        if (d) return d;
-        d = "dev_" + uuid().slice(0, 12);
-        sessionStorage.setItem(DEVICE_KEY_SAFARI_TAB, d);
-        return d;
-      }
-    } catch (e) {}
-    if (!_tabDeviceMem) _tabDeviceMem = "dev_" + uuid().slice(0, 12);
-    return _tabDeviceMem;
-  }
-
   function deviceId() {
     try {
-      var Side = global.OFFGRD_CALLER_SIDE;
-      if (Side && Side.isBrowserCaller && Side.isBrowserCaller()) return safariTabDeviceId();
       var d = localStorage.getItem(DEVICE_KEY);
       if (d) return d;
       d = "dev_" + uuid().slice(0, 12);

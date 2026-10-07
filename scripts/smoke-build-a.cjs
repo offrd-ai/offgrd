@@ -127,15 +127,16 @@ s.navigator = iphoneSafari;
 check("Safari banner names the icon", /OFFGRD icon/.test(S.safariReadOnlyBannerHtml()));
 check("Safari banner offers Log here anyway", /Log here anyway/.test(S.safariReadOnlyBannerHtml()));
 S.allowSafariLogging();
-check("Log here anyway unlocks this tab", S.callerWritesAllowed(iphoneSafari) === true);
+check("Log here anyway unlocks this install", S.callerWritesAllowed(iphoneSafari) === true);
 check("unlocked Safari still shows the banner", /Logging in this Safari tab/.test(S.safariReadOnlyBannerHtml()));
 s.sessionStorage.removeItem("offgrd_safari_log_anyway");
-check("unlock is per tab (cleared session locks again)", S.callerWritesAllowed(iphoneSafari) === false);
-check("Safari mint uses a per-tab id, not the icon key", (function () {
+check("unlock survives a new tab", S.callerWritesAllowed(iphoneSafari) === true && s.localStorage.getItem("offgrd_safari_log_anyway") === "1");
+check("device id is per install", (function () {
+  s.navigator = iphoneSafari;
   const id1 = C.deviceId();
-  s.localStorage.setItem("offgrd_device_id", "dev_icon_should_stay");
+  s.sessionStorage.setItem("offgrd_device_id_safari_tab", "dev_other_tab");
   const id2 = C.deviceId();
-  return id1 === id2 && id1 !== "dev_icon_should_stay" && s.localStorage.getItem("offgrd_device_id") === "dev_icon_should_stay" && s.sessionStorage.getItem("offgrd_device_id_safari_tab") === id1;
+  return id1 === id2 && id1 === s.localStorage.getItem("offgrd_device_id") && id1 !== "dev_other_tab";
 })());
 
 const html = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
@@ -151,6 +152,9 @@ check("no code rewrites event gameIds", !/e\.gameId = next\.gameId/.test(sideSrc
 check("migrateV1Log is deleted", !/function migrateV1Log/.test(fs.readFileSync(path.join(root, "OFFGRD-caller-log.js"), "utf8")));
 check("O append refuses Safari writes", /callerWritesAllowed/.test(html));
 check("D append refuses Safari writes", /callerWritesAllowed/.test(dcSrc));
+check("Safari unlock is localStorage", /localStorage\.setItem\(SAFARI_UNLOCK_KEY/.test(sideSrc));
+check("Live library row has no Delete tap", /isLiveLibraryGame/.test(html) && /From the log/.test(html));
+check("Clear game is not offered on a Live session", /isLiveCallerSession\(\)\) return/.test(html) && /if\(!isLiveCallerSession\(\)\) h\+=/.test(html));
 
 if (fails) {
   console.error(fails + " build-a smoke(s) failed");
