@@ -467,6 +467,7 @@
 <script src="OFFGRD-play-stubs.js?v=381"></script>
 <script src="OFFGRD-play-direction.js?v=381"></script>
 <script src="OFFGRD-caller-shortlist.js?v=381"></script>
+<script src="OFFGRD-prediction-engine.js?v=381"></script>
 <script src="OFFGRD-caller-game.js?v=381"></script>
 <script src="OFFGRD-cv-review.js?v=381"></script>
 <script src="OFFGRD-frame-capture.js?v=381"></script>
@@ -6850,6 +6851,30 @@ function callerRankedCalls(){
     if(aOk!==bOk) return aOk?-1:1;
     return (b.n||0)-(a.n||0)||String(a.play).localeCompare(String(b.play));
   });
+  const Eng=window.OFFGRD_PREDICT;
+  if(Eng&&Eng.orderCallerList){
+    const liveBook=(Array.isArray(LIVE_SNAPS)?LIVE_SNAPS:[]).filter(function(r){
+      return scopeOpp==="ANY"||(r&&r.opponent===scopeOpp);
+    }).map(function(r){ return Object.assign({live:true}, r); });
+    const ordered=Eng.orderCallerList({
+      context:{ down:+cs.dn, dist:dbF, hash:cs.hash, zone:cs.zone, formation:cs.formation||cs.form||"" },
+      book:(ex.def||[]).concat(liveBook),
+      own:ours,
+      entries:list,
+      getSuccess: typeof callerLearnSuccess==="function" ? callerLearnSuccess : null
+    });
+    if(ordered&&ordered.list&&ordered.list.length){
+      list=ordered.list;
+      baseMeta.engine=true;
+      baseMeta.enginePrediction=ordered.prediction||null;
+      if(ordered.prediction){
+        baseMeta.rung=ordered.prediction.rung;
+        baseMeta.widened=!!ordered.prediction.widened;
+        baseMeta.sampleN=ordered.prediction.n||0;
+        baseMeta.badge=ordered.prediction.rungLabel||baseMeta.badge;
+      }
+    }
+  }
   return Object.assign({ target:target, cov:ex.cov||null, list:list }, baseMeta);
 }
 /** Soft-headline: SCHEME MATCH (structural) or SUCCESS n% · snaps (graded). */
@@ -6899,14 +6924,15 @@ function callerCallSheetHtml(opts){
   const cs=callerSit;
   const buckets=(typeof planBuckets==="function")?planBuckets():[];
   const ranked=callerRankedCalls();
-  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel,basisTip:r.basisTip}; });
+  const rankMap={}; ranked.list.forEach((r,i)=>{ if(rankMap[r.play]==null) rankMap[r.play]={sr:r.sr,n:r.n,rank:i,basis:r.basis,basisLabel:r.basisLabel,basisTip:r.basisTip,empSr:r.empSr,avg:r.avg,engineLabel:r.engineLabel,engineTier:r.engineTier,engineExplain:r.engineExplain}; });
   const sigMap=callerSignalMap();
   const live=callerLiveCall();
   const SL0=window.OFFGRD_CALLER_SHORTLIST;
   const slCfg0=SL0&&SL0.cfgFor?SL0.cfgFor():null;
   const covLbl0=ranked.cov&&(ranked.cov.k||ranked.cov.name||ranked.cov)||"";
-  const sheetPanel=SL0&&SL0.buildPanel?SL0.buildPanel(ranked.list, slCfg0, { coverage: covLbl0 }):null;
-  const top=(sheetPanel&&sheetPanel.shown&&sheetPanel.shown[0])||ranked.list[0]||null;
+  const engineOn=!!ranked.engine;
+  const sheetPanel=engineOn?null:(SL0&&SL0.buildPanel?SL0.buildPanel(ranked.list, slCfg0, { coverage: covLbl0 }):null);
+  const top=engineOn?(ranked.list[0]||null):((sheetPanel&&sheetPanel.shown&&sheetPanel.shown[0])||ranked.list[0]||null);
   const m=(S&&S.matchBucket)?S.matchBucket(buckets,{dn:cs.dn,db:cs.db,zone:cs.zone}):null;
   const bucket=m?m.bucket:null;
   const escN=s=>esc(s).replace(/'/g,"");
@@ -6919,6 +6945,12 @@ function callerCallSheetHtml(opts){
   const slCfg=SL&&SL.cfgFor?SL.cfgFor():null;
   const markFor=(r, asScheme)=>{
     if(!r) return `<span class="mark mark-none"></span>`;
+    if(r.engineLabel){
+      const tip=esc(r.engineExplain||r.engineLabel);
+      if(r.engineTier>=4) return `<span class="mark-stack" title="${tip}"><span class="mark basis">${esc(r.engineLabel)}</span></span>`;
+      const pct=Math.round(((r.empSr!=null?r.empSr:(r.sr||0)))*100);
+      return `<span class="mark-stack" title="${tip}"><span class="mark ev">${pct}%</span><span class="mark basis">${esc(r.engineLabel)}</span></span>`;
+    }
     if(SL&&SL.markParts){
       const parts=SL.markParts(r, slCfg, !!asScheme);
       const tip=esc(r.basisTip||(asScheme?tipScheme:(r.basis==="empirical"?tipSuccess:tipScheme)));
@@ -6948,7 +6980,7 @@ function callerCallSheetHtml(opts){
     const on=live&&live.play===top.play;
     h+=`<div class="rd-gd-bestnow"><div class="rd-gd-bestnow-lbl">Best now${ranked.badge?` <span class="rd-gd-widen-badge">${esc(ranked.badge)}</span>`:""}</div>`;
     h+=`<button type="button" class="rd-gd-bestnow-row${on?" oncall":""}" ${callTap(top.play)}>${sigTag(top.play)}<span class="nm">${esc(top.play)}</span>${markFor(top)}<span class="cta">${on?"On call":"Call it"}</span></button>`;
-    h+=`<p class="rd-gd-why">${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p></div>`;
+    h+=`<p class="rd-gd-why">${esc(top.engineExplain||callerCallReason(top, ranked.cov, ranked.conf))}</p></div>`;
   }
   const Gsheet=callerGame();
   const gameTitle=game&&Gsheet&&Gsheet.coachSheetTitle?Gsheet.coachSheetTitle(cs,{
@@ -6974,11 +7006,11 @@ function callerCallSheetHtml(opts){
       h+=`<span class="cta">${on?"On call":"Call"}</span></button>`;
     });
     h+=`</div>`;
-    if(top && topInBucket && !game) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
+    if(top && topInBucket && !game) h+=`<p class="rd-gd-why sheet-why">Best: <b>${esc(top.play)}</b> · ${esc(top.engineExplain||callerCallReason(top, ranked.cov, ranked.conf))}</p>`;
   } else if(ranked.list.length){
     const panel=sheetPanel;
     const showAll=!game&&!!window._callerShowAll;
-    const rows=showAll?(panel?panel.full:ranked.list):(panel?panel.shown:ranked.list.slice(0,5));
+    const rows=engineOn?(showAll?ranked.list:ranked.list.slice(0,5)):(showAll?(panel?panel.full:ranked.list):(panel?panel.shown:ranked.list.slice(0,5)));
     const schemeSet={};
     if(panel) (panel.scheme||[]).forEach(function(r){ if(r&&r.play) schemeSet[r.play]=1; });
     if(!game){
