@@ -142,6 +142,9 @@ if (!/own:oursAll/.test(html)) throw new Error("engine own is not the full pool"
 if (/own:ours[,}\n]/.test(html)) throw new Error("engine still receives the opponent-scoped ours");
 if (!/baseMeta\.badge=ordered\.rungLabel/.test(html)) throw new Error("BEST NOW badge is not rank()'s rung");
 if (/badge=ordered\.prediction\.rungLabel/.test(html)) throw new Error("badge still quotes predict()");
+if (/concat\(ours\.map/.test(html)) throw new Error("candidates still union the opponent-scoped fold");
+if (!/oursAll\.forEach/.test(html)) throw new Error("candidates do not include the unscoped own fold");
+if (!/playKeyOf/.test(html)) throw new Error("caller does not key nominees with playKeyOf");
 
 const bookThin = [];
 for (var bt = 0; bt < 8; bt++) bookThin.push({ down: 1, distance: 10, playType: "run", coverage: "Cover 0", opponent: "Hazelwood East" });
@@ -244,6 +247,48 @@ if (!thinRow || thinRow.tier <= 3) throw new Error("THUNDER should stay thin");
 if (!/^thin · 2 snaps$/.test(thinRow.label)) throw new Error("thin label " + thinRow.label);
 if (thirdRank.list.indexOf(thinRow) < thirdRank.list.indexOf(thirdRank.hero)) throw new Error("thin ranked above HAWK");
 if (/^\d+%/.test(thinRow.label)) throw new Error("thin row shows a percent");
+
+if (E.playKeyOf("2X2 MEMPHIS") !== E.playKeyOf("Memphis")) throw new Error("playKeyOf " + E.playKeyOf("2X2 MEMPHIS"));
+if (E.playKeyOf("MEMPHIS") !== "memphis") throw new Error("playKeyOf case " + E.playKeyOf("MEMPHIS"));
+if (E.playKeyOf("TANK BLAST") !== "tank blast") throw new Error("playKeyOf ate a real name: " + E.playKeyOf("TANK BLAST"));
+
+/* Book spelling "Memphis" collects MEMPHIS and 2X2 MEMPHIS. Tie at 75%/4 is name order. */
+const spell = [];
+function addSpell(name, n, hits, gain, dist) {
+  for (var i = 0; i < n; i++) {
+    spell.push(snap(name, { down: 3, distance: dist, success: i < hits ? 1 : 0, gain: gain, coverage: "Cover 3" }));
+  }
+}
+addSpell("HAWK", 3, 3, 9, 5);
+addSpell("HAWK", 1, 0, 6, 12);
+addSpell("TANK BLAST", 3, 3, 4, 12);
+addSpell("TANK BLAST", 1, 0, 2, 8);
+addSpell("GATOR", 4, 4, 7, 8);
+addSpell("GATOR", 2, 0, 2, 12);
+addSpell("MEMPHIS", 10, 10, 8, 12);
+addSpell("2X2 MEMPHIS", 6, 0, 6, 8);
+addSpell("DINO", 6, 6, 5, 8);
+addSpell("DINO", 5, 0, 1, 12);
+const spellRank = E.rank(
+  { down: 3, dist: "4-6" },
+  spell,
+  { leader: "C0" },
+  [
+    { name: "Memphis", kind: "Pass", conceptScore: 0.2 },
+    { name: "HAWK", kind: "Run", conceptScore: 0.1 },
+    { name: "TANK BLAST", kind: "Run", conceptScore: 0.1 },
+    { name: "GATOR", kind: "Run", conceptScore: 0.1 },
+    { name: "DINO", kind: "Run", conceptScore: 0.1 }
+  ]
+);
+const spellNames = spellRank.list.slice(0, 5).map(function (e) { return e.play; });
+const spellWant = ["HAWK", "TANK BLAST", "GATOR", "Memphis", "DINO"];
+if (spellNames.join("|") !== spellWant.join("|")) {
+  throw new Error("keyed top5 " + spellNames.join(", ") + " labels " + spellRank.list.slice(0, 5).map(function (e) { return e.label; }).join(" || "));
+}
+const memRow = spellRank.list.filter(function (e) { return e.play === "Memphis"; })[0];
+if (!memRow || memRow.n !== 16) throw new Error("Memphis n " + (memRow && memRow.n));
+if (!/63%/.test(memRow.label)) throw new Error("Memphis pct " + memRow.label);
 
 if (!/engineTier>3/.test(html)) throw new Error("thin rows still get a bold percent");
 if (!/Eng\.rank\(/.test(html)) throw new Error("Scout From your book does not call rank()");
