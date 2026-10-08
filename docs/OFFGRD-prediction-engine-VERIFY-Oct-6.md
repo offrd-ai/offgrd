@@ -70,6 +70,36 @@ Console proof, same engine on all 3rd down (177 snaps):
   HAWK 75% · 4 · 3rd | TANK BLAST 75% · 4 | GATOR 67% · 6 | MEMPHIS 63% · 16 | DINO 55% · 11
 Hero should read `HAWK 75% · 8.3 avg · 4 snaps · 3rd (widened from 3rd & medium)`.
 
+## Oct 7 (2) — commit d74219c — thin-play fix PASS, candidate set still scoped
+
+3rd & 4-6: hero `HAWK 75% · 8.3 avg · 4 snaps · 3rd (widened from 3rd &
+medium)` == row 1; badge `3rd · 177 snaps`; thin rows labeled `thin · N
+snaps`, no %. 1st & 10+ unchanged (HAMMER 76%/17). Scout "From your book"
+vs C0 row 1 = HAMMER. All good.
+
+GAP — the engine only reorders what the old builder nominates.
+`callerRankedCalls` still builds `names = uniq(book ∪ oursScoped)` (scoped to
+the pinned opponent) and hands `entries` (19 rows) to `orderCallerList`.
+Plays we run all season but did not run vs Hazelwood, and that are not in
+PBOOK under the same spelling, are never candidates:
+  MEMPHIS  63% · 7.3 avg · 16 snaps on 3rd   — absent (PBOOK has "Memphis")
+  TANK BLAST 75% · 3.5 avg · 4 snaps on 3rd  — absent (ties HAWK for row 1)
+Console: rank() on the full 3rd-down pool with all 115 own play names puts
+HAWK, TANK BLAST, GATOR, MEMPHIS, DINO in the top 5; the card shows HAWK,
+GATOR, DINO, F Exit Fargo, HAMMER 29%.
+
+Fix:
+1. Candidates = PBOOK ∪ every play name in the UNSCOPED own fold (115
+   names), not `oursScoped`. The scope was removed from `own:` but not from
+   `names`.
+2. Name identity is case-insensitive + formation-prefix-stripped
+   (ship-readiness §2 item already on the list): "MEMPHIS" rows must count
+   for the "Memphis" book play. Do it once in a `playKeyOf()` used by both
+   the candidate uniq and `rank()`'s `mine` filter; display the book
+   spelling.
+Expected after fix, 3rd & 4-6 vs Hazelwood: HAWK 75%/4 and TANK BLAST
+75%/4 rows 1-2 (tie → n, then name), GATOR 67%/6, MEMPHIS 63%/16, DINO 55%/11.
+
 ## Re-verify after fix
 - O Caller vs Hazelwood East, 1st & 10+: hero = HAMMER 76% · 17 snaps
   (or whatever rank()[0] is on the full pool), label carries % + n + rung.

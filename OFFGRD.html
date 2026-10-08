@@ -6800,11 +6800,31 @@ function callerRankedCalls(){
   const oursRaw=(typeof gamesRows==="function")?gamesRows("ours"):[];
   const oursScoped=oursRaw.filter(function(r){ return scopeOpp==="ANY"||(r&&r.opponent===scopeOpp); });
   const ours=Dir&&Dir.foldRows?Dir.foldRows(oursScoped, book):oursScoped;
+  /* H is every own snap. Nominees are the book plus that fold, not the opponent slice. */
+  const oursAll=Dir&&Dir.foldRows?Dir.foldRows(oursRaw, book):oursRaw;
+  const Pred0=window.OFFGRD_PREDICT;
+  const keyOf=Pred0&&Pred0.playKeyOf?function(n){return Pred0.playKeyOf(n);}:function(n){return String(n||"").trim().toLowerCase();};
+  const byKey=Object.create(null);
+  book.forEach(function(p){
+    if(!p||!p.name) return;
+    const k=keyOf(p.name);
+    if(!k||byKey[k]) return;
+    byKey[k]=p;
+  });
+  oursAll.forEach(function(r){
+    if(!r||!r.play) return;
+    const k=keyOf(r.play);
+    if(!k||byKey[k]) return;
+    byKey[k]={ name:String(r.play) };
+  });
   const byName={};
-  book.forEach(p=>{ if(p&&p.name) byName[String(p.name)]=p; });
-  const names=uniq(book.map(p=>p&&p.name).concat(ours.map(r=>r&&r.play)));
-  const candidates=names.map(nm=> byName[nm] || { name:nm }).filter(function(p){
-    return !(Stubs&&Stubs.shouldHideStarter&&Stubs.shouldHideStarter(p, book));
+  const candidates=[];
+  Object.keys(byKey).forEach(function(k){
+    const p=byKey[k];
+    if(!p||!p.name) return;
+    if(Stubs&&Stubs.shouldHideStarter&&Stubs.shouldHideStarter(p, book)) return;
+    byName[String(p.name)]=p;
+    candidates.push(p);
   });
   const useRec=document.getElementById("tg-recency")&&document.getElementById("tg-recency").checked;
   const gi=(typeof gameOrderIndex==="function")?gameOrderIndex():null;
@@ -6892,11 +6912,25 @@ function callerRankedCalls(){
   });
   const Eng=window.OFFGRD_PREDICT;
   if(Eng&&Eng.orderCallerList){
+    const seen={};
+    list.forEach(function(e){ if(e&&e.play) seen[keyOf(e.play)]=1; });
+    candidates.forEach(function(p){
+      const nm=p&&p.name;
+      if(!nm) return;
+      const k=keyOf(nm);
+      if(!k||seen[k]) return;
+      seen[k]=1;
+      list.push({
+        play:nm, playObj:p, sr:0, ev:0, empSr:0, avg:null, chunks:0, n:0,
+        kind:(typeof playKind==="function")?playKind(nm):"",
+        rankGroup:1, stub:false,
+        basis:"on_paper", basisLabel:"SCHEME MATCH", basisTip:null, why:[]
+      });
+    });
     const liveBook=(Array.isArray(LIVE_SNAPS)?LIVE_SNAPS:[]).filter(function(r){
       return scopeOpp==="ANY"||(r&&r.opponent===scopeOpp);
     }).map(function(r){ return Object.assign({live:true}, r); });
-    /* H is every own snap, all opponents. scopeOpp stays on the book only. */
-    const oursAll=Dir&&Dir.foldRows?Dir.foldRows(oursRaw, book):oursRaw;
+    /* scopeOpp stays on the book only. */
     const ordered=Eng.orderCallerList({
       context:{ down:+cs.dn, dist:dbF, hash:cs.hash, zone:cs.zone, formation:cs.formation||cs.form||"" },
       book:(ex.def||[]).concat(liveBook),

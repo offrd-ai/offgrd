@@ -157,7 +157,8 @@
     (rows || []).forEach(function (r) {
       if (!r || !r.play) return;
       if (successOf(r, getSuccess) == null) return;
-      var name = String(r.play);
+      var name = playKeyOf(r.play);
+      if (!name) return;
       by[name] = (by[name] || 0) + 1;
     });
     var n = 0;
@@ -402,6 +403,13 @@
     return String(p.name || p.play || "");
   }
 
+  /** Case-insensitive, formation prefix stripped. "2x2 HOUSTON" and "Houston" are one play. */
+  function playKeyOf(name) {
+    var s = String(name == null ? "" : name).replace(/\s+/g, " ").trim();
+    s = s.replace(/^\d+\s*x\s*\d+\s+/i, "");
+    return s.toLowerCase();
+  }
+
   function kindOf(p) {
     var k = "";
     if (p && typeof p !== "string") k = p.kind || p.type || p.playType || "";
@@ -459,8 +467,9 @@
     var leader = prediction.leader || "";
     var built = (plays || []).map(function (p) {
       var name = playName(p);
+      var want = playKeyOf(name);
       var mine = (slice.rows || []).filter(function (r) {
-        return r && String(r.play || "") === name;
+        return r && playKeyOf(r.play) === want;
       });
       var looked = leader ? mine.filter(function (r) { return lookKey(r.coverage || r.cov) === leader; }) : [];
       var sit = statsOf(mine, getSuccess);
@@ -601,6 +610,7 @@
     gates: gates,
     distBucket: distBucket,
     lookKey: lookKey,
+    playKeyOf: playKeyOf,
     chooseSlice: chooseSlice,
     predict: predict,
     rank: rank,
