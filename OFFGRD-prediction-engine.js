@@ -148,26 +148,50 @@
     if (id === 2) return [d && dist ? d + " & " + dist : (d || dist), c.formation].filter(Boolean).join(" · ");
     if (id === 3) return d && dist ? d + " & " + dist : (d || dist || "situation");
     if (id === 4) return [d ? d + " down" : "", c.formation].filter(Boolean).join(" · ");
-    if (id === 5) return d ? d + " down" : "down";
+    if (id === 5) return d || "down";
     return "all snaps";
   }
 
-  function chooseSlice(rows, C) {
+  function playsAtFloor(rows, getSuccess, minSnaps) {
+    var by = Object.create(null);
+    (rows || []).forEach(function (r) {
+      if (!r || !r.play) return;
+      if (successOf(r, getSuccess) == null) return;
+      var name = String(r.play);
+      by[name] = (by[name] || 0) + 1;
+    });
+    var n = 0;
+    Object.keys(by).forEach(function (k) {
+      if (by[k] >= minSnaps) n++;
+    });
+    return n;
+  }
+
+  function chooseSlice(rows, C, mode) {
     var g = gates();
     var c = contextNorm(C);
     var pool = rows || [];
+    var rankClear = !!(mode && mode.rankClear);
+    var getSuccess = mode && mode.getSuccess;
     var chosenId = 6;
     var chosen = pool.filter(function (r) { return rungTest(6, r, c); });
     var i;
     for (i = 1; i <= 6; i++) {
+      if (rankClear && i === 4 && !c.formation) continue;
       var hit = pool.filter(function (r) { return rungTest(i, r, c); });
-      if (i === 6 || hit.length >= g.MIN_SNAPS) {
+      var cleared = rankClear
+        ? playsAtFloor(hit, getSuccess, g.MIN_SNAPS) >= g.SHORTLIST_MIN
+        : hit.length >= g.MIN_SNAPS;
+      if (i === 6 || cleared) {
         chosenId = i;
         chosen = hit;
         break;
       }
     }
     var modified = applyModifier(chosen, c, g.MIN_SNAPS);
+    if (rankClear && modified.label && playsAtFloor(modified.rows, getSuccess, g.MIN_SNAPS) < g.SHORTLIST_MIN) {
+      modified = { rows: chosen, label: "" };
+    }
     var from = "";
     if (chosenId > 1) {
       if (c.formation && chosenId > 2) from = c.formationDisplay || c.formation;
@@ -403,6 +427,10 @@
   }
 
   function labelFor(e, slice, prediction, g) {
+    if (e.tier > 3 && e.tier < 4) {
+      var thinN = e.nSit || 0;
+      return "thin · " + thinN + (thinN === 1 ? " snap" : " snaps");
+    }
     if (e.tier >= 4) {
       return "no reps · concept match" + (prediction.leader ? " vs " + prediction.leader : "");
     }
@@ -427,7 +455,7 @@
     var g = gates();
     var getSuccess = opts.getSuccess || null;
     if (!prediction) prediction = predict(C, opts.book || [], opts);
-    var slice = chooseSlice(ownRows || [], C);
+    var slice = chooseSlice(ownRows || [], C, { rankClear: true, getSuccess: getSuccess });
     var leader = prediction.leader || "";
     var built = (plays || []).map(function (p) {
       var name = playName(p);
