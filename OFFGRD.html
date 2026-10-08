@@ -825,6 +825,45 @@ function attackFromBookHTML(headK, bt){
     else if(fam)
       ranked=M.rankPlaysVsLook(book, fam, {limit:5});
   }catch(e){ ranked=[]; }
+  const Eng=window.OFFGRD_PREDICT;
+  let engineList=null;
+  if(Eng&&Eng.rank){
+    const Stubs=window.OFFGRD_PLAY_STUBS;
+    let playbook=book;
+    if(Stubs&&Stubs.filterBySide) playbook=Stubs.filterBySide(playbook,"offense");
+    const Dir=window.OFFGRD_PLAY_DIRECTION;
+    const own=Dir&&Dir.foldRows?Dir.foldRows(ours, playbook):ours;
+    const concept={};
+    ranked.forEach(function(r){ if(r&&r.name) concept[r.name]=r.ev!=null?r.ev:(r.score||0); });
+    const plays=(playbook||[]).filter(function(p){ return p&&p.name; }).map(function(p){
+      return { name:p.name, kind:p.type||p.kind||p.playType||"", conceptScore:concept[p.name]||0 };
+    });
+    const leader=Eng.lookKey?Eng.lookKey(fam||headK):(fam||"");
+    try{
+      const out=Eng.rank({
+        down:+sit.down,
+        dist:sit.dist&&sit.dist!=="ANY"?sit.dist:"",
+        hash:sit.hash,
+        zone:sit.zone,
+        formation:sit.form
+      }, own, { leader:leader }, plays, { getSuccess: opts.getSuccess });
+      engineList=(out&&out.shortlist)||[];
+    }catch(eRank){ engineList=null; }
+  }
+  if(engineList){
+    if(!engineList.length){
+      return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
+        '<div class="beat bookbeat"><b>From your book</b> · no calls on this rung yet.</div>';
+    }
+    return '<div class="beat bookbeat"><b>From your book</b> · vs '+esc(fam)+
+      '<ol class="booklist">'+engineList.map(function(r){
+        const thin=r.tier>3;
+        const pill=thin
+          ? '<span class="pill-scheme">'+esc(r.label||"")+'</span>'
+          : esc(r.label||"");
+        return '<li><span class="bn">'+esc(r.play||"?")+'</span> <span class="pill" title="'+esc(r.explain||r.label||"")+'">'+pill+'</span></li>';
+      }).join("")+'</ol></div>';
+  }
   if(!ranked.length){
     return '<div class="beat"><b>Beaters:</b> '+bt.tags.map(esc).join(" · ")+'</div>'+
       '<div class="beat bookbeat"><b>From your book</b> · no pass concepts scored for this look yet.</div>';
@@ -6949,7 +6988,7 @@ function callerCallSheetHtml(opts){
     if(!r) return `<span class="mark mark-none"></span>`;
     if(r.engineLabel){
       const tip=esc(r.engineExplain||r.engineLabel);
-      if(r.engineTier>=4) return `<span class="mark-stack" title="${tip}"><span class="mark basis">${esc(r.engineLabel)}</span></span>`;
+      if(r.engineTier>3) return `<span class="mark-stack" title="${tip}"><span class="mark basis">${esc(r.engineLabel)}</span></span>`;
       const pct=Math.round(((r.empSr!=null?r.empSr:(r.sr||0)))*100);
       return `<span class="mark-stack" title="${tip}"><span class="mark ev">${pct}%</span><span class="mark basis">${esc(r.engineLabel)}</span></span>`;
     }

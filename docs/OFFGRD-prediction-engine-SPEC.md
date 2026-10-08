@@ -41,6 +41,11 @@ Rungs, exact → wide. Walk down until the rung clears MIN_SNAPS:
 6. all snaps for this opponent (predict) / all own snaps (rank)
 Each rung reports `rung`, `n`, and `widened: true/false`. The UI shows the
 rung in words ("exact · 2nd & 4-6 · 2x1 Wing", "widened to 2nd down").
+predict() clears a rung when the pool has ≥ MIN_SNAPS. rank() clears a
+rung only when ≥ SHORTLIST_MIN (3) plays have n_sit ≥ MIN_SNAPS on it;
+otherwise it keeps widening. A play under MIN_SNAPS is thin: it never
+ranks above a play that cleared, and its label is `thin · 2 snaps` with
+no percent. Gate values do not change.
 Score-margin and clock are **modifiers**, not rungs: when the margin/clock
 bucket has ≥ MIN_SNAPS inside the chosen rung, prefer that sub-slice and
 say so ("trailing by 8+, Q4"); otherwise ignore them. Never a rung of

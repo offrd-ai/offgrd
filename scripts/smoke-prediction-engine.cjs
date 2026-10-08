@@ -205,4 +205,47 @@ for (var sit = 0; sit < 20; sit++) {
   if (!sitRank.hero || sitRank.hero.explain !== sitRank.shortlist[0].explain) throw new Error("situation " + sit + " text diverged");
 }
 
+/* rank() does not clear a rung on pool size. 3rd & medium has snaps but no play at the floor. */
+const third = [];
+function addPlay(name, n, dist, hits, gain) {
+  for (var i = 0; i < n; i++) {
+    third.push(snap(name, {
+      down: 3,
+      distance: dist,
+      success: i < hits ? 1 : 0,
+      gain: gain,
+      coverage: "Cover 3"
+    }));
+  }
+}
+addPlay("THUNDER", 2, 5, 2, 8);
+addPlay("GATOR", 1, 5, 1, 6);
+addPlay("ISO", 1, 5, 1, 5);
+addPlay("COUNTER", 1, 5, 1, 4);
+addPlay("HAWK", 3, 5, 3, 9);
+addPlay("HAWK", 1, 12, 0, 6);
+addPlay("TANK BLAST", 4, 12, 2, 4);
+addPlay("MEMPHIS", 4, 12, 2, 5);
+const thirdRank = E.rank(
+  { down: 3, dist: "4-6" },
+  third,
+  { leader: "C0" },
+  ["THUNDER", "GATOR", "ISO", "COUNTER", "HAWK", "TANK BLAST", "MEMPHIS"].map(function (name) {
+    return { name: name, kind: name === "MEMPHIS" ? "Pass" : "Run", conceptScore: name === "MEMPHIS" ? 0.99 : 0.1 };
+  })
+);
+if (!thirdRank.hero || thirdRank.hero.play !== "HAWK") throw new Error("3rd hero " + (thirdRank.hero && thirdRank.hero.play + " " + thirdRank.hero.label));
+if (!/75%/.test(thirdRank.hero.label)) throw new Error("HAWK pct " + thirdRank.hero.label);
+if (!/8\.3 avg/.test(thirdRank.hero.label)) throw new Error("HAWK avg " + thirdRank.hero.label);
+if (!/4 snaps/.test(thirdRank.hero.label)) throw new Error("HAWK n " + thirdRank.hero.label);
+if (!/3rd \(widened from 3rd & medium\)/.test(thirdRank.hero.label)) throw new Error("HAWK rung " + thirdRank.hero.label);
+const thinRow = thirdRank.list.filter(function (e) { return e.play === "THUNDER"; })[0];
+if (!thinRow || thinRow.tier <= 3) throw new Error("THUNDER should stay thin");
+if (!/^thin · 2 snaps$/.test(thinRow.label)) throw new Error("thin label " + thinRow.label);
+if (thirdRank.list.indexOf(thinRow) < thirdRank.list.indexOf(thirdRank.hero)) throw new Error("thin ranked above HAWK");
+if (/^\d+%/.test(thinRow.label)) throw new Error("thin row shows a percent");
+
+if (!/engineTier>3/.test(html)) throw new Error("thin rows still get a bold percent");
+if (!/Eng\.rank\(/.test(html)) throw new Error("Scout From your book does not call rank()");
+
 console.log("ok prediction engine");
