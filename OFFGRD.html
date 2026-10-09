@@ -6730,7 +6730,8 @@ function callerRankedCalls(){
     widened:!!(ex.resolved&&ex.resolved.widened)||!!ex.widened,
     sampleN:(ex.g&&ex.g.length)||0
   };
-  if(!target){
+  /* Empty opponent book: rank() still runs on our snaps. This return is only the pre-engine fallback. */
+  if(!target && !(window.OFFGRD_PREDICT&&window.OFFGRD_PREDICT.orderCallerList)){
     const Stubs=window.OFFGRD_PLAY_STUBS;
     let book=(typeof PBOOK!=="undefined" && Array.isArray(PBOOK))?PBOOK:[];
     if(Stubs&&Stubs.filterBySide) book=Stubs.filterBySide(book,"offense");

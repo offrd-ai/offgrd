@@ -142,6 +142,10 @@ if (!/own:oursAll/.test(html)) throw new Error("engine own is not the full pool"
 if (/own:ours[,}\n]/.test(html)) throw new Error("engine still receives the opponent-scoped ours");
 if (!/baseMeta\.badge=ordered\.rungLabel/.test(html)) throw new Error("BEST NOW badge is not rank()'s rung");
 if (/badge=ordered\.prediction\.rungLabel/.test(html)) throw new Error("badge still quotes predict()");
+if (/if\(!target\)\{/.test(html)) throw new Error("no-book still returns before the engine");
+if (!/if\(!target && !\(window\.OFFGRD_PREDICT&&window\.OFFGRD_PREDICT\.orderCallerList\)\)/.test(html)) {
+  throw new Error("no-book gate missing");
+}
 if (/concat\(ours\.map/.test(html)) throw new Error("candidates still union the opponent-scoped fold");
 if (!/oursAll\.forEach/.test(html)) throw new Error("candidates do not include the unscoped own fold");
 if (!/playKeyOf/.test(html)) throw new Error("caller does not key nominees with playKeyOf");
@@ -207,6 +211,42 @@ for (var sit = 0; sit < 20; sit++) {
   if (sitRank.shortlist[0] !== sitRank.list[0]) throw new Error("situation " + sit + " shortlist diverged");
   if (!sitRank.hero || sitRank.hero.explain !== sitRank.shortlist[0].explain) throw new Error("situation " + sit + " text diverged");
 }
+
+/* Typed opponent, no book. Empty B means no leader. A play with ≥4 own snaps shows a %, not a concept match. */
+const randEmpty = mulberry(20261008);
+var gradedNoBook = 0;
+for (var sitE = 0; sitE < 20; sitE++) {
+  var distE = sitDists[Math.floor(randEmpty() * sitDists.length)];
+  var yardsE = distE === "1-3" ? 2 : distE === "4-6" ? 5 : distE === "7-9" ? 8 : 12;
+  var ctxE = { down: sitDowns[Math.floor(randEmpty() * sitDowns.length)], dist: distE, hash: randEmpty() > 0.5 ? "L" : "", zone: randEmpty() > 0.5 ? "PLUS" : "" };
+  var poolE = [];
+  sitPlays.forEach(function (name, ni) {
+    var count = 2 + Math.floor(randEmpty() * 14);
+    for (var k = 0; k < count; k++) {
+      poolE.push(snap(name, {
+        down: ctxE.down,
+        distance: yardsE,
+        success: randEmpty() > (0.2 + ni * 0.04) ? 1 : 0,
+        gain: 3 + ni,
+        coverage: "Cover 3",
+        opponent: "SOAK TEST ENGINE"
+      }));
+    }
+  });
+  var predE = E.predict(ctxE, []);
+  if (predE.leader) throw new Error("empty book grew a leader " + predE.leader);
+  var sitRankE = E.rank(ctxE, poolE, predE, sitPlays.map(function (name, ni) {
+    return { name: name, kind: ni % 2 ? "Pass" : "Run", conceptScore: 0.99 - ni * 0.05 };
+  }));
+  if (sitRankE.shortlist[0] !== sitRankE.list[0]) throw new Error("no-book situation " + sitE + " shortlist diverged");
+  sitRankE.list.forEach(function (e) {
+    if ((e.n || 0) < 4) return;
+    gradedNoBook++;
+    if (!/\d+%/.test(e.label)) throw new Error("no-book row missing % " + e.play + " " + e.label);
+    if (/concept match/i.test(e.label)) throw new Error("no-book concept " + e.play + " " + e.label);
+  });
+}
+if (gradedNoBook < 1) throw new Error("no-book smoke never saw a play with ≥4 snaps");
 
 /* rank() does not clear a rung on pool size. 3rd & medium has snaps but no play at the floor. */
 const third = [];
