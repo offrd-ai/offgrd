@@ -336,6 +336,14 @@ check(
   !drained.some(function (g) { return g.opponent === "Hazelwood East"; })
 );
 
+check("a soak name is a practice opponent", PinQ.isPracticeOpponent("SOAK TEST ENGINE") && PinQ.isPracticeOpponent("SOAK TEST 108"));
+check("Lindbergh is not a practice opponent", !PinQ.isPracticeOpponent("Lindbergh"));
+q.SCHEDULE.push({ opponent: "SOAK TEST ENGINE", date: "2026-10-09", ha: "H" });
+const soakCards = PinQ.listGames(new Date(2026, 9, 9));
+check("a soak opponent stays off the picker", !soakCards.some(function (g) { return PinQ.isPracticeOpponent(g.opponent); }));
+const htmlPin = fs.readFileSync(path.join(root, "OFFGRD.html"), "utf8");
+check("own history skips soak and test opponents", /function gamesRows\(side\)\{[^}]*soak\|test/.test(htmlPin));
+
 if (fails) {
   console.error(fails + " gameday-pin smoke(s) failed");
   process.exit(1);

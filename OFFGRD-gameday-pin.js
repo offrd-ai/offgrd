@@ -36,6 +36,10 @@
     var n = normalizeOpp(name);
     return !n || n === "any" || n === "live" || n === "opponent";
   }
+  /** Soak and test games stay out of the picker. Typed start still works. */
+  function isPracticeOpponent(name) {
+    return /soak|test/i.test(String(name == null ? "" : name));
+  }
   function todayISO(now) {
     var Side = global.OFFGRD_CALLER_SIDE;
     if (Side && Side.liveDateISO) return Side.liveDateISO(now);
@@ -330,7 +334,7 @@
       return null;
     }
     function add(g, force) {
-      if (!g || isFallbackOpp(g.opponent)) return;
+      if (!g || isFallbackOpp(g.opponent) || isPracticeOpponent(g.opponent)) return;
       var date = parseGameDate(g.date || g.game_date, today) || (force ? today : "");
       if (!date) return;
       var q = queuedHit(g.opponent, date);
@@ -670,7 +674,7 @@
   function libraryOpponents() {
     var names = [];
     function addName(n) {
-      if (isFallbackOpp(n)) return;
+      if (isFallbackOpp(n) || isPracticeOpponent(n)) return;
       var t = String(n).trim();
       if (names.some(function (x) { return normalizeOpp(x) === normalizeOpp(t); })) return;
       names.push(t);
@@ -726,6 +730,7 @@
   global.OFFGRD_GAMEDAY_PIN = {
     PIN_KEY: PIN_KEY,
     get: get,
+    isPracticeOpponent: isPracticeOpponent,
     listGames: listGames,
     parseGameDate: parseGameDate,
     libraryOpponents: libraryOpponents,

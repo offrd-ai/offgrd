@@ -1890,7 +1890,7 @@ function renderOffenseGrid(useRec){
 const STORE_KEY="offgrd_season_v2";
 const SIDE_LBL={def:"Defense (coverage)",off:"Opp offense (run/pass)",ours:"Our offense"};
 function gameKey(opp,week,side){ return String(opp||"?").trim().toLowerCase()+"|"+String(week||"?").trim().toLowerCase()+"|"+side; }
-function gamesRows(side){ const o=[]; GAMES.forEach(g=>{ if(g.side===side) g.rows.forEach(r=>o.push(r)); }); return o; }
+function gamesRows(side){ const o=[]; GAMES.forEach(g=>{ if(!g||g.side!==side) return; if(/soak|test/i.test(String(g.opponent||""))) return; (g.rows||[]).forEach(r=>o.push(r)); }); return o; }
 /** Library game is newer than SNAP_CORPUS when its snap count beats the corpus for that opponent|week. Live logs are not the book. */
 function corpusLagsLibrary(corpus, games, side){
   const lib=Object.create(null);
