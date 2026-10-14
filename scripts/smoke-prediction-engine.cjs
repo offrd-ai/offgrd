@@ -338,6 +338,12 @@ const carriedRank = E.rank(C, carriedOwn, prediction, plays);
 if (!carriedRank.hero || carriedRank.hero.nLook !== 3) {
   throw new Error("carried Cover 0 counted in vs-look: " + (carriedRank.hero && carriedRank.hero.nLook));
 }
+if (E.playKeyOf("2x2 HAMMER") !== E.playKeyOf("Hammer")) {
+  throw new Error("calledHero must use playKeyOf");
+}
+if (!/callerLearnSuccess\(row\)/.test(html)) {
+  throw new Error("grade does not stamp callerLearnSuccess");
+}
 
 if (!/engineTier>3/.test(html)) throw new Error("thin rows still get a bold percent");
 if (!/Eng\.rank\(/.test(html)) throw new Error("Scout From your book does not call rank()");

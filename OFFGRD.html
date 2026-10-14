@@ -3011,6 +3011,50 @@ function callerLearnSuccess(r){
   }
   return (r&&r.success!=null)?r.success:null;
 }
+/** Hero at the moment of the call. A re-pick keeps that hero and only recomputes the match. */
+function callerHeroStamp(play, prior){
+  const Eng=window.OFFGRD_PREDICT;
+  const key=Eng&&Eng.playKeyOf?function(n){ return Eng.playKeyOf(n); }:function(n){ return String(n||"").trim().toLowerCase(); };
+  if(prior&&Object.prototype.hasOwnProperty.call(prior,"heroAtCall")){
+    const name=prior.heroAtCall||null;
+    return {
+      heroAtCall: name,
+      heroPct: prior.heroPct!=null?prior.heroPct:null,
+      calledHero: !!(name&&key(play)===key(name))
+    };
+  }
+  let hero=null;
+  try{
+    const ranked=typeof callerRankedCalls==="function"?callerRankedCalls():null;
+    hero=ranked&&ranked.list&&ranked.list[0]?ranked.list[0]:null;
+  }catch(e){}
+  const name=hero&&hero.play?hero.play:null;
+  let pct=null;
+  if(hero){
+    const sr=hero.empSr!=null?hero.empSr:(hero.sr||0);
+    pct=Math.round((+sr||0)*100);
+  }
+  return {
+    heroAtCall: name,
+    heroPct: pct,
+    calledHero: !!(name&&key(play)===key(name))
+  };
+}
+/** success on the outcome is callerLearnSuccess — the same getSuccess rank() uses. */
+function callerWithLearnSuccess(entry, payload){
+  payload=Object.assign({}, payload||{});
+  if(!entry||!Object.prototype.hasOwnProperty.call(payload,"result")) return payload;
+  if(payload.result==null||payload.result===""){
+    payload.success=null;
+    return payload;
+  }
+  const O=typeof callerOut==="function"?callerOut():(window.OFFGRD_CALLER_OUTCOME||null);
+  if(!O||typeof O.finalizeOutcome!=="function") return payload;
+  const fin=O.finalizeOutcome(payload, { dn:entry.dn, db:entry.db, estYards:entry.estYards, playType:entry.playType });
+  const row=Object.assign({}, entry, fin);
+  payload.success=callerLearnSuccess(row);
+  return payload;
+}
 function bestCallsFor(target,dn,db,kind){
   const ours=gamesRows("ours"); let plays=uniq(ours.map(r=>r.play)); if(kind) plays=plays.filter(pl=>playKind(pl)===kind); const res=[];
   const mD=r=>(dn==="ANY"||r.down===+dn);
@@ -4123,6 +4167,9 @@ function callerEntryToRow(l, side, playbookNames){
     frontCarried: !!(front&&l.frontCarried),
     pressureCarried: !!(l.pressure&&l.pressureCarried),
     formation: l.formation||null,
+    heroAtCall: l.heroAtCall||null,
+    heroPct: l.heroPct!=null&&l.heroPct!==""?+l.heroPct:null,
+    calledHero: l.calledHero===true,
     motion: null,
     personnel: null,
     direction: null,
@@ -5506,12 +5553,12 @@ function callerMovedChains(i){
     : callerSit;
   const next=O.movedChainsSituation(from);
   if(entry&&entry.result){
-    callerAppend("outcome", entry.playIndex, {
+    callerAppend("outcome", entry.playIndex, callerWithLearnSuccess(entry, {
       result: entry.result,
       flag: entry.flag||null,
       conceptOverride: entry.conceptOverride||null,
       movedChains: true
-    });
+    }));
   }
   callerApplyInfer(next);
   callerSaveLocal();
@@ -5952,7 +5999,7 @@ function callerGrade(i, resultId){
   if(next&&declinedPen) payload.penalty=declinedPen;
   else if(!next) payload.penalty=null;
   else if(entry.penalty&&entry.penalty.declined) payload.penalty=entry.penalty;
-  callerAppend("outcome", pi, payload);
+  callerAppend("outcome", pi, callerWithLearnSuccess(entry, payload));
   if(next&&declinedPen) delete CALLER_PEN_DRAFT[pi];
   if(next){
     const graded=CALLER_LOG.find(l=>l.playIndex===pi);
@@ -6009,7 +6056,7 @@ function callerPenOpen(i){
   const entry=CALLER_LOG[i]; if(!entry) return;
   const pi=entry.playIndex;
   if(entry.result==="penalty"){
-    callerAppend("outcome", pi, { result:null, flag:null, penalty:null });
+    callerAppend("outcome", pi, callerWithLearnSuccess(entry, { result:null, flag:null, penalty:null }));
     delete CALLER_PEN_DRAFT[pi];
     callerSit.dn=entry.dn;
     callerSit.db=entry.db;
@@ -6058,12 +6105,12 @@ function callerPenCommit(i, yards, auto1st){
   if(!d||!d.on) return;
   const y=auto1st?Math.abs(+yards||15):Math.abs(+yards);
   if(!y||isNaN(y)) return;
-  callerAppend("outcome", pi, {
+  callerAppend("outcome", pi, callerWithLearnSuccess(entry, {
     result:"penalty",
     flag:null,
     flags:[],
     penalty:{ on:d.on, type:d.type||null, yards:y, declined:false, auto1st:!!auto1st }
-  });
+  }));
   delete CALLER_PEN_DRAFT[pi];
   const graded=CALLER_LOG.find(l=>l.playIndex===pi);
   if(graded) callerMaybeAdvanceAfterGrade(graded);
@@ -6086,13 +6133,13 @@ function callerPenDeclined(i){
   const d=CALLER_PEN_DRAFT[pi];
   if(!d||!d.on) return;
   if(entry.result&&entry.result!=="penalty"){
-    callerAppend("outcome", pi, {
+    callerAppend("outcome", pi, callerWithLearnSuccess(entry, {
       result:entry.result,
       flag:entry.flag||null,
       flags:entry.flags||[],
       conceptOverride:entry.conceptOverride||null,
       penalty:{ on:d.on, type:d.type||null, yards:null, declined:true, auto1st:false }
-    });
+    }));
     delete CALLER_PEN_DRAFT[pi];
     const graded=CALLER_LOG.find(l=>l.playIndex===pi);
     if(graded) callerMaybeAdvanceAfterGrade(graded);
@@ -6108,11 +6155,11 @@ function callerSetFlag(i, flagId){
   const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
   const next=(entry.flag===flagId?null:flagId);
   const pi=entry.playIndex;
-  callerAppend("outcome", pi, {
+  callerAppend("outcome", pi, callerWithLearnSuccess(entry, {
     result: entry.result,
     flag: next,
     conceptOverride: entry.conceptOverride||null
-  });
+  }));
   const graded=CALLER_LOG.find(l=>l.playIndex===pi);
   if(graded&&graded.negated){
     callerSit.needsInput=true;
@@ -6126,11 +6173,11 @@ function callerSetFlag(i, flagId){
 function callerSetConcept(i, conceptId){
   const entry=CALLER_LOG[i]; if(!entry||!entry.result) return;
   const next=(entry.conceptOverride===conceptId?null:conceptId);
-  callerAppend("outcome", entry.playIndex, {
+  callerAppend("outcome", entry.playIndex, callerWithLearnSuccess(entry, {
     result: entry.result,
     flag: entry.flag||null,
     conceptOverride: next
-  });
+  }));
   callerRenderFull();
 }
 /** @deprecated hit/miss · routes to buckets via legacy ids still folded */
@@ -7742,7 +7789,7 @@ function callerLog(play){
   if(callerIsGuided()&&CALLER_REPICK){
     const live=callerLiveCall();
     if(live&&live.play){
-      callerAppend("correction", live.playIndex, Object.assign({ play:play }, callerSitCallFields()));
+      callerAppend("correction", live.playIndex, Object.assign({ play:play }, callerSitCallFields(), callerHeroStamp(play, live)));
       CALLER_REPICK=false;
       callerSaveLocal();
       callerGameAfterCall(live.playIndex);
@@ -7789,10 +7836,14 @@ function callerLog(play){
   }
   const isTwo=!!cs.forTwo;
   const priorCov=callerPriorCoverage();
+  const hero=callerHeroStamp(play);
   callerAppend("call", playIndex, {
     sitTxt: sitFields.sitTxt,
     play: play,
     playDir: playDir,
+    heroAtCall: hero.heroAtCall,
+    heroPct: hero.heroPct,
+    calledHero: hero.calledHero,
     dn: sitFields.dn,
     db: sitFields.db,
     estYards: sitFields.estYards,
@@ -7870,9 +7921,13 @@ function callerLogST(kind){
     playIndex=E.allocatePlayIndex(CALLER_EVENTS, callerFoldOpts());
   }
   const sitLabel=kind==="xp"?"After TD":(ordinal(+cs.dn)+" & "+cs.db+(cs.hash!=="ANY"?" "+cs.hash:""));
+  const hero=callerHeroStamp(play);
   callerAppend("call", playIndex, {
     sitTxt: sitLabel,
     play: play,
+    heroAtCall: hero.heroAtCall,
+    heroPct: hero.heroPct,
+    calledHero: hero.calledHero,
     dn: +cs.dn,
     db: cs.db,
     estYards: cs.estYards!=null?cs.estYards:callerEstYardsForBucket(cs.db),
@@ -7989,7 +8044,7 @@ function callerStStatsHtml(){
 function callerResult(i,res){
   const entry=CALLER_LOG[i]; if(!entry) return;
   const next=(entry.result===res?null:res);
-  callerAppend("outcome", entry.playIndex, { result: next });
+  callerAppend("outcome", entry.playIndex, callerWithLearnSuccess(entry, { result: next }));
   callerRenderFull();
 }
 function callerClear(){

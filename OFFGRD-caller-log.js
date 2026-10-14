@@ -254,7 +254,7 @@
     prev = prev || {};
     next = next || {};
     var out = Object.assign({}, prev);
-    ["result", "gain", "conceptOverride", "movedChains", "signal"].forEach(function (k) {
+    ["result", "gain", "conceptOverride", "movedChains", "signal", "success"].forEach(function (k) {
       if (hasOwn(next, k)) out[k] = next[k];
     });
     if (hasOwn(next, "penalty")) {
@@ -457,7 +457,7 @@
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "carried", "qtr", "formation", "playType", "theirDirection", "signal", "dCall", "dCallFront", "dCallCoverage", "dCallBlitz", "frontFamily", "coverageFamily", "pressureFamily"];
+          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "carried", "qtr", "formation", "heroAtCall", "heroPct", "calledHero", "playType", "theirDirection", "signal", "dCall", "dCallFront", "dCallCoverage", "dCallBlitz", "frontFamily", "coverageFamily", "pressureFamily"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -622,6 +622,9 @@
           else if (fin.result === "miss") fin.success = 0;
         }
       }
+      if (slot.outcome && slot.outcome.payload && hasOwn(slot.outcome.payload, "success")) {
+        fin.success = slot.outcome.payload.success;
+      }
       var sitInf =
         p.situationInferred === true || p.situationInferred === false
           ? !!p.situationInferred
@@ -653,6 +656,9 @@
         carried: !!(p.carried && p.coverage),
         qtr: p.qtr != null && p.qtr !== "" ? String(p.qtr) : "",
         formation: p.formation != null && p.formation !== "" ? p.formation : null,
+        heroAtCall: p.heroAtCall || null,
+        heroPct: p.heroPct != null && p.heroPct !== "" && !isNaN(+p.heroPct) ? +p.heroPct : null,
+        calledHero: p.calledHero === true,
         playType: p.playType,
         theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,
         dCall: p.dCall != null && p.dCall !== "" ? p.dCall : "",

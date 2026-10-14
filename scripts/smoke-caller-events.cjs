@@ -628,6 +628,41 @@ if (formFold.log[0].pressure) {
   throw new Error("D snap must fold with front and coverage and no blitz");
 }
 console.log("OK D formation folds; blitz may be empty");
+
+const heroFold = C.foldCallerEvents([
+  ev({
+    eventId: "hero-1",
+    playIndex: 0,
+    payload: {
+      play: "2x2 HAMMER",
+      dn: 1,
+      db: "10+",
+      heroAtCall: "Hammer",
+      heroPct: 76,
+      calledHero: true,
+    },
+    deviceId: "devA",
+    clientTs: 100,
+    seq: 1,
+  }),
+  ev({
+    eventId: "hero-1o",
+    playIndex: 0,
+    type: "outcome",
+    payload: { result: "hit", success: 0 },
+    deviceId: "devA",
+    clientTs: 101,
+    seq: 2,
+  }),
+]);
+const heroRow = heroFold.log[0];
+if (!heroRow || heroRow.heroAtCall !== "Hammer" || heroRow.heroPct !== 76 || heroRow.calledHero !== true) {
+  throw new Error("hero stamp must survive fold: " + JSON.stringify(heroRow));
+}
+if (heroRow.success !== 0) {
+  throw new Error("graded success stamp must win over fold default: " + heroRow.success);
+}
+console.log("OK hero stamp and graded success survive fold");
 console.log("OK D vocab front · coverage · blitz survive fold without observation");
 
 console.log("ALL PASS");
