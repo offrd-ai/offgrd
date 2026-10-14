@@ -471,7 +471,10 @@
       var mine = (slice.rows || []).filter(function (r) {
         return r && playKeyOf(r.play) === want;
       });
-      var looked = leader ? mine.filter(function (r) { return lookKey(r.coverage || r.cov) === leader; }) : [];
+      var looked = leader ? mine.filter(function (r) {
+        if (!r || r.carried) return false;
+        return lookKey(r.coverage || r.cov) === leader;
+      }) : [];
       var sit = statsOf(mine, getSuccess);
       var look = statsOf(looked, getSuccess);
       var tier = 4;

@@ -562,6 +562,43 @@ if (!qtrFold.log[0] || qtrFold.log[0].qtr !== "2") {
   throw new Error("stamped qtr must survive fold: " + JSON.stringify(qtrFold.log[0]));
 }
 console.log("OK qtr stamp survives fold");
+
+const carriedFold = C.foldCallerEvents([
+  ev({
+    eventId: "carry-1",
+    playIndex: 0,
+    payload: { play: "HAMMER", dn: 1, db: "10+", coverage: "Cover 3", carried: true },
+    deviceId: "devA",
+    clientTs: 70,
+    seq: 1,
+  }),
+]);
+if (!carriedFold.log[0] || carriedFold.log[0].carried !== true || carriedFold.log[0].coverage !== "Cover 3") {
+  throw new Error("carried look must survive fold: " + JSON.stringify(carriedFold.log[0]));
+}
+const confirmedFold = C.foldCallerEvents([
+  ev({
+    eventId: "carry-2",
+    playIndex: 0,
+    payload: { play: "HAMMER", dn: 1, db: "10+", coverage: "Cover 3", carried: true },
+    deviceId: "devA",
+    clientTs: 80,
+    seq: 1,
+  }),
+  ev({
+    eventId: "carry-2b",
+    playIndex: 0,
+    type: "correction",
+    payload: { coverage: "Cover 3", carried: false },
+    deviceId: "devA",
+    clientTs: 81,
+    seq: 2,
+  }),
+]);
+if (!confirmedFold.log[0] || confirmedFold.log[0].carried || confirmedFold.log[0].coverage !== "Cover 3") {
+  throw new Error("tapped look must clear carried: " + JSON.stringify(confirmedFold.log[0]));
+}
+console.log("OK carried look folds, tap clears it");
 console.log("OK D vocab front · coverage · blitz survive fold without observation");
 
 console.log("ALL PASS");

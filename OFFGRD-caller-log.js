@@ -457,7 +457,7 @@
         slot = byPlay[skey] || { call: null, outcome: null, obs: null, sitPatch: null, undone: false };
         var pl = e.payload || {};
         if (e.type === "correction") {
-          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "qtr", "playType", "theirDirection", "signal", "dCall", "dCallFront", "dCallCoverage", "dCallBlitz", "frontFamily", "coverageFamily", "pressureFamily"];
+          var sitKeys = ["dn", "db", "estYards", "hash", "zone", "play", "sitTxt", "situationInferred", "coverage", "carried", "qtr", "playType", "theirDirection", "signal", "dCall", "dCallFront", "dCallCoverage", "dCallBlitz", "frontFamily", "coverageFamily", "pressureFamily"];
           var hasSit = false;
           var sk;
           for (sk = 0; sk < sitKeys.length; sk++) {
@@ -650,6 +650,7 @@
         zone: p.zone,
         situationInferred: sitInf,
         coverage: p.coverage,
+        carried: !!(p.carried && p.coverage),
         qtr: p.qtr != null && p.qtr !== "" ? String(p.qtr) : "",
         playType: p.playType,
         theirDirection: p.theirDirection != null && p.theirDirection !== "" ? p.theirDirection : null,

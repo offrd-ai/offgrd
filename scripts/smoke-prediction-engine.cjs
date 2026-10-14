@@ -330,6 +330,15 @@ const memRow = spellRank.list.filter(function (e) { return e.play === "Memphis";
 if (!memRow || memRow.n !== 16) throw new Error("Memphis n " + (memRow && memRow.n));
 if (!/63%/.test(memRow.label)) throw new Error("Memphis pct " + memRow.label);
 
+const carriedOwn = own.concat([]);
+for (var cary = 0; cary < 8; cary++) {
+  carriedOwn.push(snap("HAMMER", { success: 1, gain: 8, coverage: "Cover 0", carried: true }));
+}
+const carriedRank = E.rank(C, carriedOwn, prediction, plays);
+if (!carriedRank.hero || carriedRank.hero.nLook !== 3) {
+  throw new Error("carried Cover 0 counted in vs-look: " + (carriedRank.hero && carriedRank.hero.nLook));
+}
+
 if (!/engineTier>3/.test(html)) throw new Error("thin rows still get a bold percent");
 if (!/Eng\.rank\(/.test(html)) throw new Error("Scout From your book does not call rank()");
 
