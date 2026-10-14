@@ -335,6 +335,8 @@
     .covlog button.is-prefill{border-style:dashed!important;border-width:2px!important;background:transparent!important}
     .rd-dc-look.rd-dc-vocab .covlog{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;overflow:visible!important}
     .rd-dc-look.rd-dc-vocab .covlog button{min-height:44px!important;font-size:13px!important;font-weight:800;line-height:1.15;white-space:normal!important}
+    .rd-dc-look-secondary{opacity:.72}
+    .rd-dc-look-secondary .lbl{font-weight:600}
     /* Pin Step 3/4: yards card reserved so Run/Pass does not slide the look chips */
     #view-dcaller .rd-gd-section-call{min-height:1px}
     #view-dcaller .rd-dc-grade-card{min-height:168px}
@@ -4120,7 +4122,7 @@ function callerEntryToRow(l, side, playbookNames){
     /* Sticky carry audit · future models can weight explicit higher */
     frontCarried: !!(front&&l.frontCarried),
     pressureCarried: !!(l.pressure&&l.pressureCarried),
-    formation: null,
+    formation: l.formation||null,
     motion: null,
     personnel: null,
     direction: null,

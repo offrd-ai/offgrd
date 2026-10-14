@@ -76,6 +76,7 @@ function toSeasonRow(S, l, opts) {
     coverage: l.coverage || "",
     carried: !!(l.carried && l.coverage),
     qtr: l.qtr != null && l.qtr !== "" ? String(l.qtr) : "",
+    formation: l.formation || null,
     front: l.front != null && l.front !== "" ? l.front : null,
     pressure: l.pressure != null && l.pressure !== "" ? l.pressure : null,
     play: l.play,

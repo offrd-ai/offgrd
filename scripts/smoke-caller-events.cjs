@@ -599,6 +599,35 @@ if (!confirmedFold.log[0] || confirmedFold.log[0].carried || confirmedFold.log[0
   throw new Error("tapped look must clear carried: " + JSON.stringify(confirmedFold.log[0]));
 }
 console.log("OK carried look folds, tap clears it");
+
+const formFold = C.foldCallerEvents([
+  ev({
+    eventId: "form-1",
+    playIndex: 0,
+    type: "call",
+    payload: {
+      play: "Pass",
+      playType: "Pass",
+      dn: 1,
+      db: "10+",
+      front: "4-3",
+      coverage: "Cover 3",
+      pressure: "",
+      formation: "TRIPS",
+      side: "defense",
+    },
+    deviceId: "dPad",
+    clientTs: 90,
+    seq: 1,
+  }),
+]);
+if (!formFold.log[0] || formFold.log[0].formation !== "TRIPS") {
+  throw new Error("formation chip must survive fold: " + JSON.stringify(formFold.log[0]));
+}
+if (formFold.log[0].pressure) {
+  throw new Error("D snap must fold with front and coverage and no blitz");
+}
+console.log("OK D formation folds; blitz may be empty");
 console.log("OK D vocab front · coverage · blitz survive fold without observation");
 
 console.log("ALL PASS");

@@ -29,6 +29,7 @@
     front: null,
     coverage: null,
     pressure: null,
+    formation: null,
     inferred: false,
     needsInput: false,
     pendingTry: false,
@@ -72,6 +73,7 @@
       front: null,
       coverage: null,
       pressure: null,
+      formation: null,
       inferred: false,
       needsInput: false,
       pendingTry: false,
@@ -1686,18 +1688,23 @@
 
   function dCallPayload() {
     var V = vocabApi();
-    if (V && V.payloadFromSit) return V.payloadFromSit(sit, dCallBook() || V.emptyBook());
-    return {
-      front: sit.front || "",
-      coverage: sit.coverage || "",
-      pressure: sit.pressure || "",
-      dCallFront: sit.front || "",
-      dCallCoverage: sit.coverage || "",
-      dCallBlitz: sit.pressure || "",
-      frontFamily: "",
-      coverageFamily: "",
-      pressureFamily: ""
-    };
+    var base;
+    if (V && V.payloadFromSit) base = V.payloadFromSit(sit, dCallBook() || V.emptyBook());
+    else {
+      base = {
+        front: sit.front || "",
+        coverage: sit.coverage || "",
+        pressure: sit.pressure || "",
+        dCallFront: sit.front || "",
+        dCallCoverage: sit.coverage || "",
+        dCallBlitz: sit.pressure || "",
+        frontFamily: "",
+        coverageFamily: "",
+        pressureFamily: ""
+      };
+    }
+    base.formation = sit.formation || "";
+    return base;
   }
 
   function dCallLabel(entry) {
@@ -1967,6 +1974,7 @@
         frontCarried: false,
         pressure: dPay.pressure,
         pressureCarried: false,
+        formation: dPay.formation || null,
         dCallFront: dPay.dCallFront,
         dCallCoverage: dPay.dCallCoverage,
         dCallBlitz: dPay.dCallBlitz,
@@ -2172,6 +2180,7 @@
       coverage: dPay.coverage,
       front: dPay.front,
       pressure: dPay.pressure,
+      formation: dPay.formation || "",
       dCall: sit.namedCall || "",
       dCallFront: dPay.dCallFront,
       dCallCoverage: dPay.dCallCoverage,
@@ -2229,6 +2238,7 @@
       sit.coverage = null;
       sit.front = null;
       sit.pressure = null;
+      sit.formation = null;
       pendingDir = null;
       saveLocal();
       refreshDriveToast();
@@ -2324,6 +2334,7 @@
     sit.coverage = null;
     sit.front = null;
     sit.pressure = null;
+    sit.formation = null;
     pendingDir = null;
     saveLocal();
     refreshDriveToast();
@@ -3314,6 +3325,28 @@
     );
   }
 
+  function bookFormations() {
+    var rows = [];
+    try {
+      if (typeof callerOppRows === "function") rows = callerOppRows("off") || [];
+      else if (typeof oppRows === "function") rows = oppRows("off") || [];
+    } catch (e) {}
+    var want = opp();
+    if (want && want !== "ANY") {
+      rows = (rows || []).filter(function (r) {
+        return r && r.opponent === want;
+      });
+    }
+    var X = global.OFFGRD_DCALLER_EXPECT;
+    if (!X || typeof X.formCounts !== "function") return [];
+    return X.formCounts(rows)
+      .slice(0, 5)
+      .map(function (f) {
+        return f.display || f.raw || f.key;
+      })
+      .filter(Boolean);
+  }
+
   function lookHtml() {
     var lists = lookLists();
     var team = !!dCallLists();
@@ -3336,14 +3369,23 @@
       return html;
     }
     var h = `<div class="rd-dc-look${team ? " rd-dc-vocab" : ""} no-print">`;
-    /* Front → Coverage → Blitz/Stunt — natural D-call order */
-    h += `<div class="lbl rd-look-lbl" style="margin-top:0">Front</div><div class="seg covlog rd-gd-look-seg">`;
+    var forms = bookFormations();
+    if (forms.length) {
+      h += `<div class="lbl rd-look-lbl" style="margin-top:0">Formation <span class="foot">optional</span></div>`;
+      h += `<div class="seg covlog rd-gd-look-seg">`;
+      forms.forEach(function (name) {
+        var on = sit.formation === name;
+        h += `<button type="button"${on ? ' class="on"' : ""} data-dc-look="formation" data-call="${esc(name)}" onclick="OFFGRD_DCALLER.setLook('formation',this.getAttribute('data-call'))">${esc(name)}</button>`;
+      });
+      h += `</div>`;
+    }
+    h += `<div class="lbl rd-look-lbl" style="margin-top:${forms.length ? 8 : 0}px">Front</div><div class="seg covlog rd-gd-look-seg">`;
     h += chips("front", lists.fronts, "front");
     h += `</div><div class="lbl rd-look-lbl" style="margin-top:8px">Coverage</div><div class="seg covlog rd-gd-look-seg">`;
     h += chips("coverage", lists.coverages, "coverage");
-    h += `</div><div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt</div><div class="seg covlog rd-gd-look-seg">`;
+    h += `</div><div class="rd-dc-look-secondary"><div class="lbl rd-look-lbl" style="margin-top:8px">Blitz/Stunt <span class="foot">optional</span></div><div class="seg covlog rd-gd-look-seg">`;
     h += chips("pressure", lists.pressures, "blitz");
-    h += `</div></div>`;
+    h += `</div></div></div>`;
     return h;
   }
 
@@ -3731,7 +3773,7 @@
         h += sectionKickerHtml(
           3,
           "Your D call",
-          "Front · Coverage · Blitz/Stunt · optional · clears after each snap"
+          "Front · Coverage · blitz optional"
         );
         h += lookHtml();
         h += namedCallHtml();
