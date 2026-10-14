@@ -115,6 +115,17 @@ if (q(0, q1h) !== "1" || q(1, q1h) !== "1" || q(2, q1h) !== "2" || q(3, q1h) !==
   throw new Error("Q1 then half → Q1 / Q2 / then Q3");
 }
 
+if (typeof A.liveQtrStamp !== "function") throw new Error("liveQtrStamp missing");
+if (A.liveQtrStamp(0, []) !== "1") throw new Error("no marks stamps Q1");
+if (A.liveQtrStamp(0, q1) !== "1" || A.liveQtrStamp(3, q1) !== "2") {
+  throw new Error("quarter mark stamps forward");
+}
+if (A.liveQtrStamp(0, halfOnly) !== "1" || A.liveQtrStamp(3, halfOnly) !== "3") {
+  throw new Error("half mark stamps Q1 before and Q3 after");
+}
+if (A.liveQtrStamp(4, q1h) !== "3") throw new Error("Q1 then half stamps Q3 on the next snap");
+
 console.log("ok  sticky bar has no data-derived %");
 console.log("ok  #rd-gd-expect-blitz exists in Expect (21% and elevated)");
 console.log("ok  qtrFromBreaks fixtures");
+console.log("ok  liveQtrStamp writes a quarter onto every snap");

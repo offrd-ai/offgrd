@@ -547,6 +547,21 @@ if (dVocabRow.dCallFront !== "BRAVO" || dVocabRow.dCallCoverage !== "CHICAGO" ||
 if (dVocabRow.frontCarried || dVocabRow.pressureCarried) {
   throw new Error("call-payload look is not a sticky carry");
 }
+
+const qtrFold = C.foldCallerEvents([
+  ev({
+    eventId: "qtr-1",
+    playIndex: 4,
+    payload: { play: "HAMMER", dn: 1, db: "10+", qtr: "2" },
+    deviceId: "devA",
+    clientTs: 60,
+    seq: 1,
+  }),
+]);
+if (!qtrFold.log[0] || qtrFold.log[0].qtr !== "2") {
+  throw new Error("stamped qtr must survive fold: " + JSON.stringify(qtrFold.log[0]));
+}
+console.log("OK qtr stamp survives fold");
 console.log("OK D vocab front · coverage · blitz survive fold without observation");
 
 console.log("ALL PASS");

@@ -2221,6 +2221,16 @@
     return "";
   }
 
+  /**
+   * Quarter written onto a live snap at log time.
+   * Uses qtrFromBreaks when a Quarter/Half mark decides it.
+   * No marks yet → "1", so the opening quarter is still a quarter.
+   */
+  function liveQtrStamp(playIndex, breaks) {
+    var q = qtrFromBreaks(playIndex, breaks);
+    return q || "1";
+  }
+
   var api = {
     deriveDrives: deriveDrives,
     possessionEnd: possessionEnd,
@@ -2259,6 +2269,7 @@
     tonightCovDistFromLog: tonightCovDistFromLog,
     lookCoverageShift: lookCoverageShift,
     qtrFromBreaks: qtrFromBreaks,
+    liveQtrStamp: liveQtrStamp,
     inferDriveEndFromSnap: inferDriveEndFromSnap,
     offenseLiveSections: offenseLiveSections,
     defenseLiveSections: defenseLiveSections,

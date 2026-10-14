@@ -74,6 +74,7 @@ function toSeasonRow(S, l, opts) {
     fieldZone: l.zone && l.zone !== "ANY" ? l.zone : "",
     hash: l.hash && l.hash !== "ANY" ? l.hash : "",
     coverage: l.coverage || "",
+    qtr: l.qtr != null && l.qtr !== "" ? String(l.qtr) : "",
     front: l.front != null && l.front !== "" ? l.front : null,
     pressure: l.pressure != null && l.pressure !== "" ? l.pressure : null,
     play: l.play,

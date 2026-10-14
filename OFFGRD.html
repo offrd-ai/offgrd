@@ -4133,9 +4133,11 @@ function callerEntryToRow(l, side, playbookNames){
     concept: l.conceptOverride||l.concept||null,
     situationInferred: !!l.situationInferred,
     qtr: (function(){
+      if(l.qtr!=null&&String(l.qtr)!=="") return String(l.qtr);
       const A=typeof callerAnalysis==="function"?callerAnalysis():(window.OFFGRD_CALLER_ANALYSIS||null);
-      if(!A||typeof A.qtrFromBreaks!=="function") return "";
-      return A.qtrFromBreaks(l.playIndex, typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[])||"";
+      if(A&&typeof A.liveQtrStamp==="function") return A.liveQtrStamp(l.playIndex, typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[])||"1";
+      if(!A||typeof A.qtrFromBreaks!=="function") return "1";
+      return A.qtrFromBreaks(l.playIndex, typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[])||"1";
     })(),
     family: l.family||null,
     concept: l.concept||null,
@@ -7713,6 +7715,12 @@ function callerGameAfterCall(playIndex){
   callerPatchChrome();
   if(!callerPatchEntry()) callerRenderFull();
 }
+/** Quarter on this snap, from Quarter/Half marks. No mark yet → Q1. */
+function callerLiveQtr(playIndex){
+  const A=callerAnalysis();
+  if(!A||typeof A.liveQtrStamp!=="function") return "1";
+  return A.liveQtrStamp(playIndex, typeof CALLER_BREAKS!=="undefined"?CALLER_BREAKS:[])||"1";
+}
 function callerLog(play){
   /* Re-pick is Back-from-B only. Skip leaves a pending snap; next tap is a new call at the banner sit. */
   if(callerIsGuided()&&CALLER_REPICK){
@@ -7775,6 +7783,7 @@ function callerLog(play){
     hash: sitFields.hash,
     zone: sitFields.zone,
     situationInferred: wasInferred,
+    qtr: callerLiveQtr(playIndex),
     coverage: callerIsGuided()?null:(expect.target||null),
     playType: callerPlayType(play),
     family: (function(){
@@ -7853,6 +7862,7 @@ function callerLogST(kind){
     hash: cs.hash,
     zone: cs.zone,
     situationInferred: !!cs.inferred,
+    qtr: callerLiveQtr(playIndex),
     coverage: null,
     playType: kind,
     opponent: callerSessionOpp(),

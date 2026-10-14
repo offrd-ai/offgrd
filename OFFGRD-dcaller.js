@@ -2108,6 +2108,13 @@
     }
   }
 
+  /** Quarter on this snap, from this side's Quarter/Half marks. No mark yet → Q1. */
+  function stampQtr(playIndex) {
+    var An = A();
+    if (!An || typeof An.liveQtrStamp !== "function") return "1";
+    return An.liveQtrStamp(playIndex, breaks) || "1";
+  }
+
   /** Happy path tap 1: what they ran (creates call). Outcome is optional metadata — never required to open a snap. */
   function shouldAmendOpenCall(live, playType, now) {
     if (!live || live.playIndex == null || live.result) return false;
@@ -2161,6 +2168,7 @@
       hash: sit.hash,
       zone: sit.zone,
       situationInferred: !!sit.inferred,
+      qtr: stampQtr(nextPi),
       coverage: dPay.coverage,
       front: dPay.front,
       pressure: dPay.pressure,
@@ -2500,6 +2508,7 @@
       hash: sit.hash || "ANY",
       zone: sit.zone || "ANY",
       situationInferred: false,
+      qtr: stampQtr(nextPi),
       coverage: "",
       front: "",
       pressure: "",
