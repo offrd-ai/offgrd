@@ -591,8 +591,9 @@
       var pressure = null;
       if (obs && obs.pressureSet) {
         pressure = obs.pressure != null && obs.pressure !== "" ? obs.pressure : null;
-      } else if (p.pressure != null && p.pressure !== "") {
-        pressure = p.pressure;
+      } else if (hasOwn(p, "pressure")) {
+        /* Explicit empty is "no blitz", not a missing field. */
+        pressure = p.pressure == null ? "" : p.pressure;
       } else if (p.dCallBlitz) {
         pressure = p.dCallBlitz;
       }

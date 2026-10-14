@@ -81,7 +81,7 @@ function toSeasonRow(S, l, opts) {
     heroPct: l.heroPct != null && l.heroPct !== "" && !isNaN(+l.heroPct) ? +l.heroPct : null,
     calledHero: l.calledHero === true,
     front: l.front != null && l.front !== "" ? l.front : null,
-    pressure: l.pressure != null && l.pressure !== "" ? l.pressure : null,
+    pressure: l.pressure != null ? l.pressure : null,
     play: l.play,
     playType: l.playType || null,
     gain: l.gain != null ? l.gain : null,
