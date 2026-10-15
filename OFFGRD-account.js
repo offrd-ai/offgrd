@@ -1220,15 +1220,44 @@ function mergeSeasonRows(a, b){
   if(!hasPlayNum) return out;
   return out.filter(function(r){ return seasonRowPlayNum(r)!==""; });
 }
+function blobStamp(g){
+  if(!g) return null;
+  const t=Date.parse(g.updatedAt||g.updated_at||"");
+  return Number.isFinite(t)?t:null;
+}
+/* Fields derive can add onto an existing callId. Identity ignores them, so the
+ * pull fingerprint has to see them or a stale cache never refreshes. */
+function seasonRowMirrorSig(r){
+  if(!r) return "";
+  return [
+    r.qtr||"",
+    r.carried?1:0,
+    r.heroAtCall||"",
+    r.heroPct!=null?r.heroPct:"",
+    r.calledHero?1:0,
+    r.formation||"",
+    r.pressure!=null?r.pressure:"",
+    r.coverage||"",
+    r.front||"",
+    r.gain!=null?r.gain:"",
+    r.success!=null?r.success:"",
+    r.play||""
+  ].join("~");
+}
 function gameSig(g){
   if(!g) return "";
   const n=(g.rows&&g.rows.length)||0;
   let rowFp=n;
+  let mirror=0;
   if(n){
-    /* Light fingerprint — count + first/last identities (not full JSON). */
+    /* Light fingerprint — count + first/last identities + derive fields. */
     rowFp+=":"+seasonRowIdentity(g.rows[0])+":"+seasonRowIdentity(g.rows[n-1]);
+    for(let i=0;i<n;i++){
+      const s=seasonRowMirrorSig(g.rows[i]);
+      for(let c=0;c<s.length;c++) mirror=(mirror*33+s.charCodeAt(c))|0;
+    }
   }
-  return [g.cid||"", gameNaturalKey(g.opponent,g.week,g.side), g.source||"", rowFp].join("\t");
+  return [g.cid||"", gameNaturalKey(g.opponent,g.week,g.side), g.source||"", g.updatedAt||"", rowFp, mirror].join("\t");
 }
 function gameLibSig(arr){
   if(!arr||!arr.length) return "0";
@@ -1254,7 +1283,12 @@ function mergeGames(cloudRows, local){
     if(cid && byCid.has(cid)) prev=byCid.get(cid);
     else if(byKey.has(key)) prev=byKey.get(key);
     if(prev){
-      prev.rows=mergeSeasonRows(prev.rows, rows);
+      /* Cloud is adopted first. When its stamp is at least the cache's, the
+       * server row wins that callId. A callId only the cache has still stays. */
+      const prevT=blobStamp(prev);
+      const nextT=blobStamp(g);
+      const storedWins=prevT!=null && (nextT==null || prevT>=nextT);
+      prev.rows=storedWins?mergeSeasonRows(rows, prev.rows):mergeSeasonRows(prev.rows, rows);
       if(!prev.cid && cid){ prev.cid=cid; byCid.set(cid, prev); }
       if(prev.source==="live_call" && g.source && g.source!=="live_call") prev.source=g.source;
       /* Keep canonical display fields from the survivor that already has a key slot. */

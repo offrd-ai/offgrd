@@ -55,6 +55,11 @@ function mergeSeasonRows(a, b) {
   if (!hasPlayNum) return out;
   return out.filter((r) => seasonRowPlayNum(r) !== "");
 }
+function blobStamp(g) {
+  if (!g) return null;
+  const t = Date.parse(g.updatedAt || g.updated_at || "");
+  return Number.isFinite(t) ? t : null;
+}
 function mergeGames(cloudRows, local) {
   const byCid = new Map();
   const byKey = new Map();
@@ -67,16 +72,19 @@ function mergeGames(cloudRows, local) {
     if (cid && byCid.has(cid)) prev = byCid.get(cid);
     else if (byKey.has(key)) prev = byKey.get(key);
     if (prev) {
-      prev.rows = mergeSeasonRows(prev.rows, rows);
+      const prevT = blobStamp(prev);
+      const nextT = blobStamp(g);
+      const storedWins = prevT != null && (nextT == null || prevT >= nextT);
+      prev.rows = storedWins ? mergeSeasonRows(rows, prev.rows) : mergeSeasonRows(prev.rows, rows);
       if (!prev.cid && cid) {
         prev.cid = cid;
         byCid.set(cid, prev);
       }
       if (prev.source === "live_call" && g.source && g.source !== "live_call") prev.source = g.source;
       if (g.updatedAt) {
-        const prevT = Date.parse(prev.updatedAt || "");
-        const nextT = Date.parse(g.updatedAt || "");
-        if (!Number.isFinite(prevT) || (Number.isFinite(nextT) && nextT >= prevT)) {
+        const prevTs = Date.parse(prev.updatedAt || "");
+        const nextTs = Date.parse(g.updatedAt || "");
+        if (!Number.isFinite(prevTs) || (Number.isFinite(nextTs) && nextTs >= prevTs)) {
           prev.updatedAt = g.updatedAt;
         }
       }
@@ -338,6 +346,78 @@ const gameOver = mergeGames(
   ]
 );
 assert(gameOver[0].rows.length === 2, "game merge keeps only playNum rows, got " + gameOver[0].rows.length);
+
+/* Stale live cache: newer cloud blob wins the same callId, unsynced callId stays. */
+const soakCloud = [
+  {
+    id: "live-soak",
+    opponent: "SOAK TEST 110",
+    week: "Live 2026-10-13",
+    side: "ours",
+    source: "live_call",
+    updated_at: "2026-10-14T04:28:37.000Z",
+    rows: [
+      { play: "HAMMER", source: "live_call", callId: "o1", coverage: "Cover 3", qtr: "1", carried: false, heroAtCall: "HAMMER", heroPct: 76, calledHero: true },
+      { play: "HAWK", source: "live_call", callId: "o2", coverage: "Cover 3", qtr: "1", carried: true, heroAtCall: "HAMMER", heroPct: 67, calledHero: false },
+    ],
+  },
+];
+const soakStale = [
+  {
+    cid: "live-soak",
+    opponent: "SOAK TEST 110",
+    week: "Live 2026-10-13",
+    side: "ours",
+    source: "live_call",
+    updatedAt: "2026-10-14T04:16:00.000Z",
+    rows: [
+      { play: "HAMMER", source: "live_call", callId: "o1", coverage: "Cover 3" },
+      { play: "HAWK", source: "live_call", callId: "o2", coverage: "Cover 3" },
+      { play: "LOCAL ONLY", source: "live_call", callId: "o9", coverage: "Cover 0" },
+    ],
+  },
+];
+const soaked = mergeGames(soakCloud, soakStale);
+const byCall = {};
+soaked[0].rows.forEach((r) => {
+  byCall[r.callId] = r;
+});
+assert(byCall.o2 && byCall.o2.carried === true && byCall.o2.qtr === "1" && byCall.o2.heroPct === 67, "newer cloud row replaces stale HAWK");
+assert(byCall.o1 && byCall.o1.calledHero === true && byCall.o1.heroAtCall === "HAMMER", "cloud hero fields win");
+assert(byCall.o9 && byCall.o9.play === "LOCAL ONLY", "unsynced callId stays");
+assert(soaked[0].updatedAt === "2026-10-14T04:28:37.000Z", "cloud stamp kept");
+
+/* Cache already copied the new stamp but still holds the old row. Equal stamp: cloud wins. */
+const stuck = [
+  {
+    cid: "live-soak",
+    opponent: "SOAK TEST 110",
+    week: "Live 2026-10-13",
+    side: "ours",
+    source: "live_call",
+    updatedAt: "2026-10-14T04:28:37.000Z",
+    rows: [{ play: "HAWK", source: "live_call", callId: "o2", coverage: "Cover 3" }],
+  },
+];
+const stuckRow = mergeGames(soakCloud, stuck)[0].rows.find((r) => r.callId === "o2");
+assert(stuckRow && stuckRow.carried === true && stuckRow.heroAtCall === "HAMMER", "equal stamp still takes the cloud row");
+
+/* A cache stamped after the cloud keeps its own row and still unions cloud-only snaps. */
+const newerLocal = [
+  {
+    cid: "live-soak",
+    opponent: "SOAK TEST 110",
+    week: "Live 2026-10-13",
+    side: "ours",
+    source: "live_call",
+    updatedAt: "2026-10-14T05:00:00.000Z",
+    rows: [{ play: "HAWK", source: "live_call", callId: "o2", coverage: "Cover 1", qtr: "2", carried: false }],
+  },
+];
+const localWon = mergeGames(soakCloud, newerLocal)[0];
+const hawkLocal = localWon.rows.find((r) => r.callId === "o2");
+assert(hawkLocal && hawkLocal.coverage === "Cover 1" && hawkLocal.qtr === "2", "newer local row wins");
+assert(localWon.rows.some((r) => r.callId === "o1" && r.heroAtCall === "HAMMER"), "cloud-only snap stays");
 
 console.log("ok: merge-games idempotent", {
   games: merged.length,
